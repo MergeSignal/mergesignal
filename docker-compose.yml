@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: reposentinel-db
+    environment:
+      POSTGRES_USER: reposentinel
+      POSTGRES_PASSWORD: reposentinel
+      POSTGRES_DB: reposentinel
+    ports:
+      - "5433:5432"
+    volumes:
+      - reposentinel_pg:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: reposentinel-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  reposentinel_pg:
