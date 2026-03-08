@@ -9,27 +9,19 @@ import { scanEventsRoutes } from "./routes/scanEvents";
 async function start() {
   const app = Fastify({ logger: true });
 
+  const allowedOrigins = new Set(
+    (process.env.CORS_ORIGINS ?? "http://localhost:3000,http://127.0.0.1:3000")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+
   await app.register(cors, {
     origin: (origin, cb) => {
       // מאפשר גם כלים בלי Origin (curl) וגם localhost רגיל
       if (!origin) return cb(null, true);
 
-      const allowed = new Set(
-        (
-          process.env.CORS_ORIGINS ??
-          "http://localhost:3000,http://127.0.0.1:3000"
-        )
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-      );
-      /*
-      const allowed = new Set([
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-      ]);*/
-
-      cb(null, allowed.has(origin));
+      cb(null, allowedOrigins.has(origin));
     },
     credentials: false,
   });

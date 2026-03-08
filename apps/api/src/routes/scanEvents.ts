@@ -5,22 +5,30 @@ export async function scanEventsRoutes(app: FastifyInstance) {
   app.get("/scan/:id/events", async (req, reply) => {
     const id = (req.params as any).id as string;
 
-    //reply.header("Access-Control-Allow-Origin", "http://localhost:3000");
-    reply.header("Content-Type", "text/event-stream");
-    reply.header("Cache-Control", "no-cache");
-    reply.header("Connection", "keep-alive");
-
-    reply.raw.flushHeaders?.();
-    /*
+    reply.hijack();
     reply.raw.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
-    });*/
+    });
+
+    // Force bytes to flush immediately (helps proxies/browsers start rendering)
+    reply.raw.write(`: connected\n\n`);
 
     const send = (event: string, data: unknown) => {
       reply.raw.write(`event: ${event}\n`);
       reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    let interval: NodeJS.Timeout | undefined;
+    let keepalive: NodeJS.Timeout | undefined;
+    let closed = false;
+    const cleanup = () => {
+      if (closed) return;
+      closed = true;
+      if (interval) clearInterval(interval);
+      if (keepalive) clearInterval(keepalive);
+      reply.raw.end();
     };
 
     // שליחה ראשונית
@@ -30,19 +38,25 @@ export async function scanEventsRoutes(app: FastifyInstance) {
     );
     if (first.rows.length === 0) {
       send("error", { message: "Not found" });
-      reply.raw.end();
+      cleanup();
       return;
     }
     send("status", first.rows[0]);
 
     if (first.rows[0].status === "done" || first.rows[0].status === "failed") {
-      reply.raw.end();
+      cleanup();
       return;
     }
+
+    keepalive = setInterval(() => {
+      // keep connection alive through proxies
+      reply.raw.write(`event: ping\ndata: {}\n\n`);
+    }, 15000);
+
     // Poll פנימי (בשרת) כל 1 שניה ודחיפה ללקוח רק אם השתנה
     let lastUpdated = String(first.rows[0].updated_at);
 
-    const interval = setInterval(async () => {
+    interval = setInterval(async () => {
       try {
         const { rows } = await db.query(
           "SELECT id, status, result, error, updated_at FROM scans WHERE id=$1",
@@ -50,8 +64,7 @@ export async function scanEventsRoutes(app: FastifyInstance) {
         );
         if (rows.length === 0) {
           send("error", { message: "Not found" });
-          clearInterval(interval);
-          reply.raw.end();
+          cleanup();
           return;
         }
 
@@ -61,19 +74,17 @@ export async function scanEventsRoutes(app: FastifyInstance) {
           send("status", rows[0]);
 
           if (rows[0].status === "done" || rows[0].status === "failed") {
-            clearInterval(interval);
-            reply.raw.end();
+            cleanup();
           }
         }
       } catch (e: any) {
         send("error", { message: String(e?.message ?? e) });
-        clearInterval(interval);
-        reply.raw.end();
+        cleanup();
       }
     }, 1000);
 
     req.raw.on("close", () => {
-      clearInterval(interval);
+      cleanup();
     });
   });
 }
