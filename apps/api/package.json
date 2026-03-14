@@ -14,7 +14,7 @@
     "@fastify/cors": "^11.2.0",
     "@octokit/app": "^16.1.2",
     "@prisma/client": "^7.4.1",
-    "@reposentinel/engine-stub": "workspace:^",
+    "@reposentinel/engine": "workspace:^",
     "@reposentinel/shared": "workspace:^",
     "bullmq": "^5.70.1",
     "dotenv": "^17.3.1",

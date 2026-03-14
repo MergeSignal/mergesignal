@@ -2,7 +2,7 @@ import "dotenv/config";
 import { Worker } from "bullmq";
 import { Pool } from "pg";
 import type { ScanLockfileInput, ScanRequest, UpgradeSimulationResult } from "@reposentinel/shared";
-import { analyze, simulateUpgrade } from "@reposentinel/engine-stub";
+import { analyze, simulateUpgrade } from "@reposentinel/engine";
 import { App } from "@octokit/app";
 import { randomUUID } from "crypto";
 import { getLimitsForOwner, getOwnerFromRepoId } from "./tier.js";

@@ -11,7 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@octokit/app": "^16.1.2",
-    "@reposentinel/engine-stub": "workspace:^",
+    "@reposentinel/engine": "workspace:^",
     "@reposentinel/shared": "workspace:^",
     "bullmq": "^5.70.1",
     "dotenv": "^17.3.1",

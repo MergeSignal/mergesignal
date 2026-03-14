@@ -1,23 +1,21 @@
 {
-  "name": "@reposentinel/cli",
+  "name": "@reposentinel/engine",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "bin": {
-    "reposentinel": "dist/cli.js"
-  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "dev": "tsx src/cli.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node --enable-source-maps dist/cli.js"
+    "check-types": "tsc -p tsconfig.json --noEmit"
   },
+  "license": "ISC",
   "dependencies": {
-    "@reposentinel/engine": "workspace:^",
+    "@reposentinel/engine-stub": "workspace:^",
     "@reposentinel/shared": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }

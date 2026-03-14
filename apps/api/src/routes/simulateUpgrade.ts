@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { UpgradeSimulationRequest } from "@reposentinel/shared";
-import { simulateUpgrade } from "@reposentinel/engine-stub";
+import { simulateUpgrade } from "@reposentinel/engine";
 import { sendProblem } from "../problem.js";
 
 export async function simulateUpgradeRoutes(app: FastifyInstance) {

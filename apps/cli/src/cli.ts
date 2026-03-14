@@ -2,7 +2,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { analyze } from "@reposentinel/engine-stub";
+import { analyze } from "@reposentinel/engine";
 import type { ScanLockfileInput, ScanResult, ScoreLayer } from "@reposentinel/shared";
 
 type ArgMap = {

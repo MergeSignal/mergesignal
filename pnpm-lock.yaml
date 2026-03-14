@@ -29,9 +29,9 @@ importers:
       '@prisma/client':
         specifier: ^7.4.1
         version: 7.4.1(prisma@7.4.1(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3))(typescript@5.9.3)
-      '@reposentinel/engine-stub':
+      '@reposentinel/engine':
         specifier: workspace:^
-        version: link:../../packages/engine-stub
+        version: link:../../packages/engine
       '@reposentinel/shared':
         specifier: workspace:^
         version: link:../../packages/shared
@@ -72,9 +72,9 @@ importers:
 
   apps/cli:
     dependencies:
-      '@reposentinel/engine-stub':
+      '@reposentinel/engine':
         specifier: workspace:^
-        version: link:../../packages/engine-stub
+        version: link:../../packages/engine
       '@reposentinel/shared':
         specifier: workspace:^
         version: link:../../packages/shared
@@ -131,9 +131,9 @@ importers:
       '@octokit/app':
         specifier: ^16.1.2
         version: 16.1.2
-      '@reposentinel/engine-stub':
+      '@reposentinel/engine':
         specifier: workspace:^
-        version: link:../../packages/engine-stub
+        version: link:../../packages/engine
       '@reposentinel/shared':
         specifier: workspace:^
         version: link:../../packages/shared
@@ -159,6 +159,22 @@ importers:
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/engine:
+    dependencies:
+      '@reposentinel/engine-stub':
+        specifier: workspace:^
+        version: link:../engine-stub
+      '@reposentinel/shared':
+        specifier: workspace:^
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

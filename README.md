@@ -2,7 +2,7 @@
 
 RepoSentinel is a dependency risk intelligence platform designed to produce **actionable, explainable risk scores** for repositories.
 
-This repository is an **early, working end-to-end system** (web + API + worker + Postgres + Redis) with a pluggable analysis engine. The current engine is `@reposentinel/engine-stub` (open, evolving) and can later be swapped for a proprietary engine without changing the surrounding platform.
+This repository is an **early, working end-to-end system** (web + API + worker + Postgres + Redis) with a pluggable analysis engine. The platform calls `@reposentinel/engine` (a stable facade) which loads `@reposentinel/engine-stub` by default and can be swapped for a proprietary engine without changing the surrounding platform (see `REPOSENTINEL_ENGINE_IMPL`).
 
 ### License and disclaimer
 
@@ -140,7 +140,8 @@ curl -iN --http1.1 "http://localhost:4000/scan/<scanId>/events"
 - **Postgres**: scan persistence + derived views (alerts, policies, benchmarks)
 - **Redis**: job queue (BullMQ)
 - **`packages/shared`**: TypeScript contracts
-- **`packages/engine-stub`**: analysis engine stub (`analyze`, `simulateUpgrade`)
+- **`packages/engine`**: stable engine facade (loads stub or proprietary engine)
+- **`packages/engine-stub`**: open analysis engine stub (`analyze`, `simulateUpgrade`)
 
 ### Flow
 
@@ -209,6 +210,14 @@ API reads `CORS_ORIGINS` (comma-separated) from `apps/api/.env`:
 ```bash
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
+
+### Engine (proprietary swap)
+
+The platform calls `@reposentinel/engine`, which loads a concrete engine implementation at runtime:
+
+- **Default**: uses `@reposentinel/engine-stub`
+- **Override**: set `REPOSENTINEL_ENGINE_IMPL` to a module specifier (for example a private package) that exports `analyze` and `simulateUpgrade`
+- **Strict mode**: set `REPOSENTINEL_ENGINE_STRICT=1` to fail startup if the proprietary engine cannot be loaded
 
 ### Tier caps (cost control)
 
