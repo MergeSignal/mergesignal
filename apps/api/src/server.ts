@@ -8,6 +8,7 @@ import { scanRoutes } from "./routes/scan";
 import { scanEventsRoutes } from "./routes/scanEvents";
 import { simulateUpgradeRoutes } from "./routes/simulateUpgrade";
 import { githubWebhookRoutes } from "./routes/githubWebhook";
+import { orgDashboardRoutes } from "./routes/orgDashboard";
 
 async function start() {
   const app = Fastify({ logger: true });
@@ -41,6 +42,7 @@ async function start() {
   app.register(scanEventsRoutes);
   app.register(simulateUpgradeRoutes);
   app.register(githubWebhookRoutes);
+  app.register(orgDashboardRoutes);
 
   const port = Number(process.env.PORT ?? 4000);
   const host = process.env.HOST ?? "0.0.0.0";

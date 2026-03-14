@@ -14,9 +14,8 @@ export default function ScanClient({ id }: { id: string }) {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    const es = new EventSource(`http://localhost:4000/scan/${id}/events`);
-    //const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL!;
-    //const es = new EventSource(`${baseUrl}/scan/${id}/events`);
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+    const es = new EventSource(`${baseUrl}/scan/${id}/events`);
 
     es.addEventListener("status", (e) => {
       try {
@@ -26,7 +25,9 @@ export default function ScanClient({ id }: { id: string }) {
       }
     });
 
-    es.addEventListener("error", () => setErr("SSE error"));
+    es.addEventListener("error", () => {
+      setErr((prev) => prev ?? "SSE connection issue (retrying)");
+    });
 
     return () => es.close();
   }, [id]);
