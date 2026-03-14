@@ -10,6 +10,7 @@ import { alertsRoutes } from "./alerts.js";
 import { policiesRoutes } from "./policies.js";
 import { benchmarkRoutes } from "./benchmark.js";
 import { openApiRoutes } from "./openapi.js";
+import { datasetRoutes } from "./dataset.js";
 
 export async function registerRoutes(app: FastifyInstance) {
   // Unversioned routes (backwards-compatible)
@@ -24,6 +25,7 @@ export async function registerRoutes(app: FastifyInstance) {
   app.register(alertsRoutes);
   app.register(policiesRoutes);
   app.register(benchmarkRoutes);
+  app.register(datasetRoutes);
 
   // Versioned API base
   await app.register(
@@ -39,6 +41,7 @@ export async function registerRoutes(app: FastifyInstance) {
       v1.register(alertsRoutes);
       v1.register(policiesRoutes);
       v1.register(benchmarkRoutes);
+      v1.register(datasetRoutes);
     },
     { prefix: "/v1" },
   );

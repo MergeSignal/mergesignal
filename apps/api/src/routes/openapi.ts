@@ -34,6 +34,7 @@ function getOpenApiSpec() {
       { name: "policies" },
       { name: "benchmark" },
       { name: "github" },
+      { name: "dataset" },
     ],
     components: {
       securitySchemes: {
@@ -79,6 +80,21 @@ function getOpenApiSpec() {
             status: { type: "string", enum: ["queued"] },
           },
           required: ["scanId", "status"],
+        },
+        PackageHealth: {
+          type: "object",
+          properties: {
+            name: { type: "string", example: "react" },
+            registry: { type: "string", example: "npm" },
+            deprecated: { type: "boolean" },
+            maintainers_count: { type: "integer", nullable: true },
+            latest_version: { type: "string", nullable: true },
+            latest_published_at: { type: "string", nullable: true },
+            modified_at: { type: "string", nullable: true },
+            repository_url: { type: "string", nullable: true },
+            last_fetched_at: { type: "string" },
+          },
+          required: ["name", "registry", "deprecated", "last_fetched_at"],
         },
       },
     },
@@ -153,6 +169,53 @@ function getOpenApiSpec() {
           tags: ["simulate"],
           summary: "Simulate upgrade impact between two lockfiles",
           responses: { "200": { description: "Upgrade simulation result" } },
+        },
+      },
+      "/dataset/packages": {
+        get: {
+          tags: ["dataset"],
+          summary: "List known packages in the ecosystem dataset",
+          parameters: [
+            { name: "q", in: "query", required: false, schema: { type: "string" } },
+            { name: "limit", in: "query", required: false, schema: { type: "integer", minimum: 1, maximum: 200 } },
+          ],
+          responses: {
+            "200": {
+              description: "Package list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      packages: { type: "array", items: { $ref: "#/components/schemas/PackageHealth" } },
+                    },
+                    required: ["packages"],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/dataset/package/{name}": {
+        get: {
+          tags: ["dataset"],
+          summary: "Get current + recent history for a package",
+          parameters: [
+            { name: "name", in: "path", required: true, schema: { type: "string" } },
+            { name: "days", in: "query", required: false, schema: { type: "integer", minimum: 1, maximum: 365 } },
+          ],
+          responses: {
+            "200": { description: "Package detail (current + history)" },
+            "404": {
+              description: "Not found",
+              content: {
+                "application/problem+json": {
+                  schema: { $ref: "#/components/schemas/Problem" },
+                },
+              },
+            },
+          },
         },
       },
       "/org/{owner}/dashboard": {

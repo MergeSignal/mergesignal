@@ -64,6 +64,22 @@ export type Recommendation = {
   evidence?: Record<string, unknown>;
 };
 
+export type PackageHealthObservation = {
+  name: string;
+  registry: "npm";
+  fetchedAt: string; // ISO
+  latestVersion: string | null;
+  latestPublishedAt: string | null; // ISO
+  modifiedAt: string | null; // ISO
+  deprecated: boolean;
+  maintainersCount: number | null;
+  repositoryUrl: string | null;
+};
+
+export type ScanDataset = {
+  packageHealth?: PackageHealthObservation[];
+};
+
 export type ScanResult = {
   totalScore: number;
   layerScores: LayerScores;
@@ -73,6 +89,7 @@ export type ScanResult = {
   signals?: RiskSignal[];
   contributions?: ScoreContribution[];
   recommendations?: Recommendation[];
+  dataset?: ScanDataset;
   generatedAt: string;
 };
 

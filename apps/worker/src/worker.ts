@@ -6,6 +6,7 @@ import { analyze, simulateUpgrade } from "@reposentinel/engine-stub";
 import { App } from "@octokit/app";
 import { randomUUID } from "crypto";
 import { getLimitsForOwner, getOwnerFromRepoId } from "./tier.js";
+import { persistPackageHealthDataset } from "./dataset.js";
 
 const db = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -96,6 +97,16 @@ new Worker<ScanJob>(
 
       if (rowCount !== 1) {
         throw new Error("Scan is not running; refusing to overwrite result");
+      }
+
+      try {
+        const observations = result.dataset?.packageHealth;
+        if (Array.isArray(observations) && observations.length) {
+          await persistPackageHealthDataset(db, { repoId, scanId, observations });
+        }
+      } catch (e: any) {
+        // eslint-disable-next-line no-console
+        console.error("Dataset persistence failed:", String(e?.message ?? e));
       }
 
       try {
@@ -473,6 +484,16 @@ async function checkRepoForAlerts(
     dependencyGraph: {},
     lockfile: { manager: "pnpm", content, path: src.lockfile_path },
   });
+
+  try {
+    const observations = after.dataset?.packageHealth;
+    if (Array.isArray(observations) && observations.length) {
+      await persistPackageHealthDataset(db, { repoId: src.repo_id, observations });
+    }
+  } catch (e: any) {
+    // eslint-disable-next-line no-console
+    console.error("Dataset persistence (alerts) failed:", String(e?.message ?? e));
+  }
 
   const beforeSignals = await getLatestSignalsForRepo(src.repo_id);
   const candidates = deriveAlertCandidates({

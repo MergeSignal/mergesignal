@@ -43,6 +43,7 @@ export async function analyze(req: ScanRequest): Promise<ScanResult> {
     signals,
     contributions: signalsToContributions(signals),
     recommendations,
+    dataset: health?.dataset,
     generatedAt: new Date().toISOString(),
   };
 }

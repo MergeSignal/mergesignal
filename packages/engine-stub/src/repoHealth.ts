@@ -1,4 +1,4 @@
-import type { Finding, Recommendation, RiskSignal, ScoreLayer } from "@reposentinel/shared";
+import type { Finding, PackageHealthObservation, Recommendation, RiskSignal, ScoreLayer } from "@reposentinel/shared";
 import type { DependencyGraph } from "./pnpmLock.js";
 import { fetchJsonCached } from "./http.js";
 
@@ -24,9 +24,10 @@ export async function repoHealthFromGraph(graph: DependencyGraph): Promise<{
   signals: RiskSignal[];
   findings: Finding[];
   recommendations: Recommendation[];
+  dataset: { packageHealth: PackageHealthObservation[] };
 }> {
   const enable = (process.env.REPOSENTINEL_ENABLE_REPO_HEALTH ?? "1") === "1";
-  if (!enable) return { signals: [], findings: [], recommendations: [] };
+  if (!enable) return { signals: [], findings: [], recommendations: [], dataset: { packageHealth: [] } };
 
   const maxPackages = clampInt(process.env.REPOSENTINEL_HEALTH_MAX_PACKAGES, 25);
   const timeoutMs = clampInt(process.env.REPOSENTINEL_HEALTH_TIMEOUT_MS, 2500);
@@ -49,7 +50,7 @@ export async function repoHealthFromGraph(graph: DependencyGraph): Promise<{
   });
 
   const ok = metas.filter(Boolean) as NpmMeta[];
-  if (ok.length === 0) return { signals: [], findings: [], recommendations: [] };
+  if (ok.length === 0) return { signals: [], findings: [], recommendations: [], dataset: { packageHealth: [] } };
 
   const now = Date.now();
   const deprecated = ok.filter((m) => m.deprecated);
@@ -161,7 +162,21 @@ export async function repoHealthFromGraph(graph: DependencyGraph): Promise<{
     });
   }
 
-  return { signals, findings, recommendations };
+  return { signals, findings, recommendations, dataset: { packageHealth: ok.map(toObservation) } };
+}
+
+function toObservation(m: NpmMeta): PackageHealthObservation {
+  return {
+    name: m.name,
+    registry: "npm",
+    fetchedAt: new Date().toISOString(),
+    latestVersion: m.latestVersion,
+    latestPublishedAt: m.latestPublishedAt,
+    modifiedAt: m.modifiedAt,
+    deprecated: m.deprecated,
+    maintainersCount: m.maintainersCount,
+    repositoryUrl: m.repositoryUrl,
+  };
 }
 
 async function fetchNpmMeta(
