@@ -49,9 +49,27 @@ new Worker<ScanJob>(
       if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
       const result = await analyze(req);
 
+      const totalScore = toInt(result.totalScore);
+      const security = toInt(result.layerScores.security);
+      const maintainability = toInt(result.layerScores.maintainability);
+      const ecosystem = toInt(result.layerScores.ecosystem);
+      const upgradeImpact = toInt(result.layerScores.upgradeImpact);
+      const methodologyVersion = result.methodologyVersion ?? null;
+      const generatedAt = result.generatedAt ?? null;
+
       const { rowCount } = await db.query(
-        "UPDATE scans SET status='done', result=$2::jsonb, finished_at=NOW(), heartbeat_at=NULL, updated_at=NOW() WHERE id=$1 AND status='running'",
-        [scanId, JSON.stringify(result)],
+        "UPDATE scans SET status='done', result=$2::jsonb, total_score=$3, layer_security=$4, layer_maintainability=$5, layer_ecosystem=$6, layer_upgrade_impact=$7, methodology_version=$8, result_generated_at=$9::timestamptz, finished_at=NOW(), heartbeat_at=NULL, updated_at=NOW() WHERE id=$1 AND status='running'",
+        [
+          scanId,
+          JSON.stringify(result),
+          totalScore,
+          security,
+          maintainability,
+          ecosystem,
+          upgradeImpact,
+          methodologyVersion,
+          generatedAt,
+        ],
       );
 
       if (rowCount !== 1) {
@@ -86,4 +104,10 @@ async function requeueStaleRunningScans() {
     [staleAfterMs],
   );
   return rowCount;
+}
+
+function toInt(n: unknown): number | null {
+  const v = typeof n === "number" ? n : Number(n);
+  if (!Number.isFinite(v)) return null;
+  return Math.round(v);
 }

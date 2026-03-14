@@ -63,7 +63,7 @@ export async function scanRoutes(app: FastifyInstance) {
     const id = (req.params as any).id as string;
 
     const { rows } = await db.query(
-      "SELECT id, repo_id, status, result, error, created_at, updated_at FROM scans WHERE id=$1",
+      "SELECT id, repo_id, status, total_score, layer_security, layer_maintainability, layer_ecosystem, layer_upgrade_impact, methodology_version, result_generated_at, result, error, created_at, updated_at FROM scans WHERE id=$1",
       [id],
     );
 
@@ -72,5 +72,21 @@ export async function scanRoutes(app: FastifyInstance) {
     }
 
     return rows[0];
+  });
+
+  app.get("/scans", async (req, reply) => {
+    const { repoId, limit } = req.query as any;
+    if (!repoId || typeof repoId !== "string") {
+      return reply.code(400).send({ message: "repoId is required" });
+    }
+
+    const n = Math.max(1, Math.min(200, Number(limit ?? 50)));
+
+    const { rows } = await db.query(
+      "SELECT id, repo_id, status, total_score, layer_security, layer_maintainability, layer_ecosystem, layer_upgrade_impact, methodology_version, result_generated_at, created_at, updated_at FROM scans WHERE repo_id=$1 ORDER BY created_at DESC LIMIT $2",
+      [repoId, n],
+    );
+
+    return { repoId, scans: rows };
   });
 }

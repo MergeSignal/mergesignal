@@ -9,6 +9,13 @@ CREATE TABLE scans (
   started_at    TIMESTAMPTZ,
   finished_at   TIMESTAMPTZ,
   heartbeat_at  TIMESTAMPTZ,
+  total_score   INT,
+  layer_security INT,
+  layer_maintainability INT,
+  layer_ecosystem INT,
+  layer_upgrade_impact INT,
+  methodology_version TEXT,
+  result_generated_at TIMESTAMPTZ,
   result        JSONB,
   error         TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -16,5 +23,6 @@ CREATE TABLE scans (
 );
 
 CREATE INDEX scans_repo_id_idx ON scans(repo_id);
+CREATE INDEX scans_repo_created_at_idx ON scans(repo_id, created_at DESC);
 CREATE INDEX scans_status_idx ON scans(status);
 CREATE INDEX scans_running_heartbeat_idx ON scans(status, heartbeat_at);
