@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import type { ScanLockfileInput, ScanRequest, UpgradeSimulationResult } from "@reposentinel/shared";
 import { analyze, simulateUpgrade } from "@reposentinel/engine-stub";
 import { App } from "@octokit/app";
+import { randomUUID } from "crypto";
 
 const db = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -36,6 +37,18 @@ const reapEveryMs = Number(process.env.SCAN_REAP_INTERVAL_MS ?? 30000);
 setInterval(() => {
   void requeueStaleRunningScans();
 }, reapEveryMs);
+
+const alertsEveryMs = Number(process.env.ALERTS_INTERVAL_MS ?? 60 * 60 * 1000);
+const alertsBatchLimit = Math.max(1, Math.min(200, Number(process.env.ALERTS_BATCH_LIMIT ?? 50)));
+const alertsConcurrency = Math.max(1, Math.min(10, Number(process.env.ALERTS_CONCURRENCY ?? 4)));
+const alertsMinScoreImpact = Number(process.env.ALERTS_MIN_SCORE_IMPACT ?? 8);
+
+setTimeout(() => {
+  void runAlertsTick();
+}, 10000);
+setInterval(() => {
+  void runAlertsTick();
+}, alertsEveryMs);
 
 new Worker<ScanJob>(
   "scan-queue",
@@ -338,4 +351,195 @@ function formatSigned(n: number) {
 function truncate(s: string, max: number) {
   if (s.length <= max) return s;
   return `${s.slice(0, max)}…`;
+}
+
+type RepoSource = {
+  repo_id: string;
+  owner: string;
+  repo: string;
+  installation_id: number;
+  lockfile_path: string;
+  lockfile_manager: string;
+  default_branch: string | null;
+};
+
+type AlertCandidate = {
+  repoId: string;
+  fingerprint: string;
+  type: string;
+  severity: "low" | "medium" | "high";
+  title: string;
+  details: any;
+};
+
+let alertsRunning = false;
+async function runAlertsTick() {
+  if (alertsRunning) return;
+  alertsRunning = true;
+  try {
+    const ghApp = loadGithubApp();
+    if (!ghApp) return;
+
+    const { rows } = await db.query(
+      "SELECT repo_id, owner, repo, installation_id, lockfile_path, lockfile_manager, default_branch FROM repo_sources ORDER BY updated_at DESC LIMIT $1",
+      [alertsBatchLimit],
+    );
+
+    const sources = rows as RepoSource[];
+    if (sources.length === 0) return;
+
+    await withConcurrency(alertsConcurrency, sources, async (src) => {
+      await checkRepoForAlerts(ghApp, src);
+    });
+  } catch (e: any) {
+    // eslint-disable-next-line no-console
+    console.error("alerts tick failed:", String(e?.message ?? e));
+  } finally {
+    alertsRunning = false;
+  }
+}
+
+async function checkRepoForAlerts(ghApp: App, src: RepoSource) {
+  if (src.lockfile_manager !== "pnpm") return;
+
+  const octokit = await ghApp.getInstallationOctokit(src.installation_id);
+
+  let branch = src.default_branch;
+  if (!branch) {
+    const repoInfo = await octokit.request("GET /repos/{owner}/{repo}", {
+      owner: src.owner,
+      repo: src.repo,
+    });
+    branch = String((repoInfo.data as any)?.default_branch ?? "");
+    if (branch) {
+      await db.query("UPDATE repo_sources SET default_branch=$2, updated_at=NOW() WHERE repo_id=$1", [
+        src.repo_id,
+        branch,
+      ]);
+    }
+  }
+  if (!branch) return;
+
+  const content = await tryFetchLockfile(octokit, {
+    owner: src.owner,
+    repo: src.repo,
+    path: src.lockfile_path,
+    ref: branch,
+  });
+  await db.query("UPDATE repo_sources SET last_checked_at=NOW(), updated_at=NOW() WHERE repo_id=$1", [
+    src.repo_id,
+  ]);
+  if (!content) return;
+
+  const after = await analyze({
+    repoId: src.repo_id,
+    dependencyGraph: {},
+    lockfile: { manager: "pnpm", content, path: src.lockfile_path },
+  });
+
+  const beforeSignals = await getLatestSignalsForRepo(src.repo_id);
+  const candidates = deriveAlertCandidates({
+    repoId: src.repo_id,
+    beforeSignals,
+    afterSignals: after.signals ?? [],
+    minScoreImpact: alertsMinScoreImpact,
+  });
+  if (candidates.length === 0) return;
+
+  for (const a of candidates) {
+    await db.query(
+      "INSERT INTO alerts (id, repo_id, fingerprint, type, severity, title, details) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb) ON CONFLICT (repo_id, fingerprint) DO NOTHING",
+      [randomUUID(), a.repoId, a.fingerprint, a.type, a.severity, a.title, JSON.stringify(a.details)],
+    );
+  }
+}
+
+async function getLatestSignalsForRepo(repoId: string) {
+  const { rows } = await db.query(
+    "SELECT result FROM scans WHERE repo_id=$1 AND status='done' AND result IS NOT NULL ORDER BY created_at DESC LIMIT 1",
+    [repoId],
+  );
+  const r = rows[0]?.result;
+  const signals = Array.isArray(r?.signals) ? r.signals : [];
+  return indexSignalsById(signals);
+}
+
+function deriveAlertCandidates(opts: {
+  repoId: string;
+  beforeSignals: Record<string, any>;
+  afterSignals: any[];
+  minScoreImpact: number;
+}): AlertCandidate[] {
+  const out: AlertCandidate[] = [];
+
+  for (const s of opts.afterSignals) {
+    const id = String(s?.id ?? "");
+    if (!id) continue;
+    const scoreImpact = Number(s?.scoreImpact ?? 0);
+    if (!Number.isFinite(scoreImpact) || scoreImpact < opts.minScoreImpact) continue;
+
+    const before = opts.beforeSignals[id];
+    const beforeImpact = Number(before?.scoreImpact ?? 0);
+    const isNew = !before;
+    const increased = scoreImpact - beforeImpact;
+    if (!isNew && increased < 4) continue;
+
+    const severity: AlertCandidate["severity"] =
+      scoreImpact >= 15 ? "high" : scoreImpact >= opts.minScoreImpact ? "medium" : "low";
+    const type = isNew ? "signal:new" : "signal:increased";
+    const title = isNew ? `New risk signal: ${id}` : `Risk signal increased: ${id}`;
+    const fingerprint = `${type}:${id}:${String(s?.value ?? "")}:${scoreImpact}`;
+
+    out.push({
+      repoId: opts.repoId,
+      fingerprint,
+      type,
+      severity,
+      title,
+      details: { signalId: id, before: before ?? null, after: s },
+    });
+  }
+
+  return out.slice(0, 20);
+}
+
+function indexSignalsById(signals: any[]) {
+  const out: Record<string, any> = {};
+  for (const s of signals) {
+    const id = String(s?.id ?? "");
+    if (id) out[id] = s;
+  }
+  return out;
+}
+
+async function tryFetchLockfile(
+  octokit: any,
+  opts: { owner: string; repo: string; path: string; ref: string },
+): Promise<string | null> {
+  try {
+    const contents = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", opts);
+    const b64 = (contents.data as any)?.content;
+    if (!b64 || typeof b64 !== "string") return null;
+    return Buffer.from(b64, "base64").toString("utf8");
+  } catch (e: any) {
+    const status = Number(e?.status ?? e?.response?.status ?? 0);
+    if (status === 404) return null;
+    throw e;
+  }
+}
+
+async function withConcurrency<T>(
+  n: number,
+  items: T[],
+  fn: (item: T) => Promise<void>,
+) {
+  const queue = [...items];
+  const workers = Array.from({ length: n }, async () => {
+    while (queue.length) {
+      const item = queue.shift();
+      if (!item) return;
+      await fn(item);
+    }
+  });
+  await Promise.all(workers);
 }

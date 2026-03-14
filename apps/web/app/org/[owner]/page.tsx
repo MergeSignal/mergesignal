@@ -59,9 +59,10 @@ export default async function Page({
             • avg score: <b>{data.summary.avgScore ?? "n/a"}</b>
           </div>
         </div>
-        <Link href="/" style={{ alignSelf: "center" }}>
-          Home
-        </Link>
+        <div style={{ display: "flex", gap: 12, alignSelf: "center" }}>
+          <Link href={`/org/${encodeURIComponent(owner)}/alerts`}>Alerts</Link>
+          <Link href="/">Home</Link>
+        </div>
       </div>
 
       <h2 style={{ marginTop: 18 }}>Repositories</h2>

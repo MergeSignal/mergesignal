@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { App } from "@octokit/app";
 import { createHmac, timingSafeEqual } from "crypto";
 import { createScanAndEnqueue } from "../services/scanService";
+import { upsertGithubRepoSource } from "../services/repoSourceService";
 
 type PullRequestEvent = {
   action?: string;
@@ -13,6 +14,7 @@ type PullRequestEvent = {
 type PushEvent = {
   installation?: { id: number };
   repository?: { name: string; owner?: { name?: string; login?: string } };
+  ref?: string;
   after?: string;
   commits?: Array<{ added?: string[]; modified?: string[]; removed?: string[] }>;
   head_commit?: { added?: string[]; modified?: string[]; removed?: string[] };
@@ -115,6 +117,14 @@ async function handlePullRequest(app: App, payload: PullRequestEvent, delivery: 
     : null;
 
   const repoId = `${owner}/${repo}`;
+  await upsertGithubRepoSource({
+    repoId,
+    owner,
+    repo,
+    installationId,
+    lockfilePath: match.path,
+    lockfileManager: match.manager,
+  });
   const scanId = delivery || undefined;
   const { scanId: created } = await createScanAndEnqueue({
     scanId,
@@ -142,6 +152,7 @@ async function handlePush(app: App, payload: PushEvent, delivery: string) {
   const installationId = payload.installation?.id;
   const repo = payload.repository?.name;
   const owner = payload.repository?.owner?.name ?? payload.repository?.owner?.login;
+  const ref = payload.ref;
   const sha = payload.after;
   if (!installationId || !owner || !repo || !sha) return { ignored: true, reason: "missing_fields" };
 
@@ -163,6 +174,17 @@ async function handlePush(app: App, payload: PushEvent, delivery: string) {
   const lockfileContent = Buffer.from(b64, "base64").toString("utf8");
 
   const repoId = `${owner}/${repo}`;
+  const defaultBranch =
+    typeof ref === "string" && ref.startsWith("refs/heads/") ? ref.slice("refs/heads/".length) : undefined;
+  await upsertGithubRepoSource({
+    repoId,
+    owner,
+    repo,
+    installationId,
+    lockfilePath: match.path,
+    lockfileManager: match.manager,
+    defaultBranch,
+  });
   const scanId = delivery || undefined;
   const { scanId: created } = await createScanAndEnqueue({
     scanId,
