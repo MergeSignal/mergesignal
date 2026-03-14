@@ -257,3 +257,4 @@ Explainability is exposed in scan results via:
 - `signals[]`: the raw set of risk signals (each with `scoreImpact` and optional `evidence`)
 - `contributions[]`: per-signal contribution list for simple UIs
 - `explain.reasons[]`: a short “Why this is risky” list derived from the highest-impact signals
+- `graphInsights`: dependency graph intelligence (deepest packages, hotspots, and vulnerable transitive packages with “via” paths when lockfile parsing is available)

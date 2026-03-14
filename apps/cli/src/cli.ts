@@ -133,6 +133,8 @@ function printSummary(opts: { repoId: string; lockfile?: ScanLockfileInput; resu
   const findings = Array.isArray(result.findings) ? result.findings : [];
   const recs = Array.isArray(result.recommendations) ? result.recommendations : [];
   const reasons = Array.isArray((result as any)?.explain?.reasons) ? (result as any).explain.reasons : [];
+  const graphInsights = (result as any)?.graphInsights;
+  const deepest = Array.isArray(graphInsights?.deepest) ? graphInsights.deepest : [];
 
   const lockfileLine = opts.lockfile ? `${opts.lockfile.path} (${opts.lockfile.manager})` : "none";
 
@@ -153,6 +155,18 @@ function printSummary(opts: { repoId: string; lockfile?: ScanLockfileInput; resu
       const title = String((r as any)?.title ?? (r as any)?.id ?? "Reason");
       const impact = Number((r as any)?.scoreImpact ?? 0);
       lines.push(`- ${title} (+${impact})`);
+    }
+  }
+
+  if (deepest.length) {
+    lines.push("");
+    lines.push("Dependency graph intelligence:");
+    for (const d of deepest.slice(0, 3)) {
+      const name = String(d?.packageName ?? "package");
+      const depth = Number(d?.depth ?? 0);
+      const direct = Boolean(d?.direct);
+      const via = Array.isArray(d?.via) ? d.via.join(" → ") : "";
+      lines.push(`- ${name} is ${direct ? "direct" : "transitive"} at depth ${depth}${via ? ` via ${via}` : ""}`);
     }
   }
 

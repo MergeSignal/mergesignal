@@ -29,11 +29,20 @@ type PnpmLock = {
       optionalDependencies?: Record<string, string>;
     }
   >;
+  snapshots?: Record<
+    string,
+    {
+      dependencies?: Record<string, string>;
+      optionalDependencies?: Record<string, string>;
+    }
+  >;
 };
 
 export function graphFromPnpmLockfile(lockfileYaml: string): DependencyGraph {
   const doc = parseYaml(lockfileYaml) as PnpmLock;
   const packages = doc?.packages ?? {};
+  const snapshots = doc?.snapshots ?? {};
+  const depIndex = Object.keys(snapshots).length ? snapshots : packages;
 
   const nodes = new Map<DepNodeId, { id: DepNodeId; name: string; version: string }>();
   const edges: Array<{ from: DepNodeId; to: DepNodeId }> = [];
@@ -59,13 +68,14 @@ export function graphFromPnpmLockfile(lockfileYaml: string): DependencyGraph {
     ensureNode(parsed.name, parsed.version);
   }
 
-  for (const rawKey of Object.keys(packages)) {
+  // pnpm lockfile v9 stores dependency edges under `snapshots`.
+  for (const rawKey of Object.keys(depIndex)) {
     const baseKey = rawKey.split("(")[0];
     const fromParsed = parseNameVersion(baseKey);
     if (!fromParsed) continue;
     const fromId = ensureNode(fromParsed.name, fromParsed.version);
 
-    const entry = packages[rawKey];
+    const entry = depIndex[rawKey] ?? {};
     const deps = {
       ...(entry.dependencies ?? {}),
       ...(entry.optionalDependencies ?? {}),

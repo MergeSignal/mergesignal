@@ -14,6 +14,7 @@ import { osvVulnerabilitiesFromGraph } from "./osv.js";
 import { adoptionSignalsFromGraph } from "./adoption.js";
 import { githubSignalsFromPackageHealth } from "./githubSignals.js";
 import { explainFromSignals } from "./explain.js";
+import { buildGraphInsights } from "./graphInsights.js";
 
 export async function analyze(req: ScanRequest): Promise<ScanResult> {
   const derivedGraph =
@@ -64,6 +65,7 @@ export async function analyze(req: ScanRequest): Promise<ScanResult> {
   const layerScores = computeLayerScores(signals);
   const totalScore = computeTotalScore(layerScores);
   const explain = explainFromSignals(signals);
+  const graphInsights = derivedGraph ? buildGraphInsights(derivedGraph, signals) : undefined;
 
   return {
     totalScore,
@@ -76,6 +78,7 @@ export async function analyze(req: ScanRequest): Promise<ScanResult> {
     recommendations,
     dataset: health?.dataset,
     explain,
+    graphInsights,
     generatedAt: new Date().toISOString(),
   };
 }

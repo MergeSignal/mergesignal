@@ -53,6 +53,8 @@ export default function ScanClient({ id }: { id: string }) {
   const recs = Array.isArray(data.result?.recommendations) ? data.result.recommendations : [];
   const findings = Array.isArray(data.result?.findings) ? data.result.findings : [];
   const reasons = Array.isArray(data.result?.explain?.reasons) ? data.result.explain.reasons : [];
+  const graphInsights = data.result?.graphInsights;
+  const deepest = Array.isArray(graphInsights?.deepest) ? graphInsights.deepest : [];
   const dotClass =
     data.status === "queued"
       ? styles.dotQueued
@@ -125,6 +127,33 @@ export default function ScanClient({ id }: { id: string }) {
                 <li key={String(r.id ?? r.title)}>
                   <b>{String(r.title ?? "Reason")}</b>{" "}
                   <span className={cardStyles.muted}>(+{Number(r.scoreImpact ?? 0)})</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
+
+      {data.status === "done" && (
+        <Card
+          title="Dependency graph intelligence"
+          subtitle={<span className={cardStyles.muted}>Transitive context and nesting depth</span>}
+        >
+          {deepest.length === 0 ? (
+            <div className={cardStyles.muted}>No graph insights yet.</div>
+          ) : (
+            <ul className={styles.list}>
+              {deepest.slice(0, 5).map((x: any) => (
+                <li key={String(x.packageName ?? x.version ?? Math.random())}>
+                  <b>{String(x.packageName ?? "package")}</b>{" "}
+                  <span className={cardStyles.muted}>
+                    {Boolean(x.direct) ? "direct" : "transitive"} • depth {Number(x.depth ?? 0)}
+                  </span>
+                  {Array.isArray(x.via) && x.via.length ? (
+                    <div className={cardStyles.note} style={{ marginTop: 6 }}>
+                      via {x.via.join(" → ")}
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>

@@ -93,6 +93,27 @@ export type ExplainBlock = {
   reasons: ExplainReason[];
 };
 
+export type DependencyGraphInsightKind = "hidden" | "vulnerable" | "deep" | "hotspot";
+
+export type DependencyGraphInsight = {
+  kind: DependencyGraphInsightKind;
+  packageName: string;
+  version?: string;
+  direct: boolean;
+  depth: number; // 1 = direct dependency
+  via?: string[]; // root -> ... -> package
+  evidence?: Record<string, unknown>;
+};
+
+export type DependencyGraphInsights = {
+  maxDepth: number;
+  nodes: number;
+  edges: number;
+  deepest?: DependencyGraphInsight[];
+  hotspots?: DependencyGraphInsight[];
+  vulnerable?: DependencyGraphInsight[];
+};
+
 export type ScanResult = {
   totalScore: number;
   layerScores: LayerScores;
@@ -104,6 +125,7 @@ export type ScanResult = {
   recommendations?: Recommendation[];
   dataset?: ScanDataset;
   explain?: ExplainBlock;
+  graphInsights?: DependencyGraphInsights;
   generatedAt: string;
 };
 
