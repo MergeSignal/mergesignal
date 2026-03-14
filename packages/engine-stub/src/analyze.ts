@@ -10,6 +10,9 @@ import type {
 } from "@reposentinel/shared";
 import { graphFromPnpmLockfile } from "./pnpmLock.js";
 import { repoHealthFromGraph } from "./repoHealth.js";
+import { osvVulnerabilitiesFromGraph } from "./osv.js";
+import { adoptionSignalsFromGraph } from "./adoption.js";
+import { githubSignalsFromPackageHealth } from "./githubSignals.js";
 
 export async function analyze(req: ScanRequest): Promise<ScanResult> {
   const derivedGraph =
@@ -23,12 +26,38 @@ export async function analyze(req: ScanRequest): Promise<ScanResult> {
   const baseRecommendations = buildRecommendations(stats);
 
   const health = derivedGraph ? await repoHealthFromGraph(derivedGraph) : null;
+  const [osv, adoption, gh] = derivedGraph
+    ? await Promise.all([
+        osvVulnerabilitiesFromGraph(derivedGraph).catch(() => ({ signals: [], findings: [], recommendations: [] })),
+        adoptionSignalsFromGraph(derivedGraph).catch(() => ({ signals: [], findings: [], recommendations: [] })),
+        githubSignalsFromPackageHealth(health?.dataset?.packageHealth ?? []).catch(() => ({
+          signals: [],
+          findings: [],
+          recommendations: [],
+        })),
+      ])
+    : [{ signals: [], findings: [], recommendations: [] }, { signals: [], findings: [], recommendations: [] }, { signals: [], findings: [], recommendations: [] }];
 
-  const signals = [...baseSignals, ...(health?.signals ?? [])];
-  const findings = [...baseFindings, ...(health?.findings ?? [])];
+  const signals = [
+    ...baseSignals,
+    ...(health?.signals ?? []),
+    ...(osv?.signals ?? []),
+    ...(adoption?.signals ?? []),
+    ...(gh?.signals ?? []),
+  ];
+  const findings = [
+    ...baseFindings,
+    ...(health?.findings ?? []),
+    ...(osv?.findings ?? []),
+    ...(adoption?.findings ?? []),
+    ...(gh?.findings ?? []),
+  ];
   const recommendations = finalizeRecommendations([
     ...baseRecommendations,
     ...(health?.recommendations ?? []),
+    ...(osv?.recommendations ?? []),
+    ...(adoption?.recommendations ?? []),
+    ...(gh?.recommendations ?? []),
   ]);
 
   const layerScores = computeLayerScores(signals);

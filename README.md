@@ -219,6 +219,23 @@ The platform calls `@reposentinel/engine`, which loads a concrete engine impleme
 - **Override**: set `REPOSENTINEL_ENGINE_IMPL` to a module specifier (for example a private package) that exports `analyze` and `simulateUpgrade`
 - **Strict mode**: set `REPOSENTINEL_ENGINE_STRICT=1` to fail startup if the proprietary engine cannot be loaded
 
+### Risk engine enrichment (optional network signals)
+
+The local engine can optionally call public APIs to enrich risk signals. These are **capped** and **cached** by default.
+
+- **OSV vulnerabilities (CVEs/advisories)**:
+  - Enable: `REPOSENTINEL_ENABLE_OSV=1` (default)
+  - Tunables: `REPOSENTINEL_OSV_MAX_PACKAGES`, `REPOSENTINEL_OSV_TIMEOUT_MS`, `REPOSENTINEL_OSV_CACHE_TTL_MS`
+- **npm adoption (downloads)**:
+  - Enable: `REPOSENTINEL_ENABLE_ADOPTION=1` (default)
+  - Tunables: `REPOSENTINEL_ADOPTION_MAX_PACKAGES`, `REPOSENTINEL_ADOPTION_TIMEOUT_MS`, `REPOSENTINEL_ADOPTION_CACHE_TTL_MS`,
+    `REPOSENTINEL_ADOPTION_LOW_DOWNLOADS`, `REPOSENTINEL_ADOPTION_VERY_LOW_DOWNLOADS`
+- **GitHub repo signals (maintainer activity / open issues)**:
+  - Disabled by default (requires token): `REPOSENTINEL_ENABLE_GITHUB_SIGNALS=1`
+  - Provide a token: `REPOSENTINEL_GITHUB_TOKEN` (or `GITHUB_TOKEN`)
+  - Tunables: `REPOSENTINEL_GITHUB_MAX_REPOS`, `REPOSENTINEL_GITHUB_TIMEOUT_MS`, `REPOSENTINEL_GITHUB_CACHE_TTL_MS`,
+    `REPOSENTINEL_GITHUB_STALE_PUSH_DAYS`
+
 ### Tier caps (cost control)
 
 RepoSentinel supports a basic free/paid tier model for expensive operations.
