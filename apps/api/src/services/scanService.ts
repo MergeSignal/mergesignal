@@ -8,11 +8,23 @@ export async function createScanAndEnqueue({
   repoId,
   dependencyGraph,
   lockfile,
+  baseLockfile,
+  github,
 }: {
   scanId?: string;
   repoId: string;
   dependencyGraph: unknown;
   lockfile?: ScanLockfileInput;
+  baseLockfile?: ScanLockfileInput;
+  github?: {
+    owner: string;
+    repo: string;
+    prNumber: number;
+    headSha: string;
+    baseSha?: string;
+    installationId: number;
+    deliveryId?: string;
+  };
 }) {
   const id = scanId ?? randomUUID();
 
@@ -36,7 +48,7 @@ export async function createScanAndEnqueue({
   try {
     await scanQueue.add(
       "scan",
-      { scanId: id, repoId, dependencyGraph, lockfile },
+      { scanId: id, repoId, dependencyGraph, lockfile, baseLockfile, github },
       {
         jobId: id,
         attempts: 3,

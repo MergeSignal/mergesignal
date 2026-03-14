@@ -10,6 +10,16 @@ export type ScanJob = {
   repoId: string;
   dependencyGraph: unknown;
   lockfile?: ScanLockfileInput;
+  baseLockfile?: ScanLockfileInput;
+  github?: {
+    owner: string;
+    repo: string;
+    prNumber: number;
+    headSha: string;
+    baseSha?: string;
+    installationId: number;
+    deliveryId?: string;
+  };
 };
 
 export const SCAN_QUEUE_NAME = "scan-queue";

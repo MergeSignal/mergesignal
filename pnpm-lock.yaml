@@ -109,6 +109,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@octokit/app':
+        specifier: ^16.1.2
+        version: 16.1.2
       '@reposentinel/engine-stub':
         specifier: workspace:^
         version: link:../../packages/engine-stub

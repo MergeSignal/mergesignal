@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@octokit/app": "^16.1.2",
     "@reposentinel/engine-stub": "workspace:^",
     "@reposentinel/shared": "workspace:^",
     "bullmq": "^5.70.1",

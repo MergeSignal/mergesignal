@@ -7,7 +7,7 @@ type PullRequestEvent = {
   action?: string;
   installation?: { id: number };
   repository?: { name: string; owner?: { login: string } };
-  pull_request?: { number: number; head?: { sha: string } };
+  pull_request?: { number: number; head?: { sha: string }; base?: { sha: string } };
 };
 
 type PushEvent = {
@@ -79,9 +79,12 @@ async function handlePullRequest(app: App, payload: PullRequestEvent, delivery: 
   const owner = payload.repository?.owner?.login;
   const repo = payload.repository?.name;
   const number = payload.pull_request?.number;
-  const sha = payload.pull_request?.head?.sha;
+  const headSha = payload.pull_request?.head?.sha;
+  const baseSha = payload.pull_request?.base?.sha;
 
-  if (!installationId || !owner || !repo || !number || !sha) return { ignored: true, reason: "missing_fields" };
+  if (!installationId || !owner || !repo || !number || !headSha) {
+    return { ignored: true, reason: "missing_fields" };
+    }
 
   const octokit = await app.getInstallationOctokit(installationId);
   const files = await octokit.request("GET /repos/{owner}/{repo}/pulls/{pull_number}/files", {
@@ -99,13 +102,17 @@ async function handlePullRequest(app: App, payload: PullRequestEvent, delivery: 
     owner,
     repo,
     path: match.path,
-    ref: sha,
+    ref: headSha,
   });
 
   const b64 = (contents.data as any)?.content;
   if (!b64 || typeof b64 !== "string") return { ignored: true, reason: "missing_lockfile_content" };
 
   const lockfileContent = Buffer.from(b64, "base64").toString("utf8");
+
+  const baseLockfileContent = baseSha
+    ? await tryFetchLockfile(octokit, { owner, repo, path: match.path, ref: baseSha })
+    : null;
 
   const repoId = `${owner}/${repo}`;
   const scanId = delivery || undefined;
@@ -114,9 +121,21 @@ async function handlePullRequest(app: App, payload: PullRequestEvent, delivery: 
     repoId,
     dependencyGraph: {},
     lockfile: { manager: match.manager, content: lockfileContent, path: match.path },
+    baseLockfile: baseLockfileContent
+      ? { manager: match.manager, content: baseLockfileContent, path: match.path }
+      : undefined,
+    github: {
+      owner,
+      repo,
+      prNumber: number,
+      headSha,
+      baseSha,
+      installationId,
+      deliveryId: delivery || undefined,
+    },
   });
 
-  return { queued: true, scanId: created, repoId, source: "pull_request", pr: number, sha };
+  return { queued: true, scanId: created, repoId, source: "pull_request", pr: number, headSha, baseSha };
 }
 
 async function handlePush(app: App, payload: PushEvent, delivery: string) {
@@ -182,5 +201,21 @@ function pickLockfilePath(changedPaths: string[]) {
     if (nested) return { path: nested, manager: c.manager };
   }
   return null;
+}
+
+async function tryFetchLockfile(
+  octokit: any,
+  opts: { owner: string; repo: string; path: string; ref: string },
+): Promise<string | null> {
+  try {
+    const contents = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", opts);
+    const b64 = (contents.data as any)?.content;
+    if (!b64 || typeof b64 !== "string") return null;
+    return Buffer.from(b64, "base64").toString("utf8");
+  } catch (e: any) {
+    const status = Number(e?.status ?? e?.response?.status ?? 0);
+    if (status === 404) return null;
+    throw e;
+  }
 }
 

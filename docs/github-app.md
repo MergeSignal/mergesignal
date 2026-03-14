@@ -12,9 +12,10 @@ In GitHub:
 - Subscribe to events:
   - **Pull request**
   - **Push**
-- Repository permissions (minimum for lockfile fetching):
+- Repository permissions:
   - **Contents**: Read-only
   - **Pull requests**: Read-only
+  - **Issues**: Read & write (required to post PR comments)
 
 Install the App on a repository (or “All repositories”) so it can receive events.
 
@@ -28,6 +29,6 @@ Set these env vars for `apps/api`:
 
 ## What happens on events
 
-- On `pull_request` (`opened`, `reopened`, `synchronize`), if a lockfile changed, RepoSentinel fetches the lockfile from the PR head SHA and enqueues a scan.
+- On `pull_request` (`opened`, `reopened`, `synchronize`), if a lockfile changed, RepoSentinel fetches the lockfile from the PR head SHA and enqueues a scan. After the scan completes, it posts/updates a PR comment with a risk delta (pnpm only for now).
 - On `push`, if a lockfile changed, RepoSentinel fetches the lockfile at the pushed SHA and enqueues a scan.
 
