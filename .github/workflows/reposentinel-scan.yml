@@ -52,15 +52,23 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Build engine + CLI
+        run: |
+          set -euo pipefail
+          pnpm -C packages/shared build
+          pnpm -C packages/engine-stub build
+          pnpm -C packages/engine build
+          pnpm -C apps/cli build
+
       - name: Run RepoSentinel scan
         env:
           FAIL_ABOVE: ${{ inputs.fail_above }}
         run: |
           set -euo pipefail
           echo "Running local scan for $GITHUB_REPOSITORY"
-          pnpm rs scan --repo-id "$GITHUB_REPOSITORY" --out reposentinel-scan.json --json > reposentinel-scan.pretty.json
+          node apps/cli/dist/cli.js scan --repo-id "$GITHUB_REPOSITORY" --out reposentinel-scan.json --json > reposentinel-scan.pretty.json
           if [ -n "${FAIL_ABOVE:-}" ]; then
-            pnpm rs scan --repo-id "$GITHUB_REPOSITORY" --fail-above "${FAIL_ABOVE}"
+            node apps/cli/dist/cli.js scan --repo-id "$GITHUB_REPOSITORY" --fail-above "${FAIL_ABOVE}"
           fi
 
       - name: Summary
