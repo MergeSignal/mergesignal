@@ -26,6 +26,9 @@ importers:
       '@prisma/client':
         specifier: ^7.4.1
         version: 7.4.1(prisma@7.4.1(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3))(typescript@5.9.3)
+      '@reposentinel/engine-stub':
+        specifier: workspace:^
+        version: link:../../packages/engine-stub
       '@reposentinel/shared':
         specifier: workspace:^
         version: link:../../packages/shared

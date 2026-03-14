@@ -75,3 +75,43 @@ export type ScanResult = {
   recommendations?: Recommendation[];
   generatedAt: string;
 };
+
+export type UpgradeTarget = {
+  packageName: string;
+  targetVersion?: string;
+};
+
+export type UpgradeSimulationRequest = {
+  repoId: string;
+  currentLockfile: ScanLockfileInput;
+  proposedLockfile?: ScanLockfileInput;
+  target?: UpgradeTarget;
+};
+
+export type UpgradeSimulationDelta = {
+  totalScoreDelta?: number;
+  layerScoreDeltas?: Partial<Record<ScoreLayer, number>>;
+  topSignalDeltas?: Array<{
+    id: string;
+    layer: ScoreLayer;
+    before?: number;
+    after?: number;
+    scoreImpactBefore?: number;
+    scoreImpactAfter?: number;
+  }>;
+};
+
+export type UpgradeSimulationImpact = {
+  packageName?: string;
+  observedVersions?: string[];
+  fanIn?: number;
+  rootBlastRadius?: number;
+};
+
+export type UpgradeSimulationResult = {
+  before: ScanResult;
+  after?: ScanResult;
+  delta?: UpgradeSimulationDelta;
+  impact?: UpgradeSimulationImpact;
+  generatedAt: string;
+};
