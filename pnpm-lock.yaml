@@ -70,6 +70,25 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  apps/cli:
+    dependencies:
+      '@reposentinel/engine-stub':
+        specifier: workspace:^
+        version: link:../../packages/engine-stub
+      '@reposentinel/shared':
+        specifier: workspace:^
+        version: link:../../packages/shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   apps/web:
     dependencies:
       '@repo/ui':
