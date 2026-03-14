@@ -62,6 +62,7 @@ export default async function Page({
         <div style={{ display: "flex", gap: 12, alignSelf: "center" }}>
           <Link href={`/org/${encodeURIComponent(owner)}/alerts`}>Alerts</Link>
           <Link href={`/org/${encodeURIComponent(owner)}/policies`}>Policies</Link>
+          <Link href={`/org/${encodeURIComponent(owner)}/benchmark`}>Benchmark</Link>
           <Link href="/">Home</Link>
         </div>
       </div>
