@@ -9,6 +9,7 @@ import type {
   ScoreLayer,
 } from "@reposentinel/shared";
 import { graphFromPnpmLockfile } from "./pnpmLock";
+import { repoHealthFromGraph } from "./repoHealth";
 
 export async function analyze(req: ScanRequest): Promise<ScanResult> {
   const derivedGraph =
@@ -17,19 +18,31 @@ export async function analyze(req: ScanRequest): Promise<ScanResult> {
       : null;
 
   const stats = deriveDependencyStats(derivedGraph ?? req.dependencyGraph);
-  const signals = buildSignals(stats);
+  const baseSignals = buildSignals(stats);
+  const baseFindings = buildFindings(stats);
+  const baseRecommendations = buildRecommendations(stats);
+
+  const health = derivedGraph ? await repoHealthFromGraph(derivedGraph) : null;
+
+  const signals = [...baseSignals, ...(health?.signals ?? [])];
+  const findings = [...baseFindings, ...(health?.findings ?? [])];
+  const recommendations = finalizeRecommendations([
+    ...baseRecommendations,
+    ...(health?.recommendations ?? []),
+  ]);
+
   const layerScores = computeLayerScores(signals);
   const totalScore = computeTotalScore(layerScores);
 
   return {
     totalScore,
     layerScores,
-    findings: buildFindings(stats),
-    methodologyVersion: "engine-stub/v1",
+    findings,
+    methodologyVersion: "engine-stub/v2",
     confidence: stats.hasGraphLikeShape ? "medium" : "low",
     signals,
     contributions: signalsToContributions(signals),
-    recommendations: buildRecommendations(stats),
+    recommendations,
     generatedAt: new Date().toISOString(),
   };
 }
@@ -375,7 +388,7 @@ function buildRecommendations(stats: DependencyStats) {
       estimatedScoreDelta: clampDelta(-25),
       layers: ["security", "maintainability", "upgradeImpact"],
     });
-    return finalizeRecommendations(recs);
+    return recs;
   }
 
   if (stats.duplicateVersionPackages > 0) {
@@ -453,7 +466,7 @@ function buildRecommendations(stats: DependencyStats) {
     });
   }
 
-  return finalizeRecommendations(recs);
+  return recs;
 }
 
 function clampScore(n: number): number {
