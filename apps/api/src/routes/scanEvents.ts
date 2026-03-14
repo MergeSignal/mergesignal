@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { db } from "../db.js";
+import { problemJsonString } from "../problem.js";
 
 export async function scanEventsRoutes(app: FastifyInstance) {
   app.get("/scan/:id/events", async (req, reply) => {
@@ -15,10 +16,17 @@ export async function scanEventsRoutes(app: FastifyInstance) {
     if (origin && !allowedOrigins.has(origin)) {
       reply.hijack();
       reply.raw.writeHead(403, {
-        "Content-Type": "text/plain; charset=utf-8",
+        "Content-Type": "application/problem+json; charset=utf-8",
+        "x-request-id": String((req as any).id ?? ""),
         Vary: "Origin",
       });
-      reply.raw.end("CORS origin not allowed");
+      reply.raw.end(
+        problemJsonString(req as any, {
+          status: 403,
+          title: "Forbidden",
+          detail: "CORS origin not allowed",
+        }),
+      );
       return;
     }
 
@@ -27,6 +35,7 @@ export async function scanEventsRoutes(app: FastifyInstance) {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
+      "x-request-id": String((req as any).id ?? ""),
       ...(origin ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : {}),
     });
 
@@ -54,7 +63,7 @@ export async function scanEventsRoutes(app: FastifyInstance) {
       [id],
     );
     if (first.rows.length === 0) {
-      send("error", { message: "Not found" });
+      send("error", { message: "Not found", requestId: String((req as any).id ?? "") });
       cleanup();
       return;
     }
@@ -78,7 +87,7 @@ export async function scanEventsRoutes(app: FastifyInstance) {
           [id],
         );
         if (rows.length === 0) {
-          send("error", { message: "Not found" });
+          send("error", { message: "Not found", requestId: String((req as any).id ?? "") });
           cleanup();
           return;
         }

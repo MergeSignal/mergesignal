@@ -1,11 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../db.js";
+import { sendProblem } from "../problem.js";
 
 export async function alertsRoutes(app: FastifyInstance) {
   app.get("/alerts", async (req, reply) => {
     const { repoId, limit } = req.query as any;
     if (!repoId || typeof repoId !== "string") {
-      return reply.code(400).send({ message: "repoId is required" });
+      return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "repoId is required" });
     }
     const n = Math.max(1, Math.min(200, Number(limit ?? 50)));
 
@@ -19,7 +20,7 @@ export async function alertsRoutes(app: FastifyInstance) {
 
   app.get("/org/:owner/alerts", async (req, reply) => {
     const owner = String((req.params as any).owner ?? "").trim();
-    if (!owner) return reply.code(400).send({ message: "owner is required" });
+    if (!owner) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "owner is required" });
 
     const n = Math.max(1, Math.min(500, Number((req.query as any)?.limit ?? 100)));
     const { rows } = await db.query(

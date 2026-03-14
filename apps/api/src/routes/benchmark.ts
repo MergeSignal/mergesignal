@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../db.js";
+import { sendProblem } from "../problem.js";
 
 type BenchmarkSummary = {
   scope: "global" | "owner";
@@ -22,13 +23,13 @@ export async function benchmarkRoutes(app: FastifyInstance) {
 
   app.get("/benchmark/org/:owner", async (req, reply) => {
     const owner = String((req.params as any).owner ?? "").trim();
-    if (!owner) return reply.code(400).send({ message: "owner is required" });
+    if (!owner) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "owner is required" });
     return await getBenchmarkSummary({ scope: "owner", owner });
   });
 
   app.get("/benchmark/repo", async (req, reply) => {
     const repoId = String((req.query as any)?.repoId ?? "").trim();
-    if (!repoId) return reply.code(400).send({ message: "repoId is required" });
+    if (!repoId) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "repoId is required" });
 
     const owner = repoId.includes("/") ? repoId.split("/")[0] : repoId;
 
@@ -77,7 +78,9 @@ export async function benchmarkRoutes(app: FastifyInstance) {
       [repoId],
     );
 
-    if (!rows.length) return reply.code(404).send({ message: "No scored scans found for repoId" });
+    if (!rows.length) {
+      return sendProblem(reply, req, { status: 404, title: "Not Found", detail: "No scored scans found for repoId" });
+    }
 
     const r: any = rows[0];
     return {

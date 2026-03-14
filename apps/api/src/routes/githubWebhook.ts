@@ -3,6 +3,7 @@ import { App } from "@octokit/app";
 import { createHmac, timingSafeEqual } from "crypto";
 import { createScanAndEnqueue } from "../services/scanService.js";
 import { upsertGithubRepoSource } from "../services/repoSourceService.js";
+import { sendProblem } from "../problem.js";
 
 type PullRequestEvent = {
   action?: string;
@@ -44,15 +45,19 @@ export async function githubWebhookRoutes(app: FastifyInstance) {
         { hasAppId: Boolean(appId), hasKey: Boolean(privateKeyRaw), hasSecret: Boolean(webhookSecret) },
         "GitHub webhook hit but not configured",
       );
-      return reply.code(503).send({ message: "GitHub webhook not configured" });
+      return sendProblem(reply, req, {
+        status: 503,
+        title: "Service Unavailable",
+        detail: "GitHub webhook not configured",
+      });
     }
 
     const rawBody = (req as any).rawBody as string | undefined;
-    if (!rawBody) return reply.code(400).send({ message: "Missing raw body" });
+    if (!rawBody) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "Missing raw body" });
 
     const sig = String(req.headers["x-hub-signature-256"] ?? "");
     if (!verifySignature(rawBody, sig, webhookSecret)) {
-      return reply.code(401).send({ message: "Invalid signature" });
+      return sendProblem(reply, req, { status: 401, title: "Unauthorized", detail: "Invalid signature" });
     }
 
     const event = String(req.headers["x-github-event"] ?? "");

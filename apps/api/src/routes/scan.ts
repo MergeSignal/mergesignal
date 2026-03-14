@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { db } from "../db.js";
 import type { ScanRequest } from "@reposentinel/shared";
 import { createScanAndEnqueue } from "../services/scanService.js";
+import { sendProblem } from "../problem.js";
 
 type ScanStatus = "queued" | "running" | "done" | "failed";
 
@@ -20,8 +21,12 @@ export async function scanRoutes(app: FastifyInstance) {
       return reply.code(202).send({ scanId, status: "queued" as ScanStatus });
     } catch (e: any) {
       const code = Number(e?.statusCode ?? 500);
-      if (code === 413) return reply.code(413).send({ message: "lockfile too large" });
-      if (code === 429) return reply.code(429).send({ message: "scan quota exceeded" });
+      if (code === 413) {
+        return sendProblem(reply, req, { status: 413, title: "Payload Too Large", detail: "lockfile too large" });
+      }
+      if (code === 429) {
+        return sendProblem(reply, req, { status: 429, title: "Too Many Requests", detail: "scan quota exceeded" });
+      }
       throw e;
     }
   });
@@ -35,7 +40,7 @@ export async function scanRoutes(app: FastifyInstance) {
     );
 
     if (rows.length === 0) {
-      return reply.code(404).send({ message: "Not found" });
+      return sendProblem(reply, req, { status: 404, title: "Not Found", detail: "scan not found" });
     }
 
     return rows[0];
@@ -44,7 +49,7 @@ export async function scanRoutes(app: FastifyInstance) {
   app.get("/scans", async (req, reply) => {
     const { repoId, limit } = req.query as any;
     if (!repoId || typeof repoId !== "string") {
-      return reply.code(400).send({ message: "repoId is required" });
+      return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "repoId is required" });
     }
 
     const n = Math.max(1, Math.min(200, Number(limit ?? 50)));

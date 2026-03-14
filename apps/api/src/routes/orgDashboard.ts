@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../db.js";
+import { sendProblem } from "../problem.js";
 
 type RepoRow = {
   repoId: string;
@@ -25,7 +26,7 @@ type RepoRow = {
 export async function orgDashboardRoutes(app: FastifyInstance) {
   app.get("/org/:owner/dashboard", async (req, reply) => {
     const owner = String((req.params as any).owner ?? "").trim();
-    if (!owner) return reply.code(400).send({ message: "owner is required" });
+    if (!owner) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "owner is required" });
 
     const limitRaw = (req.query as any)?.limit;
     const n = Math.max(1, Math.min(200, Number(limitRaw ?? 50)));
