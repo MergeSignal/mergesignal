@@ -21,17 +21,26 @@ export async function simulateUpgrade(
     lockfile: req.currentLockfile,
   });
 
-  const after =
+  const proposedGraph =
     req.proposedLockfile && sameManager(req.currentLockfile, req.proposedLockfile)
-      ? await analyze({
-          repoId: req.repoId,
-          dependencyGraph: graphFromLockfile(req.proposedLockfile),
-          lockfile: req.proposedLockfile,
-        })
+      ? graphFromLockfile(req.proposedLockfile)
       : undefined;
 
+  const after = proposedGraph
+    ? await analyze({
+        repoId: req.repoId,
+        dependencyGraph: proposedGraph,
+        lockfile: req.proposedLockfile!,
+      })
+    : undefined;
+
   const impact = req.target ? computeImpact(currentGraph, req.target.packageName) : undefined;
-  const delta = after ? computeDelta(before, after) : undefined;
+  const delta = after
+    ? {
+        ...computeDelta(before, after),
+        dependencyDelta: proposedGraph ? computeDependencyDelta(currentGraph, proposedGraph) : undefined,
+      }
+    : undefined;
 
   return {
     before,
@@ -86,6 +95,34 @@ function computeDelta(before: ScanResult, after: ScanResult): UpgradeSimulationD
     totalScoreDelta: after.totalScore - before.totalScore,
     layerScoreDeltas,
     topSignalDeltas,
+  };
+}
+
+export function computeDependencyDelta(beforeGraph: DependencyGraph, afterGraph: DependencyGraph) {
+  const beforeDirect = beforeGraph.directDeps ?? {};
+  const afterDirect = afterGraph.directDeps ?? {};
+
+  const beforeNames = new Set(Object.keys(beforeDirect));
+  const afterNames = new Set(Object.keys(afterDirect));
+
+  const directAdded = [...afterNames].filter((n) => !beforeNames.has(n));
+  const directRemoved = [...beforeNames].filter((n) => !afterNames.has(n));
+  const directUpdated = [...afterNames].filter(
+    (n) => beforeNames.has(n) && String(beforeDirect[n]) !== String(afterDirect[n]),
+  );
+
+  const beforePkgs = new Set(beforeGraph.nodes.map((n) => n.id));
+  const afterPkgs = new Set(afterGraph.nodes.map((n) => n.id));
+  const packagesAdded = [...afterPkgs].filter((id) => !beforePkgs.has(id)).length;
+  const packagesRemoved = [...beforePkgs].filter((id) => !afterPkgs.has(id)).length;
+
+  return {
+    directAdded: directAdded.length,
+    directRemoved: directRemoved.length,
+    directUpdated: directUpdated.length,
+    packagesAdded,
+    packagesRemoved,
+    topDirectAdded: directAdded.slice(0, 8),
   };
 }
 

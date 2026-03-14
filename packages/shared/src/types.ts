@@ -152,6 +152,14 @@ export type UpgradeSimulationDelta = {
     scoreImpactBefore?: number;
     scoreImpactAfter?: number;
   }>;
+  dependencyDelta?: {
+    directAdded: number;
+    directRemoved: number;
+    directUpdated: number;
+    packagesAdded: number;
+    packagesRemoved: number;
+    topDirectAdded?: string[];
+  };
 };
 
 export type UpgradeSimulationImpact = {

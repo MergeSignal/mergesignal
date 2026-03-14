@@ -184,6 +184,12 @@ curl -iN --http1.1 "http://localhost:4000/scan/<scanId>/events"
 
 See setup doc: `docs/github-app.md`.
 
+When configured and installed, RepoSentinel will **analyze PR lockfile changes** and post/refresh a PR comment containing:
+
+- dependency delta summary (direct + lockfile packages)
+- risk score delta and top signal deltas
+- “Why this is risky” reasons derived from explainable signals
+
 ---
 
 ## Migrations (local)
