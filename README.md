@@ -95,6 +95,17 @@ Notes:
 
 ---
 
+## CI/CD (GitHub Actions)
+
+This repo includes a CI workflow that runs a local RepoSentinel scan on pull requests and pushes to `main`:
+
+- Workflow: `.github/workflows/reposentinel-scan.yml`
+- Outputs:
+  - GitHub Actions **job summary** (score + top recommendations)
+  - Uploaded artifact: `reposentinel-scan.json`
+
+---
+
 ## API usage (smoke test)
 
 Create a scan:

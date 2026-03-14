@@ -1,0 +1,92 @@
+name: RepoSentinel scan
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      fail_above:
+        description: "Fail if totalScore > this value (0..100). Leave empty to not fail."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reposentinel-scan-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Run RepoSentinel scan
+        env:
+          FAIL_ABOVE: ${{ inputs.fail_above }}
+        run: |
+          set -euo pipefail
+          echo "Running local scan for $GITHUB_REPOSITORY"
+          pnpm rs scan --repo-id "$GITHUB_REPOSITORY" --out reposentinel-scan.json --json > reposentinel-scan.pretty.json
+          if [ -n "${FAIL_ABOVE:-}" ]; then
+            pnpm rs scan --repo-id "$GITHUB_REPOSITORY" --fail-above "${FAIL_ABOVE}"
+          fi
+
+      - name: Summary
+        run: |
+          node -e '
+          const fs = require("fs");
+          const r = JSON.parse(fs.readFileSync("reposentinel-scan.json","utf8"));
+          const total = r.totalScore ?? null;
+          const conf = r.confidence ?? "n/a";
+          const method = r.methodologyVersion ?? "n/a";
+          const layers = r.layerScores ?? {};
+          const recs = Array.isArray(r.recommendations) ? r.recommendations : [];
+          const lines = [];
+          lines.push("## RepoSentinel scan");
+          lines.push("");
+          lines.push(`- Repo: \`${process.env.GITHUB_REPOSITORY}\``);
+          lines.push(`- Method: \`${method}\` • Confidence: \`${conf}\``);
+          lines.push(`- Total score: **${total ?? "n/a"}** (0 best → 100 worst)`);
+          lines.push(`- Layers: security=${layers.security ?? "n/a"}, maintainability=${layers.maintainability ?? "n/a"}, ecosystem=${layers.ecosystem ?? "n/a"}, upgradeImpact=${layers.upgradeImpact ?? "n/a"}`);
+          if (recs.length) {
+            lines.push("");
+            lines.push("Top recommendations:");
+            for (const x of recs.slice(0, 5)) {
+              const title = String(x.title ?? "Untitled");
+              const prio = Number(x.priorityScore ?? 0);
+              lines.push(`- ${title} (${prio})`);
+            }
+          }
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          '
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: reposentinel-scan
+          path: |
+            reposentinel-scan.json
+            reposentinel-scan.pretty.json
+          if-no-files-found: error
+
