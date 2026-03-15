@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { AppShell } from "../../_components/AppShell";
 import { DataTable, TD } from "../../_components/ui/Table";
-import { cardStyles } from "../../_components/ui/Card";
+import { Card, cardStyles } from "../../_components/ui/Card";
 import { apiGet, ApiError } from "../../../lib/api";
+import styles from "./OrgDashboard.module.css";
 
 type Dashboard = {
   owner: string;
@@ -51,11 +52,25 @@ export default async function Page({
   return (
     <AppShell
       title="Org dashboard"
-      subtitle={`repos: ${data.summary.repoCount} • scored: ${data.summary.scoredRepoCount} • avg: ${
-        data.summary.avgScore ?? "n/a"
-      }`}
+      subtitle={owner}
       owner={owner}
     >
+      {/* Summary Cards */}
+      <div className={styles.grid}>
+        <Card as="div" title="Total Repos">
+          <div className={styles.metricValue}>{data.summary.repoCount}</div>
+        </Card>
+        <Card as="div" title="Scored Repos">
+          <div className={styles.metricValue}>{data.summary.scoredRepoCount}</div>
+        </Card>
+        <Card as="div" title="Avg Score">
+          <div className={styles.metricValue}>
+            {data.summary.avgScore !== null ? Math.round(data.summary.avgScore) : "n/a"}
+          </div>
+        </Card>
+      </div>
+
+      {/* Repository Table */}
       <DataTable
         headers={["Repo", "Score", "Δ", "Status", "Last scan", ""]}
         rows={data.repos.map((r) => (
@@ -64,16 +79,14 @@ export default async function Page({
               <code>{r.repoId}</code>
             </TD>
             <TD>
-              <b>{r.latest.totalScore ?? "n/a"}</b>
+              <ScoreBadge score={r.latest.totalScore} />
             </TD>
             <TD>
-              {typeof r.deltaTotalScore === "number"
-                ? r.deltaTotalScore > 0
-                  ? `+${r.deltaTotalScore}`
-                  : `${r.deltaTotalScore}`
-                : "—"}
+              <DeltaBadge delta={r.deltaTotalScore} />
             </TD>
-            <TD>{r.latest.status}</TD>
+            <TD>
+              <StatusBadge status={r.latest.status} />
+            </TD>
             <TD>{new Date(r.latest.createdAt).toLocaleString()}</TD>
             <TD>
               <Link href={`/scan/${r.latest.scanId}`}>Open</Link>
@@ -94,6 +107,80 @@ export default async function Page({
         </div>
       ) : null}
     </AppShell>
+  );
+}
+
+function ScoreBadge({ score }: { score: number | null }) {
+  if (score === null) {
+    return <span>n/a</span>;
+  }
+
+  let badgeClass = styles.scoreGood;
+  if (score > 60) {
+    badgeClass = styles.scoreHigh;
+  } else if (score > 30) {
+    badgeClass = styles.scoreMedium;
+  }
+
+  return (
+    <span className={styles.scoreCell}>
+      <span className={`${styles.scoreBadge} ${badgeClass}`}>{Math.round(score)}</span>
+    </span>
+  );
+}
+
+function DeltaBadge({ delta }: { delta: number | null | undefined }) {
+  if (typeof delta !== "number") {
+    return <span className={styles.deltaNeutral}>—</span>;
+  }
+
+  if (delta > 0) {
+    return (
+      <span className={`${styles.deltaCell} ${styles.deltaPositive}`}>
+        ⬆ +{delta}
+      </span>
+    );
+  }
+
+  if (delta < 0) {
+    return (
+      <span className={`${styles.deltaCell} ${styles.deltaNegative}`}>
+        ⬇ {delta}
+      </span>
+    );
+  }
+
+  return <span className={styles.deltaNeutral}>—</span>;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  let badgeClass = styles.statusQueued;
+  let icon = "⏳";
+
+  switch (status) {
+    case "done":
+      badgeClass = styles.statusDone;
+      icon = "✓";
+      break;
+    case "running":
+      badgeClass = styles.statusRunning;
+      icon = "◉";
+      break;
+    case "failed":
+      badgeClass = styles.statusFailed;
+      icon = "✗";
+      break;
+    case "queued":
+      badgeClass = styles.statusQueued;
+      icon = "⏳";
+      break;
+  }
+
+  return (
+    <span className={`${styles.statusBadge} ${badgeClass}`}>
+      {status === "running" ? <span className={styles.spinner} /> : icon}
+      {status}
+    </span>
   );
 }
 
