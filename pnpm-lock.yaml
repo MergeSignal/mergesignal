@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      is-sorted:
+        specifier: 1.0.5
+        version: 1.0.5
     devDependencies:
       prettier:
         specifier: ^3.7.4
@@ -1716,6 +1720,9 @@ packages:
   is-shared-array-buffer@1.0.4:
     resolution: {integrity: sha512-ISWac8drv4ZGfwKl5slpHG9OwPNty4jOWPRIhBpxOoD+hqITiwuipOQ2bNthAzwA3B4fIjO4Nln74N0S9byq8A==}
     engines: {node: '>= 0.4'}
+
+  is-sorted@1.0.5:
+    resolution: {integrity: sha512-KZJvKDrI+Kg3ixeDaZQIt7RIwcGnm07+NSipyj1r9MtjDrLG678ETy4yO6dBJLUjejPdge9fLCGxsWkQO/3PJg==}
 
   is-string@1.1.1:
     resolution: {integrity: sha512-BtEeSsoaQjlSPBemMQIrY1MY0uM6vnS1g5fmufYOtnxLGUZM2178PKbhsk7Ffv58IX+ZtcvoGwccYsh0PglkAA==}
@@ -4121,6 +4128,8 @@ snapshots:
   is-shared-array-buffer@1.0.4:
     dependencies:
       call-bound: 1.0.4
+
+  is-sorted@1.0.5: {}
 
   is-string@1.1.1:
     dependencies:
