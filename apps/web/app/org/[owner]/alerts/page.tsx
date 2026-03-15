@@ -11,7 +11,7 @@ type OrgAlerts = {
     type: string;
     severity: string;
     title: string;
-    details: any;
+    details: unknown;
     created_at: string;
   }>;
 };

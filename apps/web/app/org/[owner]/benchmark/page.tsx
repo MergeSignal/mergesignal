@@ -60,7 +60,7 @@ export default async function Page({ params }: { params: Promise<{ owner: string
 }
 
 function SummaryCards({ s }: { s: Summary }) {
-  const items: Array<[string, any]> = [
+  const items: Array<[string, string | number]> = [
     ["repos", s.repoCount],
     ["avg", s.avgTotalScore ?? "n/a"],
     ["median", s.medianTotalScore ?? "n/a"],

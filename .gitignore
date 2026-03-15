@@ -46,3 +46,9 @@ yarn-error.log*
 
 # TS incremental/build info
 *.tsbuildinfo
+
+# Cursor AI
+.cursor/plans/
+.cursor/sessions/
+.cursor/cache/
+.cursor/logs/

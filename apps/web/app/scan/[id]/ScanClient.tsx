@@ -10,8 +10,32 @@ import { getApiBaseUrl } from "../../../lib/api";
 type ScanRow = {
   id: string;
   status: "queued" | "running" | "done" | "failed";
-  result?: any;
+  result?: ScanResult;
   error?: string | null;
+};
+
+type ScanResult = {
+  totalScore?: number;
+  layerScores?: {
+    security: number;
+    maintainability: number;
+    ecosystem: number;
+    upgradeImpact: number;
+  };
+  recommendations?: Array<{ id?: string; title?: string; priorityScore?: number }>;
+  findings?: unknown[];
+  explain?: {
+    reasons?: Array<{ id?: string; title?: string; scoreImpact?: number }>;
+  };
+  graphInsights?: {
+    deepest?: Array<{
+      packageName?: string;
+      version?: string;
+      direct?: boolean;
+      depth?: number;
+      via?: string[];
+    }>;
+  };
 };
 
 export default function ScanClient({ id }: { id: string }) {
@@ -102,7 +126,7 @@ export default function ScanClient({ id }: { id: string }) {
             <div className={cardStyles.muted}>No recommendations yet.</div>
           ) : (
             <ol className={styles.list}>
-              {recs.slice(0, 5).map((r: any) => (
+              {recs.slice(0, 5).map((r) => (
                 <li key={String(r.id ?? r.title)}>
                   <b>{String(r.title ?? "Untitled")}</b>{" "}
                   <span className={cardStyles.muted}>({Number(r.priorityScore ?? 0)})</span>
@@ -124,7 +148,7 @@ export default function ScanClient({ id }: { id: string }) {
             <div className={cardStyles.muted}>No explainability data yet.</div>
           ) : (
             <ul className={styles.list}>
-              {reasons.slice(0, 6).map((r: any) => (
+              {reasons.slice(0, 6).map((r) => (
                 <li key={String(r.id ?? r.title)}>
                   <b>{String(r.title ?? "Reason")}</b>{" "}
                   <span className={cardStyles.muted}>(+{Number(r.scoreImpact ?? 0)})</span>
@@ -144,7 +168,7 @@ export default function ScanClient({ id }: { id: string }) {
             <div className={cardStyles.muted}>No graph insights yet.</div>
           ) : (
             <ul className={styles.list}>
-              {deepest.slice(0, 5).map((x: any) => (
+              {deepest.slice(0, 5).map((x) => (
                 <li key={String(x.packageName ?? x.version ?? Math.random())}>
                   <b>{String(x.packageName ?? "package")}</b>{" "}
                   <span className={cardStyles.muted}>

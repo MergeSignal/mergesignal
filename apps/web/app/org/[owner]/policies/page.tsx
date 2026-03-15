@@ -11,7 +11,7 @@ type PoliciesResponse = {
     owner: string;
     name: string;
     enabled: boolean;
-    rules: any;
+    rules: unknown;
     created_at: string;
     updated_at: string;
   }>;
@@ -27,7 +27,7 @@ type ViolationsResponse = {
     repo_id: string;
     severity: string;
     title: string;
-    details: any;
+    details: unknown;
     created_at: string;
   }>;
 };
