@@ -15,22 +15,45 @@ export async function runMigrationsIfEnabled(log: (msg: string) => void) {
 }
 
 async function runMigrations(log: (msg: string) => void) {
+  await ensureMigrationsTable();
+
   const sqlDir = getSqlDir();
   const files = (await readdir(sqlDir))
     .filter((f) => /^\d+_.+\.sql$/.test(f))
     .sort((a, b) => a.localeCompare(b));
 
-  const scansExists = await hasTable("scans");
+  const applied = await getAppliedMigrations();
 
   for (const f of files) {
-    if (f.startsWith("001_")) {
-      if (scansExists) continue;
-      await applyFile(sqlDir, f, log);
+    if (applied.has(f)) {
       continue;
     }
 
     await applyFile(sqlDir, f, log);
+    await recordMigration(f);
   }
+}
+
+async function ensureMigrationsTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS _migrations (
+      filename TEXT PRIMARY KEY,
+      applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      checksum TEXT
+    )
+  `);
+}
+
+async function getAppliedMigrations(): Promise<Set<string>> {
+  const { rows } = await db.query("SELECT filename FROM _migrations");
+  return new Set(rows.map((r: any) => r.filename));
+}
+
+async function recordMigration(filename: string) {
+  await db.query(
+    "INSERT INTO _migrations (filename, applied_at) VALUES ($1, NOW()) ON CONFLICT (filename) DO NOTHING",
+    [filename],
+  );
 }
 
 async function hasTable(name: string) {
@@ -57,4 +80,3 @@ async function applyFile(sqlDir: string, filename: string, log: (msg: string) =>
     client.release();
   }
 }
-

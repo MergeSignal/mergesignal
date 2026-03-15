@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { randomBytes, createHash } from "crypto";
-import { db } from "./db.js";
+import { queries } from "./db.js";
 import { randomUUID } from "crypto";
 
 async function generateApiKey(owner: string, description?: string) {
@@ -14,10 +14,12 @@ async function generateApiKey(owner: string, description?: string) {
   const id = randomUUID();
 
   try {
-    await db.query(
-      "INSERT INTO api_keys (id, key_hash, owner, description, created_at) VALUES ($1, $2, $3, $4, NOW())",
-      [id, keyHash, owner, description ?? null],
-    );
+    await queries.apiKeys.create({
+      id,
+      key_hash: keyHash,
+      owner,
+      description: description ?? null,
+    });
 
     console.log("\n✅ API Key generated successfully!\n");
     console.log("Owner:", owner);
@@ -32,7 +34,7 @@ async function generateApiKey(owner: string, description?: string) {
     console.error("Error generating API key:", err.message);
     process.exit(1);
   } finally {
-    await db.end();
+    process.exit(0);
   }
 }
 

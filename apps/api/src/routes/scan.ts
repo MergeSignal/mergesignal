@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { db } from "../db.js";
+import { db, queries } from "../db.js";
 import type { ScanRequest } from "@reposentinel/shared";
 import { createScanAndEnqueue } from "../services/scanService.js";
 import { sendProblem } from "../problem.js";
@@ -42,17 +42,12 @@ export async function scanRoutes(app: FastifyInstance) {
   app.get("/scan/:id", async (req, reply) => {
     const id = (req.params as any).id as string;
 
-    const { rows } = await db.query(
-      "SELECT id, repo_id, status, total_score, layer_security, layer_maintainability, layer_ecosystem, layer_upgrade_impact, methodology_version, result_generated_at, result, error, created_at, updated_at FROM scans WHERE id=$1",
-      [id],
-    );
-
-    if (rows.length === 0) {
+    const scan = await queries.scans.findById(id);
+    if (!scan) {
       return sendProblem(reply, req, { status: 404, title: "Not Found", detail: "scan not found" });
     }
 
     // Authorization check: if using org-scoped API key, ensure scan belongs to owner
-    const scan = rows[0];
     if (req.authenticatedOwner) {
       const repoOwner = scan.repo_id.includes("/") ? scan.repo_id.split("/")[0] : scan.repo_id;
       if (repoOwner !== req.authenticatedOwner) {
@@ -78,12 +73,8 @@ export async function scanRoutes(app: FastifyInstance) {
     }
 
     const n = Math.max(1, Math.min(200, Number(limit ?? 50)));
+    const scans = await queries.scans.findByRepoId(repoId, n);
 
-    const { rows } = await db.query(
-      "SELECT id, repo_id, status, total_score, layer_security, layer_maintainability, layer_ecosystem, layer_upgrade_impact, methodology_version, result_generated_at, created_at, updated_at FROM scans WHERE repo_id=$1 ORDER BY created_at DESC LIMIT $2",
-      [repoId, n],
-    );
-
-    return { repoId, scans: rows };
+    return { repoId, scans };
   });
 }

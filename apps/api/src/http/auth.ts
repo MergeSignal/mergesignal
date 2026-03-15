@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { timingSafeEqual, createHash } from "crypto";
-import { db } from "../db.js";
+import { queries } from "../db.js";
 import { sendProblem } from "../problem.js";
 
 declare module "fastify" {
@@ -43,14 +43,11 @@ export function registerAuth(app: FastifyInstance) {
     // Try org-scoped API keys first
     const keyHash = hashApiKey(providedKey);
     try {
-      const { rows } = await db.query(
-        "SELECT owner FROM api_keys WHERE key_hash=$1",
-        [keyHash],
-      );
-      if (rows.length > 0) {
-        req.authenticatedOwner = rows[0].owner;
+      const apiKey = await queries.apiKeys.findByHash(keyHash);
+      if (apiKey) {
+        req.authenticatedOwner = apiKey.owner;
         // Update last_used_at asynchronously
-        db.query("UPDATE api_keys SET last_used_at=NOW() WHERE key_hash=$1", [keyHash]).catch(() => {});
+        queries.apiKeys.updateLastUsed(keyHash).catch(() => {});
         return;
       }
     } catch (err) {

@@ -1,22 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "crypto";
-import { db } from "../db.js";
+import { db, queries } from "../db.js";
 import { sendProblem } from "../problem.js";
+import type { Policy } from "../types/database.js";
 
 type PolicyRule =
   | { type: "no_deprecated" }
   | { type: "max_stale_releases_count"; max: number }
   | { type: "max_bus_factor_low_count"; max: number };
-
-type Policy = {
-  id: string;
-  owner: string;
-  name: string;
-  enabled: boolean;
-  rules: PolicyRule[];
-  created_at: string;
-  updated_at: string;
-};
 
 export async function policiesRoutes(app: FastifyInstance) {
   app.get("/org/:owner/policies", async (req, reply) => {
@@ -28,12 +19,8 @@ export async function policiesRoutes(app: FastifyInstance) {
       return sendProblem(reply, req, { status: 403, title: "Forbidden", detail: "Access denied to this organization" });
     }
 
-    const { rows } = await db.query(
-      "SELECT id, owner, name, enabled, rules, created_at, updated_at FROM policies WHERE owner=$1 ORDER BY created_at DESC",
-      [owner],
-    );
-
-    return { owner, policies: rows as Policy[] };
+    const policies = await queries.policies.findByOwner(owner);
+    return { owner, policies };
   });
 
   app.post("/org/:owner/policies", async (req, reply) => {
@@ -56,12 +43,15 @@ export async function policiesRoutes(app: FastifyInstance) {
     }
 
     const id = randomUUID();
-    await db.query(
-      "INSERT INTO policies (id, owner, name, enabled, rules, created_at, updated_at) VALUES ($1,$2,$3,$4,$5::jsonb,NOW(),NOW())",
-      [id, owner, name, enabled, JSON.stringify(rules)],
-    );
+    const policy = await queries.policies.create({
+      id,
+      owner,
+      name,
+      enabled,
+      rules,
+    });
 
-    return reply.code(201).send({ id, owner, name, enabled, rules });
+    return reply.code(201).send(policy);
   });
 
   app.patch("/policies/:id", async (req, reply) => {
@@ -69,32 +59,27 @@ export async function policiesRoutes(app: FastifyInstance) {
     if (!id) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "id is required" });
 
     // First, fetch the policy to check ownership
-    const { rows: existing } = await db.query("SELECT owner FROM policies WHERE id=$1", [id]);
-    if (!existing.length) {
+    const existing = await queries.policies.findById(id);
+    if (!existing) {
       return sendProblem(reply, req, { status: 404, title: "Not Found", detail: "policy not found" });
     }
 
     // Authorization check: ensure authenticated owner matches policy owner
-    const policyOwner = existing[0].owner;
-    if (req.authenticatedOwner && req.authenticatedOwner !== policyOwner) {
+    if (req.authenticatedOwner && req.authenticatedOwner !== existing.owner) {
       return sendProblem(reply, req, { status: 403, title: "Forbidden", detail: "Access denied to this policy" });
     }
 
     const body = (req.body ?? {}) as any;
-    const fields: string[] = [];
-    const values: any[] = [];
-    let i = 1;
+    const updates: Partial<Pick<Policy, "name" | "enabled" | "rules">> = {};
 
     if (body.name !== undefined) {
       const name = String(body.name ?? "").trim();
       if (!name) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "name cannot be empty" });
-      fields.push(`name=$${i++}`);
-      values.push(name);
+      updates.name = name;
     }
 
     if (body.enabled !== undefined) {
-      fields.push(`enabled=$${i++}`);
-      values.push(Boolean(body.enabled));
+      updates.enabled = Boolean(body.enabled);
     }
 
     if (body.rules !== undefined) {
@@ -102,17 +87,19 @@ export async function policiesRoutes(app: FastifyInstance) {
       if (!rules.length) {
         return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "rules must be a non-empty array" });
       }
-      fields.push(`rules=$${i++}::jsonb`);
-      values.push(JSON.stringify(rules));
+      updates.rules = rules;
     }
 
-    if (!fields.length) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "no fields to update" });
-    values.push(id);
+    if (Object.keys(updates).length === 0) {
+      return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "no fields to update" });
+    }
 
-    const q = `UPDATE policies SET ${fields.join(", ")}, updated_at=NOW() WHERE id=$${i} RETURNING id, owner, name, enabled, rules, created_at, updated_at`;
-    const { rows } = await db.query(q, values);
-    if (!rows.length) return sendProblem(reply, req, { status: 404, title: "Not Found", detail: "policy not found" });
-    return rows[0] as Policy;
+    const policy = await queries.policies.update(id, updates);
+    if (!policy) {
+      return sendProblem(reply, req, { status: 404, title: "Not Found", detail: "policy not found" });
+    }
+
+    return policy;
   });
 
   app.get("/org/:owner/policy/violations", async (req, reply) => {

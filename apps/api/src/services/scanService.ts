@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { db } from "../db.js";
+import { db, queries } from "../db.js";
 import { scanQueue } from "../queue.js";
 import type { ScanLockfileInput } from "@reposentinel/shared";
 import { getLimitsForOwner, getOwnerFromRepoId } from "./tier.js";
@@ -68,10 +68,12 @@ export async function createScanAndEnqueue({
   try {
     await client.query("BEGIN");
 
-    await client.query(
-      "INSERT INTO scans (id, repo_id, status, source) VALUES ($1, $2, 'queued', $3) ON CONFLICT (id) DO NOTHING",
-      [id, repoId, isGithub ? "github" : "manual"],
-    );
+    await queries.scans.create({
+      id,
+      repo_id: repoId,
+      status: "queued",
+      source: isGithub ? "github" : "manual",
+    });
 
     await client.query("COMMIT");
   } catch (e) {
