@@ -68,6 +68,15 @@ export async function createScanAndEnqueue({
   try {
     await client.query("BEGIN");
 
+    if (scanId) {
+      const existing = await client.query("SELECT id, status FROM scans WHERE id = $1", [scanId]);
+      if (existing.rowCount && existing.rowCount > 0) {
+        const status = existing.rows[0].status;
+        await client.query("ROLLBACK");
+        return { scanId, duplicate: true, status };
+      }
+    }
+
     await queries.scans.create({
       id,
       repo_id: repoId,
@@ -97,13 +106,14 @@ export async function createScanAndEnqueue({
     );
   } catch (e: any) {
     const msg = String(e?.message ?? e);
-    if (!msg.toLowerCase().includes("already exists")) {
-      await db.query(
-        "UPDATE scans SET status='failed', error=$2, finished_at=NOW(), updated_at=NOW() WHERE id=$1 AND status='queued'",
-        [id, `enqueue_failed: ${msg}`],
-      );
-      throw e;
+    if (msg.toLowerCase().includes("already exists")) {
+      return { scanId: id, duplicate: true };
     }
+    await db.query(
+      "UPDATE scans SET status='failed', error=$2, finished_at=NOW(), updated_at=NOW() WHERE id=$1 AND status='queued'",
+      [id, `enqueue_failed: ${msg}`],
+    );
+    throw e;
   }
 
   return { scanId: id };

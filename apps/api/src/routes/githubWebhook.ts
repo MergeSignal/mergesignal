@@ -4,6 +4,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { createScanAndEnqueue } from "../services/scanService.js";
 import { upsertGithubRepoSource } from "../services/repoSourceService.js";
 import { sendProblem } from "../problem.js";
+import { db } from "../db.js";
 
 type PullRequestEvent = {
   action?: string;
@@ -65,18 +66,58 @@ export async function githubWebhookRoutes(app: FastifyInstance) {
     const delivery = String(req.headers["x-github-delivery"] ?? "");
     const payload = JSON.parse(rawBody);
 
+    if (!delivery) {
+      return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "Missing delivery ID" });
+    }
+
+    const duplicate = await checkAndRecordDelivery(delivery, event);
+    if (duplicate) {
+      app.log.info({ delivery, event }, "Duplicate webhook delivery ignored");
+      return reply.code(202).send({ accepted: true, duplicate: true, delivery });
+    }
+
+    reply.code(202).send({ accepted: true, delivery });
+
+    if (event === "pull_request") {
+      processWebhookAsync(app, ghApp, "pull_request", payload as PullRequestEvent, delivery);
+    } else if (event === "push") {
+      processWebhookAsync(app, ghApp, "push", payload as PushEvent, delivery);
+    } else {
+      app.log.info({ event, delivery }, "Ignored webhook event");
+    }
+  });
+}
+
+async function checkAndRecordDelivery(deliveryId: string, eventType: string): Promise<boolean> {
+  try {
+    const result = await db.query(
+      "INSERT INTO webhook_deliveries (delivery_id, event_type) VALUES ($1, $2) ON CONFLICT (delivery_id) DO NOTHING RETURNING delivery_id",
+      [deliveryId, eventType],
+    );
+    return result.rowCount === 0;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function processWebhookAsync(
+  app: FastifyInstance,
+  ghApp: App,
+  event: "pull_request" | "push",
+  payload: PullRequestEvent | PushEvent,
+  delivery: string,
+) {
+  try {
     if (event === "pull_request") {
       const res = await handlePullRequest(ghApp, payload as PullRequestEvent, delivery);
-      return reply.code(202).send(res);
-    }
-
-    if (event === "push") {
+      app.log.info({ delivery, event, result: res }, "Webhook processed");
+    } else if (event === "push") {
       const res = await handlePush(ghApp, payload as PushEvent, delivery);
-      return reply.code(202).send(res);
+      app.log.info({ delivery, event, result: res }, "Webhook processed");
     }
-
-    return reply.code(202).send({ ignored: true, event });
-  });
+  } catch (e: any) {
+    app.log.error({ delivery, event, error: e?.message ?? String(e) }, "Webhook processing failed");
+  }
 }
 
 async function handlePullRequest(app: App, payload: PullRequestEvent, delivery: string) {
