@@ -7,6 +7,7 @@ import { App } from "@octokit/app";
 import { randomUUID } from "crypto";
 import { getLimitsForOwner, getOwnerFromRepoId } from "./tier.js";
 import { persistPackageHealthDataset } from "./dataset.js";
+import { logger } from "./logger.js";
 
 const db = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -35,6 +36,13 @@ const workerId = `pid:${process.pid}`;
 const heartbeatEveryMs = Number(process.env.SCAN_HEARTBEAT_MS ?? 15000);
 const staleAfterMs = Number(process.env.SCAN_STALE_AFTER_MS ?? 60000);
 const reapEveryMs = Number(process.env.SCAN_REAP_INTERVAL_MS ?? 30000);
+
+logger.info("Worker starting", {
+  workerId,
+  heartbeatEveryMs,
+  staleAfterMs,
+  reapEveryMs,
+});
 
 setInterval(() => {
   void requeueStaleRunningScans();
@@ -105,15 +113,21 @@ new Worker<ScanJob>(
           await persistPackageHealthDataset(db, { repoId, scanId, observations });
         }
       } catch (e: any) {
-        // eslint-disable-next-line no-console
-        console.error("Dataset persistence failed:", String(e?.message ?? e));
+        logger.error("Dataset persistence failed", {
+          scanId,
+          repoId,
+          error: String(e?.message ?? e),
+        });
       }
 
       try {
         await evaluatePoliciesForScan({ repoId, scanId, result });
       } catch (e: any) {
-        // eslint-disable-next-line no-console
-        console.error("Policy evaluation failed:", String(e?.message ?? e));
+        logger.error("Policy evaluation failed", {
+          scanId,
+          repoId,
+          error: String(e?.message ?? e),
+        });
       }
 
       const owner = getOwnerFromRepoId(repoId);
@@ -129,9 +143,7 @@ new Worker<ScanJob>(
             github,
           });
         } catch (e: any) {
-          // Don’t fail the scan if commenting fails; log and continue.
-          // eslint-disable-next-line no-console
-          console.error("Failed to post PR review comment:", String(e?.message ?? e));
+          logger.error("Failed to post PR review comment", { scanId, repoId, prNumber: github?.prNumber, error: String(e?.message ?? e) });
         }
       }
 
@@ -154,8 +166,7 @@ new Worker<ScanJob>(
             error: String(e?.message ?? e),
           });
         } catch (e2: any) {
-          // eslint-disable-next-line no-console
-          console.error("Failed to post PR failure comment:", String(e2?.message ?? e2));
+          logger.error("Failed to post PR failure comment", { scanId, repoId, prNumber: github?.prNumber, error: String(e2?.message ?? e2) });
         }
       }
 
@@ -687,8 +698,7 @@ async function runAlertsTick() {
       await checkRepoForAlerts(ghApp, src, { minScoreImpact: lim.alertsMinScoreImpact });
     });
   } catch (e: any) {
-    // eslint-disable-next-line no-console
-    console.error("alerts tick failed:", String(e?.message ?? e));
+    logger.error("Alerts tick failed", { error: String(e?.message ?? e) });
   } finally {
     alertsRunning = false;
   }
@@ -742,8 +752,7 @@ async function checkRepoForAlerts(
       await persistPackageHealthDataset(db, { repoId: src.repo_id, observations });
     }
   } catch (e: any) {
-    // eslint-disable-next-line no-console
-    console.error("Dataset persistence (alerts) failed:", String(e?.message ?? e));
+    logger.error("Dataset persistence (alerts) failed", { repoId: src.repo_id, error: String(e?.message ?? e) });
   }
 
   const beforeSignals = await getLatestSignalsForRepo(src.repo_id);

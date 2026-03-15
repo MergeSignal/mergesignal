@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { indexRoutes } from "./index.js";
 import { healthRoutes } from "./health.js";
+import { metricsRoutes } from "./metrics.js";
 import { scanRoutes } from "./scan.js";
 import { scanEventsRoutes } from "./scanEvents.js";
 import { simulateUpgradeRoutes } from "./simulateUpgrade.js";
@@ -16,6 +17,7 @@ export async function registerRoutes(app: FastifyInstance) {
   // Unversioned routes (backwards-compatible)
   app.register(indexRoutes);
   app.register(healthRoutes);
+  app.register(metricsRoutes);
   app.register(openApiRoutes);
   app.register(scanRoutes);
   app.register(scanEventsRoutes);
@@ -32,6 +34,7 @@ export async function registerRoutes(app: FastifyInstance) {
     async (v1) => {
       v1.register(indexRoutes);
       v1.register(healthRoutes);
+      v1.register(metricsRoutes);
       v1.register(openApiRoutes);
       v1.register(scanRoutes);
       v1.register(scanEventsRoutes);

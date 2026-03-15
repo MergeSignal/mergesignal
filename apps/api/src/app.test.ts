@@ -19,15 +19,24 @@ describe("API Integration Tests", () => {
   });
 
   describe("GET /health", () => {
-    it("should return ok status without auth (public endpoint)", async () => {
+    it("should return health status without auth (public endpoint)", async () => {
       const response = await app.inject({
         method: "GET",
         url: "/health",
       });
 
-      expect(response.statusCode).toBe(200);
+      // Health check may return 200 (healthy) or 503 (degraded) depending on DB/Redis availability
+      expect([200, 503]).toContain(response.statusCode);
       const body = JSON.parse(response.body);
-      expect(body.ok).toBe(true);
+      expect(body.ok).toBeDefined();
+      expect(body.checks).toBeDefined();
+      expect(body.timestamp).toBeDefined();
+      
+      // Verify checks structure
+      expect(body.checks.database).toBeDefined();
+      expect(body.checks.redis).toBeDefined();
+      expect(typeof body.checks.database.ok).toBe("boolean");
+      expect(typeof body.checks.redis.ok).toBe("boolean");
     });
   });
 
