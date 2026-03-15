@@ -3,6 +3,9 @@ import type { ScanLockfileInput } from "@reposentinel/shared";
 
 const connection = {
   url: process.env.REDIS_URL!,
+  maxRetriesPerRequest: 1,
+  enableReadyCheck: false,
+  lazyConnect: true,
 };
 
 export type ScanJob = {
@@ -24,6 +27,13 @@ export type ScanJob = {
 
 export const SCAN_QUEUE_NAME = "scan-queue";
 
-export const scanQueue = new Queue<ScanJob>(SCAN_QUEUE_NAME, {
-  connection,
+let _scanQueue: Queue<ScanJob> | null = null;
+
+export const scanQueue = new Proxy({} as Queue<ScanJob>, {
+  get(target, prop) {
+    if (!_scanQueue) {
+      _scanQueue = new Queue<ScanJob>(SCAN_QUEUE_NAME, { connection });
+    }
+    return Reflect.get(_scanQueue, prop);
+  },
 });
