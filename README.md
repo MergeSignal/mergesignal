@@ -59,7 +59,10 @@ Web (create `apps/web/.env.local`):
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
+NEXT_PUBLIC_API_KEY=
 ```
+
+**Note**: The web app requires an API key to access authenticated endpoints. Generate one using the instructions in the [API Authentication](#api-authentication) section below and add it to `NEXT_PUBLIC_API_KEY`.
 
 ### Run dev servers (recommended)
 
