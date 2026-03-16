@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reposentinel-config
+  namespace: reposentinel
+data:
+  # CORS configuration
+  CORS_ORIGINS: "https://your-domain.com"
+  
+  # Auto-migration configuration
+  REPOSENTINEL_AUTO_MIGRATE: "1"
+  
+  # Engine configuration
+  REPOSENTINEL_ENGINE_STRICT: "0"
+  
+  # OSV vulnerability checks
+  REPOSENTINEL_ENABLE_OSV: "1"
+  REPOSENTINEL_OSV_MAX_PACKAGES: "100"
+  REPOSENTINEL_OSV_TIMEOUT_MS: "5000"
+  
+  # npm adoption checks
+  REPOSENTINEL_ENABLE_ADOPTION: "1"
+  REPOSENTINEL_ADOPTION_MAX_PACKAGES: "100"
+  REPOSENTINEL_ADOPTION_TIMEOUT_MS: "3000"
+  
+  # GitHub signals (disabled by default)
+  REPOSENTINEL_ENABLE_GITHUB_SIGNALS: "0"
+  
+  # Tier configuration
+  REPOSENTINEL_DEFAULT_TIER: "free"
+  
+  # Node environment
+  NODE_ENV: "production"
