@@ -1,6 +1,8 @@
 {
   "name": "reposentinel",
   "private": true,
+  "description": "Security analysis platform for npm dependencies",
+  "version": "0.1.0",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
