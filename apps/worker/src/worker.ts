@@ -309,28 +309,30 @@ function renderPrComment(opts: {
   const dep = (d as any)?.dependencyDelta;
 
   const scoreDelta = d.totalScoreDelta ?? 0;
-  const beforeScore = before.totalScore ?? 0;
   const afterScore = after.totalScore ?? 0;
   
-  // Build concise summary (3 lines max)
-  const findings = buildPrFindings({ before, after, dep });
-  const topFinding = findings.length > 0 ? findings[0] : null;
-  
-  // Line 1: Risk change summary
-  if (scoreDelta > 10) {
-    lines.push(`⚠️ **Risk +${scoreDelta}** → Score: ${afterScore}`);
-  } else if (scoreDelta > 0) {
-    lines.push(`⚠️ **Risk +${scoreDelta}** → Score: ${afterScore}`);
-  } else if (scoreDelta < 0) {
-    lines.push(`🟢 **Risk ${scoreDelta}** → Score: ${afterScore}`);
-  } else {
-    lines.push(`⚪ **No risk change** → Score: ${afterScore}`);
+  // Determine risk status for after score
+  function getRiskStatus(score: number) {
+    if (score >= 70) return { emoji: "🔴", label: "High risk" };
+    if (score >= 40) return { emoji: "⚠️", label: "Medium risk" };
+    return { emoji: "✅", label: "Low risk" };
   }
   
-  // Line 2: Top critical finding (if risk increased)
-  if (scoreDelta > 0 && topFinding) {
-    lines.push(`🔴 ${topFinding}`);
-  } else if (dep) {
+  const status = getRiskStatus(afterScore);
+  const findings = buildPrFindings({ before, after, dep });
+  const actions = buildPrActions({ after, dep });
+  
+  // TIER 1: Score + Status with delta
+  if (scoreDelta > 0) {
+    lines.push(`# ${status.emoji} Risk increased: Score ${afterScore}/100 (+${scoreDelta})`);
+  } else if (scoreDelta < 0) {
+    lines.push(`# ✅ Risk decreased: Score ${afterScore}/100 (${scoreDelta})`);
+  } else {
+    lines.push(`# ${status.emoji} ${status.label}: Score ${afterScore}/100`);
+  }
+  
+  // Show dependency changes summary
+  if (dep) {
     const parts: string[] = [];
     if (dep.directAdded > 0) parts.push(`+${dep.directAdded} added`);
     if (dep.directUpdated > 0) parts.push(`~${dep.directUpdated} updated`);
@@ -339,11 +341,22 @@ function renderPrComment(opts: {
       lines.push(`📦 ${parts.join(", ")}`);
     }
   }
+  lines.push("");
   
-  // Line 3: Link to full report
+  // TIER 2: Top findings (if any)
+  const maxFindings = Math.min(limits.prCommentMaxFindings, findings.length);
+  if (maxFindings > 0) {
+    lines.push(`## 🔍 Key findings (${maxFindings}):`);
+    for (let i = 0; i < maxFindings; i++) {
+      lines.push(`${i + 1}. ${findings[i]}`);
+    }
+    lines.push("");
+  }
+  
+  // TIER 3: Link to full report
   const webBaseUrl = process.env.REPOSENTINEL_WEB_URL ?? "http://localhost:3000";
   const detailsUrl = `${webBaseUrl}/scan/${opts.scanId}`;
-  lines.push(`[Full report →](${detailsUrl})`);
+  lines.push(`📊 [View full analysis →](${detailsUrl})`);
   
   return lines.join("\n");
 }
