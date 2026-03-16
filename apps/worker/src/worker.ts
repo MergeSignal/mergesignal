@@ -377,7 +377,7 @@ function renderPrComment(opts: {
   if (findings.length) {
     lines.push("## 🔎 Key Findings");
     lines.push("");
-    for (const f of findings.slice(0, 6)) {
+    for (const f of findings.slice(0, 3)) {
       lines.push(`- ⚠️ ${f}`);
     }
     lines.push("");
@@ -388,7 +388,7 @@ function renderPrComment(opts: {
   if (actions.length) {
     lines.push("## ✅ Recommended Actions");
     lines.push("");
-    for (const a of actions.slice(0, 6)) {
+    for (const a of actions.slice(0, 3)) {
       lines.push(`- 🔧 ${a}`);
     }
     lines.push("");

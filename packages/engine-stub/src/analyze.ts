@@ -99,6 +99,7 @@ export async function analyze(req: ScanRequest): Promise<ScanResult> {
     ...(adoption?.signals ?? []),
     ...(gh?.signals ?? []),
   ];
+  
   const findings = [
     ...baseFindings,
     ...(health?.findings ?? []),
@@ -116,8 +117,12 @@ export async function analyze(req: ScanRequest): Promise<ScanResult> {
 
   const layerScores = computeLayerScores(signals);
   const totalScore = computeTotalScore(layerScores);
-  const explain = explainFromSignals(signals);
-  const graphInsights = derivedGraph ? buildGraphInsights(derivedGraph, signals) : undefined;
+  
+  // Filter out signals with zero score impact to reduce verbosity in output
+  const signalsForOutput = signals.filter((s) => Number(s.scoreImpact ?? 0) > 0);
+  
+  const explain = explainFromSignals(signalsForOutput);
+  const graphInsights = derivedGraph ? buildGraphInsights(derivedGraph, signalsForOutput) : undefined;
 
   return {
     totalScore,
@@ -125,8 +130,8 @@ export async function analyze(req: ScanRequest): Promise<ScanResult> {
     findings,
     methodologyVersion: "engine-stub/v2",
     confidence: stats.hasGraphLikeShape ? "medium" : "low",
-    signals,
-    contributions: signalsToContributions(signals),
+    signals: signalsForOutput,
+    contributions: signalsToContributions(signalsForOutput),
     recommendations,
     dataset: health?.dataset,
     explain,
@@ -416,15 +421,7 @@ function buildFindings(stats: DependencyStats): Finding[] {
     ];
   }
 
-  const findings: Finding[] = [
-    {
-      id: "engine-v1",
-      title: "Explainable scoring enabled",
-      description: "This scan includes per-signal score contributions and a methodology version.",
-      severity: "low",
-      packageName: "repository",
-    },
-  ];
+  const findings: Finding[] = [];
 
   if (stats.fanInTop.length) {
     findings.push({
