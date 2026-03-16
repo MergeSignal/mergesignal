@@ -12,6 +12,14 @@ export async function simulateUpgradeRoutes(app: FastifyInstance) {
       return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "currentLockfile is required" });
     }
 
+    // Authorization check: if using org-scoped API key, ensure repoId matches owner
+    if (req.authenticatedOwner) {
+      const repoOwner = body.repoId.includes("/") ? body.repoId.split("/")[0] : body.repoId;
+      if (repoOwner !== req.authenticatedOwner) {
+        return sendProblem(reply, req, { status: 403, title: "Forbidden", detail: "Access denied to this repository" });
+      }
+    }
+
     const maxBytes = Number(process.env.SIMULATE_MAX_LOCKFILE_BYTES ?? 2_000_000);
     if (body.currentLockfile.content.length > maxBytes) {
       return sendProblem(reply, req, { status: 413, title: "Payload Too Large", detail: "lockfile too large" });

@@ -195,6 +195,65 @@ describe("API Integration Tests", () => {
     });
   });
 
+  describe("POST /simulate/upgrade", () => {
+    it("should reject request without auth", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/simulate/upgrade",
+        payload: {
+          repoId: "test/repo",
+          currentLockfile: {
+            manager: "npm",
+            content: "{}",
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it("should reject cross-org access", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/simulate/upgrade",
+        headers: {
+          authorization: `Bearer ${testApiKey}`,
+        },
+        payload: {
+          repoId: "other-org/repo",
+          currentLockfile: {
+            manager: "npm",
+            content: "{}",
+          },
+        },
+      });
+
+      // Should return 403 Forbidden for cross-org access when DB is available
+      // OR 401 Unauthorized if DB is unavailable (fail-secure)
+      expect([401, 403]).toContain(response.statusCode);
+    });
+
+    it("should allow access to own org repositories", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/simulate/upgrade",
+        headers: {
+          authorization: `Bearer ${testApiKey}`,
+        },
+        payload: {
+          repoId: `${testOwner}/repo`,
+          currentLockfile: {
+            manager: "npm",
+            content: "{}",
+          },
+        },
+      });
+
+      // Should not return 403 (may return other errors like 500 if backend unavailable)
+      expect(response.statusCode).not.toBe(403);
+    });
+  });
+
   describe("Authorization Tests", () => {
     it("should enforce multi-tenant isolation on /org/:owner/policies", async () => {
       const response = await app.inject({
