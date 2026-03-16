@@ -3,6 +3,11 @@ import type { DependencyGraphInsight, DependencyGraphInsights, RiskSignal } from
 
 type Node = { id: string; name: string; version: string };
 
+// Maximum items returned by engine before tier limits are applied by worker
+// Keep this low - we want focused summaries showing only the most critical issues
+// Worker will further trim based on tier configuration
+const MAX_GRAPH_INSIGHTS_PER_TYPE = 5;
+
 export function buildGraphInsights(graph: DependencyGraph, signals: RiskSignal[]): DependencyGraphInsights {
   const { depthById, parentById } = computeShortestPaths(graph);
 
@@ -87,7 +92,7 @@ function pickDeepest(
     .map((n) => ({ n, depth: depthById.get(n.id) ?? 0 }))
     .filter((x) => x.depth > 1)
     .sort((a, b) => b.depth - a.depth)
-    .slice(0, 5);
+    .slice(0, MAX_GRAPH_INSIGHTS_PER_TYPE);
 
   return ranked.map(({ n, depth }) => ({
     kind: "deep",
@@ -106,7 +111,7 @@ function pickHotspots(
 ): DependencyGraphInsight[] {
   const direct = new Set(Object.keys(graph.directDeps));
 
-  return graph.fanInTop.slice(0, 5).map((x) => {
+  return graph.fanInTop.slice(0, MAX_GRAPH_INSIGHTS_PER_TYPE).map((x) => {
     const id = `${x.name}@${x.version}`;
     const depth = depthById.get(id) ?? 0;
     return {
@@ -133,7 +138,7 @@ function pickVulnerable(
   const top = (total?.evidence as any)?.top;
   const items = Array.isArray(top) ? top : [];
 
-  return items.slice(0, 8).map((v: any) => {
+  return items.slice(0, MAX_GRAPH_INSIGHTS_PER_TYPE).map((v: any) => {
     const name = String(v?.name ?? "");
     const version = String(v?.version ?? "");
     const id = name && version ? `${name}@${version}` : "";

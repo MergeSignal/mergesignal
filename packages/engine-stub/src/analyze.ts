@@ -124,6 +124,7 @@ export async function analyze(req: ScanRequest): Promise<ScanResult> {
   const explain = explainFromSignals(signalsForOutput);
   const graphInsights = derivedGraph ? buildGraphInsights(derivedGraph, signalsForOutput) : undefined;
 
+  // Return full results - tier limits will be applied by the worker
   return {
     totalScore,
     layerScores,

@@ -78,7 +78,12 @@ new Worker<ScanJob>(
       const req: ScanRequest = { repoId, dependencyGraph, lockfile };
       const delayMs = Number(process.env.SCAN_SIMULATE_DELAY_MS ?? 0);
       if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
-      const result = await analyze(req);
+      const rawResult = await analyze(req);
+
+      // Apply tier limits to engine output
+      const owner = getOwnerFromRepoId(repoId);
+      const limits = getLimitsForOwner(owner);
+      const result = applyTierLimitsToScanResult(rawResult, limits);
 
       const totalScore = toInt(result.totalScore);
       const security = toInt(result.layerScores.security);
@@ -130,9 +135,6 @@ new Worker<ScanJob>(
         });
       }
 
-      const owner = getOwnerFromRepoId(repoId);
-      const limits = getLimitsForOwner(owner);
-
       if (github?.prNumber && limits.prCommentsEnabled) {
         try {
           await postGithubPrReviewComment({
@@ -141,6 +143,7 @@ new Worker<ScanJob>(
             lockfile,
             baseLockfile,
             github,
+            limits,
           });
         } catch (e: any) {
           logger.error("Failed to post PR review comment", { scanId, repoId, prNumber: github?.prNumber, error: String(e?.message ?? e) });
@@ -216,6 +219,7 @@ async function postGithubPrReviewComment(opts: {
   lockfile?: ScanLockfileInput;
   baseLockfile?: ScanLockfileInput;
   github: NonNullable<ScanJob["github"]>;
+  limits: ReturnType<typeof getLimitsForOwner>;
 }) {
   const ghApp = loadGithubApp();
   if (!ghApp) return;
@@ -233,6 +237,7 @@ async function postGithubPrReviewComment(opts: {
     repoId: opts.repoId,
     github: opts.github,
     simulation,
+    limits: opts.limits,
   });
 
   const octokit = await ghApp.getInstallationOctokit(installationId);
@@ -285,20 +290,18 @@ function renderPrComment(opts: {
   repoId: string;
   github: NonNullable<ScanJob["github"]>;
   simulation: UpgradeSimulationResult | null;
+  limits: ReturnType<typeof getLimitsForOwner>;
 }) {
-  const { simulation } = opts;
+  const { simulation, limits } = opts;
   const lines: string[] = [];
   lines.push(PR_COMMENT_MARKER);
-  lines.push("# 🛡️ RepoSentinel Dependency Risk Report");
-  lines.push("");
-  lines.push(`📦 **Repository**: \`${opts.repoId}\` • **PR**: #${opts.github.prNumber}`);
-  lines.push(`🔍 **Scan ID**: \`${opts.scanId}\``);
+  lines.push("## 🛡️ RepoSentinel Security Analysis");
   lines.push("");
 
   if (!simulation?.after || !simulation?.delta) {
-    lines.push("> ⚠️ **No lockfile delta available**");
+    lines.push("> ⚠️ **No lockfile changes detected**");
     lines.push(">");
-    lines.push("> Base vs PR comparison requires a lockfile in both base and head branches.");
+    lines.push("> Cannot compare risk — lockfile must exist in both base and head branches.");
     return lines.join("\n");
   }
 
@@ -307,139 +310,111 @@ function renderPrComment(opts: {
   const d = simulation.delta;
   const dep = (d as any)?.dependencyDelta;
 
-  // Overall risk impact - prominently displayed
+  // Risk verdict - front and center
   const scoreDelta = d.totalScoreDelta ?? 0;
-  const riskIcon = scoreDelta > 0 ? "⚠️" : scoreDelta < 0 ? "✅" : "ℹ️";
-  const riskLabel = scoreDelta > 0 ? "INCREASED" : scoreDelta < 0 ? "DECREASED" : "NO CHANGE";
+  const riskIcon = scoreDelta > 0 ? "🔴" : scoreDelta < 0 ? "🟢" : "⚪";
+  const beforeScore = before.totalScore ?? 0;
+  const afterScore = after.totalScore ?? 0;
   
-  lines.push("## 📊 Risk Assessment");
-  lines.push("");
-  lines.push(`### ${riskIcon} Overall Risk Impact: ${riskLabel}`);
-  lines.push("");
-  lines.push(`| Metric | Before | After | Change |`);
-  lines.push(`|--------|--------|-------|--------|`);
-  lines.push(`| **Risk Score** | ${before.totalScore} | ${after.totalScore} | ${formatSignedWithIcon(scoreDelta)} |`);
+  if (scoreDelta > 10) {
+    lines.push(`### ${riskIcon} Risk Increased: ${beforeScore} → ${afterScore} (+${scoreDelta})`);
+    lines.push("");
+    lines.push("> ⚠️ **This PR significantly increases dependency risk.** Review the findings below before merging.");
+  } else if (scoreDelta > 0) {
+    lines.push(`### ${riskIcon} Risk Slightly Increased: ${beforeScore} → ${afterScore} (+${scoreDelta})`);
+    lines.push("");
+    lines.push("> This PR increases dependency risk. Consider the findings below.");
+  } else if (scoreDelta < -10) {
+    lines.push(`### ${riskIcon} Risk Decreased: ${beforeScore} → ${afterScore} (${scoreDelta})`);
+    lines.push("");
+    lines.push("> ✅ **Nice!** This PR reduces dependency risk.");
+  } else if (scoreDelta < 0) {
+    lines.push(`### ${riskIcon} Risk Slightly Decreased: ${beforeScore} → ${afterScore} (${scoreDelta})`);
+    lines.push("");
+    lines.push("> ✅ This PR reduces dependency risk slightly.");
+  } else {
+    lines.push(`### ${riskIcon} No Risk Change: ${afterScore}`);
+    lines.push("");
+    lines.push("> This PR has minimal impact on dependency risk.");
+  }
   lines.push("");
 
-  // Layer breakdown
-  const layerDeltas = d.layerScoreDeltas ?? {};
-  if (Object.keys(layerDeltas).length > 0) {
-    lines.push("#### 🔍 Risk Layer Breakdown");
-    lines.push("");
-    lines.push("| Layer | Change |");
-    lines.push("|-------|--------|");
-    for (const [layer, delta] of Object.entries(layerDeltas)) {
-      if (typeof delta === "number" && delta !== 0) {
-        lines.push(`| ${capitalizeFirst(layer)} | ${formatSignedWithIcon(delta)} |`);
-      }
+  // Quick dependency summary - one line
+  if (dep) {
+    const parts: string[] = [];
+    if (dep.directAdded > 0) parts.push(`**+${dep.directAdded} direct**`);
+    if (dep.directRemoved > 0) parts.push(`**-${dep.directRemoved} direct**`);
+    if (dep.directUpdated > 0) parts.push(`**~${dep.directUpdated} updated**`);
+    if (parts.length) {
+      lines.push(`📦 ${parts.join(" • ")}`);
+      lines.push("");
+    }
+  }
+
+  // Critical findings only (max configurable per tier, only if score increased)
+  const findings = buildPrFindings({ before, after, dep });
+  const maxFindings = limits.prCommentMaxFindings;
+  if (scoreDelta > 0 && findings.length && maxFindings > 0) {
+    lines.push("**⚠️ Key Concerns:**");
+    for (const f of findings.slice(0, maxFindings)) {
+      lines.push(`- ${f}`);
     }
     lines.push("");
   }
 
-  // Dependency changes
-  if (dep) {
-    lines.push("## 📦 Dependency Changes");
-    lines.push("");
-    
-    if (dep.directKnown === false) {
-      lines.push("> ℹ️ This PR changes dependencies (direct dependency list is not available for this lockfile type).");
-    } else if (dep.directAdded > 0) {
-      lines.push(`> ⚠️ This PR introduces **${dep.directAdded}** new direct ${dep.directAdded === 1 ? "dependency" : "dependencies"}.`);
-    } else {
-      lines.push("> ✅ This PR does not introduce new direct dependencies.");
+  // Actions - max configurable per tier, only if actionable
+  const actions = buildPrActions({ after, dep });
+  const maxActions = limits.prCommentMaxActions;
+  if (actions.length && maxActions > 0) {
+    lines.push("**✅ Recommended:**");
+    for (const a of actions.slice(0, maxActions)) {
+      lines.push(`- ${a}`);
     }
     lines.push("");
+  }
 
-    // Summary table
-    lines.push("| Type | Added | Removed | Updated |");
-    lines.push("|------|-------|---------|---------|");
-    lines.push(`| **Direct** | ${dep.directAdded} | ${dep.directRemoved} | ${dep.directUpdated} |`);
-    lines.push(`| **Total Packages** | ${dep.packagesAdded} | ${dep.packagesRemoved} | — |`);
+  // Everything else in collapsible - for those who want details
+  const hasDetails = dep?.topDirectAdded?.length || dep?.topDirectUpdated?.length || dep?.topDirectRemoved?.length;
+  if (hasDetails) {
+    lines.push("<details>");
+    lines.push("<summary>📋 <strong>Dependency Details</strong></summary>");
     lines.push("");
-
-    // Details
+    
     if (Array.isArray(dep.topDirectAdded) && dep.topDirectAdded.length) {
-      lines.push(`**➕ Added**: ${dep.topDirectAdded.slice(0, 6).map((x: any) => `\`${x}\``).join(", ")}`);
+      lines.push(`**Added:** ${dep.topDirectAdded.slice(0, 3).map((x: any) => `\`${x}\``).join(", ")}`);
+      if (dep.topDirectAdded.length > 3) {
+        lines.push(` _(+${dep.topDirectAdded.length - 3} more)_`);
+      }
       lines.push("");
     }
     if (Array.isArray(dep.topDirectUpdated) && dep.topDirectUpdated.length) {
-      lines.push(`**🔄 Updated**: ${dep.topDirectUpdated.slice(0, 6).map((x: any) => `\`${x}\``).join(", ")}`);
-      lines.push("");
-    }
-    if (Array.isArray(dep.topDirectRemoved) && dep.topDirectRemoved.length) {
-      lines.push(`**➖ Removed**: ${dep.topDirectRemoved.slice(0, 6).map((x: any) => `\`${x}\``).join(", ")}`);
-      lines.push("");
-    }
-  }
-
-  // Findings
-  const findings = buildPrFindings({ before, after, dep });
-  if (findings.length) {
-    lines.push("## 🔎 Key Findings");
-    lines.push("");
-    for (const f of findings.slice(0, 3)) {
-      lines.push(`- ⚠️ ${f}`);
-    }
-    lines.push("");
-  }
-
-  // Recommended actions
-  const actions = buildPrActions({ after, dep });
-  if (actions.length) {
-    lines.push("## ✅ Recommended Actions");
-    lines.push("");
-    for (const a of actions.slice(0, 3)) {
-      lines.push(`- 🔧 ${a}`);
-    }
-    lines.push("");
-  }
-
-  // Contributing factors
-  const top = d.topSignalDeltas ?? [];
-  if (top.length) {
-    const beforeSignals = indexSignalsById(before.signals ?? []);
-    const afterSignals = indexSignalsById(after.signals ?? []);
-    const ordered = top
-      .map((s) => ({
-        ...s,
-        delta: Number(s.scoreImpactAfter ?? 0) - Number(s.scoreImpactBefore ?? 0),
-        name: String(afterSignals[String(s.id)]?.name ?? beforeSignals[String(s.id)]?.name ?? s.id),
-      }))
-      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-
-    lines.push("<details>");
-    lines.push("<summary>📈 <strong>Contributing Risk Factors</strong> (click to expand)</summary>");
-    lines.push("");
-    lines.push("| Risk Factor | Layer | Impact |");
-    lines.push("|-------------|-------|--------|");
-    for (const s of ordered.slice(0, 6)) {
-      lines.push(`| ${s.name} | ${s.layer} | ${formatSignedWithIcon(s.delta)} |`);
-    }
-    lines.push("");
-    lines.push("</details>");
-    lines.push("");
-  }
-
-  // Top recommendations
-  const recs = after.recommendations ?? [];
-  if (recs.length) {
-    lines.push("<details>");
-    lines.push("<summary>💡 <strong>Top Recommendations</strong> (click to expand)</summary>");
-    lines.push("");
-    for (const r of recs.slice(0, 4)) {
-      const pkgs = Array.isArray((r as any)?.packages) ? (r as any).packages.slice(0, 6) : [];
-      lines.push(`### ${r.title}`);
-      if (pkgs.length) {
-        lines.push(`**Affects**: ${pkgs.map((p: any) => `\`${p}\``).join(", ")}`);
+      lines.push(`**Updated:** ${dep.topDirectUpdated.slice(0, 3).map((x: any) => `\`${x}\``).join(", ")}`);
+      if (dep.topDirectUpdated.length > 3) {
+        lines.push(` _(+${dep.topDirectUpdated.length - 3} more)_`);
       }
       lines.push("");
     }
+    if (Array.isArray(dep.topDirectRemoved) && dep.topDirectRemoved.length) {
+      lines.push(`**Removed:** ${dep.topDirectRemoved.slice(0, 3).map((x: any) => `\`${x}\``).join(", ")}`);
+      if (dep.topDirectRemoved.length > 3) {
+        lines.push(` _(+${dep.topDirectRemoved.length - 3} more)_`);
+      }
+      lines.push("");
+    }
+    
     lines.push("</details>");
     lines.push("");
   }
 
-  lines.push("---");
-  lines.push("_🤖 Generated by [RepoSentinel](https://github.com/reposentinel)_");
+  // Link to full detailed report
+  if (limits.prCommentShowDetailsLink) {
+    const webBaseUrl = process.env.REPOSENTINEL_WEB_URL ?? "http://localhost:3000";
+    const detailsUrl = `${webBaseUrl}/scan/${opts.scanId}`;
+    lines.push(`[📊 View Full Detailed Report](${detailsUrl})`);
+  } else {
+    lines.push(`Scan ID: \`${opts.scanId}\``);
+  }
+  
   return lines.join("\n");
 }
 
@@ -962,4 +937,40 @@ function toNumber(v: unknown): number | null {
   if (v === null || v === undefined) return null;
   const n = typeof v === "number" ? v : Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+function applyTierLimitsToScanResult(result: any, limits: ReturnType<typeof getLimitsForOwner>): any {
+  // Apply tier-based limits to scan result to reduce verbosity for lower tiers
+  const limited = { ...result };
+
+  // Limit findings
+  if (Array.isArray(limited.findings) && limits.engineMaxFindings > 0) {
+    limited.findings = limited.findings.slice(0, limits.engineMaxFindings);
+  }
+
+  // Limit recommendations
+  if (Array.isArray(limited.recommendations) && limits.engineMaxRecommendations > 0) {
+    limited.recommendations = limited.recommendations.slice(0, limits.engineMaxRecommendations);
+  }
+
+  // Limit graph insights
+  if (limited.graphInsights) {
+    const insights = { ...limited.graphInsights };
+    
+    if (Array.isArray(insights.deepest) && limits.engineMaxDeepestDeps > 0) {
+      insights.deepest = insights.deepest.slice(0, limits.engineMaxDeepestDeps);
+    }
+    
+    if (Array.isArray(insights.hotspots) && limits.engineMaxHotspots > 0) {
+      insights.hotspots = insights.hotspots.slice(0, limits.engineMaxHotspots);
+    }
+    
+    if (Array.isArray(insights.vulnerable) && limits.engineMaxVulnerable > 0) {
+      insights.vulnerable = insights.vulnerable.slice(0, limits.engineMaxVulnerable);
+    }
+    
+    limited.graphInsights = insights;
+  }
+
+  return limited;
 }

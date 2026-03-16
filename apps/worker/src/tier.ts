@@ -6,6 +6,14 @@ export type TierLimits = {
   alertsBatchLimit: number;
   alertsConcurrency: number;
   alertsMinScoreImpact: number;
+  prCommentMaxFindings: number;
+  prCommentMaxActions: number;
+  prCommentShowDetailsLink: boolean;
+  engineMaxFindings: number;
+  engineMaxRecommendations: number;
+  engineMaxDeepestDeps: number;
+  engineMaxHotspots: number;
+  engineMaxVulnerable: number;
 };
 
 export function getOwnerFromRepoId(repoId: string) {
@@ -32,6 +40,14 @@ export function getLimitsForOwner(owner: string): TierLimits {
     alertsBatchLimit: clampInt(process.env.FREE_ALERTS_BATCH_LIMIT, 5),
     alertsConcurrency: clampInt(process.env.FREE_ALERTS_CONCURRENCY, 1),
     alertsMinScoreImpact: clampInt(process.env.FREE_ALERTS_MIN_SCORE_IMPACT, 12),
+    prCommentMaxFindings: clampInt(process.env.FREE_PR_COMMENT_MAX_FINDINGS, 2),
+    prCommentMaxActions: clampInt(process.env.FREE_PR_COMMENT_MAX_ACTIONS, 2),
+    prCommentShowDetailsLink: (process.env.FREE_PR_COMMENT_SHOW_DETAILS_LINK ?? "1") === "1",
+    engineMaxFindings: clampInt(process.env.FREE_ENGINE_MAX_FINDINGS, 3),
+    engineMaxRecommendations: clampInt(process.env.FREE_ENGINE_MAX_RECOMMENDATIONS, 3),
+    engineMaxDeepestDeps: clampInt(process.env.FREE_ENGINE_MAX_DEEPEST_DEPS, 2),
+    engineMaxHotspots: clampInt(process.env.FREE_ENGINE_MAX_HOTSPOTS, 2),
+    engineMaxVulnerable: clampInt(process.env.FREE_ENGINE_MAX_VULNERABLE, 2),
   };
 
   const paid: TierLimits = {
@@ -40,6 +56,14 @@ export function getLimitsForOwner(owner: string): TierLimits {
     alertsBatchLimit: clampInt(process.env.PAID_ALERTS_BATCH_LIMIT, 50),
     alertsConcurrency: clampInt(process.env.PAID_ALERTS_CONCURRENCY, 4),
     alertsMinScoreImpact: clampInt(process.env.PAID_ALERTS_MIN_SCORE_IMPACT, 8),
+    prCommentMaxFindings: clampInt(process.env.PAID_PR_COMMENT_MAX_FINDINGS, 3),
+    prCommentMaxActions: clampInt(process.env.PAID_PR_COMMENT_MAX_ACTIONS, 3),
+    prCommentShowDetailsLink: (process.env.PAID_PR_COMMENT_SHOW_DETAILS_LINK ?? "1") === "1",
+    engineMaxFindings: clampInt(process.env.PAID_ENGINE_MAX_FINDINGS, 5),
+    engineMaxRecommendations: clampInt(process.env.PAID_ENGINE_MAX_RECOMMENDATIONS, 5),
+    engineMaxDeepestDeps: clampInt(process.env.PAID_ENGINE_MAX_DEEPEST_DEPS, 3),
+    engineMaxHotspots: clampInt(process.env.PAID_ENGINE_MAX_HOTSPOTS, 3),
+    engineMaxVulnerable: clampInt(process.env.PAID_ENGINE_MAX_VULNERABLE, 3),
   };
 
   return tier === "paid" ? paid : free;
