@@ -4,6 +4,8 @@ RepoSentinel is a dependency risk intelligence platform designed to produce **ac
 
 This repository is an **early, working end-to-end system** (web + API + worker + Postgres + Redis) with a pluggable analysis engine. The platform calls `@reposentinel/engine` (a stable facade) which loads `@reposentinel/engine-stub` by default and can be swapped for a proprietary engine without changing the surrounding platform (see `REPOSENTINEL_ENGINE_IMPL`).
 
+**Note**: This public repository contains the platform components (API, web, CLI) and an open-source reference engine implementation. The production worker and proprietary analysis engine are maintained in a private package: `@reposentinel/engine-private`.
+
 ### License and disclaimer
 
 RepoSentinel is licensed under **Apache-2.0** (see `LICENSE`).
@@ -68,9 +70,10 @@ NEXT_PUBLIC_API_KEY=
 
 ```bash
 pnpm -C apps/api dev
-pnpm -C apps/worker dev
 pnpm -C apps/web dev
 ```
+
+**Note**: The worker is now part of a private package (`@reposentinel/engine-private`). For production deployment, see the deployment documentation.
 
 ---
 
@@ -177,7 +180,7 @@ curl -sS "http://localhost:4000/openapi.json"
 
 - **`apps/web`**: Next.js UI (App Router)
 - **`apps/api`**: Fastify API, CORS, SSE, webhooks, quotas/caps
-- **`apps/worker`**: BullMQ worker that runs analysis and persists results
+- **Worker**: BullMQ worker (private package: `@reposentinel/engine-private`)
 - **Postgres**: scan persistence + derived views (alerts, policies, benchmarks)
 - **Redis**: job queue (BullMQ)
 - **`packages/shared`**: TypeScript contracts
@@ -232,7 +235,7 @@ When configured and installed, RepoSentinel will **analyze PR lockfile changes**
 - “Why this is risky” reasons derived from explainable signals
 
 
-**Important**: To enable PR comments, set `FREE_PR_COMMENTS_ENABLED=1` in `apps/worker/.env` (copy from `.env.example` if needed). Without this setting, scans will complete successfully but PR comments will not be posted.
+**Important**: To enable PR comments, set `FREE_PR_COMMENTS_ENABLED=1` in your worker environment configuration. Without this setting, scans will complete successfully but PR comments will not be posted.
 
 Supported lockfiles:
 
@@ -301,6 +304,44 @@ Environment variables include:
 - `REPOSENTINEL_DEFAULT_TIER` (`free` | `paid`)
 - `REPOSENTINEL_OWNER_TIERS` (e.g. `acme=paid,other=free`)
 - `FREE_*` and `PAID_*` limits for scans / PR comments / alerts
+
+---
+
+## Production Deployment
+
+The worker component is distributed as a private npm package via GitHub Packages.
+
+### Setting up GitHub Packages Access
+
+1. Create a `.npmrc` file in your project root (already included):
+
+```
+@reposentinel:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+2. Set the `GITHUB_TOKEN` environment variable with a Personal Access Token that has `read:packages` permission.
+
+3. Install dependencies:
+
+```bash
+pnpm install
+```
+
+### Deploying the Worker
+
+The worker is available as `@reposentinel/engine-private`. To run it in production:
+
+```bash
+# Install dependencies (with GITHUB_TOKEN set)
+pnpm add @reposentinel/engine-private
+
+# Set up environment variables (DATABASE_URL, REDIS_URL, etc.)
+# Run the worker
+node node_modules/@reposentinel/engine-private/dist/worker.js
+```
+
+For containerized deployments, see the deployment documentation in `DEPLOYMENT.md`.
 
 ---
 
