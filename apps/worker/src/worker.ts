@@ -254,15 +254,12 @@ async function postGithubPrFailureComment(opts: {
   if (!ghApp) return;
 
   const { owner, repo, prNumber, installationId } = opts.github;
+  const webBaseUrl = process.env.REPOSENTINEL_WEB_URL ?? "http://localhost:3000";
+  const detailsUrl = `${webBaseUrl}/scan/${opts.scanId}`;
   const body = [
     PR_COMMENT_MARKER,
-    "## RepoSentinel PR Risk Review",
-    "",
-    `Scan failed for \`${opts.repoId}\` (scanId: \`${opts.scanId}\`).`,
-    "",
-    "```",
-    truncate(opts.error, 900),
-    "```",
+    `❌ **RepoSentinel scan failed:** ${truncate(opts.error, 100)}`,
+    `[View details →](${detailsUrl})`,
   ].join("\n");
 
   const octokit = await ghApp.getInstallationOctokit(installationId);
@@ -295,13 +292,12 @@ function renderPrComment(opts: {
   const { simulation, limits } = opts;
   const lines: string[] = [];
   lines.push(PR_COMMENT_MARKER);
-  lines.push("## 🛡️ RepoSentinel Security Analysis");
-  lines.push("");
 
   if (!simulation?.after || !simulation?.delta) {
-    lines.push("> ⚠️ **No lockfile changes detected**");
-    lines.push(">");
-    lines.push("> Cannot compare risk — lockfile must exist in both base and head branches.");
+    lines.push("⚠️ **RepoSentinel:** No lockfile changes detected");
+    const webBaseUrl = process.env.REPOSENTINEL_WEB_URL ?? "http://localhost:3000";
+    const detailsUrl = `${webBaseUrl}/scan/${opts.scanId}`;
+    lines.push(`[View full report →](${detailsUrl})`);
     return lines.join("\n");
   }
 
@@ -310,110 +306,42 @@ function renderPrComment(opts: {
   const d = simulation.delta;
   const dep = (d as any)?.dependencyDelta;
 
-  // Risk verdict - front and center
   const scoreDelta = d.totalScoreDelta ?? 0;
-  const riskIcon = scoreDelta > 0 ? "🔴" : scoreDelta < 0 ? "🟢" : "⚪";
   const beforeScore = before.totalScore ?? 0;
   const afterScore = after.totalScore ?? 0;
   
-  if (scoreDelta > 10) {
-    lines.push(`### ${riskIcon} Risk Increased: ${beforeScore} → ${afterScore} (+${scoreDelta})`);
-    lines.push("");
-    lines.push("> ⚠️ **This PR significantly increases dependency risk.** Review the findings below before merging.");
-  } else if (scoreDelta > 0) {
-    lines.push(`### ${riskIcon} Risk Slightly Increased: ${beforeScore} → ${afterScore} (+${scoreDelta})`);
-    lines.push("");
-    lines.push("> This PR increases dependency risk. Consider the findings below.");
-  } else if (scoreDelta < -10) {
-    lines.push(`### ${riskIcon} Risk Decreased: ${beforeScore} → ${afterScore} (${scoreDelta})`);
-    lines.push("");
-    lines.push("> ✅ **Nice!** This PR reduces dependency risk.");
-  } else if (scoreDelta < 0) {
-    lines.push(`### ${riskIcon} Risk Slightly Decreased: ${beforeScore} → ${afterScore} (${scoreDelta})`);
-    lines.push("");
-    lines.push("> ✅ This PR reduces dependency risk slightly.");
-  } else {
-    lines.push(`### ${riskIcon} No Risk Change: ${afterScore}`);
-    lines.push("");
-    lines.push("> This PR has minimal impact on dependency risk.");
-  }
-  lines.push("");
-
-  // Quick dependency summary - one line
-  if (dep) {
-    const parts: string[] = [];
-    if (dep.directAdded > 0) parts.push(`**+${dep.directAdded} direct**`);
-    if (dep.directRemoved > 0) parts.push(`**-${dep.directRemoved} direct**`);
-    if (dep.directUpdated > 0) parts.push(`**~${dep.directUpdated} updated**`);
-    if (parts.length) {
-      lines.push(`📦 ${parts.join(" • ")}`);
-      lines.push("");
-    }
-  }
-
-  // Critical findings only (max configurable per tier, only if score increased)
+  // Build concise summary (3 lines max)
   const findings = buildPrFindings({ before, after, dep });
-  const maxFindings = limits.prCommentMaxFindings;
-  if (scoreDelta > 0 && findings.length && maxFindings > 0) {
-    lines.push("**⚠️ Key Concerns:**");
-    for (const f of findings.slice(0, maxFindings)) {
-      lines.push(`- ${f}`);
-    }
-    lines.push("");
-  }
-
-  // Actions - max configurable per tier, only if actionable
-  const actions = buildPrActions({ after, dep });
-  const maxActions = limits.prCommentMaxActions;
-  if (actions.length && maxActions > 0) {
-    lines.push("**✅ Recommended:**");
-    for (const a of actions.slice(0, maxActions)) {
-      lines.push(`- ${a}`);
-    }
-    lines.push("");
-  }
-
-  // Everything else in collapsible - for those who want details
-  const hasDetails = dep?.topDirectAdded?.length || dep?.topDirectUpdated?.length || dep?.topDirectRemoved?.length;
-  if (hasDetails) {
-    lines.push("<details>");
-    lines.push("<summary>📋 <strong>Dependency Details</strong></summary>");
-    lines.push("");
-    
-    if (Array.isArray(dep.topDirectAdded) && dep.topDirectAdded.length) {
-      lines.push(`**Added:** ${dep.topDirectAdded.slice(0, 3).map((x: any) => `\`${x}\``).join(", ")}`);
-      if (dep.topDirectAdded.length > 3) {
-        lines.push(` _(+${dep.topDirectAdded.length - 3} more)_`);
-      }
-      lines.push("");
-    }
-    if (Array.isArray(dep.topDirectUpdated) && dep.topDirectUpdated.length) {
-      lines.push(`**Updated:** ${dep.topDirectUpdated.slice(0, 3).map((x: any) => `\`${x}\``).join(", ")}`);
-      if (dep.topDirectUpdated.length > 3) {
-        lines.push(` _(+${dep.topDirectUpdated.length - 3} more)_`);
-      }
-      lines.push("");
-    }
-    if (Array.isArray(dep.topDirectRemoved) && dep.topDirectRemoved.length) {
-      lines.push(`**Removed:** ${dep.topDirectRemoved.slice(0, 3).map((x: any) => `\`${x}\``).join(", ")}`);
-      if (dep.topDirectRemoved.length > 3) {
-        lines.push(` _(+${dep.topDirectRemoved.length - 3} more)_`);
-      }
-      lines.push("");
-    }
-    
-    lines.push("</details>");
-    lines.push("");
-  }
-
-  // Link to full detailed report
-  if (limits.prCommentShowDetailsLink) {
-    const webBaseUrl = process.env.REPOSENTINEL_WEB_URL ?? "http://localhost:3000";
-    const detailsUrl = `${webBaseUrl}/scan/${opts.scanId}`;
-    lines.push(`[📊 View Full Detailed Report](${detailsUrl})`);
+  const topFinding = findings.length > 0 ? findings[0] : null;
+  
+  // Line 1: Risk change summary
+  if (scoreDelta > 10) {
+    lines.push(`⚠️ **Risk +${scoreDelta}** → Score: ${afterScore}`);
+  } else if (scoreDelta > 0) {
+    lines.push(`⚠️ **Risk +${scoreDelta}** → Score: ${afterScore}`);
+  } else if (scoreDelta < 0) {
+    lines.push(`🟢 **Risk ${scoreDelta}** → Score: ${afterScore}`);
   } else {
-    lines.push(`Scan ID: \`${opts.scanId}\``);
+    lines.push(`⚪ **No risk change** → Score: ${afterScore}`);
   }
+  
+  // Line 2: Top critical finding (if risk increased)
+  if (scoreDelta > 0 && topFinding) {
+    lines.push(`🔴 ${topFinding}`);
+  } else if (dep) {
+    const parts: string[] = [];
+    if (dep.directAdded > 0) parts.push(`+${dep.directAdded} added`);
+    if (dep.directUpdated > 0) parts.push(`~${dep.directUpdated} updated`);
+    if (dep.directRemoved > 0) parts.push(`-${dep.directRemoved} removed`);
+    if (parts.length > 0) {
+      lines.push(`📦 ${parts.join(", ")}`);
+    }
+  }
+  
+  // Line 3: Link to full report
+  const webBaseUrl = process.env.REPOSENTINEL_WEB_URL ?? "http://localhost:3000";
+  const detailsUrl = `${webBaseUrl}/scan/${opts.scanId}`;
+  lines.push(`[Full report →](${detailsUrl})`);
   
   return lines.join("\n");
 }
