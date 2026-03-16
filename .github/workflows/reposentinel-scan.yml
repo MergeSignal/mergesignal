@@ -77,71 +77,83 @@ jobs:
           const fs = require("fs");
           const r = JSON.parse(fs.readFileSync("reposentinel-scan.json","utf8"));
           const total = r.totalScore ?? null;
-          const conf = r.confidence ?? "n/a";
-          const method = r.methodologyVersion ?? "n/a";
           const layers = r.layerScores ?? {};
           const recs = Array.isArray(r.recommendations) ? r.recommendations : [];
-          const reasons = Array.isArray(r.explain?.reasons) ? r.explain.reasons : [];
           const gi = r.graphInsights ?? {};
-          const hotspots = Array.isArray(gi.hotspots) ? gi.hotspots : [];
-          const deepest = Array.isArray(gi.deepest) ? gi.deepest : [];
-          const vulnerable = Array.isArray(gi.vulnerable) ? gi.vulnerable : [];
+          
+          // Determine risk status
+          function getRiskStatus(score) {
+            if (score === null) return { emoji: "⚪", label: "Unknown risk" };
+            if (score >= 70) return { emoji: "🔴", label: "High risk" };
+            if (score >= 40) return { emoji: "⚠️", label: "Medium risk" };
+            return { emoji: "✅", label: "Low risk" };
+          }
+          
+          // Map impact to priority emoji and time estimate
+          function getActionMeta(rec) {
+            const impact = rec.impact ?? "low";
+            const prio = Number(rec.priorityScore ?? 0);
+            if (impact === "high" || prio >= 80) return { icon: "🔴", time: "< 5 min" };
+            if (impact === "medium" || prio >= 50) return { icon: "⚠️", time: "~15 min" };
+            return { icon: "ℹ️", time: "~30 min" };
+          }
+          
+          // Format layer score with status
+          function formatLayerStatus(score) {
+            if (score === null || score === undefined) return "—";
+            return score < 20 ? `${score} ✅` : score < 40 ? `${score} ⚠️` : `${score} 🔴`;
+          }
+          
+          const status = getRiskStatus(total);
           const lines = [];
-          lines.push("## RepoSentinel scan");
+          
+          // TIER 1: Score + Status (3-second scan)
+          lines.push(`# RepoSentinel Scan: Score ${total ?? "—"}/100`);
+          lines.push(`${status.emoji} **${status.label}**${recs.length === 0 ? " — No critical issues" : ""}`);
           lines.push("");
-          lines.push(`- Repo: \`${process.env.GITHUB_REPOSITORY}\``);
-          lines.push(`- Method: \`${method}\` • Confidence: \`${conf}\``);
-          lines.push(`- Total score: **${total ?? "n/a"}** (0 best → 100 worst)`);
-          lines.push(`- Layers: security=${layers.security ?? "n/a"}, maintainability=${layers.maintainability ?? "n/a"}, ecosystem=${layers.ecosystem ?? "n/a"}, upgradeImpact=${layers.upgradeImpact ?? "n/a"}`);
-          if (reasons.length) {
-            lines.push("");
-            lines.push("### Why this is risky (top drivers)");
-            for (const x of reasons.slice(0, 8)) {
-              const title = String(x.title ?? x.reason ?? "Reason");
-              const detail = x.detail ? String(x.detail) : "";
-              lines.push(`- ${title}${detail ? ` — ${detail}` : ""}`);
+          
+          // TIER 2: Actionable recommendations (30-second scan)
+          if (recs.length > 0) {
+            lines.push(`## 🎯 Recommended actions (${Math.min(3, recs.length)}):`);
+            const topRecs = recs.slice(0, 3);
+            for (let i = 0; i < topRecs.length; i++) {
+              const rec = topRecs[i];
+              const meta = getActionMeta(rec);
+              const title = String(rec.title ?? "Review dependencies");
+              const pkgs = Array.isArray(rec.packages) && rec.packages.length > 0
+                ? ` — \`${rec.packages.slice(0, 3).join("\`, \`")}\`${rec.packages.length > 3 ? `, +${rec.packages.length - 3} more` : ""}`
+                : "";
+              lines.push(`${i + 1}. ${meta.icon} ${title} (${meta.time})${pkgs}`);
             }
-          }
-          if (hotspots.length) {
             lines.push("");
-            lines.push("### Transitive hotspots (high fan-in)");
-            for (const h of hotspots.slice(0, 5)) {
-              const name = String(h.packageName ?? "package");
-              const fanIn = h.fanIn ?? "n/a";
-              const via = Array.isArray(h.via) && h.via.length ? ` via ${h.via.join(" → ")}` : "";
-              lines.push(`- \`${name}\` fan-in ${fanIn}${via}`);
-            }
-          }
-          if (vulnerable.length) {
+          } else {
+            lines.push("## 🎯 No immediate actions required");
             lines.push("");
-            lines.push("### Vulnerable packages (evidence-backed)");
-            for (const v of vulnerable.slice(0, 5)) {
-              const name = String(v.packageName ?? "package");
-              const count = v.advisoryCount ?? "n/a";
-              const via = Array.isArray(v.via) && v.via.length ? ` via ${v.via.join(" → ")}` : "";
-              lines.push(`- \`${name}\` advisories ${count}${via}`);
-            }
           }
-          if (deepest.length) {
-            lines.push("");
-            lines.push("### Deepest transitive dependencies");
-            for (const d of deepest.slice(0, 5)) {
-              const name = String(d.packageName ?? "package");
-              const depth = d.depth ?? "n/a";
-              const via = Array.isArray(d.via) && d.via.length ? ` via ${d.via.join(" → ")}` : "";
-              lines.push(`- \`${name}\` depth ${depth}${via}`);
-            }
+          
+          // TIER 3: Details (collapsible)
+          lines.push("<details>");
+          lines.push("<summary>📈 Risk breakdown (expand)</summary>");
+          lines.push("");
+          lines.push("| Layer | Score | Status |");
+          lines.push("|-------|-------|--------|");
+          lines.push(`| Security | ${layers.security ?? "—"} | ${formatLayerStatus(layers.security)} |`);
+          lines.push(`| Maintainability | ${layers.maintainability ?? "—"} | ${formatLayerStatus(layers.maintainability)} |`);
+          lines.push(`| Ecosystem | ${layers.ecosystem ?? "—"} | ${formatLayerStatus(layers.ecosystem)} |`);
+          lines.push(`| Upgrade Impact | ${layers.upgradeImpact ?? "—"} | ${formatLayerStatus(layers.upgradeImpact)} |`);
+          lines.push("");
+          
+          // Graph insights summary
+          if (gi.nodes || gi.maxDepth) {
+            const nodes = gi.nodes ?? "—";
+            const depth = gi.maxDepth ?? "—";
+            const hotspotCount = Array.isArray(gi.hotspots) ? gi.hotspots.length : 0;
+            const vulnCount = Array.isArray(gi.vulnerable) ? gi.vulnerable.length : 0;
+            lines.push(`**Graph insights**: ${nodes} packages, max depth ${depth}${hotspotCount > 0 ? `, ${hotspotCount} hotspot${hotspotCount > 1 ? "s" : ""}` : ""}${vulnCount > 0 ? `, ${vulnCount} vulnerable` : ""}`);
           }
-          if (recs.length) {
-            lines.push("");
-            lines.push("### Top recommendations (actionable)");
-            for (const x of recs.slice(0, 6)) {
-              const title = String(x.title ?? "Untitled");
-              const prio = Number(x.priorityScore ?? 0);
-              const pkgs = Array.isArray(x.packages) ? x.packages.slice(0, 6) : [];
-              lines.push(`- ${title} (priority ${prio})${pkgs.length ? ` — ${pkgs.map((p) => `\`${p}\``).join(", ")}` : ""}`);
-            }
-          }
+          
+          lines.push("</details>");
+          
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
           '
 
