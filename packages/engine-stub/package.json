@@ -8,20 +8,14 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check-types": "tsc -p tsconfig.json --noEmit",
-    "lint": "echo 'No lint configured for engine-stub'",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "lint": "echo 'No lint configured for engine-stub'"
   },
   "license": "ISC",
   "dependencies": {
-    "@mergesignal/shared": "workspace:^",
-    "@yarnpkg/lockfile": "^1.1.0",
-    "yaml": "^2.8.2"
+    "@mergesignal/shared": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
-    "@types/yarnpkg__lockfile": "^1.1.9",
-    "typescript": "^5.9.3",
-    "vitest": "^2.1.8"
+    "typescript": "^5.9.3"
   }
 }
