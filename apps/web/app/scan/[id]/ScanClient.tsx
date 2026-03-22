@@ -39,6 +39,12 @@ type ScanResult = {
   };
   insights?: PRInsight[];
   decision?: PRDecision;
+  codeAnalysisMetrics?: {
+    fromCache: boolean;
+    analysisTimeMs?: number;
+    timedOut?: boolean;
+    filesAnalyzed: number;
+  };
 };
 
 export default function ScanClient({ id }: { id: string }) {
@@ -168,32 +174,52 @@ export default function ScanClient({ id }: { id: string }) {
       )}
 
       {data.status === "done" && insights.length > 0 && (
-        <Card title="AI Insights" subtitle={<span className={cardStyles.muted}>Key findings and recommendations</span>}>
-          <ul className={styles.list}>
+        <Card title="Critical Insights" subtitle={<span className={cardStyles.muted}>Key findings from code analysis</span>}>
+          <div className={styles.insightsList}>
             {insights.map((insight, idx) => (
-              <li key={idx}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span className={styles.insightPriorityBadge} data-priority={insight.priority}>
+              <div key={idx} className={styles.insight} data-priority={insight.priority}>
+                <div className={styles.insightHeader}>
+                  <span className={styles.priorityBadge} data-priority={insight.priority}>
                     {insight.priority}
                   </span>
-                  <span className={cardStyles.muted} style={{ textTransform: "capitalize" }}>
-                    {insight.type.replace(/_/g, " ")}
-                  </span>
+                  <span className={styles.insightType}>{insight.type.replace(/_/g, " ")}</span>
                 </div>
-                <div style={{ marginTop: 4 }}>
-                  <b>{insight.message}</b>
-                </div>
-                <div className={cardStyles.note} style={{ marginTop: 4 }}>
-                  Action: {insight.action}
-                </div>
+                <p className={styles.insightMessage}>{insight.message}</p>
+                <p className={styles.insightAction}>
+                  <strong>Action:</strong> {insight.action}
+                </p>
                 {insight.files && insight.files.length > 0 && (
-                  <div className={cardStyles.muted} style={{ marginTop: 4, fontSize: "0.9em" }}>
-                    Files: {insight.files.join(", ")}
-                  </div>
+                  <details className={styles.affectedFiles}>
+                    <summary>{insight.files.length} file(s) affected</summary>
+                    <ul>
+                      {insight.files.slice(0, 10).map((file, i) => (
+                        <li key={i}>
+                          <code>{file}</code>
+                        </li>
+                      ))}
+                      {insight.files.length > 10 && <li>...and {insight.files.length - 10} more</li>}
+                    </ul>
+                  </details>
                 )}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
+        </Card>
+      )}
+
+      {data.status === "done" && data.result?.codeAnalysisMetrics && (
+        <Card title="Code Analysis" subtitle={<span className={cardStyles.muted}>Repository source analysis</span>}>
+          <div className={cardStyles.note}>
+            Analyzed <b>{data.result.codeAnalysisMetrics.filesAnalyzed}</b> files
+            {data.result.codeAnalysisMetrics.fromCache && " (from cache)"}
+            {data.result.codeAnalysisMetrics.analysisTimeMs &&
+              ` in ${(data.result.codeAnalysisMetrics.analysisTimeMs / 1000).toFixed(1)}s`}
+            {data.result.codeAnalysisMetrics.timedOut && (
+              <div style={{ marginTop: 8, color: "#856404" }}>
+                ⚠️ Analysis timed out - results based on dependency graph only
+              </div>
+            )}
+          </div>
         </Card>
       )}
 
