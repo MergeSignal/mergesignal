@@ -59,7 +59,6 @@ jobs:
       - name: Build engine + CLI
         run: |
           set -euo pipefail
-          pnpm -C packages/shared build
           pnpm -C packages/engine-stub build
           pnpm -C packages/engine build
           pnpm -C apps/cli build
