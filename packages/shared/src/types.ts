@@ -37,6 +37,7 @@ export type ScanRequest = {
   dependencyGraph: unknown;
   lockfile?: ScanLockfileInput;
   repoSource?: RepoSource;
+  changedPackages?: string[];
 };
 
 export type ScoreLayer = keyof LayerScores;
