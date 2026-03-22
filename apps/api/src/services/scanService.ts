@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { db, queries } from "../db.js";
 import { scanQueue } from "../queue.js";
-import type { ScanLockfileInput } from "@mergesignal/shared";
+import type { ScanLockfileInput, RepoSource } from "@mergesignal/shared";
 import { getLimitsForOwner, getOwnerFromRepoId } from "./tier.js";
 
 export async function createScanAndEnqueue({
@@ -92,10 +92,21 @@ export async function createScanAndEnqueue({
     client.release();
   }
 
+  // Build repoSource if we have GitHub context
+  const repoSource: RepoSource | undefined = github
+    ? {
+        provider: "github" as const,
+        owner: github.owner,
+        repo: github.repo,
+        sha: github.headSha,
+        installationId: github.installationId,
+      }
+    : undefined;
+
   try {
     await scanQueue.add(
       "scan",
-      { scanId: id, repoId, dependencyGraph, lockfile, baseLockfile, github },
+      { scanId: id, repoId, dependencyGraph, lockfile, baseLockfile, repoSource, github },
       {
         jobId: id,
         attempts: 3,

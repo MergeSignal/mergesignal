@@ -24,10 +24,19 @@ export type ScanLockfileInput = {
   path?: string;
 };
 
+export type RepoSource = {
+  provider: "github";
+  owner: string;
+  repo: string;
+  sha: string;
+  installationId: number;
+};
+
 export type ScanRequest = {
   repoId: string;
   dependencyGraph: unknown;
   lockfile?: ScanLockfileInput;
+  repoSource?: RepoSource;
 };
 
 export type ScoreLayer = keyof LayerScores;
@@ -67,10 +76,10 @@ export type Recommendation = {
 export type PackageHealthObservation = {
   name: string;
   registry: "npm";
-  fetchedAt: string; // ISO
+  fetchedAt: string;
   latestVersion: string | null;
-  latestPublishedAt: string | null; // ISO
-  modifiedAt: string | null; // ISO
+  latestPublishedAt: string | null;
+  modifiedAt: string | null;
   deprecated: boolean;
   maintainersCount: number | null;
   repositoryUrl: string | null;
@@ -100,8 +109,8 @@ export type DependencyGraphInsight = {
   packageName: string;
   version?: string;
   direct: boolean;
-  depth: number; // 1 = direct dependency
-  via?: string[]; // root -> ... -> package
+  depth: number;
+  via?: string[];
   evidence?: Record<string, unknown>;
 };
 
@@ -112,6 +121,34 @@ export type DependencyGraphInsights = {
   deepest?: DependencyGraphInsight[];
   hotspots?: DependencyGraphInsight[];
   vulnerable?: DependencyGraphInsight[];
+};
+
+export type PRInsightType = 
+  | 'used_breaking_changes' 
+  | 'critical_path_impact' 
+  | 'security_concern' 
+  | 'major_version_bump' 
+  | 'deprecation_warning';
+
+export type PRInsightPriority = 'critical' | 'high' | 'medium' | 'low';
+
+export type PRInsight = {
+  type: PRInsightType;
+  priority: PRInsightPriority;
+  message: string;
+  files?: string[];
+  action: string;
+  details?: Record<string, unknown>;
+};
+
+export type PRDecisionRecommendation = 'safe' | 'needs_review' | 'risky';
+
+export type PRDecisionConfidence = 'low' | 'medium' | 'high';
+
+export type PRDecision = {
+  recommendation: PRDecisionRecommendation;
+  confidence: PRDecisionConfidence;
+  reasoning: string[];
 };
 
 export type ScanResult = {
@@ -127,6 +164,8 @@ export type ScanResult = {
   explain?: ExplainBlock;
   graphInsights?: DependencyGraphInsights;
   generatedAt: string;
+  insights?: PRInsight[];
+  decision?: PRDecision;
 };
 
 export type UpgradeTarget = {
@@ -219,10 +258,8 @@ export type ImpactInsight = {
   affectedFiles?: string[];
 };
 
-export type PRDecision = "safe" | "needs_review" | "risky";
-
 export type PRAnalysisResult = {
-  decision: PRDecision;
+  decision: PRDecisionRecommendation;
   breakingChanges: BreakingChange[];
   usageImpact: UsageReport[];
   criticalPath?: CriticalPathScore;

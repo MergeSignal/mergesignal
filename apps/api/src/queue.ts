@@ -1,5 +1,5 @@
 import { Queue } from "bullmq";
-import type { ScanLockfileInput } from "@mergesignal/shared";
+import type { ScanLockfileInput, RepoSource } from "@mergesignal/shared";
 
 const connection = {
   url: process.env.REDIS_URL!,
@@ -14,6 +14,7 @@ export type ScanJob = {
   dependencyGraph: unknown;
   lockfile?: ScanLockfileInput;
   baseLockfile?: ScanLockfileInput;
+  repoSource?: RepoSource;
   github?: {
     owner: string;
     repo: string;
