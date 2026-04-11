@@ -11,7 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node --enable-source-maps dist/cli.js",
     "check-types": "tsc -p tsconfig.json --noEmit",
-    "lint": "echo 'No lint configured for CLI'",
+    "lint": "eslint --max-warnings 0 .",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -20,7 +20,9 @@
     "@mergesignal/shared": "workspace:^"
   },
   "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
     "@types/node": "^22.15.3",
+    "eslint": "^9.39.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^2.1.8"

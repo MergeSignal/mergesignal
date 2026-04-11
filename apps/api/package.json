@@ -11,7 +11,7 @@
     "generate-api-key": "tsx src/generateApiKey.ts",
     "bootstrap-migrations": "tsx src/bootstrapMigrations.ts",
     "check-types": "tsc -p tsconfig.json --noEmit",
-    "lint": "echo 'No lint configured for API'",
+    "lint": "eslint --max-warnings 0 .",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -19,20 +19,21 @@
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@fastify/rate-limit": "^10.3.0",
-    "@octokit/app": "^16.1.2",
-    "@prisma/client": "^7.4.1",
     "@mergesignal/engine": "workspace:^",
     "@mergesignal/shared": "workspace:^",
+    "@octokit/app": "^16.1.2",
+    "@prisma/client": "^7.4.1",
     "bullmq": "^5.70.1",
     "dotenv": "^17.3.1",
-    "fastify": "^5.7.4",
     "fastify-raw-body": "^5.0.0",
     "ioredis": "^5.9.3",
     "pg": "^8.19.0"
   },
   "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
     "@types/node": "^22.15.3",
     "@types/pg": "^8.16.0",
+    "fastify": "^5.7.4",
     "prisma": "^7.4.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
