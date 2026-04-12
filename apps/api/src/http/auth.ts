@@ -48,7 +48,7 @@ export function registerAuth(app: FastifyInstance) {
         queries.apiKeys.updateLastUsed(keyHash).catch(() => {});
         return;
       }
-    } catch (err) {
+    } catch {
       // Database error - fail closed for security
       // Log the error for debugging but return unauthorized
     }

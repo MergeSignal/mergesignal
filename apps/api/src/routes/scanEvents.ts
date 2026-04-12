@@ -4,7 +4,7 @@ import { problemJsonString } from "../problem.js";
 
 export async function scanEventsRoutes(app: FastifyInstance) {
   app.get("/scan/:id/events", async (req, reply) => {
-    const id = (req.params as any).id as string;
+    const id = (req.params as { id: string }).id;
 
     // Authorization check: fetch scan and verify ownership before streaming
     const scanCheck = await db.query("SELECT repo_id FROM scans WHERE id=$1", [id]);
@@ -12,10 +12,10 @@ export async function scanEventsRoutes(app: FastifyInstance) {
       reply.hijack();
       reply.raw.writeHead(404, {
         "Content-Type": "application/problem+json; charset=utf-8",
-        "x-request-id": String((req as any).id ?? ""),
+        "x-request-id": String(req.id ?? ""),
       });
       reply.raw.end(
-        problemJsonString(req as any, {
+        problemJsonString(req, {
           status: 404,
           title: "Not Found",
           detail: "scan not found",
@@ -32,10 +32,10 @@ export async function scanEventsRoutes(app: FastifyInstance) {
         reply.hijack();
         reply.raw.writeHead(403, {
           "Content-Type": "application/problem+json; charset=utf-8",
-          "x-request-id": String((req as any).id ?? ""),
+          "x-request-id": String(req.id ?? ""),
         });
         reply.raw.end(
-          problemJsonString(req as any, {
+          problemJsonString(req, {
             status: 403,
             title: "Forbidden",
             detail: "Access denied to this scan",
@@ -56,11 +56,11 @@ export async function scanEventsRoutes(app: FastifyInstance) {
       reply.hijack();
       reply.raw.writeHead(403, {
         "Content-Type": "application/problem+json; charset=utf-8",
-        "x-request-id": String((req as any).id ?? ""),
+        "x-request-id": String(req.id ?? ""),
         Vary: "Origin",
       });
       reply.raw.end(
-        problemJsonString(req as any, {
+        problemJsonString(req, {
           status: 403,
           title: "Forbidden",
           detail: "CORS origin not allowed",
@@ -74,7 +74,7 @@ export async function scanEventsRoutes(app: FastifyInstance) {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
-      "x-request-id": String((req as any).id ?? ""),
+      "x-request-id": String(req.id ?? ""),
       ...(origin ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : {}),
     });
 
@@ -85,48 +85,37 @@ export async function scanEventsRoutes(app: FastifyInstance) {
       reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
-    let interval: NodeJS.Timeout | undefined;
-    let keepalive: NodeJS.Timeout | undefined;
-    let closed = false;
-    const cleanup = () => {
-      if (closed) return;
-      closed = true;
-      if (interval) clearInterval(interval);
-      if (keepalive) clearInterval(keepalive);
-      reply.raw.end();
-    };
-
-    // שליחה ראשונית
     const first = await db.query(
       "SELECT id, status, result, error, updated_at FROM scans WHERE id=$1",
       [id],
     );
     if (first.rows.length === 0) {
-      send("error", { message: "Not found", requestId: String((req as any).id ?? "") });
-      cleanup();
+      send("error", { message: "Not found", requestId: String(req.id ?? "") });
+      reply.raw.end();
       return;
     }
     send("status", first.rows[0]);
 
     if (first.rows[0].status === "done" || first.rows[0].status === "failed") {
-      cleanup();
+      reply.raw.end();
       return;
     }
 
-    keepalive = setInterval(() => {
+    let closed = false;
+    let lastUpdated = String(first.rows[0].updated_at);
+
+    const keepalive = setInterval(() => {
       reply.raw.write(`event: ping\ndata: {}\n\n`);
     }, 15000);
 
-    let lastUpdated = String(first.rows[0].updated_at);
-
-    interval = setInterval(async () => {
+    const interval = setInterval(async () => {
       try {
         const { rows } = await db.query(
           "SELECT id, status, result, error, updated_at FROM scans WHERE id=$1",
           [id],
         );
         if (rows.length === 0) {
-          send("error", { message: "Not found", requestId: String((req as any).id ?? "") });
+          send("error", { message: "Not found", requestId: String(req.id ?? "") });
           cleanup();
           return;
         }
@@ -140,11 +129,19 @@ export async function scanEventsRoutes(app: FastifyInstance) {
             cleanup();
           }
         }
-      } catch (e: any) {
-        send("error", { message: String(e?.message ?? e) });
+      } catch (e: unknown) {
+        send("error", { message: e instanceof Error ? e.message : String(e) });
         cleanup();
       }
     }, 1000);
+
+    function cleanup() {
+      if (closed) return;
+      closed = true;
+      clearInterval(interval);
+      clearInterval(keepalive);
+      reply.raw.end();
+    }
 
     req.raw.on("close", () => {
       cleanup();

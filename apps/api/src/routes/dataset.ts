@@ -10,8 +10,9 @@ function clampInt(v: unknown, fallback: number, min: number, max: number) {
 
 export async function datasetRoutes(app: FastifyInstance) {
   app.get("/dataset/packages", async (req) => {
-    const q = String((req.query as any)?.q ?? "").trim();
-    const limit = clampInt((req.query as any)?.limit, 50, 1, 200);
+    const query = req.query as { q?: string; limit?: string };
+    const q = String(query?.q ?? "").trim();
+    const limit = clampInt(query?.limit, 50, 1, 200);
 
     if (q) {
       const { rows } = await db.query(
@@ -42,10 +43,10 @@ export async function datasetRoutes(app: FastifyInstance) {
   });
 
   app.get("/dataset/package/:name", async (req, reply) => {
-    const name = String((req.params as any)?.name ?? "").trim();
+    const name = String((req.params as { name: string })?.name ?? "").trim();
     if (!name) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "name is required" });
 
-    const days = clampInt((req.query as any)?.days, 30, 1, 365);
+    const days = clampInt((req.query as { days?: string })?.days, 30, 1, 365);
 
     const current = await db.query(
       [

@@ -12,8 +12,8 @@ export async function healthRoutes(app: FastifyInstance) {
     try {
       await db.query("SELECT 1");
       checks.database = { ok: true, latencyMs: Date.now() - dbStart };
-    } catch (err: any) {
-      checks.database = { ok: false, error: String(err?.message ?? err) };
+    } catch (err: unknown) {
+      checks.database = { ok: false, error: err instanceof Error ? err.message : String(err) };
       allOk = false;
       app.log.error({ err, check: "database" }, "Health check failed for database");
     }
@@ -24,8 +24,8 @@ export async function healthRoutes(app: FastifyInstance) {
       const client = await scanQueue.client;
       await client.ping();
       checks.redis = { ok: true, latencyMs: Date.now() - redisStart };
-    } catch (err: any) {
-      checks.redis = { ok: false, error: String(err?.message ?? err) };
+    } catch (err: unknown) {
+      checks.redis = { ok: false, error: err instanceof Error ? err.message : String(err) };
       allOk = false;
       app.log.error({ err, check: "redis" }, "Health check failed for redis");
     }

@@ -28,7 +28,7 @@ describe("API Integration Tests", () => {
         owner: testOwner,
         description: "Test API key",
       });
-    } catch (err) {
+    } catch {
       // Key might already exist or table doesn't exist yet, continue anyway
     }
   });

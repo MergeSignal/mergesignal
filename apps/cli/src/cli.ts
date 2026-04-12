@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { analyze } from "@mergesignal/engine";
-import type { ScanLockfileInput, ScanResult, ScoreLayer } from "@mergesignal/shared";
+import type { LayerScores, ScanLockfileInput, ScanResult, ScoreLayer } from "@mergesignal/shared";
 
 type ArgMap = {
   _: string[];
@@ -130,11 +130,11 @@ function printSummary(opts: { repoId: string; lockfile?: ScanLockfileInput; resu
   const conf = result.confidence ? String(result.confidence) : "n/a";
   const method = result.methodologyVersion ? String(result.methodologyVersion) : "n/a";
 
-  const layers = result.layerScores ?? ({} as any);
+  const layers: Partial<LayerScores> = result.layerScores ?? {};
   const findings = Array.isArray(result.findings) ? result.findings : [];
   const recs = Array.isArray(result.recommendations) ? result.recommendations : [];
-  const reasons = Array.isArray((result as any)?.explain?.reasons) ? (result as any).explain.reasons : [];
-  const graphInsights = (result as any)?.graphInsights;
+  const reasons = result.explain?.reasons ?? [];
+  const graphInsights = result.graphInsights;
   const deepest = Array.isArray(graphInsights?.deepest) ? graphInsights.deepest : [];
 
   const lockfileLine = opts.lockfile ? `${opts.lockfile.path} (${opts.lockfile.manager})` : "none";
@@ -153,8 +153,8 @@ function printSummary(opts: { repoId: string; lockfile?: ScanLockfileInput; resu
     lines.push("");
     lines.push("Why this is risky:");
     for (const r of reasons.slice(0, 6)) {
-      const title = String((r as any)?.title ?? (r as any)?.id ?? "Reason");
-      const impact = Number((r as any)?.scoreImpact ?? 0);
+      const title = String(r.title ?? r.id ?? "Reason");
+      const impact = Number(r.scoreImpact ?? 0);
       lines.push(`- ${title} (+${impact})`);
     }
   }
@@ -175,8 +175,8 @@ function printSummary(opts: { repoId: string; lockfile?: ScanLockfileInput; resu
     lines.push("");
     lines.push("Top recommendations:");
     for (const r of recs.slice(0, 5)) {
-      const title = String((r as any)?.title ?? "Untitled");
-      const prio = Number((r as any)?.priorityScore ?? 0);
+      const title = String(r.title ?? "Untitled");
+      const prio = Number(r.priorityScore ?? 0);
       lines.push(`- ${title} (${prio})`);
     }
   }
@@ -190,9 +190,9 @@ function printSummary(opts: { repoId: string; lockfile?: ScanLockfileInput; resu
   process.stdout.write(`${lines.join("\n")}\n`);
 }
 
-function formatLayers(layers: Record<string, unknown>) {
+function formatLayers(layers: Partial<LayerScores>) {
   const order: ScoreLayer[] = ["security", "maintainability", "ecosystem", "upgradeImpact"];
-  const bits = order.map((k) => `${k}=${toShortNumber((layers as any)[k])}`);
+  const bits = order.map((k) => `${k}=${toShortNumber(layers[k])}`);
   return bits.join(" • ");
 }
 
@@ -226,7 +226,7 @@ function parseArgs(argv: string[]): ArgMap {
     if (takesValue) {
       const v = argv[i + 1];
       if (!v || v.startsWith("--")) throw new Error(`${a} expects a value`);
-      (out as any)[a] = v;
+      out[a as "--out" | "--repo-id" | "--lockfile" | "--fail-above"] = v;
       i++;
       continue;
     }
@@ -241,8 +241,8 @@ async function writeJsonFile(p: string, value: unknown) {
   await fs.writeFile(p, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-main().catch((e: any) => {
-  const msg = String(e?.message ?? e);
+main().catch((e: unknown) => {
+  const msg = e instanceof Error ? e.message : String(e);
   process.stderr.write(`mergesignal: ${msg}\n`);
   process.exit(1);
 });

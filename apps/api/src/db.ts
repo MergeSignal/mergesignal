@@ -1,4 +1,4 @@
-import { Pool, QueryResult } from "pg";
+import { Pool } from "pg";
 import type { ApiKey, Policy, Scan } from "./types/database.js";
 
 export const db = new Pool({
@@ -61,7 +61,7 @@ export const queries = {
       data: Partial<Pick<Policy, "name" | "enabled" | "rules">>,
     ): Promise<Policy | null> {
       const fields: string[] = [];
-      const values: any[] = [];
+      const values: unknown[] = [];
       let i = 1;
 
       if (data.name !== undefined) {

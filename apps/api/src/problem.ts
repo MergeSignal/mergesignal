@@ -16,8 +16,8 @@ export function buildProblem(req: FastifyRequest, opts: ProblemDetails) {
     status: opts.status,
     detail: opts.detail,
     instance: String(req?.url ?? ""),
-    requestId: String((req as any)?.id ?? ""),
-    ...((opts.extra ?? {}) as any),
+    requestId: String(req?.id ?? ""),
+    ...(opts.extra ?? {}),
   };
 
   return problem;
@@ -28,7 +28,7 @@ export function sendProblem(reply: FastifyReply, req: FastifyRequest, opts: Prob
   return reply
     .code(opts.status)
     .header("content-type", "application/problem+json; charset=utf-8")
-    .header("x-request-id", String((req as any)?.id ?? ""))
+    .header("x-request-id", String(req?.id ?? ""))
     .send(problem);
 }
 

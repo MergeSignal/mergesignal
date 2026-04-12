@@ -20,7 +20,7 @@ async function bootstrapMigrations() {
 
   // Check which migrations are already applied
   const { rows: existing } = await db.query("SELECT filename FROM _migrations");
-  const appliedSet = new Set(existing.map((r: any) => r.filename));
+  const appliedSet = new Set(existing.map((r: { filename: string }) => r.filename));
 
   // Get all migration files
   const sqlDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "sql");

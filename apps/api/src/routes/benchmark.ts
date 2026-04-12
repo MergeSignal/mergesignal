@@ -17,12 +17,12 @@ type BenchmarkSummary = {
 };
 
 export async function benchmarkRoutes(app: FastifyInstance) {
-  app.get("/benchmark/global", async (_req, _reply) => {
+  app.get("/benchmark/global", async () => {
     return await getBenchmarkSummary({ scope: "global" });
   });
 
   app.get("/benchmark/org/:owner", async (req, reply) => {
-    const owner = String((req.params as any).owner ?? "").trim();
+    const owner = String((req.params as { owner: string }).owner ?? "").trim();
     if (!owner) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "owner is required" });
 
     // Authorization check: ensure authenticated owner matches requested owner
@@ -34,7 +34,7 @@ export async function benchmarkRoutes(app: FastifyInstance) {
   });
 
   app.get("/benchmark/repo", async (req, reply) => {
-    const repoId = String((req.query as any)?.repoId ?? "").trim();
+    const repoId = String((req.query as { repoId?: string })?.repoId ?? "").trim();
     if (!repoId) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "repoId is required" });
 
     const owner = repoId.includes("/") ? repoId.split("/")[0] : repoId;
@@ -93,7 +93,8 @@ export async function benchmarkRoutes(app: FastifyInstance) {
       return sendProblem(reply, req, { status: 404, title: "Not Found", detail: "No scored scans found for repoId" });
     }
 
-    const r: any = rows[0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r: Record<string, any> = rows[0];
     return {
       repoId,
       owner,
@@ -121,7 +122,7 @@ export async function benchmarkRoutes(app: FastifyInstance) {
 }
 
 async function getBenchmarkSummary(opts: { scope: "global" } | { scope: "owner"; owner: string }): Promise<BenchmarkSummary> {
-  const params: any[] = [];
+  const params: unknown[] = [];
   let where = "status='done' AND total_score IS NOT NULL";
   if (opts.scope === "owner") {
     params.push(opts.owner);
@@ -179,7 +180,8 @@ async function getBenchmarkSummary(opts: { scope: "global" } | { scope: "owner";
     params,
   );
 
-  const s: any = summary.rows?.[0] ?? {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const s: Record<string, any> = summary.rows?.[0] ?? {};
   return {
     scope: opts.scope,
     owner: opts.scope === "owner" ? opts.owner : undefined,
@@ -190,12 +192,14 @@ async function getBenchmarkSummary(opts: { scope: "global" } | { scope: "owner";
     p25TotalScore: toNullableNumber(s.p25_total_score),
     p75TotalScore: toNullableNumber(s.p75_total_score),
     p90TotalScore: toNullableNumber(s.p90_total_score),
-    worst: worst.rows.map((r: any) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    worst: worst.rows.map((r: Record<string, any>) => ({
       repoId: r.repo_id,
       totalScore: Number(r.total_score),
       createdAt: new Date(r.created_at).toISOString(),
     })),
-    best: best.rows.map((r: any) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    best: best.rows.map((r: Record<string, any>) => ({
       repoId: r.repo_id,
       totalScore: Number(r.total_score),
       createdAt: new Date(r.created_at).toISOString(),

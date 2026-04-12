@@ -80,7 +80,7 @@ export async function analyzeSourceFiles(
       fromCache: false,
       analysisTimeMs,
     };
-  } catch (error) {
+  } catch {
     const analysisTimeMs = Date.now() - startTime;
     return {
       imports: {},

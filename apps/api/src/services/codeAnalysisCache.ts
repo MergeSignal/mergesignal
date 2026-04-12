@@ -38,7 +38,7 @@ export class CodeAnalysisCache {
       if (!value) return null;
 
       return JSON.parse(value) as CachedAnalysis;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -50,7 +50,7 @@ export class CodeAnalysisCache {
       const cacheKey = this.getCacheKey(key);
       const ttlSeconds = Math.floor(this.ttlMs / 1000);
       await this.redis.setex(cacheKey, ttlSeconds, JSON.stringify(value));
-    } catch (error) {
+    } catch {
       // Silently fail cache writes to avoid disrupting the main flow
     }
   }
@@ -64,7 +64,7 @@ export class CodeAnalysisCache {
       if (keys.length > 0) {
         await this.redis.del(...keys);
       }
-    } catch (error) {
+    } catch {
       // Silently fail cache invalidation
     }
   }

@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyError, FastifyInstance } from "fastify";
 import { sendProblem } from "../problem.js";
 
 export function registerErrorHandling(app: FastifyInstance) {
@@ -10,8 +10,8 @@ export function registerErrorHandling(app: FastifyInstance) {
     });
   });
 
-  app.setErrorHandler(async (err, req, reply) => {
-    const status = Number((err as any)?.statusCode ?? (err as any)?.status ?? 500);
+  app.setErrorHandler(async (err: FastifyError, req, reply) => {
+    const status = Number(err.statusCode ?? 500);
     const title =
       status === 400
         ? "Bad Request"
@@ -29,8 +29,8 @@ export function registerErrorHandling(app: FastifyInstance) {
                     ? "Internal Server Error"
                     : "Error";
 
-    const detail = status >= 500 ? "Unexpected error" : String((err as any)?.message ?? "Error");
-    const validation = (err as any)?.validation;
+    const detail = status >= 500 ? "Unexpected error" : String(err.message ?? "Error");
+    const validation = err.validation;
 
     return sendProblem(reply, req, {
       status,

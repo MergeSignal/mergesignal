@@ -7,7 +7,7 @@ export async function metricsRoutes(app: FastifyInstance) {
     const memUsage = process.memoryUsage();
     const uptime = process.uptime();
 
-    const metrics: Record<string, any> = {
+    const metrics: Record<string, unknown> = {
       process: {
         uptime_seconds: Math.floor(uptime),
         memory_heap_used_bytes: memUsage.heapUsed,
@@ -33,7 +33,7 @@ export async function metricsRoutes(app: FastifyInstance) {
         completed,
         failed,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       app.log.warn({ err }, "Failed to fetch queue metrics");
       metrics.queue = { error: "unavailable" };
     }
@@ -45,7 +45,7 @@ export async function metricsRoutes(app: FastifyInstance) {
         pool_idle: db.idleCount,
         pool_waiting: db.waitingCount,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       app.log.warn({ err }, "Failed to fetch database pool metrics");
       metrics.database = { error: "unavailable" };
     }

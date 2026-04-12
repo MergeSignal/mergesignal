@@ -39,7 +39,7 @@ describe("codeAnalysisService", () => {
           cachedAt: new Date().toISOString(),
         }),
         set: vi.fn(),
-      } as any;
+      } as unknown as CodeAnalysisCache;
 
       const result = await analyzeSourceFiles(repoSource, changedFiles, { cache: mockCache });
 
@@ -63,7 +63,7 @@ describe("codeAnalysisService", () => {
       const mockCache = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
-      } as any;
+      } as unknown as CodeAnalysisCache;
 
       const result = await analyzeSourceFiles(repoSource, changedFiles, { cache: mockCache });
 

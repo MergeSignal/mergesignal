@@ -8,6 +8,7 @@ export type FetchFileOptions = {
 };
 
 export async function fetchFileContent(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   octokit: any,
   opts: FetchFileOptions,
 ): Promise<string | null> {
@@ -19,11 +20,12 @@ export async function fetchFileContent(
       ref: opts.ref,
     });
 
-    const b64 = (contents.data as any)?.content;
+    const b64 = (contents.data as Record<string, unknown>)?.content;
     if (!b64 || typeof b64 !== "string") return null;
     return Buffer.from(b64, "base64").toString("utf8");
-  } catch (e: any) {
-    const status = Number(e?.status ?? e?.response?.status ?? 0);
+  } catch (e: unknown) {
+    const errObj = e as { status?: number; response?: { status?: number } };
+    const status = Number(errObj?.status ?? errObj?.response?.status ?? 0);
     if (status === 404) return null;
     throw e;
   }

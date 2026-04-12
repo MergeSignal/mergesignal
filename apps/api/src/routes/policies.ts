@@ -11,7 +11,7 @@ type PolicyRule =
 
 export async function policiesRoutes(app: FastifyInstance) {
   app.get("/org/:owner/policies", async (req, reply) => {
-    const owner = String((req.params as any).owner ?? "").trim();
+    const owner = String((req.params as { owner: string }).owner ?? "").trim();
     if (!owner) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "owner is required" });
 
     // Authorization check: ensure authenticated owner matches requested owner
@@ -24,7 +24,7 @@ export async function policiesRoutes(app: FastifyInstance) {
   });
 
   app.post("/org/:owner/policies", async (req, reply) => {
-    const owner = String((req.params as any).owner ?? "").trim();
+    const owner = String((req.params as { owner: string }).owner ?? "").trim();
     if (!owner) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "owner is required" });
 
     // Authorization check: ensure authenticated owner matches requested owner
@@ -32,7 +32,7 @@ export async function policiesRoutes(app: FastifyInstance) {
       return sendProblem(reply, req, { status: 403, title: "Forbidden", detail: "Access denied to this organization" });
     }
 
-    const body = (req.body ?? {}) as any;
+    const body = (req.body ?? {}) as Record<string, unknown>;
     const name = String(body.name ?? "").trim();
     if (!name) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "name is required" });
 
@@ -55,7 +55,7 @@ export async function policiesRoutes(app: FastifyInstance) {
   });
 
   app.patch("/policies/:id", async (req, reply) => {
-    const id = String((req.params as any).id ?? "").trim();
+    const id = String((req.params as { id: string }).id ?? "").trim();
     if (!id) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "id is required" });
 
     // First, fetch the policy to check ownership
@@ -69,7 +69,7 @@ export async function policiesRoutes(app: FastifyInstance) {
       return sendProblem(reply, req, { status: 403, title: "Forbidden", detail: "Access denied to this policy" });
     }
 
-    const body = (req.body ?? {}) as any;
+    const body = (req.body ?? {}) as Record<string, unknown>;
     const updates: Partial<Pick<Policy, "name" | "enabled" | "rules">> = {};
 
     if (body.name !== undefined) {
@@ -103,7 +103,7 @@ export async function policiesRoutes(app: FastifyInstance) {
   });
 
   app.get("/org/:owner/policy/violations", async (req, reply) => {
-    const owner = String((req.params as any).owner ?? "").trim();
+    const owner = String((req.params as { owner: string }).owner ?? "").trim();
     if (!owner) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "owner is required" });
 
     // Authorization check: ensure authenticated owner matches requested owner
@@ -111,10 +111,10 @@ export async function policiesRoutes(app: FastifyInstance) {
       return sendProblem(reply, req, { status: 403, title: "Forbidden", detail: "Access denied to this organization" });
     }
 
-    const { repoId, limit } = req.query as any;
+    const { repoId, limit } = req.query as { repoId?: string; limit?: string };
     const n = Math.max(1, Math.min(500, Number(limit ?? 100)));
 
-    const params: any[] = [owner];
+    const params: unknown[] = [owner];
     let where = "owner=$1";
     if (repoId && typeof repoId === "string") {
       params.push(repoId);
@@ -139,13 +139,14 @@ function normalizeRules(input: unknown): PolicyRule[] {
   if (!Array.isArray(input)) return [];
   const out: PolicyRule[] = [];
   for (const r of input) {
-    const t = String((r as any)?.type ?? "").trim();
+    const rule = r as Record<string, unknown>;
+    const t = String(rule?.type ?? "").trim();
     if (t === "no_deprecated") out.push({ type: "no_deprecated" });
     else if (t === "max_stale_releases_count") {
-      const max = Number((r as any)?.max);
+      const max = Number(rule?.max);
       if (Number.isFinite(max) && max >= 0) out.push({ type: "max_stale_releases_count", max: Math.floor(max) });
     } else if (t === "max_bus_factor_low_count") {
-      const max = Number((r as any)?.max);
+      const max = Number(rule?.max);
       if (Number.isFinite(max) && max >= 0) out.push({ type: "max_bus_factor_low_count", max: Math.floor(max) });
     }
   }

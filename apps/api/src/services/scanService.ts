@@ -37,9 +37,7 @@ export async function createScanAndEnqueue({
 
   const lockfileBytes = lockfile?.content ? Buffer.byteLength(lockfile.content, "utf8") : 0;
   if (lockfileBytes > limits.scanMaxLockfileBytes) {
-    const err: any = new Error("lockfile too large");
-    err.statusCode = 413;
-    throw err;
+    throw Object.assign(new Error("lockfile too large"), { statusCode: 413 });
   }
 
   const scansPerDay = limits.scansPerOwnerPerDay;
@@ -59,10 +57,7 @@ export async function createScanAndEnqueue({
         );
     const c = Number(rows?.[0]?.c ?? 0);
     if (c >= limit) {
-      const err: any = new Error("scan quota exceeded");
-      err.statusCode = 429;
-      err.expose = true;
-      throw err;
+      throw Object.assign(new Error("scan quota exceeded"), { statusCode: 429, expose: true });
     }
   }
 
@@ -117,8 +112,8 @@ export async function createScanAndEnqueue({
         removeOnFail: false,
       },
     );
-  } catch (e: any) {
-    const msg = String(e?.message ?? e);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
     if (msg.toLowerCase().includes("already exists")) {
       return { scanId: id, duplicate: true };
     }

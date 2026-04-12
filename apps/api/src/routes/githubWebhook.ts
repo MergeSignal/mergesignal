@@ -55,6 +55,7 @@ export async function githubWebhookRoutes(app: FastifyInstance) {
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rawBody = (req as any).rawBody as string | undefined;
     if (!rawBody) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "Missing raw body" });
 
@@ -96,7 +97,7 @@ async function checkAndRecordDelivery(deliveryId: string, eventType: string): Pr
       [deliveryId, eventType],
     );
     return result.rowCount === 0;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -116,8 +117,9 @@ async function processWebhookAsync(
       const res = await handlePush(ghApp, payload as PushEvent, delivery);
       app.log.info({ delivery, event, result: res }, "Webhook processed");
     }
-  } catch (e: any) {
-    app.log.error({ delivery, event, error: e?.message ?? String(e) }, "Webhook processing failed");
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    app.log.error({ delivery, event, error: msg }, "Webhook processing failed");
   }
 }
 
@@ -144,7 +146,7 @@ async function handlePullRequest(app: App, payload: PullRequestEvent, delivery: 
     per_page: 100,
   });
 
-  const changed = files.data.map((f: any) => String(f.filename));
+  const changed = files.data.map((f: { filename: string }) => String(f.filename));
   const match = pickLockfilePath(changed);
   if (!match) return { ignored: true, reason: "no_lockfile_change" };
 
@@ -157,7 +159,7 @@ async function handlePullRequest(app: App, payload: PullRequestEvent, delivery: 
     ref: headSha,
   });
 
-  const b64 = (contents.data as any)?.content;
+  const b64 = (contents.data as Record<string, unknown>)?.content;
   if (!b64 || typeof b64 !== "string") return { ignored: true, reason: "missing_lockfile_content" };
 
   const lockfileContent = Buffer.from(b64, "base64").toString("utf8");
@@ -199,8 +201,8 @@ async function handlePullRequest(app: App, payload: PullRequestEvent, delivery: 
     });
 
     return { queued: true, scanId: created, repoId, source: "pull_request", pr: number, headSha, baseSha };
-  } catch (e: any) {
-    const code = Number(e?.statusCode ?? 500);
+  } catch (e: unknown) {
+    const code = Number((e as { statusCode?: number })?.statusCode ?? 500);
     if (code === 413) return { ignored: true, reason: "lockfile_too_large" };
     if (code === 429) return { ignored: true, reason: "quota_exceeded" };
     throw e;
@@ -227,7 +229,7 @@ async function handlePush(app: App, payload: PushEvent, delivery: string) {
     ref: sha,
   });
 
-  const b64 = (contents.data as any)?.content;
+  const b64 = (contents.data as Record<string, unknown>)?.content;
   if (!b64 || typeof b64 !== "string") return { ignored: true, reason: "missing_lockfile_content" };
 
   const lockfileContent = Buffer.from(b64, "base64").toString("utf8");
@@ -255,8 +257,8 @@ async function handlePush(app: App, payload: PushEvent, delivery: string) {
     });
 
     return { queued: true, scanId: created, repoId, source: "push", sha };
-  } catch (e: any) {
-    const code = Number(e?.statusCode ?? 500);
+  } catch (e: unknown) {
+    const code = Number((e as { statusCode?: number })?.statusCode ?? 500);
     if (code === 413) return { ignored: true, reason: "lockfile_too_large" };
     if (code === 429) return { ignored: true, reason: "quota_exceeded" };
     throw e;
@@ -293,16 +295,18 @@ function pickLockfilePath(changedPaths: string[]) {
 }
 
 async function tryFetchLockfile(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   octokit: any,
   opts: { owner: string; repo: string; path: string; ref: string },
 ): Promise<string | null> {
   try {
     const contents = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", opts);
-    const b64 = (contents.data as any)?.content;
+    const b64 = (contents.data as Record<string, unknown>)?.content;
     if (!b64 || typeof b64 !== "string") return null;
     return Buffer.from(b64, "base64").toString("utf8");
-  } catch (e: any) {
-    const status = Number(e?.status ?? e?.response?.status ?? 0);
+  } catch (e: unknown) {
+    const errObj = e as { status?: number; response?: { status?: number } };
+    const status = Number(errObj?.status ?? errObj?.response?.status ?? 0);
     if (status === 404) return null;
     throw e;
   }

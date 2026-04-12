@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createHmac } from "crypto";
 import { FastifyInstance } from "fastify";
 import Fastify from "fastify";
+import rawBody from "fastify-raw-body";
 
 // Mock dependencies
 vi.mock("../db.js", () => ({
@@ -23,7 +24,7 @@ vi.mock("../services/githubFileService.js", () => ({
 }));
 
 vi.mock("../problem.js", () => ({
-  sendProblem: vi.fn((reply, req, problem) => {
+  sendProblem: vi.fn((reply: { code: (s: number) => { send: (b: unknown) => unknown } }, _req: unknown, problem: { status: number; title: string; detail: string }) => {
     return reply.code(problem.status).send({
       status: problem.status,
       title: problem.title,
@@ -94,6 +95,7 @@ describe("GitHub Webhook Tests", () => {
       };
 
       app = Fastify();
+      await app.register(rawBody, { field: "rawBody", global: false, encoding: "utf8", runFirst: true });
       
       // Import and register routes after env is set
       const { githubWebhookRoutes } = await import("./githubWebhook.js");
@@ -114,6 +116,7 @@ describe("GitHub Webhook Tests", () => {
       process.env = { ...originalEnv };
       
       app = Fastify();
+      await app.register(rawBody, { field: "rawBody", global: false, encoding: "utf8", runFirst: true });
       const { githubWebhookRoutes } = await import("./githubWebhook.js");
       await githubWebhookRoutes(app);
       await app.ready();
@@ -124,6 +127,7 @@ describe("GitHub Webhook Tests", () => {
         method: "POST",
         url: "/github/webhook",
         headers: {
+          "content-type": "application/json",
           "x-hub-signature-256": signPayload(payload),
           "x-github-event": "pull_request",
           "x-github-delivery": "test-delivery-1",
@@ -159,6 +163,7 @@ describe("GitHub Webhook Tests", () => {
         method: "POST",
         url: "/github/webhook",
         headers: {
+          "content-type": "application/json",
           "x-hub-signature-256": "sha256=invalidsignature",
           "x-github-event": "pull_request",
           "x-github-delivery": "test-delivery-3",
@@ -179,6 +184,7 @@ describe("GitHub Webhook Tests", () => {
         method: "POST",
         url: "/github/webhook",
         headers: {
+          "content-type": "application/json",
           "x-hub-signature-256": signPayload(payload),
           "x-github-event": "pull_request",
         },
@@ -192,7 +198,7 @@ describe("GitHub Webhook Tests", () => {
 
     it("should accept valid pull_request webhook", async () => {
       const { db } = await import("../db.js");
-      (vi.mocked(db.query) as any).mockResolvedValue({ rowCount: 1, rows: [], command: "", oid: 0, fields: [] });
+      vi.mocked(db.query).mockResolvedValue({ rowCount: 1, rows: [], command: "", oid: 0, fields: [] } as never);
 
       const payload = JSON.stringify({
         action: "opened",
@@ -205,6 +211,7 @@ describe("GitHub Webhook Tests", () => {
         method: "POST",
         url: "/github/webhook",
         headers: {
+          "content-type": "application/json",
           "x-hub-signature-256": signPayload(payload),
           "x-github-event": "pull_request",
           "x-github-delivery": "test-delivery-4",
@@ -220,7 +227,7 @@ describe("GitHub Webhook Tests", () => {
 
     it("should accept valid push webhook", async () => {
       const { db } = await import("../db.js");
-      (vi.mocked(db.query) as any).mockResolvedValue({ rowCount: 1, rows: [], command: "", oid: 0, fields: [] });
+      vi.mocked(db.query).mockResolvedValue({ rowCount: 1, rows: [], command: "", oid: 0, fields: [] } as never);
 
       const payload = JSON.stringify({
         installation: { id: 12345 },
@@ -234,6 +241,7 @@ describe("GitHub Webhook Tests", () => {
         method: "POST",
         url: "/github/webhook",
         headers: {
+          "content-type": "application/json",
           "x-hub-signature-256": signPayload(payload),
           "x-github-event": "push",
           "x-github-delivery": "test-delivery-5",
@@ -248,7 +256,7 @@ describe("GitHub Webhook Tests", () => {
 
     it("should ignore unsupported webhook events", async () => {
       const { db } = await import("../db.js");
-      (vi.mocked(db.query) as any).mockResolvedValue({ rowCount: 1, rows: [], command: "", oid: 0, fields: [] });
+      vi.mocked(db.query).mockResolvedValue({ rowCount: 1, rows: [], command: "", oid: 0, fields: [] } as never);
 
       const payload = JSON.stringify({ action: "created" });
 
@@ -256,6 +264,7 @@ describe("GitHub Webhook Tests", () => {
         method: "POST",
         url: "/github/webhook",
         headers: {
+          "content-type": "application/json",
           "x-hub-signature-256": signPayload(payload),
           "x-github-event": "repository",
           "x-github-delivery": "test-delivery-6",
@@ -271,8 +280,8 @@ describe("GitHub Webhook Tests", () => {
     it("should detect and ignore duplicate deliveries", async () => {
       const { db } = await import("../db.js");
       // First call returns 1 row (new), second returns 0 (duplicate)
-      (vi.mocked(db.query) as any).mockResolvedValueOnce({ rowCount: 1, rows: [], command: "", oid: 0, fields: [] });
-      (vi.mocked(db.query) as any).mockResolvedValueOnce({ rowCount: 0, rows: [], command: "", oid: 0, fields: [] });
+      vi.mocked(db.query).mockResolvedValueOnce({ rowCount: 1, rows: [], command: "", oid: 0, fields: [] } as never);
+      vi.mocked(db.query).mockResolvedValueOnce({ rowCount: 0, rows: [], command: "", oid: 0, fields: [] } as never);
 
       const payload = JSON.stringify({ action: "opened" });
       const deliveryId = "test-delivery-duplicate";
@@ -282,6 +291,7 @@ describe("GitHub Webhook Tests", () => {
         method: "POST",
         url: "/github/webhook",
         headers: {
+          "content-type": "application/json",
           "x-hub-signature-256": signPayload(payload),
           "x-github-event": "pull_request",
           "x-github-delivery": deliveryId,
@@ -297,6 +307,7 @@ describe("GitHub Webhook Tests", () => {
         method: "POST",
         url: "/github/webhook",
         headers: {
+          "content-type": "application/json",
           "x-hub-signature-256": signPayload(payload),
           "x-github-event": "pull_request",
           "x-github-delivery": deliveryId,

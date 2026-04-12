@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 describe("CLI Argument Parsing", () => {
-  function parseArgs(argv: string[]): {
+  type ParsedArgs = {
     _: string[];
     "--help"?: true;
     "--json"?: true;
@@ -9,8 +9,10 @@ describe("CLI Argument Parsing", () => {
     "--repo-id"?: string;
     "--lockfile"?: string;
     "--fail-above"?: string;
-  } {
-    const out: any = { _: [] };
+  };
+
+  function parseArgs(argv: string[]): ParsedArgs {
+    const out: ParsedArgs = { _: [] };
     for (let i = 0; i < argv.length; i++) {
       const a = argv[i]!;
       if (a === "--") continue;
@@ -32,7 +34,7 @@ describe("CLI Argument Parsing", () => {
       if (takesValue) {
         const v = argv[i + 1];
         if (!v || v.startsWith("--")) throw new Error(`${a} expects a value`);
-        out[a] = v;
+        out[a as "--out" | "--repo-id" | "--lockfile" | "--fail-above"] = v;
         i++;
         continue;
       }

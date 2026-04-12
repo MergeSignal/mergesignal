@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { db, queries } from "../db.js";
+import { queries } from "../db.js";
 import type { ScanRequest } from "@mergesignal/shared";
 import { createScanAndEnqueue } from "../services/scanService.js";
 import { sendProblem } from "../problem.js";
@@ -27,8 +27,8 @@ export async function scanRoutes(app: FastifyInstance) {
       });
 
       return reply.code(202).send({ scanId, status: "queued" as ScanStatus });
-    } catch (e: any) {
-      const code = Number(e?.statusCode ?? 500);
+    } catch (e: unknown) {
+      const code = Number((e as { statusCode?: number })?.statusCode ?? 500);
       if (code === 413) {
         return sendProblem(reply, req, { status: 413, title: "Payload Too Large", detail: "lockfile too large" });
       }
@@ -40,7 +40,7 @@ export async function scanRoutes(app: FastifyInstance) {
   });
 
   app.get("/scan/:id", async (req, reply) => {
-    const id = (req.params as any).id as string;
+    const id = (req.params as { id: string }).id;
 
     const scan = await queries.scans.findById(id);
     if (!scan) {
@@ -59,7 +59,7 @@ export async function scanRoutes(app: FastifyInstance) {
   });
 
   app.get("/scans", async (req, reply) => {
-    const { repoId, limit } = req.query as any;
+    const { repoId, limit } = req.query as { repoId?: string; limit?: string };
     if (!repoId || typeof repoId !== "string") {
       return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "repoId is required" });
     }

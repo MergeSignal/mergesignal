@@ -3,6 +3,7 @@ import { FastifyInstance } from "fastify";
 import Fastify from "fastify";
 import { scanRoutes } from "./scan.js";
 import type { ScanRequest } from "@mergesignal/shared";
+import type { Scan } from "../types/database.js";
 
 // Mock dependencies
 vi.mock("../db.js", () => ({
@@ -20,7 +21,7 @@ vi.mock("../services/scanService.js", () => ({
 }));
 
 vi.mock("../problem.js", () => ({
-  sendProblem: vi.fn((reply, req, problem) => {
+  sendProblem: vi.fn((reply: { code: (s: number) => { send: (b: unknown) => unknown } }, _req: unknown, problem: { status: number; title: string; detail: string }) => {
     return reply.code(problem.status).send({
       status: problem.status,
       title: problem.title,
@@ -34,12 +35,18 @@ import { queries } from "../db.js";
 
 describe("scan routes", () => {
   let app: FastifyInstance;
+  let authenticatedOwner: string | undefined;
 
   beforeEach(async () => {
+    authenticatedOwner = undefined;
     app = Fastify();
     
-    // Mock authentication decorator
     app.decorateRequest("authenticatedOwner", undefined);
+    app.addHook("onRequest", async (req) => {
+      if (authenticatedOwner) {
+        req.authenticatedOwner = authenticatedOwner;
+      }
+    });
     
     await scanRoutes(app);
     await app.ready();
@@ -111,10 +118,7 @@ describe("scan routes", () => {
     });
 
     it("should return 403 when org-scoped API key tries to scan another org's repo", async () => {
-      // Mock authenticated owner
-      app.addHook("onRequest", async (req) => {
-        (req as any).authenticatedOwner = "org1";
-      });
+      authenticatedOwner = "org1";
 
       const scanRequest: ScanRequest = {
         repoId: "org2/repo",
@@ -137,10 +141,7 @@ describe("scan routes", () => {
       const mockScanId = "scan_789";
       vi.mocked(createScanAndEnqueue).mockResolvedValue({ scanId: mockScanId });
 
-      // Mock authenticated owner
-      app.addHook("onRequest", async (req) => {
-        (req as any).authenticatedOwner = "myorg";
-      });
+      authenticatedOwner = "myorg";
 
       const scanRequest: ScanRequest = {
         repoId: "myorg/repo",
@@ -161,8 +162,7 @@ describe("scan routes", () => {
     });
 
     it("should return 413 when lockfile is too large", async () => {
-      const error = new Error("Payload too large");
-      (error as any).statusCode = 413;
+      const error = Object.assign(new Error("Payload too large"), { statusCode: 413 });
       vi.mocked(createScanAndEnqueue).mockRejectedValue(error);
 
       const scanRequest: ScanRequest = {
@@ -182,8 +182,7 @@ describe("scan routes", () => {
     });
 
     it("should return 429 when scan quota is exceeded", async () => {
-      const error = new Error("Rate limit exceeded");
-      (error as any).statusCode = 429;
+      const error = Object.assign(new Error("Rate limit exceeded"), { statusCode: 429 });
       vi.mocked(createScanAndEnqueue).mockRejectedValue(error);
 
       const scanRequest: ScanRequest = {
@@ -205,6 +204,7 @@ describe("scan routes", () => {
 
   describe("GET /scan/:id", () => {
     it("should return scan by id", async () => {
+      const now = new Date().toISOString();
       const mockScan = {
         id: "scan_123",
         repo_id: "owner/repo",
@@ -225,10 +225,10 @@ describe("scan routes", () => {
         result: null,
         decision: null,
         error: null,
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at: now,
+        updated_at: now,
       };
-      vi.mocked(queries.scans.findById).mockResolvedValue(mockScan);
+      vi.mocked(queries.scans.findById).mockResolvedValue(mockScan as unknown as Scan);
 
       const response = await app.inject({
         method: "GET",
@@ -254,6 +254,7 @@ describe("scan routes", () => {
     });
 
     it("should return 403 when org-scoped API key tries to access another org's scan", async () => {
+      const now = new Date().toISOString();
       const mockScan = {
         id: "scan_123",
         repo_id: "org2/repo",
@@ -274,15 +275,12 @@ describe("scan routes", () => {
         result: null,
         decision: null,
         error: null,
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at: now,
+        updated_at: now,
       };
-      vi.mocked(queries.scans.findById).mockResolvedValue(mockScan);
+      vi.mocked(queries.scans.findById).mockResolvedValue(mockScan as unknown as Scan);
 
-      // Mock authenticated owner
-      app.addHook("onRequest", async (req) => {
-        (req as any).authenticatedOwner = "org1";
-      });
+      authenticatedOwner = "org1";
 
       const response = await app.inject({
         method: "GET",
@@ -297,6 +295,7 @@ describe("scan routes", () => {
 
   describe("GET /scans", () => {
     it("should return scans for a repository", async () => {
+      const now = new Date().toISOString();
       const baseScan = {
         source: "github_pr",
         attempt: 1,
@@ -314,14 +313,14 @@ describe("scan routes", () => {
         result: null,
         decision: null,
         error: null,
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at: now,
+        updated_at: now,
       };
       const mockScans = [
         { ...baseScan, id: "scan_1", repo_id: "owner/repo", status: "done" as const },
         { ...baseScan, id: "scan_2", repo_id: "owner/repo", status: "queued" as const },
       ];
-      vi.mocked(queries.scans.findByRepoId).mockResolvedValue(mockScans);
+      vi.mocked(queries.scans.findByRepoId).mockResolvedValue(mockScans as unknown as Scan[]);
 
       const response = await app.inject({
         method: "GET",
@@ -372,10 +371,7 @@ describe("scan routes", () => {
     });
 
     it("should return 403 when org-scoped API key tries to access another org's scans", async () => {
-      // Mock authenticated owner
-      app.addHook("onRequest", async (req) => {
-        (req as any).authenticatedOwner = "org1";
-      });
+      authenticatedOwner = "org1";
 
       const response = await app.inject({
         method: "GET",

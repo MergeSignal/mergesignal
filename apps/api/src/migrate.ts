@@ -46,7 +46,7 @@ async function ensureMigrationsTable() {
 
 async function getAppliedMigrations(): Promise<Set<string>> {
   const { rows } = await db.query("SELECT filename FROM _migrations");
-  return new Set(rows.map((r: any) => r.filename));
+  return new Set(rows.map((r: { filename: string }) => r.filename));
 }
 
 async function recordMigration(filename: string) {
@@ -54,11 +54,6 @@ async function recordMigration(filename: string) {
     "INSERT INTO _migrations (filename, applied_at) VALUES ($1, NOW()) ON CONFLICT (filename) DO NOTHING",
     [filename],
   );
-}
-
-async function hasTable(name: string) {
-  const { rows } = await db.query("SELECT to_regclass($1) AS t", [`public.${name}`]);
-  return Boolean(rows?.[0]?.t);
 }
 
 async function applyFile(sqlDir: string, filename: string, log: (msg: string) => void) {

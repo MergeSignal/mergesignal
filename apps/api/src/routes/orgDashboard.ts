@@ -25,7 +25,7 @@ type RepoRow = {
 
 export async function orgDashboardRoutes(app: FastifyInstance) {
   app.get("/org/:owner/dashboard", async (req, reply) => {
-    const owner = String((req.params as any).owner ?? "").trim();
+    const owner = String((req.params as { owner: string }).owner ?? "").trim();
     if (!owner) return sendProblem(reply, req, { status: 400, title: "Bad Request", detail: "owner is required" });
 
     // Authorization check: ensure authenticated owner matches requested owner
@@ -33,7 +33,7 @@ export async function orgDashboardRoutes(app: FastifyInstance) {
       return sendProblem(reply, req, { status: 403, title: "Forbidden", detail: "Access denied to this organization" });
     }
 
-    const limitRaw = (req.query as any)?.limit;
+    const limitRaw = (req.query as { limit?: string })?.limit;
     const n = Math.max(1, Math.min(200, Number(limitRaw ?? 50)));
 
     const { rows } = await db.query(
@@ -88,7 +88,8 @@ export async function orgDashboardRoutes(app: FastifyInstance) {
       [owner, n],
     );
 
-    const repos: RepoRow[] = rows.map((r: any) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const repos: RepoRow[] = rows.map((r: Record<string, any>) => ({
       repoId: r.repo_id,
       latest: {
         scanId: r.scan_id,

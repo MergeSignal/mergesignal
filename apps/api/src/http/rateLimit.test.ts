@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createApp } from "../app.js";
 import type { FastifyInstance } from "fastify";
 import { randomBytes, createHash, randomUUID } from "crypto";
@@ -35,7 +35,7 @@ describe("Rate Limiting", () => {
         description: "Test API key for rate limiting",
       });
       dbAvailable = true;
-    } catch (err) {
+    } catch {
       // Database is not available
       dbAvailable = false;
     }
@@ -136,7 +136,7 @@ describe("Rate Limiting", () => {
           owner: testOwner,
           description: "Second test API key for rate limiting",
         });
-      } catch (err) {
+      } catch {
         // Skip if we can't create the key
         return;
       }
