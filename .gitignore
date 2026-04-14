@@ -51,4 +51,5 @@ yarn-error.log*
 .cursor/sessions/
 .cursor/cache/
 .cursor/logs/
+.cursor/agents/
 cursor/
