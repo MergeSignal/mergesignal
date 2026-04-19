@@ -58,12 +58,14 @@ When rate limits are exceeded:
 
 API usage is subject to tier-based quotas:
 
-| Tier | Scans/Month | PR Comments | Alerts | Policies |
-| ---- | ----------- | ----------- | ------ | -------- |
-| Free | 1,000       | Opt-in      | 500    | 50       |
-| Paid | Unlimited\* | Enabled     | 10,000 | 500      |
+| Tier | Scans                                                                                                        | PR Comments | Alerts | Policies |
+| ---- | ------------------------------------------------------------------------------------------------------------ | ----------- | ------ | -------- |
+| Free | Per-owner rolling 24h caps (GitHub-sourced vs other scans are limited separately; defaults are conservative) | Opt-in      | 500    | 50       |
+| Paid | Unlimited\*                                                                                                  | Enabled     | 10,000 | 500      |
 
 _\*Subject to fair use policy_
+
+Exact free-tier scan caps are enforced by the API deployment (environment configuration) and may change; when exceeded, new scans return `429` until the rolling window resets.
 
 When quotas are exceeded:
 

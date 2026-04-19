@@ -336,6 +336,7 @@ Environment variables include:
 - `MERGESIGNAL_DEFAULT_TIER` (`free` | `paid`)
 - `MERGESIGNAL_OWNER_TIERS` (e.g. `acme=paid,other=free`)
 - `FREE_*` and `PAID_*` limits for scans / PR comments / alerts
+- Scan quotas: `FREE_SCANS_PER_OWNER_PER_DAY` (manual / non-GitHub) and `FREE_GITHUB_SCANS_PER_OWNER_PER_DAY` (GitHub-sourced), enforced per repo owner on a rolling 24h window in the API
 
 ---
 

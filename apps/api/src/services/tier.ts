@@ -33,10 +33,10 @@ export function getLimitsForOwner(owner: string): TierLimits {
       process.env.FREE_SCAN_MAX_LOCKFILE_BYTES,
       1_000_000,
     ),
-    scansPerOwnerPerDay: clampInt(process.env.FREE_SCANS_PER_OWNER_PER_DAY, 50),
+    scansPerOwnerPerDay: clampInt(process.env.FREE_SCANS_PER_OWNER_PER_DAY, 25),
     githubScansPerOwnerPerDay: clampInt(
       process.env.FREE_GITHUB_SCANS_PER_OWNER_PER_DAY,
-      20,
+      15,
     ),
     prCommentsEnabled: (process.env.FREE_PR_COMMENTS_ENABLED ?? "0") === "1",
     alertsEnabled: (process.env.FREE_ALERTS_ENABLED ?? "0") === "1",

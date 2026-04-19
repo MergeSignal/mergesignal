@@ -9,7 +9,8 @@ primary_region = "iad"
   NODE_ENV = "production"
   MERGESIGNAL_AUTO_MIGRATE = "1"
   CORS_ORIGINS = "https://mergesignal-web.fly.dev"
-  FREE_SCANS_PER_OWNER_PER_DAY = "100"
+  FREE_SCANS_PER_OWNER_PER_DAY = "25"
+  FREE_GITHUB_SCANS_PER_OWNER_PER_DAY = "15"
   FREE_PR_COMMENTS_ENABLED = "1"
 
 [http_service]
