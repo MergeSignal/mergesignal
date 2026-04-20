@@ -7,7 +7,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const pkgPath = join(dirname(fileURLToPath(import.meta.url)), "..", "package.json");
+const pkgPath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "package.json",
+);
 const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
