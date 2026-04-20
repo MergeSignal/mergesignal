@@ -23,7 +23,6 @@
     "@mergesignal/engine": "workspace:^",
     "@mergesignal/shared": "workspace:^",
     "@octokit/app": "^16.1.2",
-    "@prisma/client": "^7.4.1",
     "bullmq": "^5.70.1",
     "dotenv": "^17.4.2",
     "fastify-raw-body": "^5.0.0",
@@ -34,7 +33,7 @@
     "@repo/eslint-config": "workspace:*",
     "@types/node": "^22.15.3",
     "@types/pg": "^8.16.0",
-    "prisma": "^7.4.1",
+    "@vitest/coverage-v8": "^2.1.9",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^2.1.8"

@@ -12,15 +12,16 @@
     "check-types": "turbo run check-types",
     "test": "turbo run test",
     "precommit": "pnpm build && pnpm check-types && pnpm lint && pnpm test",
+    "knip": "knip",
     "ci:verify": "rm -rf node_modules .turbo && pnpm install --frozen-lockfile && pnpm precommit",
     "prepare": "husky",
     "mergesignal": "pnpm -C apps/cli exec -- tsx src/cli.ts",
     "ms": "pnpm -C apps/cli exec -- tsx src/cli.ts"
   },
   "devDependencies": {
+    "knip": "^5.88.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
-    "npm-run-all2": "^8.0.4",
     "prettier": "^3.4.3",
     "turbo": "^2.8.11",
     "typescript": "5.9.2"

@@ -11,7 +11,6 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
 # Copy all package.json files for workspace resolution
 COPY apps/web/package.json ./apps/web/
-COPY packages/ui/package.json ./packages/ui/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
@@ -21,7 +20,6 @@ RUN pnpm install --frozen-lockfile --filter web...
 
 # Copy source code
 COPY apps/web ./apps/web
-COPY packages/ui ./packages/ui
 COPY packages/shared ./packages/shared
 COPY packages/typescript-config ./packages/typescript-config
 COPY packages/eslint-config ./packages/eslint-config
@@ -48,7 +46,6 @@ RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.
 
 # Copy package.json files
 COPY apps/web/package.json ./apps/web/
-COPY packages/ui/package.json ./packages/ui/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/

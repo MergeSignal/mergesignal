@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignoreUnresolved": ["next"],
+  "ignoreBinaries": ["eslint", "tsx"],
+  "ignoreFiles": ["apps/api/eslint.config.js"],
+  "workspaces": {
+    "apps/api": {
+      "ignoreDependencies": ["@repo/eslint-config"]
+    }
+  },
+  "ignoreIssues": {
+    "apps/api/**": ["exports", "types"],
+    "apps/web/**": ["exports", "types"]
+  }
+}
