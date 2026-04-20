@@ -26,10 +26,10 @@ COPY packages/engine ./packages/engine
 COPY packages/engine-stub ./packages/engine-stub
 COPY packages/typescript-config ./packages/typescript-config
 
-# Build packages
+# Build packages (engine depends on engine-stub at compile time; stub depends on shared)
 RUN pnpm --filter @mergesignal/shared build
-RUN pnpm --filter @mergesignal/engine build
 RUN pnpm --filter @mergesignal/engine-stub build
+RUN pnpm --filter @mergesignal/engine build
 RUN pnpm --filter @mergesignal/api build
 
 # Production stage
@@ -56,9 +56,9 @@ COPY packages/typescript-config/package.json ./packages/typescript-config/
 # Install production dependencies only
 RUN pnpm install --frozen-lockfile --prod --filter @mergesignal/api...
 
-# Copy built artifacts from builder
+# Copy built artifacts from builder (full shared package: exports point at src; include dist for compiled consumers)
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared ./packages/shared
 COPY --from=builder /app/packages/engine/dist ./packages/engine/dist
 COPY --from=builder /app/packages/engine-stub/dist ./packages/engine-stub/dist
 

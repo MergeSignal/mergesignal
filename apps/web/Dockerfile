@@ -60,7 +60,7 @@ RUN pnpm install --frozen-lockfile --prod --filter web...
 COPY --from=builder /app/apps/web/.next ./apps/web/.next
 COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder /app/apps/web/next.config.js ./apps/web/
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared ./packages/shared
 
 # Set environment variables
 ENV NODE_ENV=production
