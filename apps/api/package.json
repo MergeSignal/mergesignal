@@ -19,12 +19,12 @@
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@fastify/rate-limit": "^10.3.0",
-    "fastify": "^5.7.4",
     "@mergesignal/engine": "workspace:^",
     "@mergesignal/shared": "workspace:^",
     "@octokit/app": "^16.1.2",
     "bullmq": "^5.70.1",
     "dotenv": "^17.4.2",
+    "fastify": "^5.8.5",
     "fastify-raw-body": "^5.0.0",
     "ioredis": "^5.9.3",
     "pg": "^8.19.0"
