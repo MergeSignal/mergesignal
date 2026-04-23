@@ -2,6 +2,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import semver from "semver";
 import { analyze } from "@mergesignal/engine";
 import type {
   LayerScores,
@@ -99,6 +100,7 @@ function printHelp() {
       "Notes:",
       "  - This runs analysis locally using @mergesignal/engine-stub.",
       "  - Lockfile detection prefers pnpm-lock.yaml, then package-lock.json.",
+      `  - semver sanity: ${semver.valid("1.0.0") ?? "n/a"}`,
       "",
     ].join("\n"),
   );

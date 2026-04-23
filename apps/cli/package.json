@@ -17,12 +17,14 @@
   },
   "dependencies": {
     "@mergesignal/engine": "workspace:^",
-    "@mergesignal/shared": "workspace:^"
+    "@mergesignal/shared": "workspace:^",
+    "semver": "^7.7.4"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
-    "@vitest/coverage-v8": "^2.1.9",
     "@types/node": "^22.15.3",
+    "@types/semver": "^7.7.1",
+    "@vitest/coverage-v8": "^2.1.9",
     "eslint": "^9.39.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
