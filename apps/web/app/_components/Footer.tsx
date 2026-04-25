@@ -6,51 +6,58 @@ export function Footer() {
     <footer className={styles.footer}>
       <div className={styles.footerContent}>
         <div className={styles.disclaimer}>
-          <strong>⚠️ Important Disclaimer:</strong> MergeSignal is provided
-          &ldquo;as is&rdquo; without warranty of any kind. This tool is{" "}
-          <strong>not a substitute for professional security audits</strong>.
-          You are solely responsible for validating all recommendations and risk
-          scores before acting on them. No security guarantees are provided.
+          <strong>Important:</strong> MergeSignal gives{" "}
+          <strong>automated, informational dependency risk insight</strong>—not
+          legal advice or a full security audit. We publish how we handle data
+          and what we won&apos;t do with your content in the{" "}
+          <Link
+            href="https://github.com/MergeSignal/mergesignal/blob/main/PRIVACY.md"
+            className={styles.link}
+          >
+            Privacy Policy
+          </Link>
+          . Please <strong>validate</strong> recommendations and scores before
+          material decisions (for example production deploys).
         </div>
 
         <div className={styles.links}>
           <Link
-            href="https://github.com/[your-org]/mergesignal"
+            href="https://github.com/MergeSignal/mergesignal"
             className={styles.link}
           >
             GitHub
           </Link>
           <span className={styles.separator}>•</span>
           <Link
-            href="https://github.com/[your-org]/mergesignal/blob/main/TERMS.md"
+            href="https://github.com/MergeSignal/mergesignal/blob/main/TERMS.md"
             className={styles.link}
           >
             Terms of Service
           </Link>
           <span className={styles.separator}>•</span>
           <Link
-            href="https://github.com/[your-org]/mergesignal/blob/main/PRIVACY.md"
+            href="https://github.com/MergeSignal/mergesignal/blob/main/PRIVACY.md"
             className={styles.link}
           >
             Privacy Policy
           </Link>
           <span className={styles.separator}>•</span>
           <Link
-            href="https://github.com/[your-org]/mergesignal/blob/main/API-TERMS.md"
+            href="https://github.com/MergeSignal/mergesignal/blob/main/API-TERMS.md"
             className={styles.link}
           >
             API Terms
           </Link>
           <span className={styles.separator}>•</span>
           <Link
-            href="https://github.com/[your-org]/mergesignal/blob/main/CONTACT.md"
+            href="https://github.com/MergeSignal/mergesignal/blob/main/CONTACT.md"
             className={styles.link}
           >
             Contact
           </Link>
           <span className={styles.separator}>•</span>
           <Link
-            href="https://github.com/[your-org]/mergesignal/blob/main/LICENSE"
+            href="https://github.com/MergeSignal/mergesignal/blob/main/LICENSE"
             className={styles.link}
           >
             Apache 2.0 License

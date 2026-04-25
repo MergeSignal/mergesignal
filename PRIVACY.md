@@ -10,7 +10,21 @@ By using MergeSignal, you consent to the data practices described in this policy
 
 ## 2. Information We Collect
 
-### 2.1 Information You Provide
+### 2.1 Restrictions on use of Customer Content
+
+**“Customer Content”** means data you (or an integration on your behalf) submit to operate the Service—for example dependency manifests, lockfiles, structured dependency graphs, repository identifiers, and analysis outputs—not your unrelated private business documents unless you choose to upload them.
+
+For the **official hosted Service** (and consistent with how self-hosted operators should treat their users’ data), MergeSignal **does not**:
+
+- **Sell** Customer Content or scan inputs to data brokers or unrelated third parties;
+- use Customer Content to **train generalized machine-learning models for unrelated third parties** (for example, selling embeddings or corpora derived from your repositories to model vendors); or
+- use Customer Content for any purpose **other than** providing, securing, improving, and billing for the Service as described in this Policy and in the Terms of Service.
+
+**Improvements to the Service** may use **aggregated, de-identified** statistics (for example, overall scan volume or error rates), security and abuse signals, and product telemetry that does not reproduce your confidential inputs. Where optional features need richer feedback, we will describe that in-product or in this Policy.
+
+**What we persist:** The Service stores what is needed to run analyses and show history—typically repository identifiers, **lockfile or manifest-derived inputs** you supply (or that the GitHub App sends for changed paths), structured dependency summaries, **analysis results** (scores, signals, recommendations), quotas, and audit-relevant metadata. We do **not** operate the standard product as a bulk mirror of your **private application source code tree** (for example every `.ts` / `.go` file in the repo); if a feature ever ingests more than dependency-oriented inputs, that feature’s documentation will say so explicitly.
+
+### 2.2 Information You Provide
 
 When using the Service, you may provide:
 
@@ -19,7 +33,7 @@ When using the Service, you may provide:
 - **GitHub data**: If using the GitHub App integration, we receive repository metadata, pull request information, and webhook events
 - **Organization data**: Organization identifiers and settings for multi-tenant usage
 
-### 2.2 Automatically Collected Information
+### 2.3 Automatically Collected Information
 
 We automatically collect:
 
@@ -28,7 +42,7 @@ We automatically collect:
 - **Performance data**: Response times, error rates, and system metrics
 - **Scan results**: Risk scores, detected signals, vulnerability information, and analysis outputs
 
-### 2.3 Third-Party Data
+### 2.4 Third-Party Data
 
 We may collect data from third-party sources to enrich analysis:
 
@@ -41,7 +55,7 @@ We may collect data from third-party sources to enrich analysis:
 We use collected information to:
 
 - **Provide the Service**: Analyze dependencies, calculate risk scores, and generate recommendations
-- **Improve accuracy**: Enhance our risk analysis algorithms and detection capabilities
+- **Improve the Service (within the limits of Section 2.1)**: Tune heuristics, fix bugs, and build **aggregate** product insights—without selling Customer Content or using it to train third-party foundation models as described above
 - **Maintain security**: Monitor for abuse, prevent unauthorized access, and protect infrastructure
 - **Optimize performance**: Identify bottlenecks, improve response times, and scale resources
 - **Communicate updates**: Notify you of important changes, security issues, or service disruptions
@@ -54,8 +68,8 @@ We use collected information to:
 
 Your data is stored in:
 
-- **PostgreSQL database**: Scan results, risk scores, metadata, and user configurations
-- **Redis cache**: Temporary job queues, session data, and cached API responses
+- **PostgreSQL database**: Scan status, scores, **analysis results (JSON)**, repository/org identifiers, policies, alerts, and related metadata—**not** a wholesale copy of your application source tree unless you have uploaded such content as part of a documented feature
+- **Redis cache**: Temporary job queues, session data, and cached API responses (transient; see retention below)
 - **Application logs**: Request logs, error logs, and audit trails
 
 ### 4.2 Data Retention
@@ -110,7 +124,7 @@ We implement reasonable security measures to protect your data:
 - **Monitoring**: Continuous security monitoring, intrusion detection, and audit logging
 - **Regular updates**: Timely security patches and dependency updates
 
-**However**, no method of transmission or storage is 100% secure. We cannot guarantee absolute security, and you use the Service at your own risk.
+**However**, no method of transmission or storage is 100% secure. We cannot promise absolute security; we nonetheless implement the controls in this Policy in **good faith** and work to address identified issues promptly.
 
 ## 7. Your Rights and Choices
 
@@ -200,7 +214,7 @@ We do **not** use:
 
 ## 13. Open Source Considerations
 
-MergeSignal is partially open source (Apache 2.0 license). When using the open-source components:
+MergeSignal includes open-source components under the **Apache License, Version 2.0** (see the `LICENSE` and `NOTICE` files). When using the open-source components:
 
 - You are responsible for data handling in your own deployment
 - Self-hosted instances are not covered by this Privacy Policy

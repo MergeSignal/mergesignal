@@ -189,8 +189,8 @@ When submitting data to the API:
 
 - You represent that you have the right to submit such data
 - You retain ownership of your data
-- You grant MergeSignal a license to process and store data as described in the Privacy Policy
-- Sensitive data (secrets, credentials, PII) should not be included in API requests
+- You grant MergeSignal a **limited** license to process and store data **solely to provide, secure, improve, and bill for the Service**, as described in the Privacy Policy (including Customer Content restrictions)
+- Sensitive data (secrets, credentials, unnecessary PII) should not be included in API requests
 
 ### 6.2 Data Retention
 
@@ -209,7 +209,7 @@ API responses may include:
 - Package metadata from public registries
 - Aggregated benchmarking data
 
-This data should be validated and is provided "as is" without warranties.
+This data should be validated; automated outputs may be incomplete or wrong—see the Terms of Service, Section 3.
 
 ## 7. Access Revocation and Suspension
 
@@ -323,18 +323,13 @@ The MergeSignal name and logo are trademarks. You may not:
 - Imply endorsement or affiliation without authorization
 - Create confusingly similar branding
 
-## 11. Disclaimer and Limitation of Liability
+## 11. Disclaimers and limitation of liability
 
-### 11.1 No Warranty
+### 11.1 API outputs and availability
 
-THE API IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. We do not guarantee:
+The API is provided with the **commitments and limits** in the Privacy Policy and Terms of Service (including Section 3 there). We **do not guarantee** that responses will be complete, timely, or free of error; that every vulnerability will be surfaced; that the API will be uninterrupted; or that results will fit any particular compliance regime. You should validate material decisions independently.
 
-- Accuracy or completeness of results
-- Detection of all vulnerabilities or risks
-- Fitness for any particular purpose
-- Uninterrupted or error-free operation
-
-### 11.2 Limitation of Liability
+### 11.2 Limitation of liability
 
 TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE ARE NOT LIABLE FOR:
 
@@ -344,7 +339,7 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE ARE NOT LIABLE FOR:
 - Third-party services or integrations
 - Decisions made based on API outputs
 
-See the main Terms of Service for full liability disclaimers.
+See the main Terms of Service (including jurisdiction-specific caps where applicable).
 
 ## 12. Indemnification
 

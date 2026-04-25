@@ -15,17 +15,27 @@ MergeSignal is a dependency risk intelligence platform that provides risk scorin
 - Command-line interface (CLI)
 - GitHub App integration (optional)
 
-## 3. "AS IS" Disclaimer and No Warranty
+## 3. Our commitments; nature of the Service; warranties and limitations
 
-THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+### 3.1 How we treat Customer Content
 
-**You acknowledge and agree that:**
+We handle **Customer Content** (as defined in the Privacy Policy) **only** to provide, secure, bill for, and improve the Service within the limits stated there. In particular, for the official hosted Service, we **do not** sell Customer Content to data brokers, and we **do not** use Customer Content to train generalized machine-learning models for unrelated third parties, as further described in the Privacy Policy.
 
-- MergeSignal is **not a substitute for professional security audits** or security expertise
-- All recommendations, risk scores, and analysis provided by the Service are **informational only**
-- You are **solely responsible** for validating all outputs before acting on them
-- The Service may contain errors, inaccuracies, or incomplete information
-- No security guarantees are provided; do not rely on this as your sole security control
+### 3.2 Informational analyses (not professional advice)
+
+MergeSignal produces **automated dependency risk insights**. That output is **informational and decision-support only**. It is **not** legal advice, not a professional penetration test or audit, and not a certification that a system is free of vulnerabilities or fit for any regulated purpose. You remain responsible for how you use outputs, for compliance with your own policies and laws, and for validating material decisions (for example, production releases or incident response).
+
+### 3.3 No guarantee of specific results
+
+To the **maximum extent permitted by applicable law**, MergeSignal **does not warrant** that the Service will be uninterrupted, error-free, or free of harmful components; that it will detect every vulnerability or misconfiguration; or that scores or recommendations will meet any particular business outcome or compliance standard. Third-party data sources (registries, advisories, hosting platforms) may be incomplete, delayed, or incorrect.
+
+### 3.4 Open-source components
+
+Portions of the software may be distributed under the **Apache License, Version 2.0**. The warranty disclaimer and limitation of liability in that license apply **to those components in the form licensed under Apache 2.0**. For **hosted** Service use, these Terms and the Privacy Policy also apply. If you self-host open-source components, you are responsible for your deployment and for providing appropriate notices to your own users.
+
+### 3.5 Not legal advice
+
+These Terms and our other policies are not a substitute for advice from **qualified legal counsel** about your specific obligations, industry, or jurisdiction.
 
 ## 4. Limitation of Liability
 
@@ -41,6 +51,8 @@ TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL MERGESIGNAL
   - Any third-party content or conduct on the Service
 
 This limitation applies whether the liability is based on contract, tort (including negligence), strict liability, or any other legal theory, even if advised of the possibility of such damages.
+
+**Some jurisdictions do not allow certain exclusions or caps; in those cases our liability is limited to the fullest extent permitted by law.** Nothing in these Terms is intended to exclude liability that cannot legally be excluded (for example, certain forms of gross negligence or willful misconduct, where applicable).
 
 ## 5. Usage Rules
 
@@ -75,14 +87,14 @@ Excessive or abusive API usage may result in throttling or access suspension wit
 
 ## 7. User Content and Data
 
-When you submit code, dependency information, or other data to the Service:
+When you submit dependency information, lockfiles, graphs, or other Customer Content to the Service:
 
 - You retain all ownership rights to your content
-- You grant MergeSignal a license to process, analyze, and display your content to provide the Service
+- You grant MergeSignal a **limited, non-exclusive license** to process, analyze, store, and display that content **solely to provide, secure, improve, and bill for the Service**, in accordance with the Privacy Policy (including the restrictions in Section 2.1 there)
 - You represent that you have the right to submit such content
 - You are responsible for ensuring compliance with applicable data protection laws
 
-MergeSignal may store scan results, risk scores, and metadata. See the Privacy Policy for details on data handling.
+MergeSignal may store inputs and outputs needed to operate the product (for example scan results, risk scores, and metadata). See the Privacy Policy for categories, retention, and your rights.
 
 ## 8. Intellectual Property
 
@@ -138,7 +150,9 @@ You agree to indemnify, defend, and hold harmless MergeSignal, its operators, an
 - Your violation of any rights of another party
 - Any decisions made based on Service outputs
 
-## 13. Disclaimer of Accuracy
+## 13. Disclaimer of accuracy
+
+This section supplements **Section 3** (nature of analyses and no guarantee of specific results).
 
 Risk scores, vulnerability information, and recommendations provided by the Service:
 

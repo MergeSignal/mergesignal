@@ -31,8 +31,8 @@ _Note: Required only if processing EU/EEA user data. Update with actual DPO cont
 
 For technical support, bug reports, and feature requests:
 
-- **GitHub Issues**: https://github.com/[your-org]/mergesignal/issues
-- **Discussions**: https://github.com/[your-org]/mergesignal/discussions
+- **GitHub Issues**: https://github.com/MergeSignal/mergesignal/issues
+- **Discussions**: https://github.com/MergeSignal/mergesignal/discussions
 
 ## Security Issues
 
@@ -42,7 +42,7 @@ For security vulnerabilities or confidential security matters:
 
 Please use responsible disclosure practices. Do not publicly disclose security issues until we have had an opportunity to address them.
 
-Alternatively, use [GitHub Security Advisories](https://github.com/[your-org]/mergesignal/security/advisories) for private vulnerability reporting.
+Alternatively, use [GitHub Security Advisories](https://github.com/MergeSignal/mergesignal/security/advisories) for private vulnerability reporting.
 
 ## Business Inquiries
 

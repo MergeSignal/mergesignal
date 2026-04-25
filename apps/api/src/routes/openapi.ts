@@ -24,21 +24,21 @@ function getOpenApiSpec() {
       version: "v1",
       description:
         "Dependency risk intelligence API for scans, org views, policies, alerts, benchmarking, and simulations.\n\n" +
-        "**Important**: This API is provided 'as is' without warranty. Not a substitute for security audits. " +
-        "Validate all outputs before use. See [Terms](https://github.com/[your-org]/mergesignal/blob/main/TERMS.md), " +
-        "[API Terms](https://github.com/[your-org]/mergesignal/blob/main/API-TERMS.md), and " +
-        "[Privacy Policy](https://github.com/[your-org]/mergesignal/blob/main/PRIVACY.md).",
+        "**Important**: Responses are **informational** and may be incomplete; validate material decisions. " +
+        "Customer Content handling and commitments: [Privacy Policy](https://github.com/MergeSignal/mergesignal/blob/main/PRIVACY.md). " +
+        "Terms: [Terms of Service](https://github.com/MergeSignal/mergesignal/blob/main/TERMS.md), " +
+        "[API Terms](https://github.com/MergeSignal/mergesignal/blob/main/API-TERMS.md).",
       contact: {
         name: "MergeSignal Support",
-        url: "https://github.com/[your-org]/mergesignal",
+        url: "https://github.com/MergeSignal/mergesignal",
         email: "legal@mergesignal.com",
       },
       license: {
         name: "Apache 2.0",
-        url: "https://github.com/[your-org]/mergesignal/blob/main/LICENSE",
+        url: "https://github.com/MergeSignal/mergesignal/blob/main/LICENSE",
       },
       termsOfService:
-        "https://github.com/[your-org]/mergesignal/blob/main/API-TERMS.md",
+        "https://github.com/MergeSignal/mergesignal/blob/main/API-TERMS.md",
     },
     servers: [{ url: "http://localhost:4000" }],
     tags: [
