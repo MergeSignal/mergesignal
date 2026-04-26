@@ -6,6 +6,7 @@ primary_region = "iad"
 
 [env]
   PORT = "4000"
+  HOST = "0.0.0.0"
   NODE_ENV = "production"
   MERGESIGNAL_AUTO_MIGRATE = "1"
   CORS_ORIGINS = "https://mergesignal-web.fly.dev"
