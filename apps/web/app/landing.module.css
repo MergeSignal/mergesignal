@@ -16,7 +16,7 @@
 }
 
 .githubCta:hover {
-  background: color-mix(in oklab, var(--rs-color-accent) 88%, #fff);
+  background: color-mix(in oklab, var(--rs-color-accent) 88%, var(--ms-color-white));
   box-shadow: var(--rs-shadow-md);
   transform: translateY(-1px);
 }
@@ -29,7 +29,7 @@
   background:
     linear-gradient(
       145deg,
-      color-mix(in oklab, var(--ms-logo-panel) 92%, #000 8%),
+      color-mix(in oklab, var(--ms-logo-panel) 92%, var(--ms-color-black) 8%),
       color-mix(in oklab, var(--rs-color-background-elevated) 85%, transparent)
     );
   box-shadow: var(--rs-shadow-md);

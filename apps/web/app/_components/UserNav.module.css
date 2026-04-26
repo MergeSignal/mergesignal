@@ -43,7 +43,7 @@
 }
 
 .buttonSecondary {
-  border: 1px solid var(--ms-border, #444);
+  border: 1px solid var(--ms-border);
   background: transparent;
   color: inherit;
 }

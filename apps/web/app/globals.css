@@ -1,37 +1,120 @@
 :root {
-  /* Brand: deep blue-black surface, near-white type */
-  --ms-bg: #060a12;
-  --ms-text: #f2f6fb;
+  /* =============================================================================
+   * MergeSignal theme — one hex (or literal) per concept here only.
+   * Everything below references these primitives via var().
+   * ============================================================================= */
 
-  --ms-logo-panel: #0c1220;
-  --ms-frost: #c8d6ea;
+  /* --- Primitives (edit here to re-theme) --- */
+  --ms-color-canvas: #313c60;
+  --ms-color-ink: #dee6f0;
+  --ms-color-white: #ffffff;
+  --ms-color-black: #000000;
+  --ms-color-success: #6ee7b7;
+  --ms-color-warning: #fbbf24;
+  --ms-color-danger: #fb7185;
 
-  --rs-color-background: #060a12;
-  --rs-color-background-elevated: #0b101c;
-  --rs-color-surface: color-mix(in oklab, #fff 6%, #060a12 94%);
-  --rs-color-surface-emphasis: color-mix(in oklab, #fff 10%, #060a12 90%);
-  --rs-color-text: #f2f6fb;
-  --rs-color-text-muted: color-mix(in oklab, #f2f6fb 72%, #060a12 28%);
-  --rs-color-border: color-mix(in oklab, #f2f6fb 14%, transparent);
-  --rs-color-brand-frost: #c8d6ea;
+  /* --- Derived surfaces (canvas-relative) --- */
+  --ms-color-canvas-elevated: color-mix(
+    in oklab,
+    var(--ms-color-canvas) 78%,
+    var(--ms-color-black) 22%
+  );
+  --ms-color-logo-panel: color-mix(
+    in oklab,
+    var(--ms-color-canvas) 72%,
+    var(--ms-color-black) 28%
+  );
+  --ms-color-surface: color-mix(
+    in oklab,
+    var(--ms-color-white) 6%,
+    var(--ms-color-canvas) 94%
+  );
+  --ms-color-surface-emphasis: color-mix(
+    in oklab,
+    var(--ms-color-white) 10%,
+    var(--ms-color-canvas) 90%
+  );
 
-  /* Light controls on dark background */
-  --rs-color-accent: color-mix(in oklab, #fff 92%, #c8d6ea 8%);
-  --rs-color-accent-alt: color-mix(in oklab, #c8d6ea 45%, #fff 55%);
-  --rs-color-on-accent: #0a0e18;
-  --rs-color-success: #6ee7b7;
-  --rs-color-warning: #fbbf24;
-  --rs-color-danger: #fb7185;
+  /* --- Derived text & chrome (ink- / canvas-relative) --- */
+  --ms-color-text-muted: color-mix(
+    in oklab,
+    var(--ms-color-ink) 72%,
+    var(--ms-color-canvas) 28%
+  );
+  --ms-color-text-emphasis: color-mix(
+    in oklab,
+    var(--ms-color-ink) 12%,
+    var(--ms-color-white) 88%
+  );
+  --ms-color-border: color-mix(in oklab, var(--ms-color-ink) 14%, transparent);
+  --ms-color-brand-frost: color-mix(
+    in oklab,
+    var(--ms-color-ink) 62%,
+    var(--ms-color-white) 38%
+  );
 
-  --rs-radius-lg: 16px;
-  --rs-radius-md: 12px;
-  --rs-shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.2);
-  --rs-shadow-md: 0 18px 50px rgba(0, 0, 0, 0.35);
+  /* --- Interactive (accent derived from ink + white) --- */
+  --ms-color-accent: color-mix(
+    in oklab,
+    var(--ms-color-white) 92%,
+    var(--ms-color-ink) 8%
+  );
+  --ms-color-accent-alt: color-mix(
+    in oklab,
+    var(--ms-color-ink) 45%,
+    var(--ms-color-white) 55%
+  );
+  --ms-color-on-accent: color-mix(
+    in oklab,
+    var(--ms-color-canvas) 90%,
+    var(--ms-color-black) 10%
+  );
 
-  --rs-focus-ring: color-mix(in oklab, #c8d6ea 42%, transparent);
+  /* --- Focus & elevation --- */
+  --ms-color-focus-ring: color-mix(
+    in oklab,
+    var(--ms-color-brand-frost) 42%,
+    transparent
+  );
+  --ms-shadow-sm: 0 1px 0 color-mix(in oklab, var(--ms-color-black) 20%, transparent);
+  --ms-shadow-md: 0 18px 50px color-mix(in oklab, var(--ms-color-black) 35%, transparent);
 
-  --ms-accent: var(--rs-color-accent);
-  --ms-border: var(--rs-color-border);
+  /* --- Layout tokens --- */
+  --ms-radius-lg: 16px;
+  --ms-radius-md: 12px;
+
+  /* =============================================================================
+   * Semantic contract (`rs-*`) — used across components; maps to derived tokens.
+   * ============================================================================= */
+  --rs-color-background: var(--ms-color-canvas);
+  --rs-color-background-elevated: var(--ms-color-canvas-elevated);
+  --rs-color-surface: var(--ms-color-surface);
+  --rs-color-surface-emphasis: var(--ms-color-surface-emphasis);
+  --rs-color-text: var(--ms-color-ink);
+  --rs-color-text-muted: var(--ms-color-text-muted);
+  --rs-color-text-emphasis: var(--ms-color-text-emphasis);
+  --rs-color-border: var(--ms-color-border);
+  --rs-color-brand-frost: var(--ms-color-brand-frost);
+  --rs-color-accent: var(--ms-color-accent);
+  --rs-color-accent-alt: var(--ms-color-accent-alt);
+  --rs-color-on-accent: var(--ms-color-on-accent);
+  --rs-color-success: var(--ms-color-success);
+  --rs-color-warning: var(--ms-color-warning);
+  --rs-color-danger: var(--ms-color-danger);
+
+  --rs-radius-lg: var(--ms-radius-lg);
+  --rs-radius-md: var(--ms-radius-md);
+  --rs-shadow-sm: var(--ms-shadow-sm);
+  --rs-shadow-md: var(--ms-shadow-md);
+  --rs-focus-ring: var(--ms-color-focus-ring);
+
+  /* Short aliases (older / marketing modules) */
+  --ms-bg: var(--ms-color-canvas);
+  --ms-text: var(--ms-color-ink);
+  --ms-frost: var(--ms-color-brand-frost);
+  --ms-logo-panel: var(--ms-color-logo-panel);
+  --ms-accent: var(--ms-color-accent);
+  --ms-border: var(--ms-color-border);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -51,15 +134,19 @@ body {
   background:
     radial-gradient(
       900px 520px at 12% -10%,
-      color-mix(in oklab, #c8d6ea 8%, transparent),
+      color-mix(in oklab, var(--ms-color-ink) 8%, transparent),
       transparent 55%
     ),
     radial-gradient(
       700px 420px at 92% 0%,
-      color-mix(in oklab, #0b1428 85%, #000 15%),
+      color-mix(in oklab, var(--ms-color-canvas) 40%, var(--ms-color-black) 60%),
       transparent 50%
     ),
-    linear-gradient(180deg, var(--rs-color-background), var(--rs-color-background-elevated));
+    linear-gradient(
+      180deg,
+      var(--rs-color-background),
+      var(--rs-color-background-elevated)
+    );
   font-family: var(--font-geist-sans), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   line-height: 1.45;
 }
@@ -80,5 +167,5 @@ code {
 }
 
 ::selection {
-  background: color-mix(in oklab, #c8d6ea 28%, transparent);
+  background: color-mix(in oklab, var(--ms-color-brand-frost) 28%, transparent);
 }

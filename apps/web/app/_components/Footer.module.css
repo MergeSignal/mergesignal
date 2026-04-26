@@ -2,7 +2,7 @@
   border-top: 1px solid var(--rs-color-border);
   padding: 2rem 1.5rem;
   margin-top: 4rem;
-  background: color-mix(in oklab, #000 18%, var(--rs-color-background) 82%);
+  background: color-mix(in oklab, var(--ms-color-black) 18%, var(--rs-color-background) 82%);
 }
 
 .footerContent {
