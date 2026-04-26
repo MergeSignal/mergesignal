@@ -40,12 +40,11 @@ Before deploying, update the following files with your production values:
 
 **k8s/configmap.yaml:**
 
-- Update `CORS_ORIGINS` with your production domain
+- `CORS_ORIGINS` is set for the Fly web app: `https://mergesignal-web.fly.dev` (adjust if you use a custom domain)
 
 **k8s/ingress.yaml:**
 
-- Replace `your-domain.com` with your actual domain
-- Replace `api.your-domain.com` with your API subdomain
+- Hosts are set to `mergesignal-web.fly.dev` and `mergesignal-api.fly.dev` to match the public Fly apps (change for self-hosted domains)
 
 ### 2. Build and Push Docker Images
 

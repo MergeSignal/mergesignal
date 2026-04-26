@@ -27,8 +27,23 @@
     "typescript": "5.9.2"
   },
   "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
+    "apps/web/**/*.{ts,tsx}": [
+      "pnpm exec eslint -c apps/web/eslint.config.js --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "apps/api/**/*.{ts,tsx}": [
+      "pnpm exec eslint -c apps/api/eslint.config.js --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "apps/cli/**/*.{ts,tsx}": [
+      "pnpm exec eslint -c apps/cli/eslint.config.js --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "apps/worker/**/*.{ts,tsx}": [
+      "pnpm exec eslint -c apps/worker/eslint.config.js --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "packages/**/*.{ts,tsx}": [
       "prettier --write"
     ],
     "*.{json,md,yaml,yml}": [

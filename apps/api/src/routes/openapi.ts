@@ -40,7 +40,7 @@ function getOpenApiSpec() {
       termsOfService:
         "https://github.com/MergeSignal/mergesignal/blob/main/API-TERMS.md",
     },
-    servers: [{ url: "http://localhost:4000" }],
+    servers: [{ url: "https://mergesignal-api.fly.dev" }],
     tags: [
       { name: "scans" },
       { name: "simulate" },

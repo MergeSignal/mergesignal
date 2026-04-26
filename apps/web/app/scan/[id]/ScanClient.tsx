@@ -6,7 +6,6 @@ import styles from "./ScanClient.module.css";
 import layoutStyles from "./ScanClientLayout.module.css";
 import { Card, cardStyles } from "../../_components/ui/Card";
 import { Button, Row } from "../../_components/ui/Form";
-import { getApiBaseUrl } from "../../../lib/api";
 
 type ScanRow = {
   id: string;
@@ -51,15 +50,26 @@ type ScanResult = {
   };
 };
 
-export default function ScanClient({ id }: { id: string }) {
-  const [data, setData] = useState<ScanRow | null>(null);
+export default function ScanClient({
+  id,
+  initialRow,
+}: {
+  id: string;
+  initialRow?: ScanRow | null;
+}) {
+  const [data, setData] = useState<ScanRow | null>(initialRow ?? null);
   const [err, setErr] = useState<string | null>(null);
   const [showRaw, setShowRaw] = useState(false);
-  const terminalRef = useRef(false);
+  const terminalRef = useRef(
+    initialRow?.status === "done" || initialRow?.status === "failed",
+  );
 
   useEffect(() => {
-    const baseUrl = getApiBaseUrl();
-    const es = new EventSource(`${baseUrl}/scan/${id}/events`);
+    if (terminalRef.current) {
+      return;
+    }
+
+    const es = new EventSource(`/api/scan/${encodeURIComponent(id)}/events`);
 
     es.addEventListener("status", (e) => {
       try {
@@ -82,7 +92,7 @@ export default function ScanClient({ id }: { id: string }) {
     });
 
     return () => es.close();
-  }, [id]);
+  }, [id, initialRow?.status]);
 
   if (err) return <Card title="Error">{err}</Card>;
   if (!data) return <Card title="Connecting">Waiting for events…</Card>;

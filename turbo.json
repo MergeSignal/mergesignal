@@ -2,6 +2,7 @@
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
   "globalEnv": [
+    "NEXT_RUNTIME",
     "NODE_ENV",
     "PORT",
     "HOST",
@@ -28,7 +29,18 @@
     "GITHUB_PRIVATE_KEY",
     "GITHUB_WEBHOOK_SECRET",
     "NEXT_PUBLIC_API_BASE_URL",
-    "NEXT_PUBLIC_API_KEY"
+    "NEXT_PUBLIC_API_KEY",
+    "MERGESIGNAL_API_KEY",
+    "MERGESIGNAL_LINKED_GITHUB_OWNER",
+    "AUTH_SECRET",
+    "AUTH_GITHUB_ID",
+    "AUTH_GITHUB_SECRET",
+    "GITHUB_ID",
+    "GITHUB_SECRET",
+    "MERGESIGNAL_DEV_AUTH_BYPASS",
+    "SENTRY_DSN",
+    "SENTRY_TRACES_SAMPLE_RATE",
+    "WORKER_CONCURRENCY"
   ],
   "tasks": {
     "build": {

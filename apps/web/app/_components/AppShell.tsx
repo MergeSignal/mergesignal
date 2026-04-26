@@ -1,16 +1,20 @@
 import Link from "next/link";
 import styles from "./AppShell.module.css";
 import { Footer } from "./Footer";
+import { UserNav } from "./UserNav";
 
 export function AppShell({
   title,
   subtitle,
   owner,
+  linkedOwner,
   children,
 }: {
   title: string;
   subtitle?: string;
   owner?: string;
+  /** Shown in header for quick dashboard link when signed in. */
+  linkedOwner?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -50,11 +54,8 @@ export function AppShell({
                 Benchmark
               </Link>
             </>
-          ) : (
-            <Link className={styles.navLink} href="/org/demo">
-              Org demo
-            </Link>
-          )}
+          ) : null}
+          <UserNav linkedOwner={linkedOwner} />
         </nav>
       </header>
 

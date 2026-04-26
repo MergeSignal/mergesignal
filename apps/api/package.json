@@ -23,6 +23,7 @@
     "@mergesignal/engine": "workspace:^",
     "@mergesignal/shared": "workspace:^",
     "@octokit/app": "^16.1.2",
+    "@sentry/node": "8",
     "bullmq": "^5.70.1",
     "dotenv": "^17.4.2",
     "fastify-raw-body": "^5.0.0",

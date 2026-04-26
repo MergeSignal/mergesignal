@@ -17,5 +17,19 @@ services:
     ports:
       - "6379:6379"
 
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: mergesignal-worker
+    environment:
+      DATABASE_URL: postgresql://mergesignal:mergesignal@db:5432/mergesignal
+      REDIS_URL: redis://redis:6379
+      MERGESIGNAL_ENGINE_IMPL: ""
+      MERGESIGNAL_ENGINE_STRICT: "0"
+    depends_on:
+      - db
+      - redis
+
 volumes:
   mergesignal_pg:

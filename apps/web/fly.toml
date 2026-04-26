@@ -8,6 +8,9 @@ primary_region = "iad"
   PORT = "3000"
   NODE_ENV = "production"
   NEXT_PUBLIC_API_BASE_URL = "https://mergesignal-api.fly.dev"
+  # Set via `fly secrets set` (never commit real values):
+  # MERGESIGNAL_API_KEY, MERGESIGNAL_LINKED_GITHUB_OWNER, AUTH_SECRET,
+  # AUTH_GITHUB_ID, AUTH_GITHUB_SECRET, SENTRY_DSN (optional)
 
 [http_service]
   internal_port = 3000

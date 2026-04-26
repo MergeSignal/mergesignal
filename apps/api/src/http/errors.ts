@@ -1,4 +1,5 @@
 import type { FastifyError, FastifyInstance } from "fastify";
+import { captureApiException } from "../sentry.js";
 import { sendProblem } from "../problem.js";
 
 export function registerErrorHandling(app: FastifyInstance) {
@@ -32,6 +33,10 @@ export function registerErrorHandling(app: FastifyInstance) {
     const detail =
       status >= 500 ? "Unexpected error" : String(err.message ?? "Error");
     const validation = err.validation;
+
+    if (status >= 500) {
+      captureApiException(err);
+    }
 
     return sendProblem(reply, req, {
       status,

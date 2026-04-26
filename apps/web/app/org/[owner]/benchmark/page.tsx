@@ -3,7 +3,8 @@ import { DataTable, TD } from "../../../_components/ui/Table";
 import { Card, cardStyles } from "../../../_components/ui/Card";
 import styles from "./Benchmark.module.css";
 import typo from "../../../_styles/typography.module.css";
-import { apiGet, ApiError } from "../../../../lib/api";
+import { ApiError, serverApiGet } from "../../../../lib/api";
+import { requireOrgAccess } from "../../../../lib/org-guard";
 
 type Summary = {
   scope: "global" | "owner";
@@ -25,13 +26,14 @@ export default async function Page({
   params: Promise<{ owner: string }>;
 }) {
   const { owner } = await params;
+  await requireOrgAccess(owner);
 
   let global: Summary;
   let org: Summary;
   try {
     [global, org] = await Promise.all([
-      apiGet<Summary>(`/benchmark/global`),
-      apiGet<Summary>(`/benchmark/org/${encodeURIComponent(owner)}`),
+      serverApiGet<Summary>(`/benchmark/global`),
+      serverApiGet<Summary>(`/benchmark/org/${encodeURIComponent(owner)}`),
     ]);
   } catch (err: unknown) {
     const errorText =

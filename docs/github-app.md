@@ -7,7 +7,7 @@ MergeSignal can ingest GitHub events and automatically enqueue scans when a lock
 In GitHub:
 
 - Create a GitHub App (organization-owned is fine)
-- **Webhook URL**: `http(s)://<YOUR_API_HOST>/github/webhook`
+- **Webhook URL** (Fly.io): `https://mergesignal-api.fly.dev/github/webhook` (or `http(s)://<YOUR_API_HOST>/github/webhook` for other hosts)
 - **Webhook secret**: generate a random string (you’ll set it as `GITHUB_WEBHOOK_SECRET`)
 - Subscribe to events:
   - **Pull request**

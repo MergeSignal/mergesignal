@@ -2,7 +2,9 @@ import { AppShell } from "../../../_components/AppShell";
 import { Card } from "../../../_components/ui/Card";
 import { DataTable, TD } from "../../../_components/ui/Table";
 import typo from "../../../_styles/typography.module.css";
-import { apiGet, ApiError, getApiBaseUrl } from "../../../../lib/api";
+import { ApiError, serverApiGet } from "../../../../lib/api";
+import { getPublicApiBaseUrl } from "../../../../lib/env";
+import { requireOrgAccess } from "../../../../lib/org-guard";
 
 type PoliciesResponse = {
   owner: string;
@@ -40,17 +42,20 @@ export default async function Page({
   searchParams?: Promise<{ limit?: string }>;
 }) {
   const { owner } = await params;
+  await requireOrgAccess(owner);
   const sp = (await searchParams) ?? {};
   const limit = sp.limit ? Number(sp.limit) : 100;
 
-  const baseUrl = getApiBaseUrl();
+  const baseUrl = getPublicApiBaseUrl();
 
   let policies: PoliciesResponse;
   let violations: ViolationsResponse;
   try {
     [policies, violations] = await Promise.all([
-      apiGet<PoliciesResponse>(`/org/${encodeURIComponent(owner)}/policies`),
-      apiGet<ViolationsResponse>(
+      serverApiGet<PoliciesResponse>(
+        `/org/${encodeURIComponent(owner)}/policies`,
+      ),
+      serverApiGet<ViolationsResponse>(
         `/org/${encodeURIComponent(owner)}/policy/violations?limit=${limit}`,
       ),
     ]);

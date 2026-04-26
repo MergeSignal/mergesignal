@@ -1,5 +1,5 @@
 import { Queue } from "bullmq";
-import type { ScanLockfileInput, RepoSource } from "@mergesignal/shared";
+import { SCAN_QUEUE_NAME, type ScanQueueJob } from "@mergesignal/shared";
 
 const connection = {
   url: process.env.REDIS_URL!,
@@ -8,30 +8,14 @@ const connection = {
   lazyConnect: true,
 };
 
-export type ScanJob = {
-  scanId: string;
-  repoId: string;
-  dependencyGraph: unknown;
-  lockfile?: ScanLockfileInput;
-  baseLockfile?: ScanLockfileInput;
-  repoSource?: RepoSource;
-  changedFiles?: string[];
-  github?: {
-    owner: string;
-    repo: string;
-    prNumber: number;
-    headSha: string;
-    baseSha?: string;
-    installationId: number;
-    deliveryId?: string;
-  };
-};
+/** @deprecated Use ScanQueueJob from @mergesignal/shared */
+export type ScanJob = ScanQueueJob;
 
-export const SCAN_QUEUE_NAME = "scan-queue";
+export { SCAN_QUEUE_NAME };
 
-let _scanQueue: Queue<ScanJob> | null = null;
+let _scanQueue: Queue<ScanQueueJob> | null = null;
 
-export const scanQueue = new Proxy({} as Queue<ScanJob>, {
+export const scanQueue = new Proxy({} as Queue<ScanQueueJob>, {
   get(target, prop) {
     if (!_scanQueue) {
       _scanQueue = new Queue<ScanJob>(SCAN_QUEUE_NAME, { connection });

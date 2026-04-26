@@ -4,30 +4,30 @@ metadata:
   name: mergesignal-config
   namespace: mergesignal
 data:
-  # CORS configuration
-  CORS_ORIGINS: "https://your-domain.com"
-  
+  # CORS configuration (comma-separated exact web origins)
+  CORS_ORIGINS: "https://mergesignal-web.fly.dev"
+
   # Auto-migration configuration
   MERGESIGNAL_AUTO_MIGRATE: "1"
-  
+
   # Engine configuration
   MERGESIGNAL_ENGINE_STRICT: "0"
-  
+
   # OSV vulnerability checks
   MERGESIGNAL_ENABLE_OSV: "1"
   MERGESIGNAL_OSV_MAX_PACKAGES: "100"
   MERGESIGNAL_OSV_TIMEOUT_MS: "5000"
-  
+
   # npm adoption checks
   MERGESIGNAL_ENABLE_ADOPTION: "1"
   MERGESIGNAL_ADOPTION_MAX_PACKAGES: "100"
   MERGESIGNAL_ADOPTION_TIMEOUT_MS: "3000"
-  
+
   # GitHub signals (disabled by default)
   MERGESIGNAL_ENABLE_GITHUB_SIGNALS: "0"
-  
+
   # Tier configuration
   MERGESIGNAL_DEFAULT_TIER: "free"
-  
+
   # Node environment
   NODE_ENV: "production"

@@ -38,7 +38,7 @@ eks_desired_size = 2
 eks_min_size     = 1
 eks_max_size     = 4
 
-# Domain (optional, for ingress)
+# Domain (optional, for Route53/ingress). Fly.io preview: https://mergesignal-web.fly.dev/ and https://mergesignal-api.fly.dev
 domain_name = "your-domain.com"
 ```
 

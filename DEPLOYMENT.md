@@ -209,7 +209,7 @@ Edit `k8s/configmap.yaml`:
 
 ```yaml
 data:
-  CORS_ORIGINS: "https://your-domain.com"
+  CORS_ORIGINS: "https://mergesignal-web.fly.dev"
   # ... other configs
 ```
 
@@ -243,12 +243,12 @@ Edit `k8s/ingress.yaml`:
 spec:
   tls:
     - hosts:
-        - your-domain.com
-        - api.your-domain.com
+        - mergesignal-web.fly.dev
+        - mergesignal-api.fly.dev
   rules:
-    - host: your-domain.com
+    - host: mergesignal-web.fly.dev
       # ...
-    - host: api.your-domain.com
+    - host: mergesignal-api.fly.dev
       # ...
 ```
 
@@ -374,6 +374,22 @@ Production configuration is managed through:
 2. **Kubernetes Secrets** (`k8s/secret.yaml`): Sensitive credentials
 3. **Environment-specific overrides**: Use different files for staging/production
 
+### Public URLs (Fly.io)
+
+Current preview deployment:
+
+- **Web:** `https://mergesignal-web.fly.dev/`
+- **API:** `https://mergesignal-api.fly.dev`
+
+1. Set the web app `NEXT_PUBLIC_API_BASE_URL` to `https://mergesignal-api.fly.dev`.
+2. Set API `CORS_ORIGINS` to `https://mergesignal-web.fly.dev` (comma-separated if you add more origins later).
+3. Update the **GitHub App** webhook to `https://mergesignal-api.fly.dev/github/webhook` and the **GitHub OAuth** callback to `https://mergesignal-web.fly.dev/api/auth/callback/github`.
+4. Configure web secrets: `MERGESIGNAL_API_KEY`, `MERGESIGNAL_LINKED_GITHUB_OWNER`, `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET` (Fly: `fly secrets set`, Kubernetes: `k8s/secret.yaml`).
+
+When you move to a custom domain later, replace these hostnames in DNS, `CORS_ORIGINS`, GitHub App, and OAuth settings.
+
+The default **worker** image in `k8s/worker-deployment.yaml` is `mergesignal/worker:latest`; build and push from [`apps/worker/Dockerfile`](apps/worker/Dockerfile) in this repo, or substitute the **mergesignal-engine** image if you use a proprietary engine module via `MERGESIGNAL_ENGINE_IMPL`.
+
 ### Secrets Management Best Practices
 
 For production, consider using:
@@ -400,7 +416,7 @@ aws secretsmanager create-secret \
 1. **Prometheus + Grafana**: Metrics and dashboards
 2. **CloudWatch**: AWS-native monitoring
 3. **ELK Stack or CloudWatch Logs**: Centralized logging
-4. **Sentry**: Error tracking
+4. **Sentry**: Error tracking — set optional `SENTRY_DSN` and `SENTRY_TRACES_SAMPLE_RATE` on the API (`apps/api`), web server (`apps/web` `instrumentation.ts`), and worker (`apps/worker`).
 
 ### Setting up CloudWatch Container Insights
 

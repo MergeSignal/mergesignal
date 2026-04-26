@@ -1,0 +1,71 @@
+.hero {
+  margin-bottom: 2rem;
+}
+
+.lead {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  max-width: 42rem;
+  margin: 0 0 1.25rem;
+  opacity: 0.92;
+}
+
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.primaryCta,
+.secondaryCta {
+  display: inline-block;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 0.55rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.primaryCta {
+  background: var(--ms-accent, #2563eb);
+  color: #fff;
+  border: 1px solid transparent;
+}
+
+.secondaryCta {
+  border: 1px solid var(--ms-border, #444);
+  color: inherit;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.h2 {
+  font-size: 1.15rem;
+  margin: 0 0 0.65rem;
+}
+
+.p {
+  margin: 0 0 0.65rem;
+  line-height: 1.55;
+  max-width: 48rem;
+  opacity: 0.9;
+}
+
+.inlineLink {
+  color: var(--ms-accent, #60a5fa);
+  text-decoration: underline;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.65;
+  max-width: 48rem;
+}
+
+.steps li {
+  margin-bottom: 0.35rem;
+}

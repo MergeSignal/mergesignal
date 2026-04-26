@@ -2,7 +2,8 @@ import Link from "next/link";
 import { AppShell } from "../../_components/AppShell";
 import { DataTable, TD } from "../../_components/ui/Table";
 import { Card, cardStyles } from "../../_components/ui/Card";
-import { apiGet, ApiError } from "../../../lib/api";
+import { ApiError, serverApiGet } from "../../../lib/api";
+import { requireOrgAccess } from "../../../lib/org-guard";
 import styles from "./OrgDashboard.module.css";
 
 type Dashboard = {
@@ -34,12 +35,13 @@ export default async function Page({
   searchParams?: Promise<{ limit?: string }>;
 }) {
   const { owner } = await params;
+  await requireOrgAccess(owner);
   const sp = (await searchParams) ?? {};
   const limit = sp.limit ? Number(sp.limit) : 50;
 
   let data: Dashboard;
   try {
-    data = await apiGet<Dashboard>(
+    data = await serverApiGet<Dashboard>(
       `/org/${encodeURIComponent(owner)}/dashboard?limit=${limit}`,
     );
   } catch (err: unknown) {
@@ -123,13 +125,7 @@ export default async function Page({
           <DataTable
             headers={["Repo", "Score", "Δ", "Status", "Last scan", ""]}
             rows={data.repos.map((r) => (
-              <tr
-                key={r.repoId}
-                className={styles.tableRow}
-                onClick={() =>
-                  (window.location.href = `/scan/${r.latest.scanId}`)
-                }
-              >
+              <tr key={r.repoId} className={styles.tableRow}>
                 <TD>
                   <code>{r.repoId}</code>
                 </TD>

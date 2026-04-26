@@ -289,3 +289,28 @@ export type PRAnalysisResult = {
   insights: ImpactInsight[];
   generatedAt: string;
 };
+
+/** BullMQ queue name shared by API (producer) and worker (consumer). */
+export const SCAN_QUEUE_NAME = "scan-queue" as const;
+
+export type ScanQueueGithubContext = {
+  owner: string;
+  repo: string;
+  prNumber: number;
+  headSha: string;
+  baseSha?: string;
+  installationId: number;
+  deliveryId?: string;
+};
+
+/** BullMQ job payload for scan jobs. */
+export type ScanQueueJob = {
+  scanId: string;
+  repoId: string;
+  dependencyGraph: unknown;
+  lockfile?: ScanLockfileInput;
+  baseLockfile?: ScanLockfileInput;
+  repoSource?: RepoSource;
+  changedFiles?: string[];
+  github?: ScanQueueGithubContext;
+};

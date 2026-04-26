@@ -104,7 +104,7 @@ npm run generate-api-key -- octocat
 
 # Try to access acme's data with octocat's key (should fail with 403)
 curl -H "Authorization: Bearer <octocat-key>" \
-  https://api.mergesignal.dev/org/acme/policies
+  https://mergesignal-api.fly.dev/org/acme/policies
 ```
 
 Expected: `403 Forbidden - Access denied to this organization`
@@ -116,13 +116,13 @@ Expected: `403 Forbidden - Access denied to this organization`
 POLICY_ID=$(curl -X POST -H "Authorization: Bearer <acme-key>" \
   -H "Content-Type: application/json" \
   -d '{"name":"Test","rules":[{"type":"no_deprecated"}]}' \
-  https://api.mergesignal.dev/org/acme/policies | jq -r .id)
+  https://mergesignal-api.fly.dev/org/acme/policies | jq -r .id)
 
 # Try to update with octocat's key (should fail with 403)
 curl -X PATCH -H "Authorization: Bearer <octocat-key>" \
   -H "Content-Type: application/json" \
   -d '{"name":"Hacked"}' \
-  https://api.mergesignal.dev/policies/$POLICY_ID
+  https://mergesignal-api.fly.dev/policies/$POLICY_ID
 ```
 
 Expected: `403 Forbidden - Access denied to this policy`
@@ -131,7 +131,7 @@ Expected: `403 Forbidden - Access denied to this policy`
 
 ```bash
 curl -H "Authorization: Bearer invalid_key_12345" \
-  https://api.mergesignal.dev/org/acme/policies
+  https://mergesignal-api.fly.dev/org/acme/policies
 ```
 
 Expected: `401 Unauthorized - Missing or invalid API key`

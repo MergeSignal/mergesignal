@@ -5,13 +5,18 @@ import { useRouter } from "next/navigation";
 import styles from "./HomeClient.module.css";
 import { Card, cardStyles } from "./ui/Card";
 import { Button, ButtonLink, Row, TextInput } from "./ui/Form";
-import { getApiBaseUrl } from "../../lib/api";
-
-export function HomeClient() {
+export function HomeClient({
+  linkedOwner,
+}: {
+  /** Default org field when this deployment is scoped to one GitHub owner. */
+  linkedOwner?: string;
+}) {
   const router = useRouter();
-  const [owner, setOwner] = useState("demo");
+  const [owner, setOwner] = useState(linkedOwner ?? "demo");
   const [scanId, setScanId] = useState("");
-  const [repoId, setRepoId] = useState("demo/repo");
+  const [repoId, setRepoId] = useState(
+    linkedOwner ? `${linkedOwner}/repo` : "demo/repo",
+  );
 
   const ownerPath = useMemo(
     () => `/org/${encodeURIComponent(owner.trim() || "demo")}`,
@@ -69,7 +74,7 @@ export function HomeClient() {
           />
           <ButtonLink
             variant="secondary"
-            href={`${getApiBaseUrl()}/benchmark/repo?repoId=${encodeURIComponent(repoId.trim())}`}
+            href={`/api/benchmark/repo?repoId=${encodeURIComponent(repoId.trim())}`}
             target="_blank"
             rel="noreferrer"
           >

@@ -1,7 +1,8 @@
 import { AppShell } from "../../../_components/AppShell";
 import { DataTable, TD } from "../../../_components/ui/Table";
 import typo from "../../../_styles/typography.module.css";
-import { apiGet, ApiError } from "../../../../lib/api";
+import { ApiError, serverApiGet } from "../../../../lib/api";
+import { requireOrgAccess } from "../../../../lib/org-guard";
 
 type OrgAlerts = {
   owner: string;
@@ -24,12 +25,13 @@ export default async function Page({
   searchParams?: Promise<{ limit?: string }>;
 }) {
   const { owner } = await params;
+  await requireOrgAccess(owner);
   const sp = (await searchParams) ?? {};
   const limit = sp.limit ? Number(sp.limit) : 100;
 
   let data: OrgAlerts;
   try {
-    data = await apiGet<OrgAlerts>(
+    data = await serverApiGet<OrgAlerts>(
       `/org/${encodeURIComponent(owner)}/alerts?limit=${limit}`,
     );
   } catch (err: unknown) {

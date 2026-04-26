@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import { initApiSentry } from "./sentry.js";
 import { runMigrationsIfEnabled } from "./migrate.js";
 import { registerRoutes } from "./routes/register.js";
 import { registerRequestId } from "./http/requestId.js";
@@ -10,6 +11,8 @@ import { registerRateLimit } from "./http/rateLimit.js";
 import { appConfig } from "./config.js";
 
 export async function createApp() {
+  initApiSentry();
+
   const app = Fastify({
     logger: {
       level: process.env.LOG_LEVEL ?? "info",

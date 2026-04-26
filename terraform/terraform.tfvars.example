@@ -26,5 +26,6 @@ eks_desired_size         = 2
 eks_min_size             = 1
 eks_max_size             = 4
 
-# Domain Configuration (optional)
+# Domain Configuration (optional; for AWS Route53 + ACM). Fly.io preview uses
+# https://mergesignal-web.fly.dev/ and https://mergesignal-api.fly.dev without this.
 domain_name = "your-domain.com"
