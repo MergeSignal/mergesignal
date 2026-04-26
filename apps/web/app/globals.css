@@ -1,18 +1,18 @@
 :root {
   /* Brand: deep blue-black surface, near-white type */
-  --ms-bg: #060a12;
-  --ms-text: #f2f6fb;
+  --ms-bg: ##313C60;
+  --ms-text: #DEE6F0;
 
   --ms-logo-panel: #0c1220;
   --ms-frost: #c8d6ea;
 
-  --rs-color-background: #060a12;
+  --rs-color-background: var(--ms-bg);
   --rs-color-background-elevated: #0b101c;
-  --rs-color-surface: color-mix(in oklab, #fff 6%, #060a12 94%);
-  --rs-color-surface-emphasis: color-mix(in oklab, #fff 10%, #060a12 90%);
-  --rs-color-text: #f2f6fb;
-  --rs-color-text-muted: color-mix(in oklab, #f2f6fb 72%, #060a12 28%);
-  --rs-color-border: color-mix(in oklab, #f2f6fb 14%, transparent);
+  --rs-color-surface: color-mix(in oklab, #fff 6%, var(--ms-bg) 94%);
+  --rs-color-surface-emphasis: color-mix(in oklab, #fff 10%, var(--ms-bg) 90%);
+  --rs-color-text: var(--ms-text);
+  --rs-color-text-muted: color-mix(in oklab, var(--ms-text) 72%, var(--ms-bg) 28%);
+  --rs-color-border: color-mix(in oklab, var(--ms-text) 14%, transparent);
   --rs-color-brand-frost: #c8d6ea;
 
   /* Light controls on dark background */
