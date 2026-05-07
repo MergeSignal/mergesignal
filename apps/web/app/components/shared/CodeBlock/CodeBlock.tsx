@@ -1,8 +1,7 @@
 "use client";
 
 import { Check, Copy } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-
+import { CopyButton } from "@mantine/core";
 import styles from "./CodeBlock.module.css";
 
 export type CodeBlockProps = {
@@ -13,52 +12,35 @@ export type CodeBlockProps = {
 
 /**
  * Bordered code panel: code and copy control in a flex row with token gap.
+ * CopyButton from Mantine manages the copy state and timeout — the visual
+ * button and all styling remain CSS-Module-based with --ms-* tokens.
  */
 export function CodeBlock({
   text,
   copyLabel = "Copy to clipboard",
 }: CodeBlockProps) {
-  const [copied, setCopied] = useState(false);
-  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-    };
-  }, []);
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-      resetTimerRef.current = setTimeout(() => {
-        setCopied(false);
-        resetTimerRef.current = null;
-      }, 2000);
-    } catch {
-      setCopied(false);
-    }
-  }, [text]);
-
   return (
     <div className={styles.shell}>
       <pre className={styles.pre}>
         <code>{text}</code>
       </pre>
-      <button
-        type="button"
-        className={styles.copyBtn}
-        onClick={handleCopy}
-        aria-label={copied ? "Copied" : copyLabel}
-        title={copied ? "Copied" : copyLabel}
-      >
-        {copied ? (
-          <Check size={16} strokeWidth={2} aria-hidden />
-        ) : (
-          <Copy size={16} strokeWidth={2} aria-hidden />
+      <CopyButton value={text} timeout={2000}>
+        {({ copied, copy }) => (
+          <button
+            type="button"
+            className={styles.copyBtn}
+            onClick={copy}
+            aria-label={copied ? "Copied" : copyLabel}
+            title={copied ? "Copied" : copyLabel}
+          >
+            {copied ? (
+              <Check size={16} strokeWidth={2} aria-hidden />
+            ) : (
+              <Copy size={16} strokeWidth={2} aria-hidden />
+            )}
+          </button>
         )}
-      </button>
+      </CopyButton>
     </div>
   );
 }

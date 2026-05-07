@@ -4,6 +4,8 @@ import localFont from "next/font/local";
 import { auth } from "../auth";
 import { getSiteOrigin } from "../lib/siteOrigin";
 import { ClientSessionProvider } from "./components/shared/ClientSessionProvider/ClientSessionProvider";
+import { MantineColorSchemeScript } from "./components/shared/MantineProviderWrapper/MantineColorSchemeScript";
+import { MantineProviderWrapper } from "./components/shared/MantineProviderWrapper/MantineProviderWrapper";
 import "./globals.css";
 
 const inter = Inter({
@@ -37,13 +39,21 @@ export default async function RootLayout({
   const session = await auth();
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* ColorSchemeScript sets data-mantine-color-scheme on <html> before React
+            hydrates. suppressHydrationWarning on <html> prevents the resulting
+            attribute mismatch from being treated as an error. */}
+        <MantineColorSchemeScript defaultColorScheme="dark" />
+      </head>
       <body
         className={`${inter.variable} ${ebGaramond.variable} ${geistMono.variable}`}
       >
-        <ClientSessionProvider session={session}>
-          {children}
-        </ClientSessionProvider>
+        <MantineProviderWrapper>
+          <ClientSessionProvider session={session}>
+            {children}
+          </ClientSessionProvider>
+        </MantineProviderWrapper>
       </body>
     </html>
   );

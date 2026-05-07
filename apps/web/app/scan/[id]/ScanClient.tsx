@@ -6,7 +6,7 @@ import { formatInsight } from "@mergesignal/shared";
 import styles from "./ScanClient.module.css";
 import layoutStyles from "./ScanClientLayout.module.css";
 import { Card, cardStyles } from "../../components/shared/Card/Card";
-import { Button, Row } from "../../components/shared/Form/Form";
+import { MSButton } from "../../components/shared/MSButton/MSButton";
 
 type ScanRow = {
   id: string;
@@ -143,7 +143,7 @@ export default function ScanClient({
           </div>
         ) : null}
         {decision && data.status === "done" && (
-          <div style={{ marginTop: 12 }}>
+          <div className={styles.decisionSection}>
             <span
               className={styles.decisionBadge}
               data-recommendation={decision.recommendation}
@@ -290,7 +290,7 @@ export default function ScanClient({
             {data.result.codeAnalysisMetrics.analysisTimeMs &&
               ` in ${(data.result.codeAnalysisMetrics.analysisTimeMs / 1000).toFixed(1)}s`}
             {data.result.codeAnalysisMetrics.timedOut && (
-              <div style={{ marginTop: 8, color: "var(--ms-color-warning)" }}>
+              <div className={styles.timeoutWarning}>
                 ⚠️ Analysis timed out - results based on dependency graph only
               </div>
             )}
@@ -361,11 +361,11 @@ export default function ScanClient({
       )}
 
       <Card title="Details">
-        <Row>
-          <Button variant="secondary" onClick={() => setShowRaw((s) => !s)}>
+        <div className={styles.detailsActions}>
+          <MSButton variant="secondary" onClick={() => setShowRaw((s) => !s)}>
             {showRaw ? "Hide" : "Show"} raw JSON
-          </Button>
-        </Row>
+          </MSButton>
+        </div>
         {showRaw ? (
           <pre className={styles.detailsPre}>
             {JSON.stringify(data, null, 2)}

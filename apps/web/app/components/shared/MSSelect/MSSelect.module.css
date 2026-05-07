@@ -1,0 +1,60 @@
+.input {
+  background: var(--ms-color-surface);
+  border: var(--ms-border-width) solid var(--ms-color-border);
+  border-radius: var(--ms-radius-xs);
+  color: var(--ms-color-ink);
+  font-family: var(--ms-type-body-font-family);
+  font-size: var(--ms-type-body-font-size);
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--ms-color-accent-alt);
+  box-shadow: 0 0 0 2px var(--ms-color-focus-ring);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dropdown {
+  background: var(--ms-color-canvas-elevated);
+  border: var(--ms-border-width) solid var(--ms-color-border);
+  border-radius: var(--ms-radius-sm);
+  box-shadow: var(--ms-shadow-md);
+}
+
+.option {
+  color: var(--ms-color-ink);
+  font-family: var(--ms-type-body-font-family);
+  font-size: var(--ms-type-body-font-size);
+  padding: var(--ms-space-xs) var(--ms-space-sm);
+  border-radius: var(--ms-radius-2xs);
+}
+
+.option[data-combobox-selected] {
+  background: var(--ms-color-surface-emphasis);
+  color: var(--ms-color-text-emphasis);
+}
+
+.option[data-combobox-active],
+.option:hover {
+  background: var(--ms-color-surface);
+}
+
+.label {
+  color: var(--ms-color-ink);
+  font-family: var(--ms-type-body-font-family);
+  font-size: var(--ms-type-label-font-size);
+  font-weight: var(--ms-type-label-font-weight);
+  margin-bottom: var(--ms-space-2xs);
+}
+
+.error {
+  color: var(--ms-color-danger);
+  font-size: var(--ms-type-label-font-size);
+  margin-top: var(--ms-space-2xs);
+}

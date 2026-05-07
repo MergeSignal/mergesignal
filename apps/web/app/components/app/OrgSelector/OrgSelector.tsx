@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useCallback } from "react";
+import { MSSelect } from "../../shared/MSSelect/MSSelect";
 import styles from "./OrgSelector.module.css";
 
 type Props = {
@@ -25,21 +26,24 @@ export function OrgSelector({ githubLogin, githubOrgs }: Props) {
   const currentOwner = segments[1] ?? githubLogin;
 
   const owners = [githubLogin, ...githubOrgs];
+  const data = owners.map((o) => ({
+    value: o,
+    label: o === githubLogin ? `${o} (personal)` : o,
+  }));
 
   const handleChange = useCallback(
-    async (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const selected = e.target.value;
-      if (selected === currentOwner) return;
+    async (selected: string | null) => {
+      if (!selected || selected === currentOwner) return;
 
       try {
         const res = await fetch(
           `/api/app/repos?org=${encodeURIComponent(selected)}`,
         );
         if (res.ok) {
-          const data = (await res.json()) as {
+          const json = (await res.json()) as {
             repos: Array<{ name: string; fullName: string }>;
           };
-          const first = data.repos[0];
+          const first = json.repos[0];
           if (first) {
             router.push(
               `/app/${encodeURIComponent(selected)}/${encodeURIComponent(first.name)}`,
@@ -57,17 +61,12 @@ export function OrgSelector({ githubLogin, githubOrgs }: Props) {
   );
 
   return (
-    <select
-      className={styles.select}
+    <MSSelect
+      data={data}
       value={currentOwner}
       onChange={handleChange}
       aria-label="Select organization or personal account"
-    >
-      {owners.map((o) => (
-        <option key={o} value={o}>
-          {o === githubLogin ? `${o} (personal)` : o}
-        </option>
-      ))}
-    </select>
+      className={styles.orgSelect}
+    />
   );
 }

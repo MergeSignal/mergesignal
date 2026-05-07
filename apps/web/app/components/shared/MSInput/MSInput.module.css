@@ -1,0 +1,45 @@
+.input {
+  background: var(--ms-color-surface);
+  border: var(--ms-border-width) solid var(--ms-color-border);
+  border-radius: var(--ms-radius-xs);
+  color: var(--ms-color-ink);
+  font-family: var(--ms-type-body-font-family);
+  font-size: var(--ms-type-body-font-size);
+  padding: var(--ms-space-xs) var(--ms-space-sm);
+  transition: border-color 120ms ease;
+}
+
+.input::placeholder {
+  color: var(--ms-color-text-muted);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--ms-color-accent-alt);
+  box-shadow: 0 0 0 2px var(--ms-color-focus-ring);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.label {
+  color: var(--ms-color-ink);
+  font-family: var(--ms-type-body-font-family);
+  font-size: var(--ms-type-label-font-size);
+  font-weight: var(--ms-type-label-font-weight);
+  margin-bottom: var(--ms-space-2xs);
+}
+
+.error {
+  color: var(--ms-color-danger);
+  font-size: var(--ms-type-label-font-size);
+  margin-top: var(--ms-space-2xs);
+}
+
+.description {
+  color: var(--ms-color-text-muted);
+  font-size: var(--ms-type-label-font-size);
+  margin-bottom: var(--ms-space-2xs);
+}

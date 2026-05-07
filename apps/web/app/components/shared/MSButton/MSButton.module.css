@@ -1,0 +1,32 @@
+.button {
+  border-radius: var(--ms-radius-xs);
+  font-family: var(--ms-type-body-font-family);
+  transition: background 120ms ease, opacity 120ms ease;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--ms-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Primary — filled */
+.primary {
+  background: var(--ms-color-accent);
+  color: var(--ms-color-on-accent);
+  border: var(--ms-border-width) solid transparent;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--ms-color-accent-alt);
+}
+
+/* Secondary — subtle */
+.secondary {
+  background: transparent;
+  color: var(--ms-color-ink);
+  border: var(--ms-border-width) solid var(--ms-color-border);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--ms-color-surface-emphasis);
+}

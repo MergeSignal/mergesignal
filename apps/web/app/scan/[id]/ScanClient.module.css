@@ -1,3 +1,17 @@
+.decisionSection {
+  margin-top: var(--ms-space-sm);
+}
+
+.timeoutWarning {
+  margin-top: var(--ms-space-xs);
+  color: var(--ms-color-warning);
+}
+
+.detailsActions {
+  display: flex;
+  gap: var(--ms-space-xs);
+}
+
 .score {
   display: flex;
   align-items: baseline;
