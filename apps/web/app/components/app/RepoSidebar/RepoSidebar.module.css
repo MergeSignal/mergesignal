@@ -91,3 +91,23 @@
   padding: var(--ms-space-xs) var(--ms-space-sm);
   margin: 0;
 }
+
+.emptyOrg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-xs);
+  padding: var(--ms-space-xs) var(--ms-space-sm);
+}
+
+.emptyHint {
+  font-size: var(--ms-text-xs);
+  color: var(--ms-color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.emptyLink {
+  color: var(--ms-color-blue-500);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

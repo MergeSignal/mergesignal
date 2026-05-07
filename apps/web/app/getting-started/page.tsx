@@ -208,6 +208,67 @@ export default function GettingStartedPage() {
       <hr className={gsStyles.sectionDivider} />
 
       <section
+        id="web-dashboard"
+        className={`${gsStyles.sectionBlock} ${gsStyles.anchorSection}`}
+        aria-labelledby="web-dashboard-heading"
+      >
+        <h2 id="web-dashboard-heading">Web dashboard</h2>
+        <p className={gsStyles.sectionLead}>
+          The MergeSignal web app gives you a per-repository health overview -
+          risk score, alert breakdown, and scan history - in one place.
+        </p>
+
+        <div className={gsStyles.stepBlock}>
+          <h3 className={gsStyles.subGuideHeading}>Sign in</h3>
+          <p>
+            Click <strong>Continue with GitHub</strong> on the home page. After
+            authorizing, you land on the repository overview for your personal
+            account.
+          </p>
+        </div>
+
+        <div className={gsStyles.stepBlock}>
+          <h3 className={gsStyles.subGuideHeading}>
+            Grant organization access
+          </h3>
+          <p>
+            To see repositories that belong to a GitHub organization, you must
+            grant MergeSignal access to that org during the OAuth flow.
+          </p>
+          <p className={gsStyles.stepNote}>
+            On the GitHub authorization screen, click <strong>Grant</strong>{" "}
+            next to each organization whose repositories you want to monitor.
+            Without this step, the org will appear in the org selector but its
+            repository list will be empty.
+          </p>
+          <p className={gsStyles.stepNote}>
+            Missed it? You can grant access at any time from{" "}
+            <a
+              href="https://github.com/settings/connections/applications"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              github.com/settings/connections/applications
+            </a>{" "}
+            — find MergeSignal in the list and grant the organizations you need.
+          </p>
+        </div>
+
+        <div className={gsStyles.stepBlock}>
+          <h3 className={gsStyles.subGuideHeading}>No scan data yet?</h3>
+          <p>
+            Repositories that have not been scanned show an empty overview with
+            a prompt to run a scan. Complete the{" "}
+            <a href="#quick-start">Quick start</a> or{" "}
+            <a href="#github-actions">GitHub Actions</a> setup first to populate
+            health data.
+          </p>
+        </div>
+      </section>
+
+      <hr className={gsStyles.sectionDivider} />
+
+      <section
         id="github-app"
         className={`${gsStyles.sectionBlock} ${gsStyles.anchorSection}`}
         aria-labelledby="github-app-heading"

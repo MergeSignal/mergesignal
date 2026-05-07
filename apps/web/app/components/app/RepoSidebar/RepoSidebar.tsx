@@ -8,6 +8,8 @@ import styles from "./RepoSidebar.module.css";
 
 type Props = {
   owner: string;
+  /** The signed-in user's GitHub login — used to distinguish personal vs org context. */
+  githubLogin?: string;
 };
 
 /**
@@ -15,7 +17,7 @@ type Props = {
  * Fetches from /api/app/repos on mount and when owner changes.
  * Active repo is derived from the current pathname.
  */
-export function RepoSidebar({ owner }: Props) {
+export function RepoSidebar({ owner, githubLogin }: Props) {
   const pathname = usePathname();
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +67,28 @@ export function RepoSidebar({ owner }: Props) {
       ) : error ? (
         <p className={styles.errorMsg}>Could not load repositories.</p>
       ) : repos.length === 0 ? (
-        <p className={styles.emptyMsg}>No repositories found.</p>
+        owner !== githubLogin ? (
+          <div className={styles.emptyOrg}>
+            <p className={styles.emptyMsg}>
+              No repositories found for <strong>{owner}</strong>.
+            </p>
+            <p className={styles.emptyHint}>
+              To see this organization&apos;s repositories, grant MergeSignal
+              access to <strong>{owner}</strong> in your{" "}
+              <a
+                href="https://github.com/settings/connections/applications"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.emptyLink}
+              >
+                GitHub OAuth settings
+              </a>
+              .
+            </p>
+          </div>
+        ) : (
+          <p className={styles.emptyMsg}>No repositories found.</p>
+        )
       ) : (
         <ul className={styles.list}>
           {repos.map((repo) => {
