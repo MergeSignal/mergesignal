@@ -25,11 +25,11 @@
 }
 
 .title {
-  font-size:      var(--ms-text-xs);
+  font-size: var(--ms-text-xs);
   text-transform: uppercase;
   letter-spacing: var(--ms-tracking-label);
   opacity: 0.9;
-  font-weight:    var(--ms-font-weight-bold);
+  font-weight: var(--ms-font-weight-bold);
 }
 
 .title + * {

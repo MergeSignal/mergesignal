@@ -2,9 +2,9 @@
 
 import { Check, Copy } from "lucide-react";
 import { CopyButton } from "@mantine/core";
-import styles from "./CodeBlock.module.css";
+import styles from "./MSCodeBlock.module.css";
 
-export type CodeBlockProps = {
+export type MSCodeBlockProps = {
   /** Raw text shown in the block (and copied). */
   text: string;
   copyLabel?: string;
@@ -15,10 +15,10 @@ export type CodeBlockProps = {
  * CopyButton from Mantine manages the copy state and timeout — the visual
  * button and all styling remain CSS-Module-based with --ms-* tokens.
  */
-export function CodeBlock({
+export function MSCodeBlock({
   text,
   copyLabel = "Copy to clipboard",
-}: CodeBlockProps) {
+}: MSCodeBlockProps) {
   return (
     <div className={styles.shell}>
       <pre className={styles.pre}>

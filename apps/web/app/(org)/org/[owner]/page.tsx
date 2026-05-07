@@ -1,6 +1,10 @@
 import Link from "next/link";
-import { DataTable, TD } from "../../../components/shared/Table/Table";
-import { Card, cardStyles } from "../../../components/shared/Card/Card";
+import { MSDataTable, MSTD } from "../../../components/shared/MSTable/MSTable";
+import {
+  MSCard,
+  MSCardMuted,
+  MSCardNote,
+} from "../../../components/shared/MSCard/MSCard";
 import { ShellTitlebar } from "../../../components/shared/layout/SiteChrome/ShellTitlebar";
 import { ApiError, serverApiGet } from "../../../../lib/api";
 import { requireOrgAccess } from "../../../../lib/org-guard";
@@ -63,12 +67,12 @@ export default async function Page({
       <ShellTitlebar title="Org dashboard" subtitle={owner} />
       {/* 5. Highlight worst repos - moved to top */}
       {data.summary.worst.length > 0 && (
-        <Card as="div" title="⚠️ High Risk Repositories" padding={true}>
+        <MSCard as="div" title="⚠️ High Risk Repositories" padding={true}>
           <div className={styles.warningCard}>
-            <p className={cardStyles.muted}>
+            <MSCardMuted>
               These repositories have the highest risk scores and require
               immediate attention:
-            </p>
+            </MSCardMuted>
             <div className={styles.worstReposList}>
               {data.summary.worst.map((w) => (
                 <div key={w.repoId} className={styles.worstRepoItem}>
@@ -78,20 +82,20 @@ export default async function Page({
               ))}
             </div>
           </div>
-        </Card>
+        </MSCard>
       )}
 
       {/* Summary Cards */}
       <div className={styles.grid}>
-        <Card as="div" title="Total Repos">
+        <MSCard as="div" title="Total Repos">
           <div className={styles.metricValue}>{data.summary.repoCount}</div>
-        </Card>
-        <Card as="div" title="Scored Repos">
+        </MSCard>
+        <MSCard as="div" title="Scored Repos">
           <div className={styles.metricValue}>
             {data.summary.scoredRepoCount}
           </div>
-        </Card>
-        <Card as="div" title="Avg Score">
+        </MSCard>
+        <MSCard as="div" title="Avg Score">
           <div className={styles.metricValue}>
             {data.summary.avgScore !== null
               ? Math.round(data.summary.avgScore)
@@ -106,49 +110,49 @@ export default async function Page({
               />
             </div>
           )}
-        </Card>
+        </MSCard>
       </div>
 
       {/* 6. Empty State */}
       {!hasRepos ? (
-        <Card as="div" title="No Repositories Yet">
+        <MSCard as="div" title="No Repositories Yet">
           <div className={styles.emptyState}>
-            <p className={cardStyles.muted}>
+            <MSCardMuted>
               No repositories have been scanned for this organization yet.
-            </p>
-            <p className={cardStyles.note}>
+            </MSCardMuted>
+            <MSCardNote as="p">
               To get started, scan a repository using the CLI or API.
-            </p>
+            </MSCardNote>
           </div>
-        </Card>
+        </MSCard>
       ) : (
         <>
           {/* Repository Table */}
-          <DataTable
+          <MSDataTable
             headers={["Repo", "Score", "Δ", "Status", "Last scan", ""]}
             rows={data.repos.map((r) => (
               <tr key={r.repoId} className={styles.tableRow}>
-                <TD>
+                <MSTD>
                   <code>{r.repoId}</code>
-                </TD>
-                <TD>
+                </MSTD>
+                <MSTD>
                   <ScoreBadge score={r.latest.totalScore} />
-                </TD>
-                <TD>
+                </MSTD>
+                <MSTD>
                   <DeltaBadge delta={r.deltaTotalScore} />
-                </TD>
-                <TD>
+                </MSTD>
+                <MSTD>
                   <StatusBadge status={r.latest.status} />
-                </TD>
-                <TD>{new Date(r.latest.createdAt).toLocaleString()}</TD>
-                <TD>
+                </MSTD>
+                <MSTD>{new Date(r.latest.createdAt).toLocaleString()}</MSTD>
+                <MSTD>
                   <Link
                     href={`/scan/${r.latest.scanId}`}
                     className={styles.openLink}
                   >
                     Open
                   </Link>
-                </TD>
+                </MSTD>
               </tr>
             ))}
           />

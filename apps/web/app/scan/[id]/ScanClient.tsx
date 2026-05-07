@@ -5,7 +5,11 @@ import type { PRInsight, PRDecision } from "@mergesignal/shared";
 import { formatInsight } from "@mergesignal/shared";
 import styles from "./ScanClient.module.css";
 import layoutStyles from "./ScanClientLayout.module.css";
-import { Card, cardStyles } from "../../components/shared/Card/Card";
+import {
+  MSCard,
+  MSCardMuted,
+  MSCardNote,
+} from "../../components/shared/MSCard/MSCard";
 import { MSButton } from "../../components/shared/MSButton/MSButton";
 
 type ScanRow = {
@@ -95,8 +99,8 @@ export default function ScanClient({
     return () => es.close();
   }, [id, initialRow?.status]);
 
-  if (err) return <Card title="Error">{err}</Card>;
-  if (!data) return <Card title="Connecting">Waiting for events…</Card>;
+  if (err) return <MSCard title="Error">{err}</MSCard>;
+  if (!data) return <MSCard title="Connecting">Waiting for events…</MSCard>;
 
   const score = data.result?.totalScore;
   const layers = data.result?.layerScores;
@@ -128,7 +132,7 @@ export default function ScanClient({
 
   return (
     <div className={layoutStyles.grid}>
-      <Card
+      <MSCard
         title="Status"
         subtitle={
           <span className={styles.pill}>
@@ -138,9 +142,7 @@ export default function ScanClient({
         }
       >
         {data.status === "running" || data.status === "queued" ? (
-          <div className={cardStyles.note}>
-            This page updates automatically.
-          </div>
+          <MSCardNote>This page updates automatically.</MSCardNote>
         ) : null}
         {decision && data.status === "done" && (
           <div className={styles.decisionSection}>
@@ -162,9 +164,9 @@ export default function ScanClient({
             )}
           </div>
         )}
-      </Card>
+      </MSCard>
 
-      <Card title="Risk score">
+      <MSCard title="Risk score">
         <div className={styles.score}>
           <div className={styles.scoreValue}>
             {typeof score === "number" ? score : "n/a"}
@@ -172,48 +174,46 @@ export default function ScanClient({
           <div className={styles.scoreMeta}>0 is best • 100 is worst</div>
         </div>
         {layers ? (
-          <div className={cardStyles.note}>
+          <MSCardNote>
             security: <b>{layers.security}</b> • maintainability:{" "}
             <b>{layers.maintainability}</b> • ecosystem:{" "}
             <b>{layers.ecosystem}</b> • upgradeImpact:{" "}
             <b>{layers.upgradeImpact}</b>
-          </div>
+          </MSCardNote>
         ) : (
-          <div className={cardStyles.muted}>No layer breakdown yet.</div>
+          <MSCardMuted as="div">No layer breakdown yet.</MSCardMuted>
         )}
-      </Card>
+      </MSCard>
 
       {data.status === "done" && (
-        <Card title="Top actions">
+        <MSCard title="Top actions">
           {recs.length === 0 ? (
-            <div className={cardStyles.muted}>No recommendations yet.</div>
+            <MSCardMuted as="div">No recommendations yet.</MSCardMuted>
           ) : (
             <ol className={styles.list}>
               {recs.slice(0, 5).map((r) => (
                 <li key={String(r.id ?? r.title)}>
                   <b>{String(r.title ?? "Untitled")}</b>{" "}
-                  <span className={cardStyles.muted}>
+                  <MSCardMuted as="span">
                     ({Number(r.priorityScore ?? 0)})
-                  </span>
+                  </MSCardMuted>
                 </li>
               ))}
             </ol>
           )}
           {findings.length ? (
-            <div className={cardStyles.note}>
+            <MSCardNote>
               Findings: <b>{findings.length}</b>
-            </div>
+            </MSCardNote>
           ) : null}
-        </Card>
+        </MSCard>
       )}
 
       {data.status === "done" && insights.length > 0 && (
-        <Card
+        <MSCard
           title="Critical Insights"
           subtitle={
-            <span className={cardStyles.muted}>
-              Key findings from code analysis
-            </span>
+            <MSCardMuted as="span">Key findings from code analysis</MSCardMuted>
           }
         >
           <div className={styles.insightsList}>
@@ -273,17 +273,17 @@ export default function ScanClient({
               );
             })}
           </div>
-        </Card>
+        </MSCard>
       )}
 
       {data.status === "done" && data.result?.codeAnalysisMetrics && (
-        <Card
+        <MSCard
           title="Code Analysis"
           subtitle={
-            <span className={cardStyles.muted}>Repository source analysis</span>
+            <MSCardMuted as="span">Repository source analysis</MSCardMuted>
           }
         >
-          <div className={cardStyles.note}>
+          <MSCardNote>
             Analyzed <b>{data.result.codeAnalysisMetrics.filesAnalyzed}</b>{" "}
             files
             {data.result.codeAnalysisMetrics.fromCache && " (from cache)"}
@@ -294,73 +294,73 @@ export default function ScanClient({
                 ⚠️ Analysis timed out - results based on dependency graph only
               </div>
             )}
-          </div>
-        </Card>
+          </MSCardNote>
+        </MSCard>
       )}
 
       {data.status === "done" && (
-        <Card
+        <MSCard
           title="Why this is risky"
           subtitle={
-            <span className={cardStyles.muted}>Top contributing signals</span>
+            <MSCardMuted as="span">Top contributing signals</MSCardMuted>
           }
         >
           {reasons.length === 0 ? (
-            <div className={cardStyles.muted}>No explainability data yet.</div>
+            <MSCardMuted as="div">No explainability data yet.</MSCardMuted>
           ) : (
             <ul className={styles.list}>
               {reasons.slice(0, 6).map((r) => (
                 <li key={String(r.id ?? r.title)}>
                   <b>{String(r.title ?? "Reason")}</b>{" "}
-                  <span className={cardStyles.muted}>
+                  <MSCardMuted as="span">
                     (+{Number(r.scoreImpact ?? 0)})
-                  </span>
+                  </MSCardMuted>
                 </li>
               ))}
             </ul>
           )}
-        </Card>
+        </MSCard>
       )}
 
       {data.status === "done" && (
-        <Card
+        <MSCard
           title="Dependency graph intelligence"
           subtitle={
-            <span className={cardStyles.muted}>
+            <MSCardMuted as="span">
               Transitive context and nesting depth
-            </span>
+            </MSCardMuted>
           }
         >
           {deepest.length === 0 ? (
-            <div className={cardStyles.muted}>No graph insights yet.</div>
+            <MSCardMuted as="div">No graph insights yet.</MSCardMuted>
           ) : (
             <ul className={styles.list}>
               {deepest.slice(0, 5).map((x) => (
                 <li key={String(x.packageName ?? x.version ?? Math.random())}>
                   <b>{String(x.packageName ?? "package")}</b>{" "}
-                  <span className={cardStyles.muted}>
+                  <MSCardMuted as="span">
                     {x.direct ? "direct" : "transitive"} • depth{" "}
                     {Number(x.depth ?? 0)}
-                  </span>
+                  </MSCardMuted>
                   {Array.isArray(x.via) && x.via.length ? (
-                    <div className={cardStyles.note} style={{ marginTop: 6 }}>
+                    <MSCardNote style={{ marginTop: "var(--ms-space-xs)" }}>
                       via {x.via.join(" → ")}
-                    </div>
+                    </MSCardNote>
                   ) : null}
                 </li>
               ))}
             </ul>
           )}
-        </Card>
+        </MSCard>
       )}
 
       {data.status === "failed" && (
-        <Card title="Failure">
+        <MSCard title="Failure">
           <pre className={styles.failurePre}>{data.error}</pre>
-        </Card>
+        </MSCard>
       )}
 
-      <Card title="Details">
+      <MSCard title="Details">
         <div className={styles.detailsActions}>
           <MSButton variant="secondary" onClick={() => setShowRaw((s) => !s)}>
             {showRaw ? "Hide" : "Show"} raw JSON
@@ -371,7 +371,7 @@ export default function ScanClient({
             {JSON.stringify(data, null, 2)}
           </pre>
         ) : null}
-      </Card>
+      </MSCard>
     </div>
   );
 }

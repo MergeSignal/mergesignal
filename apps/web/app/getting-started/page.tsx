@@ -1,5 +1,5 @@
 import docStyles from "../components/shared/DocArticle/DocArticle.module.css";
-import { CodeBlock } from "../components/shared/CodeBlock/CodeBlock";
+import { MSCodeBlock } from "../components/shared/MSCodeBlock/MSCodeBlock";
 import gsStyles from "./getting-started.module.css";
 
 const REPO_BLOB = "https://github.com/MergeSignal/mergesignal/blob/main";
@@ -51,7 +51,10 @@ export default function GettingStartedPage() {
 
         <div className={gsStyles.stepBlock}>
           <p className={gsStyles.stepLabel}>Install</p>
-          <CodeBlock text={INSTALL_SNIPPET} copyLabel="Copy install commands" />
+          <MSCodeBlock
+            text={INSTALL_SNIPPET}
+            copyLabel="Copy install commands"
+          />
         </div>
 
         <div className={gsStyles.stepBlock}>
@@ -60,7 +63,10 @@ export default function GettingStartedPage() {
             Run the scan from your project directory, where MergeSignal is
             installed.
           </p>
-          <CodeBlock text={RUN_SCAN_SAME_REPO} copyLabel="Copy scan command" />
+          <MSCodeBlock
+            text={RUN_SCAN_SAME_REPO}
+            copyLabel="Copy scan command"
+          />
         </div>
 
         {/* <p className={gsStyles.tierNote}>
@@ -106,7 +112,7 @@ export default function GettingStartedPage() {
             top recommendations, and a risk breakdown-right where your team
             already reviews CI.
           </p>
-          <CodeBlock
+          <MSCodeBlock
             text={GHA_RECOMMENDED_SNIPPET}
             copyLabel="Copy workflow YAML"
           />

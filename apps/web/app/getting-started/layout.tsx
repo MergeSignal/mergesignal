@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { AnchorSideNav } from "../components/shared/AnchorSideNav/AnchorSideNav";
+import { MSAnchorSideNav } from "../components/shared/MSAnchorSideNav/MSAnchorSideNav";
 import { SiteChrome } from "../components/shared/layout/SiteChrome/SiteChrome";
 import { gettingStartedAnchorItems } from "./gettingStartedAnchors";
 import layoutStyles from "./GettingStartedLayout.module.css";
@@ -27,7 +27,7 @@ export default function GettingStartedLayout({
       <div className={layoutStyles.layout}>
         <div className={layoutStyles.navRail}>
           <div className={layoutStyles.navRailSticky}>
-            <AnchorSideNav
+            <MSAnchorSideNav
               items={gettingStartedAnchorItems}
               ariaLabel="Getting started sections"
             />

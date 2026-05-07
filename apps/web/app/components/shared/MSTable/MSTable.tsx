@@ -1,16 +1,21 @@
-import styles from "./Table.module.css";
+import styles from "./MSTable.module.css";
 
-export function DataTable({
-  headers,
-  minWidth,
-  rows,
-}: {
+export type MSDataTableProps = {
   headers: string[];
   minWidth?: number;
   rows: React.ReactNode;
-}) {
+  className?: string;
+};
+
+export function MSDataTable({
+  headers,
+  minWidth,
+  rows,
+  className,
+}: MSDataTableProps) {
+  const rootClass = [styles.card, className].filter(Boolean).join(" ");
   return (
-    <div className={styles.card}>
+    <div className={rootClass}>
       <div className={styles.wrap}>
         <table
           className={styles.table}
@@ -32,8 +37,6 @@ export function DataTable({
   );
 }
 
-export function TD({ children }: { children: React.ReactNode }) {
+export function MSTD({ children }: { children: React.ReactNode }) {
   return <td className={styles.td}>{children}</td>;
 }
-
-export { styles as tableStyles };

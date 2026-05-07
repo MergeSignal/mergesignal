@@ -1,4 +1,7 @@
-import { DataTable, TD } from "../../../../components/shared/Table/Table";
+import {
+  MSDataTable,
+  MSTD,
+} from "../../../../components/shared/MSTable/MSTable";
 import { ShellTitlebar } from "../../../../components/shared/layout/SiteChrome/ShellTitlebar";
 import typo from "../../../../_styles/typography.module.css";
 import { ApiError, serverApiGet } from "../../../../../lib/api";
@@ -51,20 +54,20 @@ export default async function Page({
         title="Alerts"
         subtitle={`recent: ${data.alerts.length}`}
       />
-      <DataTable
+      <MSDataTable
         headers={["Time", "Repo", "Severity", "Title", "Type"]}
         minWidth={900}
         rows={data.alerts.map((a) => (
           <tr key={a.id}>
-            <TD>{new Date(a.created_at).toLocaleString()}</TD>
-            <TD>
+            <MSTD>{new Date(a.created_at).toLocaleString()}</MSTD>
+            <MSTD>
               <code>{a.repo_id}</code>
-            </TD>
-            <TD>{a.severity}</TD>
-            <TD>{a.title}</TD>
-            <TD>
+            </MSTD>
+            <MSTD>{a.severity}</MSTD>
+            <MSTD>{a.title}</MSTD>
+            <MSTD>
               <code>{a.type}</code>
-            </TD>
+            </MSTD>
           </tr>
         ))}
       />

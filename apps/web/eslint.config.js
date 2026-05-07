@@ -11,7 +11,7 @@ const MANTINE_APPROVED_FILES = [
   "**/app/components/shared/MSButton/**",
   "**/app/components/shared/MSInput/**",
   "**/app/components/shared/MSSelect/**",
-  "**/app/components/shared/CodeBlock/**",
+  "**/app/components/shared/MSCodeBlock/**",
   "**/app/components/shared/testUtils.tsx",
 ];
 
@@ -29,7 +29,7 @@ export default [
               name: "@mantine/core",
               message:
                 "Do not import @mantine/core directly. Use the MS* shared primitive layer " +
-                "(MSButton, MSInput, MSSelect, …) from app/components/shared/ instead.",
+                "(MSButton, MSInput, MSSelect, MSCodeBlock, …) from app/components/shared/ instead.",
             },
           ],
         },

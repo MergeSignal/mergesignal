@@ -1,5 +1,8 @@
-import { Card } from "../../../../components/shared/Card/Card";
-import { DataTable, TD } from "../../../../components/shared/Table/Table";
+import { MSCard } from "../../../../components/shared/MSCard/MSCard";
+import {
+  MSDataTable,
+  MSTD,
+} from "../../../../components/shared/MSTable/MSTable";
 import { ShellTitlebar } from "../../../../components/shared/layout/SiteChrome/ShellTitlebar";
 import typo from "../../../../_styles/typography.module.css";
 import { ApiError, serverApiGet } from "../../../../../lib/api";
@@ -78,13 +81,13 @@ export default async function Page({
       />
       <h2 className={typo.h2Tight}>Policies</h2>
       {policies.policies.length === 0 ? (
-        <Card title="No policies yet" subtitle="Create one via API:">
+        <MSCard title="No policies yet" subtitle="Create one via API:">
           <pre style={{ whiteSpace: "pre-wrap" }}>
             {`curl -X POST "${baseUrl}/org/${owner}/policies" \\
   -H "Content-Type: application/json" \\
   -d '{"name":"baseline","enabled":true,"rules":[{"type":"no_deprecated"},{"type":"max_stale_releases_count","max":3}]}'`}
           </pre>
-        </Card>
+        </MSCard>
       ) : (
         <ul>
           {policies.policies.map((p) => (
@@ -100,20 +103,20 @@ export default async function Page({
       )}
 
       <h2 className={typo.h2}>Recent violations</h2>
-      <DataTable
+      <MSDataTable
         headers={["Time", "Repo", "Severity", "Title", "Policy"]}
         minWidth={900}
         rows={violations.violations.map((v) => (
           <tr key={v.id}>
-            <TD>{new Date(v.created_at).toLocaleString()}</TD>
-            <TD>
+            <MSTD>{new Date(v.created_at).toLocaleString()}</MSTD>
+            <MSTD>
               <code>{v.repo_id}</code>
-            </TD>
-            <TD>{v.severity}</TD>
-            <TD>{v.title}</TD>
-            <TD>
+            </MSTD>
+            <MSTD>{v.severity}</MSTD>
+            <MSTD>{v.title}</MSTD>
+            <MSTD>
               <code>{v.policy_id}</code>
-            </TD>
+            </MSTD>
           </tr>
         ))}
       />

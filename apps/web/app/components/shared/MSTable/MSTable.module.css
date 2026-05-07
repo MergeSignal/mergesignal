@@ -14,6 +14,7 @@
   overflow-x: auto;
 }
 
+/* Wide default for dense repo tables; overridden via minWidth prop when needed */
 .table {
   width: 100%;
   min-width: 820px;
@@ -25,7 +26,7 @@
   border-bottom: var(--ms-border-width) solid var(--ms-color-border);
   padding: var(--ms-space-sm) var(--ms-space-sm);
   white-space: nowrap;
-  font-size:      var(--ms-text-xs);
+  font-size: var(--ms-text-xs);
   opacity: 0.8;
   text-transform: uppercase;
   letter-spacing: var(--ms-tracking-label);

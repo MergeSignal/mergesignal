@@ -1,0 +1,41 @@
+/* Nav only - sticky rail lives on the route layout (see GettingStartedLayout.module.css). */
+
+.nav {
+  display: block;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-2xs);
+}
+
+.link {
+  display: block;
+  padding: var(--ms-space-2xs) var(--ms-space-xs);
+  border-radius: var(--ms-radius-xs);
+  font-size: var(--ms-text-xs);
+  color: var(--ms-color-text-muted);
+  text-decoration: none;
+  border-left: calc(3 * var(--ms-border-width)) solid transparent;
+  padding-left: calc(var(--ms-space-xs) - calc(3 * var(--ms-border-width)));
+  transition:
+    color 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.link:hover {
+  color: var(--ms-color-ink);
+  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 35%, transparent);
+}
+
+.linkActive {
+  color: var(--ms-color-ink);
+  font-weight: var(--ms-font-weight-semibold);
+  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 45%, transparent);
+  border-left-color: var(--ms-color-brand-frost);
+}

@@ -2,21 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import styles from "./AnchorSideNav.module.css";
+import styles from "./MSAnchorSideNav.module.css";
 
-export type AnchorSideNavItem = {
+export type MSAnchorSideNavItem = {
   href: string;
   label: string;
 };
 
-export type AnchorSideNavProps = {
-  items: readonly AnchorSideNavItem[] | AnchorSideNavItem[];
+export type MSAnchorSideNavProps = {
+  items: readonly MSAnchorSideNavItem[] | MSAnchorSideNavItem[];
   /** Accessible name for the nav landmark (no visible title). */
   ariaLabel?: string;
   className?: string;
 };
 
-function sectionIds(items: AnchorSideNavProps["items"]): string[] {
+function sectionIds(items: MSAnchorSideNavProps["items"]): string[] {
   return items.map((item) =>
     item.href.startsWith("#") ? item.href.slice(1) : item.href,
   );
@@ -26,17 +26,18 @@ function sectionIds(items: AnchorSideNavProps["items"]): string[] {
  * Sticky in-page anchor links with scroll-spy highlighting. Pass `items` from the parent route.
  * Requires matching `id` attributes on sections (e.g. `href="#foo"` → `id="foo"`).
  */
-export function AnchorSideNav({
+export function MSAnchorSideNav({
   items,
   ariaLabel = "Page sections",
   className,
-}: AnchorSideNavProps) {
+}: MSAnchorSideNavProps) {
   const ids = useMemo(() => sectionIds(items), [items]);
   const [activeId, setActiveId] = useState<string>(() => ids[0] ?? "");
 
   const updateActive = useCallback(() => {
     const header = document.querySelector("header");
     const headerH = header?.getBoundingClientRect().height ?? 60;
+    /* Scroll-spy offset below header; ~var(--ms-space-sm) visually */
     const marker = headerH + 12;
     let current = ids[0] ?? "";
     for (const id of ids) {

@@ -1,5 +1,11 @@
-import { DataTable, TD } from "../../../../components/shared/Table/Table";
-import { Card, cardStyles } from "../../../../components/shared/Card/Card";
+import {
+  MSDataTable,
+  MSTD,
+} from "../../../../components/shared/MSTable/MSTable";
+import {
+  MSCard,
+  MSCardMuted,
+} from "../../../../components/shared/MSCard/MSCard";
 import { ShellTitlebar } from "../../../../components/shared/layout/SiteChrome/ShellTitlebar";
 import styles from "./Benchmark.module.css";
 import typo from "../../../../_styles/typography.module.css";
@@ -81,14 +87,14 @@ function SummaryCards({ s }: { s: Summary }) {
   return (
     <div className={styles.grid}>
       {items.map(([k, v]) => (
-        <Card
+        <MSCard
           key={k}
           as="div"
           title={k}
           subtitle={<b className={styles.metricValue}>{v}</b>}
         >
           <div />
-        </Card>
+        </MSCard>
       ))}
     </div>
   );
@@ -100,19 +106,19 @@ function RepoList({
   rows: Array<{ repoId: string; totalScore: number; createdAt: string }>;
 }) {
   if (!rows.length)
-    return <div className={cardStyles.muted}>No scored repos yet.</div>;
+    return <MSCardMuted as="div">No scored repos yet.</MSCardMuted>;
   return (
-    <DataTable
+    <MSDataTable
       headers={["Repo", "Score", "Last scan"]}
       rows={rows.map((r) => (
         <tr key={r.repoId}>
-          <TD>
+          <MSTD>
             <code>{r.repoId}</code>
-          </TD>
-          <TD>
+          </MSTD>
+          <MSTD>
             <b>{r.totalScore}</b>
-          </TD>
-          <TD>{new Date(r.createdAt).toLocaleString()}</TD>
+          </MSTD>
+          <MSTD>{new Date(r.createdAt).toLocaleString()}</MSTD>
         </tr>
       ))}
     />
