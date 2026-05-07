@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "../../../../auth";
+import { userCanAccessGithubOwner } from "../../../../lib/access";
 
 export type Repo = {
   name: string;
@@ -32,6 +33,10 @@ export async function GET(request: Request): Promise<NextResponse> {
       { error: "org query parameter is required" },
       { status: 400 },
     );
+  }
+
+  if (!userCanAccessGithubOwner(session, org)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Explicit branching — do not rely on a single endpoint for both cases:

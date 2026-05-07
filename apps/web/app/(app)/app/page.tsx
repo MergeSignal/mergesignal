@@ -1,23 +1,30 @@
 import { auth } from "../../../auth";
 import { redirect } from "next/navigation";
+
+import { AppGithubScopeHome } from "../../components/app/GithubScope/AppGithubScopeBar";
 import styles from "./AppIndex.module.css";
 
 /**
- * /app entry point.
- * For now renders a "select a repo" state.
- * The org selector in the header drives navigation to /app/:owner/:repo.
+ * /app entry point — GitHub account and repository scope live in the main area.
  */
 export default async function AppIndexPage() {
   const session = await auth();
   if (!session) redirect("/");
 
   return (
-    <div className={styles.empty}>
-      <h1 className={styles.title}>Select a repository</h1>
-      <p className={styles.body}>
-        Use the selector in the header to choose an organization or your
-        personal account, then select a repository from the sidebar.
-      </p>
-    </div>
+    <>
+      <AppGithubScopeHome
+        githubLogin={session.githubLogin ?? ""}
+        githubOrgs={session.githubOrgs ?? []}
+      />
+      <div className={styles.empty}>
+        <h1 className={styles.title}>Welcome</h1>
+        <p className={styles.body}>
+          Use the Account and Repository selectors above to open a repository.
+          If you have access to only one account, it is selected for you
+          automatically.
+        </p>
+      </div>
+    </>
   );
 }

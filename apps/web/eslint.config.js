@@ -11,6 +11,7 @@ const MANTINE_APPROVED_FILES = [
   "**/app/components/shared/MSButton/**",
   "**/app/components/shared/MSInput/**",
   "**/app/components/shared/MSSelect/**",
+  "**/app/components/shared/MSTooltip/**",
   "**/app/components/shared/MSCodeBlock/**",
   "**/app/components/shared/testUtils.tsx",
 ];

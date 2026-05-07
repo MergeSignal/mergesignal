@@ -1,0 +1,20 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-sm);
+  padding: var(--ms-space-md) 0;
+  max-width: 48ch;
+}
+
+.title {
+  font-size: var(--ms-text-xl);
+  letter-spacing: var(--ms-tracking-tight);
+  margin: 0;
+}
+
+.body {
+  font-size: var(--ms-text-sm);
+  color: var(--ms-color-text-muted);
+  margin: 0;
+  line-height: var(--ms-leading-roomy);
+}

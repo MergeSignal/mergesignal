@@ -1,6 +1,6 @@
 import { auth } from "../../../../auth";
-import { RepoSidebar } from "../../../components/app/RepoSidebar/RepoSidebar";
-import styles from "./OwnerLayout.module.css";
+import { requireGithubAppOwnerAccess } from "../../../../lib/github-app-guard";
+import { GithubAppOwnerShell } from "../../../components/app/GithubScope/GithubAppOwnerShell";
 
 export default async function OwnerLayout({
   params,
@@ -10,12 +10,16 @@ export default async function OwnerLayout({
   children: React.ReactNode;
 }) {
   const { owner } = await params;
+  await requireGithubAppOwnerAccess(owner);
   const session = await auth();
 
   return (
-    <div className={styles.shell}>
-      <RepoSidebar owner={owner} githubLogin={session?.githubLogin} />
-      <div className={styles.content}>{children}</div>
-    </div>
+    <GithubAppOwnerShell
+      owner={owner}
+      githubLogin={session?.githubLogin ?? ""}
+      githubOrgs={session?.githubOrgs ?? []}
+    >
+      {children}
+    </GithubAppOwnerShell>
   );
 }

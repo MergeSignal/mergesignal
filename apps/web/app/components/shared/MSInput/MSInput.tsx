@@ -22,6 +22,7 @@ export function MSInput({
   value,
   onChange,
   type,
+  "aria-label": ariaLabel,
   ...rest
 }: MSInputProps) {
   return (
@@ -44,6 +45,7 @@ export function MSInput({
         description: styles.description,
       }}
       {...(rest as Record<string, unknown>)}
+      aria-label={ariaLabel}
     />
   );
 }

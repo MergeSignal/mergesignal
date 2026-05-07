@@ -20,6 +20,12 @@
   cursor: not-allowed;
 }
 
+.inputTruncated {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dropdown {
   background: var(--ms-color-canvas-elevated);
   border: var(--ms-border-width) solid var(--ms-color-border);
@@ -43,6 +49,25 @@
 .option[data-combobox-active],
 .option:hover {
   background: var(--ms-color-surface);
+}
+
+/* Grouped dropdown (Mantine Combobox.Group + groupLabel) */
+.group:not(:first-of-type) {
+  margin-top: var(--ms-space-xs);
+}
+
+.groupLabel {
+  font-size: var(--ms-text-xs);
+  font-weight: var(--ms-font-weight-semibold);
+  color: var(--ms-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--ms-tracking-label);
+  padding: var(--ms-space-xs) var(--ms-space-sm) var(--ms-space-2xs);
+}
+
+/* Allow the closed select control to shrink so truncation can apply inside flex layouts */
+.rootMinWidth {
+  min-width: 0;
 }
 
 .label {

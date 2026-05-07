@@ -13,11 +13,15 @@ export default defineConfig({
     // Default environment for lib/** tests — preserves existing behaviour unchanged.
     environment: "node",
     environmentMatchGlobs: [
-      // Shared primitive component tests need a real DOM.
+      // Component tests under app/components need a real DOM.
       // happy-dom is used instead of jsdom for Node 18 ESM compatibility.
-      ["app/components/shared/**/*.test.tsx", "happy-dom"],
+      ["app/components/**/*.test.tsx", "happy-dom"],
     ],
-    include: ["lib/**/*.test.{ts,tsx}", "app/components/shared/**/*.test.tsx"],
+    include: [
+      "lib/**/*.test.{ts,tsx}",
+      "app/components/**/*.test.tsx",
+      "app/api/**/*.test.ts",
+    ],
     setupFiles: ["./vitest.setup.ts"],
   },
 });

@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { renderWithTheme, screen, waitFor, userEvent } from "../testUtils";
+import {
+  renderWithTheme,
+  screen,
+  waitFor,
+  userEvent,
+  within,
+} from "../testUtils";
 import { MSSelect } from "./MSSelect";
 
 const STRING_DATA = ["Apple", "Banana", "Cherry"];
@@ -7,6 +13,20 @@ const OBJECT_DATA = [
   { value: "apple", label: "Apple" },
   { value: "banana", label: "Banana" },
   { value: "cherry", label: "Cherry" },
+];
+
+const GROUPED_DATA = [
+  {
+    group: "Personal account",
+    items: [{ value: "alice", label: "alice" }],
+  },
+  {
+    group: "Organizations",
+    items: [
+      { value: "acme", label: "acme" },
+      { value: "contoso", label: "contoso" },
+    ],
+  },
 ];
 
 describe("MSSelect", () => {
@@ -37,6 +57,19 @@ describe("MSSelect", () => {
   it("renders with {value, label}[] data format without throwing", () => {
     renderWithTheme(<MSSelect data={OBJECT_DATA} />);
     expect(screen.getByRole("combobox")).toBeInTheDocument();
+  });
+
+  it("renders grouped sections without throwing", async () => {
+    renderWithTheme(<MSSelect data={GROUPED_DATA} />);
+    const combo = screen.getByRole("combobox");
+    expect(combo).toBeInTheDocument();
+    await userEvent.click(combo);
+    const listbox = await screen.findByRole("listbox", { hidden: true });
+    expect(listbox).toBeInTheDocument();
+    expect(screen.getByText("Personal account")).toBeInTheDocument();
+    expect(screen.getByText("Organizations")).toBeInTheDocument();
+    expect(within(listbox).getByText("alice")).toBeInTheDocument();
+    expect(within(listbox).getByText("acme")).toBeInTheDocument();
   });
 
   it("renders placeholder when no value is selected", () => {

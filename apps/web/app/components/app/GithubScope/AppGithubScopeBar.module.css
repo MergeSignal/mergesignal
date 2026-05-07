@@ -1,0 +1,87 @@
+.shell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--ms-space-md);
+  margin-bottom: var(--ms-space-md);
+  padding-bottom: var(--ms-space-md);
+  border-bottom: var(--ms-border-width) solid var(--ms-color-border);
+}
+
+.scopeIntro {
+  flex: 1 1 100%;
+  font-size: var(--ms-text-sm);
+  color: var(--ms-color-text-muted);
+  line-height: var(--ms-leading-roomy);
+  margin: 0 0 var(--ms-space-sm);
+}
+
+.selectWrap {
+  flex: 1 1 12rem;
+  min-width: min(100%, 14rem);
+  max-width: min(100%, 28rem);
+}
+
+.emptyOwners {
+  font-size: var(--ms-text-sm);
+  color: var(--ms-color-text-muted);
+  margin: 0;
+}
+
+.helper {
+  font-size: var(--ms-text-xs);
+  color: var(--ms-color-text-muted);
+  margin-top: var(--ms-space-2xs);
+}
+
+.retry {
+  margin-top: var(--ms-space-xs);
+  font-size: var(--ms-text-sm);
+}
+
+.retryButton {
+  color: var(--ms-color-blue-500);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.repoLoadingStrip {
+  margin-top: var(--ms-space-xs);
+}
+
+.skeleton {
+  height: 1.25rem;
+  max-width: 12rem;
+  border-radius: var(--ms-radius-xs);
+  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 50%, transparent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.emptyRepoHint {
+  font-size: var(--ms-text-xs);
+  color: var(--ms-color-text-muted);
+  line-height: 1.5;
+  margin: var(--ms-space-xs) 0 0;
+}
+
+.emptyLink {
+  color: var(--ms-color-blue-500);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
