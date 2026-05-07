@@ -1,0 +1,93 @@
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  padding-top: var(--ms-space-xs);
+}
+
+.ownerLabel {
+  font-size: var(--ms-text-xs);
+  font-weight: var(--ms-font-weight-semibold);
+  color: var(--ms-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0 var(--ms-space-sm) var(--ms-space-xs);
+  margin: 0;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.repoLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ms-space-xs);
+  padding: var(--ms-space-xs) var(--ms-space-sm);
+  border-radius: var(--ms-radius-xs);
+  font-size: var(--ms-text-sm);
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.8;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+
+.repoLink:hover {
+  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 60%, transparent);
+  opacity: 1;
+}
+
+.repoLink.active {
+  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 90%, transparent);
+  opacity: 1;
+  font-weight: var(--ms-font-weight-semibold);
+}
+
+.repoName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.privateBadge {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--ms-radius-full);
+  border: var(--ms-border-width) solid var(--ms-color-border);
+  color: var(--ms-color-text-muted);
+  opacity: 0.7;
+}
+
+.loadingList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-xs);
+  padding: var(--ms-space-xs) var(--ms-space-sm);
+}
+
+.skeleton {
+  height: 1.5rem;
+  border-radius: var(--ms-radius-xs);
+  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 50%, transparent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton:nth-child(2) { width: 80%; }
+.skeleton:nth-child(3) { width: 65%; }
+.skeleton:nth-child(4) { width: 90%; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.emptyMsg,
+.errorMsg {
+  font-size: var(--ms-text-sm);
+  color: var(--ms-color-text-muted);
+  padding: var(--ms-space-xs) var(--ms-space-sm);
+  margin: 0;
+}

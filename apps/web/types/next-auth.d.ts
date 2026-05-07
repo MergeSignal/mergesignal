@@ -5,6 +5,8 @@ declare module "next-auth" {
     githubLogin?: string;
     accessToken?: string;
     githubOrgs: string[];
+    /** DB UUID from the users table — used as cache key in repo-guard */
+    userId?: string;
     user: DefaultSession["user"];
   }
 }
@@ -14,5 +16,6 @@ declare module "next-auth/jwt" {
     githubLogin?: string;
     accessToken?: string;
     githubOrgs?: string[];
+    userId?: string;
   }
 }

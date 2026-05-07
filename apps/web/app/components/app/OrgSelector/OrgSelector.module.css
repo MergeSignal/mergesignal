@@ -1,0 +1,30 @@
+.select {
+  font: inherit;
+  font-size: var(--ms-text-sm);
+  color: inherit;
+  background: color-mix(in oklab, var(--ms-color-surface) 70%, transparent);
+  border: var(--ms-border-width) solid var(--ms-color-border);
+  border-radius: var(--ms-radius-full);
+  padding: var(--ms-space-2xs) var(--ms-space-sm);
+  padding-right: 1.75rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23dee6f0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  opacity: 0.9;
+  max-width: 16rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.select:hover {
+  opacity: 1;
+  background-color: color-mix(in oklab, var(--ms-color-surface-emphasis) 85%, transparent);
+}
+
+.select:focus-visible {
+  outline: 2px solid var(--ms-color-focus-ring);
+  outline-offset: 2px;
+}

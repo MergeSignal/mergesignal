@@ -1,0 +1,42 @@
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-md);
+  min-width: 0;
+}
+
+.bar {
+  border-radius: var(--ms-radius-xs);
+  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 50%, transparent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+
+.titleBar { height: 2rem; width: 40%; }
+.score    { height: 4rem; width: 5rem; }
+.badge    { height: 1.5rem; width: 4rem; border-radius: var(--ms-radius-full); }
+.layerRow { height: 1.25rem; width: 100%; }
+
+.topRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ms-space-lg);
+}
+
+.badgeRow {
+  display: flex;
+  gap: var(--ms-space-sm);
+  padding-top: var(--ms-space-xs);
+}
+
+.alertRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--ms-space-sm);
+}
+
+.alertCard { height: 5rem; }

@@ -37,10 +37,18 @@ export async function serverApiGet<T>(path: string): Promise<T> {
     );
   }
 
-  const res = await fetch(url, {
-    cache: "no-store",
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+  } catch (err) {
+    throw new ApiError(
+      `API unreachable at ${url}: ${err instanceof Error ? err.message : String(err)}`,
+      503,
+    );
+  }
 
   if (!res.ok) {
     const text = await res.text();

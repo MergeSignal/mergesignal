@@ -11,10 +11,17 @@ export function Header({
   hideHeaderNav,
   /** Shown in header for quick dashboard link when signed in. */
   linkedOwner,
+  /**
+   * When provided, renders in the header left area in place of the / owner
+   * text, and suppresses the owner-based nav links. Used by the /app/* layout
+   * to inject the OrgSelector client component while keeping the same chrome.
+   */
+  orgSelector,
 }: {
   owner?: string;
   hideHeaderNav?: boolean;
   linkedOwner?: string;
+  orgSelector?: React.ReactNode;
 }) {
   const showNav = !hideHeaderNav;
 
@@ -32,11 +39,12 @@ export function Header({
           />
           <BrandWordmark />
         </Link>
-        {owner ? <span className={styles.owner}>/ {owner}</span> : null}
+        {orgSelector ??
+          (owner ? <span className={styles.owner}>/ {owner}</span> : null)}
       </div>
       {showNav ? (
         <nav className={styles.nav}>
-          {owner ? (
+          {!orgSelector && owner ? (
             <>
               <Link
                 className={styles.navLink}

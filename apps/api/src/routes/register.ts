@@ -12,6 +12,8 @@ import { policiesRoutes } from "./policies.js";
 import { benchmarkRoutes } from "./benchmark.js";
 import { openApiRoutes } from "./openapi.js";
 import { datasetRoutes } from "./dataset.js";
+import { repoOverviewRoutes } from "./repoOverview.js";
+import { internalUsersRoutes } from "./internalUsers.js";
 
 export async function registerRoutes(app: FastifyInstance) {
   // Unversioned routes (backwards-compatible)
@@ -28,6 +30,9 @@ export async function registerRoutes(app: FastifyInstance) {
   app.register(policiesRoutes);
   app.register(benchmarkRoutes);
   app.register(datasetRoutes);
+  app.register(repoOverviewRoutes);
+  // Internal-only: not exposed under /v1, not in OpenAPI spec
+  app.register(internalUsersRoutes);
 
   // Versioned API base
   await app.register(
@@ -45,6 +50,7 @@ export async function registerRoutes(app: FastifyInstance) {
       v1.register(policiesRoutes);
       v1.register(benchmarkRoutes);
       v1.register(datasetRoutes);
+      v1.register(repoOverviewRoutes);
     },
     { prefix: "/v1" },
   );

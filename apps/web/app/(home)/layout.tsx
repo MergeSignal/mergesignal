@@ -6,7 +6,7 @@ export default function HomeLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SiteChrome title="MergeSignal" hideTitlebar hideHeaderNav mainWidth="wide">
+    <SiteChrome title="MergeSignal" hideTitlebar mainWidth="wide">
       {children}
     </SiteChrome>
   );

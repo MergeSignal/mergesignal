@@ -13,18 +13,22 @@ export function SiteChrome({
   /** Legal pages: copyright only (no footer link row). */
   footerVariant = "full",
   mainWidth = "default",
+  /**
+   * Optional slot rendered in the header left area in place of / owner text.
+   * Used by the /app/* layout to inject the OrgSelector client component.
+   */
+  orgSelector,
   children,
 }: {
   title: string;
   subtitle?: string;
   owner?: string;
-  /** Shown in header for quick dashboard link when signed in. */
   linkedOwner?: string;
-  /** Omit the built-in H1 block (e.g. marketing pages render their own hero). */
   hideTitlebar?: boolean;
   hideHeaderNav?: boolean;
   footerVariant?: "full" | "minimal";
   mainWidth?: "default" | "wide";
+  orgSelector?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -33,6 +37,7 @@ export function SiteChrome({
         owner={owner}
         hideHeaderNav={hideHeaderNav}
         linkedOwner={linkedOwner}
+        orgSelector={orgSelector}
       />
 
       <main

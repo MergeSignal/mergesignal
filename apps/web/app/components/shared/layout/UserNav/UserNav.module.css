@@ -36,10 +36,23 @@
 }
 
 .button {
-  border: var(--ms-border-width) solid color-mix(in oklab, var(--ms-color-accent) 35%, var(--ms-color-border));
-  background: var(--ms-color-accent);
-  color: var(--ms-color-on-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: var(--ms-border-width) solid color-mix(in oklab, var(--ms-color-blue-500) 50%, transparent);
+  background: var(--ms-color-blue-500);
+  color: #fff;
   font-weight: var(--ms-font-weight-semibold);
+}
+
+.button:hover {
+  background: color-mix(in oklab, var(--ms-color-blue-500) 85%, #fff 15%);
+}
+
+.buttonIcon {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
 }
 
 .buttonSecondary {

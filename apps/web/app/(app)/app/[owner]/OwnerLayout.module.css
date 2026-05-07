@@ -1,0 +1,11 @@
+.shell {
+  display: flex;
+  gap: var(--ms-space-lg);
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}

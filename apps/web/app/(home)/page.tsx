@@ -16,6 +16,8 @@ import {
   UsersRound,
 } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "../../auth";
 import { ScrollButton } from "../components/shared/ScrollButton/ScrollButton";
 import styles from "./landing.module.css";
 
@@ -41,7 +43,9 @@ function SectionRow({
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+  if (session) redirect("/app");
   return (
     <>
       <section className={styles.hero} aria-labelledby="hero-heading">
