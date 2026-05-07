@@ -60,9 +60,8 @@ describe("AppGithubScopeBar", () => {
     mockPathname = "/app";
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
+      vi.fn().mockResolvedValue(
+        Response.json({
           repos: [
             {
               name: "repo-one",
@@ -72,7 +71,7 @@ describe("AppGithubScopeBar", () => {
             },
           ],
         }),
-      }),
+      ),
     );
   });
 
@@ -140,9 +139,8 @@ describe("AppGithubScopeBar", () => {
 
   it("shows scope intro when one account but multiple repositories", async () => {
     mockPathname = "/app/alice/repo-a";
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({
+    vi.mocked(fetch).mockResolvedValue(
+      Response.json({
         repos: [
           {
             name: "repo-a",
@@ -158,7 +156,7 @@ describe("AppGithubScopeBar", () => {
           },
         ],
       }),
-    });
+    );
     renderBar({ githubLogin: "alice", githubOrgs: [] }, "alice");
     await waitFor(() => {
       expect(screen.getByText(/Choose your GitHub/i)).toBeInTheDocument();
