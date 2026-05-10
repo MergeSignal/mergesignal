@@ -7,7 +7,7 @@ import {
 import type {
   PRHealthRow,
   ScanState,
-} from "../../../lib/repo-health-view-model";
+} from "../../../../lib/repo-health-view-model";
 import styles from "./PRHealthCard.module.css";
 
 function formatRelativeTime(iso: string): string {

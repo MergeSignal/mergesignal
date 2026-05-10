@@ -14,7 +14,7 @@ type PullRequestEvent = {
   pull_request?: {
     number: number;
     head?: { sha: string };
-    base?: { sha: string };
+    base?: { sha: string; ref?: string };
   };
 };
 
@@ -185,7 +185,7 @@ async function handlePullRequest(
   const number = payload.pull_request?.number;
   const headSha = payload.pull_request?.head?.sha;
   const baseSha = payload.pull_request?.base?.sha;
-  const baseRef = payload.pull_request?.base?.ref as string | undefined;
+  const baseRef = payload.pull_request?.base?.ref;
 
   if (!installationId || !owner || !repo || !number || !headSha) {
     return { ignored: true, reason: "missing_fields" };

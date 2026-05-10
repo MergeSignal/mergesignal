@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { MERGE_POSTURE_LABEL } from "@mergesignal/shared";
-import type { RepoPullHealthViewModel } from "../../../lib/repo-health-view-model";
+import type { RepoPullHealthViewModel } from "../../../../lib/repo-health-view-model";
 import { PRHealthCard } from "./PRHealthCard";
 import styles from "./RepoHealthDashboard.module.css";
 

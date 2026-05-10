@@ -1,7 +1,11 @@
 import { randomUUID } from "crypto";
 import { db, queries } from "../db.js";
 import { scanQueue } from "../queue.js";
-import type { ScanLockfileInput, RepoSource } from "@mergesignal/shared";
+import type {
+  ScanLockfileInput,
+  RepoSource,
+  ScanQueueGithubContext,
+} from "@mergesignal/shared";
 import { getLimitsForOwner, getOwnerFromRepoId } from "./tier.js";
 
 export async function createScanAndEnqueue({
@@ -20,15 +24,7 @@ export async function createScanAndEnqueue({
   lockfile?: ScanLockfileInput;
   baseLockfile?: ScanLockfileInput;
   changedFiles?: string[];
-  github?: {
-    owner: string;
-    repo: string;
-    prNumber: number;
-    headSha: string;
-    baseSha?: string;
-    installationId: number;
-    deliveryId?: string;
-  };
+  github?: ScanQueueGithubContext;
   source?: "manual" | "github";
 }) {
   const id = scanId ?? randomUUID();
