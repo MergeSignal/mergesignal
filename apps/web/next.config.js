@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Process workspace package through the bundler so Turbopack always
+  // picks up newly-exported symbols without a stale module-graph cache.
+  transpilePackages: ["@mergesignal/shared"],
   async headers() {
     // 'unsafe-inline' in script-src is required for Next.js hydration scripts.
     // It reduces header-level XSS protection, but the practical risk is low:

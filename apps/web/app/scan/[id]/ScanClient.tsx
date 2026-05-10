@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PRInsight, PRDecision } from "@mergesignal/shared";
-import { formatInsight } from "@mergesignal/shared";
+import {
+  formatInsight,
+  mergePostureLabel,
+  ariaLabelForPosture,
+} from "@mergesignal/shared";
 import styles from "./ScanClient.module.css";
 import layoutStyles from "./ScanClientLayout.module.css";
 import {
@@ -150,10 +154,11 @@ export default function ScanClient({
               className={styles.decisionBadge}
               data-recommendation={decision.recommendation}
               title={`Confidence: ${decision.confidence}`}
+              aria-label={ariaLabelForPosture(decision.recommendation, score)}
             >
-              {decision.recommendation === "safe" && "✓ Safe to merge"}
-              {decision.recommendation === "needs_review" && "⚠ Needs review"}
-              {decision.recommendation === "risky" && "⚠ Risky"}
+              {decision.recommendation === "safe" && "✓ "}
+              {decision.recommendation !== "safe" && "⚠ "}
+              {mergePostureLabel(decision.recommendation)}
             </span>
             {decision.reasoning && decision.reasoning.length > 0 && (
               <ul className={styles.decisionReasoning}>

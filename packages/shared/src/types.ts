@@ -299,6 +299,7 @@ export type ScanQueueGithubContext = {
   prNumber: number;
   headSha: string;
   baseSha?: string;
+  baseRef?: string;
   installationId: number;
   deliveryId?: string;
 };

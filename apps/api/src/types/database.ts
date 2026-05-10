@@ -26,6 +26,11 @@ export interface Scan {
   error: string | null;
   created_at: Date;
   updated_at: Date;
+  // GitHub PR identity — NULL for manual/push scans
+  github_pr_number: number | null;
+  github_head_sha: string | null;
+  github_base_ref: string | null;
+  github_base_sha: string | null;
 }
 
 export interface RepoSource {

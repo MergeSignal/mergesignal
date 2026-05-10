@@ -54,6 +54,7 @@ function getOpenApiSpec() {
       { name: "scans" },
       { name: "simulate" },
       { name: "org" },
+      { name: "repo" },
       { name: "alerts" },
       { name: "policies" },
       { name: "benchmark" },
@@ -370,6 +371,141 @@ function getOpenApiSpec() {
             },
           ],
           responses: { "200": { description: "OK" } },
+        },
+      },
+      "/repo/{owner}/{repo}/pull-request-scans": {
+        get: {
+          tags: ["repo"],
+          summary: "Latest scan summary per open PR for a repository",
+          description:
+            "Returns the most-recent MergeSignal scan for each GitHub PR number " +
+            "that has been scanned in this repository. Includes a compact summary, " +
+            "merge posture (safe/needs_review/risky), risk score, and top affected areas. " +
+            "Only PR-triggered scans (source=github) are included. " +
+            "Returns an empty `byPrNumber` map when no PR scans exist.",
+          parameters: [
+            {
+              name: "owner",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+              example: "acme",
+            },
+            {
+              name: "repo",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+              example: "frontend",
+            },
+          ],
+          responses: {
+            "200": {
+              description: "PR scan index",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      repoId: { type: "string", example: "acme/frontend" },
+                      byPrNumber: {
+                        type: "object",
+                        additionalProperties: {
+                          type: "object",
+                          properties: {
+                            scanId: { type: "string" },
+                            status: {
+                              type: "string",
+                              enum: ["queued", "running", "done", "failed"],
+                            },
+                            decision: {
+                              type: "string",
+                              nullable: true,
+                              enum: ["safe", "needs_review", "risky", null],
+                              description:
+                                "Merge posture. Display as: safe→Safe, needs_review→Needs review, risky→Risky.",
+                            },
+                            totalScore: {
+                              type: "integer",
+                              nullable: true,
+                              description: "Numeric risk score (0–100)",
+                            },
+                            githubPrNumber: { type: "integer" },
+                            githubHeadSha: {
+                              type: "string",
+                              nullable: true,
+                            },
+                            githubBaseRef: {
+                              type: "string",
+                              nullable: true,
+                              description: "Target branch name",
+                            },
+                            createdAt: { type: "string", format: "date-time" },
+                            resultGeneratedAt: {
+                              type: "string",
+                              format: "date-time",
+                              nullable: true,
+                            },
+                            summaryText: {
+                              type: "string",
+                              nullable: true,
+                              description:
+                                "One-sentence summary (≤120 chars), uses merge-posture vocabulary",
+                            },
+                            topAffectedAreas: {
+                              type: "array",
+                              items: { type: "string" },
+                              maxItems: 3,
+                              description:
+                                "Up to 3 short human-readable area labels for compact dashboard display",
+                            },
+                          },
+                          required: [
+                            "scanId",
+                            "status",
+                            "githubPrNumber",
+                            "createdAt",
+                            "topAffectedAreas",
+                          ],
+                        },
+                      },
+                      aggregates: {
+                        type: "object",
+                        properties: {
+                          totalCovered: { type: "integer" },
+                          byDecision: {
+                            type: "object",
+                            properties: {
+                              safe: { type: "integer" },
+                              needs_review: { type: "integer" },
+                              risky: { type: "integer" },
+                            },
+                          },
+                        },
+                      },
+                    },
+                    required: ["repoId", "byPrNumber", "aggregates"],
+                  },
+                },
+              },
+            },
+            "400": {
+              description: "Bad request",
+              content: {
+                "application/problem+json": {
+                  schema: { $ref: "#/components/schemas/Problem" },
+                },
+              },
+            },
+            "403": {
+              description: "Forbidden",
+              content: {
+                "application/problem+json": {
+                  schema: { $ref: "#/components/schemas/Problem" },
+                },
+              },
+            },
+          },
         },
       },
       "/github/webhook": {

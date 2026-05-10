@@ -13,6 +13,7 @@ import { benchmarkRoutes } from "./benchmark.js";
 import { openApiRoutes } from "./openapi.js";
 import { datasetRoutes } from "./dataset.js";
 import { repoOverviewRoutes } from "./repoOverview.js";
+import { repoPullRequestScansRoutes } from "./repoPullRequestScans.js";
 import { internalUsersRoutes } from "./internalUsers.js";
 
 export async function registerRoutes(app: FastifyInstance) {
@@ -31,6 +32,7 @@ export async function registerRoutes(app: FastifyInstance) {
   app.register(benchmarkRoutes);
   app.register(datasetRoutes);
   app.register(repoOverviewRoutes);
+  app.register(repoPullRequestScansRoutes);
   // Internal-only: not exposed under /v1, not in OpenAPI spec
   app.register(internalUsersRoutes);
 
@@ -51,6 +53,7 @@ export async function registerRoutes(app: FastifyInstance) {
       v1.register(benchmarkRoutes);
       v1.register(datasetRoutes);
       v1.register(repoOverviewRoutes);
+      v1.register(repoPullRequestScansRoutes);
     },
     { prefix: "/v1" },
   );

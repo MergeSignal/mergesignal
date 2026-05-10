@@ -1,24 +1,16 @@
-import { notFound } from "next/navigation";
 import { requireRepoAccess } from "../../../../../lib/repo-guard";
 import { serverApiGet, ApiError } from "../../../../../lib/api";
-import { RepoOverview } from "../../../../components/app/RepoOverview/RepoOverview";
+import { auth } from "../../../../../auth";
+import {
+  fetchOpenPullRequestsForRepo,
+  type GithubOpenPR,
+} from "../../../../../lib/github-open-pull-requests";
+import {
+  buildRepoPullHealthViewModel,
+  type PrScanIndexResponse,
+} from "../../../../../lib/repo-health-view-model";
+import { RepoHealthDashboard } from "../../../../components/app/RepoHealthDashboard/RepoHealthDashboard";
 import { ShellTitlebar } from "../../../../components/shared/layout/SiteChrome/ShellTitlebar";
-
-type OverviewData = {
-  repoId: string;
-  latestScan: {
-    id: string;
-    status: string;
-    totalScore: number | null;
-    layerSecurity: number | null;
-    layerMaintainability: number | null;
-    layerEcosystem: number | null;
-    layerUpgradeImpact: number | null;
-    createdAt: string;
-    decision: string | null;
-  } | null;
-  alertCounts: { high: number; medium: number; low: number };
-};
 
 export default async function RepoOverviewPage({
   params,
@@ -27,51 +19,75 @@ export default async function RepoOverviewPage({
 }) {
   const { owner, repo } = await params;
 
-  // Enforce authorization: verifies user has GitHub read access to this repo.
-  // Redirects to re-auth on token expiry; calls notFound() on 403/404.
+  // Auth gate: redirects on token expiry, calls notFound() on 403/404
   await requireRepoAccess(owner, repo);
 
-  let data: OverviewData | null = null;
-  let fetchError: string | null = null;
+  const session = await auth();
+  const accessToken = session?.accessToken ?? null;
 
-  try {
-    data = await serverApiGet<OverviewData>(
-      `/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/overview`,
-    );
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 404) {
-      notFound();
-    }
-    fetchError =
-      err instanceof ApiError
-        ? err.message
-        : "An unexpected error occurred loading this repository.";
+  let prsFetchError: string | null = null;
+  let scansFetchError: string | null = null;
+  let prScanIndex: PrScanIndexResponse = {
+    repoId: `${owner}/${repo}`,
+    byPrNumber: {},
+    aggregates: {
+      totalCovered: 0,
+      byDecision: { safe: 0, needs_review: 0, risky: 0 },
+    },
+  };
+
+  const [prsResult, scansResult] = await Promise.all([
+    accessToken
+      ? fetchOpenPullRequestsForRepo(accessToken, owner, repo)
+      : Promise.resolve({ kind: "error" as const, status: 401 }),
+    serverApiGet<PrScanIndexResponse>(
+      `/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pull-request-scans`,
+    ).catch((err: unknown) => {
+      // 404 → route not deployed yet or no data — treat as empty, not an error.
+      // 5xx → real server failure worth surfacing in the UI.
+      if (err instanceof ApiError && err.status === 404) {
+        return null;
+      }
+      const msg =
+        err instanceof ApiError
+          ? `Scan data temporarily unavailable (${err.status})`
+          : "Could not reach scan service";
+      return { error: msg };
+    }),
+  ]);
+
+  let openPRs: GithubOpenPR[] = [];
+  let hasMore = false;
+
+  if (prsResult.kind === "success") {
+    openPRs = prsResult.prs;
+    hasMore = prsResult.hasMore;
+  } else if (prsResult.kind === "unauthorized") {
+    prsFetchError = "GitHub session expired. Please sign in again.";
+  } else {
+    prsFetchError = "Could not load pull requests from GitHub.";
   }
+
+  if (scansResult !== null && "error" in scansResult) {
+    scansFetchError = scansResult.error;
+  } else if (scansResult !== null) {
+    prScanIndex = scansResult;
+  }
+  // scansResult === null → 404 (route not yet deployed or no data) → silent empty state
+
+  const viewModel = buildRepoPullHealthViewModel(openPRs, prScanIndex, hasMore);
 
   return (
     <>
       <ShellTitlebar title={repo} subtitle={owner} />
-      {fetchError || !data ? (
-        <div style={{ padding: "2rem" }}>
-          <p style={{ color: "var(--color-danger, #c0392b)", fontWeight: 600 }}>
-            Failed to load repository data
-          </p>
-          <p
-            style={{
-              color: "var(--color-text-muted, #666)",
-              marginTop: "0.5rem",
-            }}
-          >
-            {fetchError ?? "No data returned."}
-          </p>
-        </div>
-      ) : (
-        <RepoOverview
-          repoId={data.repoId}
-          latestScan={data.latestScan}
-          alertCounts={data.alertCounts}
-        />
-      )}
+      <RepoHealthDashboard
+        repoId={`${owner}/${repo}`}
+        owner={owner}
+        repo={repo}
+        viewModel={viewModel}
+        prsFetchError={prsFetchError}
+        scansFetchError={scansFetchError}
+      />
     </>
   );
 }

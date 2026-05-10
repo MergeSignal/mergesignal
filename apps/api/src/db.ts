@@ -117,11 +117,27 @@ export const queries = {
     },
 
     async create(
-      data: Pick<Scan, "id" | "repo_id" | "status" | "source">,
+      data: Pick<Scan, "id" | "repo_id" | "status" | "source"> & {
+        github_pr_number?: number | null;
+        github_head_sha?: string | null;
+        github_base_ref?: string | null;
+        github_base_sha?: string | null;
+      },
     ): Promise<void> {
       await db.query(
-        "INSERT INTO scans (id, repo_id, status, source) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING",
-        [data.id, data.repo_id, data.status, data.source],
+        `INSERT INTO scans (id, repo_id, status, source, github_pr_number, github_head_sha, github_base_ref, github_base_sha)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (id) DO NOTHING`,
+        [
+          data.id,
+          data.repo_id,
+          data.status,
+          data.source,
+          data.github_pr_number ?? null,
+          data.github_head_sha ?? null,
+          data.github_base_ref ?? null,
+          data.github_base_sha ?? null,
+        ],
       );
     },
   },

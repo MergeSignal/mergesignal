@@ -87,6 +87,10 @@ export async function createScanAndEnqueue({
       repo_id: repoId,
       status: "queued",
       source: isGithub ? "github" : "manual",
+      github_pr_number: github?.prNumber ?? null,
+      github_head_sha: github?.headSha ?? null,
+      github_base_ref: github?.baseRef ?? null,
+      github_base_sha: github?.baseSha ?? null,
     });
 
     await client.query("COMMIT");

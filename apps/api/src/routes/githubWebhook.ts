@@ -185,6 +185,7 @@ async function handlePullRequest(
   const number = payload.pull_request?.number;
   const headSha = payload.pull_request?.head?.sha;
   const baseSha = payload.pull_request?.base?.sha;
+  const baseRef = payload.pull_request?.base?.ref as string | undefined;
 
   if (!installationId || !owner || !repo || !number || !headSha) {
     return { ignored: true, reason: "missing_fields" };
@@ -268,6 +269,7 @@ async function handlePullRequest(
         prNumber: number,
         headSha,
         baseSha,
+        baseRef,
         installationId,
         deliveryId: delivery || undefined,
       },

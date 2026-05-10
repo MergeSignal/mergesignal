@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { mergePostureLabel, ariaLabelForPosture } from "@mergesignal/shared";
 import styles from "./RepoOverview.module.css";
 
 type Scan = {
@@ -187,5 +188,12 @@ function DecisionBadge({ decision }: { decision: string }) {
       : decision === "risky"
         ? styles.decisionRisky
         : styles.decisionReview;
-  return <span className={`${styles.badge} ${cls}`}>{decision}</span>;
+  return (
+    <span
+      className={`${styles.badge} ${cls}`}
+      aria-label={ariaLabelForPosture(decision, null)}
+    >
+      {mergePostureLabel(decision)}
+    </span>
+  );
 }

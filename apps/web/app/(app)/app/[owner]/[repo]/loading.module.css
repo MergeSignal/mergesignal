@@ -1,7 +1,7 @@
 .skeleton {
   display: flex;
   flex-direction: column;
-  gap: var(--ms-space-md);
+  gap: var(--ms-space-xs);
   min-width: 0;
 }
 
@@ -13,30 +13,76 @@
 
 @keyframes pulse {
   0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.9; }
+  50%       { opacity: 0.9; }
 }
 
-.titleBar { height: 2rem; width: 40%; }
-.score    { height: 4rem; width: 5rem; }
-.badge    { height: 1.5rem; width: 4rem; border-radius: var(--ms-radius-full); }
-.layerRow { height: 1.25rem; width: 100%; }
+/* Title / heading bar */
+.titleBar { height: 2rem; width: 40%; margin-bottom: var(--ms-space-xs); }
 
-.topRow {
+/* Summary strip */
+.summaryStrip {
   display: flex;
-  align-items: flex-start;
-  gap: var(--ms-space-lg);
+  align-items: center;
+  gap: var(--ms-space-sm);
+  height: 3rem;
+  padding: 0 var(--ms-space-md);
+  border-radius: var(--ms-radius-xs);
+  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 25%, transparent);
+  margin-bottom: var(--ms-space-sm);
 }
 
-.badgeRow {
+.stripStat {
+  height: 1.25rem;
+  width: 5rem;
+  border-radius: var(--ms-radius-xs);
+  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 50%, transparent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.badge {
+  height: 1.5rem;
+  width: 4.5rem;
+  border-radius: var(--ms-radius-full);
+  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 50%, transparent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+/* PR card skeleton */
+.prCard {
+  border-radius: var(--ms-radius-sm);
+  border: var(--ms-border-width) solid var(--ms-color-border);
+  background: color-mix(in oklab, var(--ms-color-surface) 40%, transparent);
+  padding: var(--ms-space-sm) var(--ms-space-md);
+}
+
+.prCardInner {
   display: flex;
-  gap: var(--ms-space-sm);
-  padding-top: var(--ms-space-xs);
+  flex-direction: column;
+  gap: var(--ms-space-xs);
 }
 
-.alertRow {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.prMeta {
+  height: 1rem;
+  width: 70%;
+}
+
+.prSignalRow {
+  display: flex;
+  align-items: center;
   gap: var(--ms-space-sm);
 }
 
-.alertCard { height: 5rem; }
+.scoreBar {
+  height: 1rem;
+  width: 5.5rem;
+}
+
+.summaryLine {
+  height: 0.875rem;
+  width: 55%;
+}
+
+.areasLine {
+  height: 0.75rem;
+  width: 40%;
+}

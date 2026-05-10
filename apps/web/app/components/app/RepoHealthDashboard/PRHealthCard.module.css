@@ -1,0 +1,291 @@
+/* ===========================================================================
+ * PRHealthCard — compact per-PR row
+ * =========================================================================== */
+
+.card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--ms-space-sm) var(--ms-space-md);
+  align-items: start;
+  padding: var(--ms-space-sm) var(--ms-space-md);
+  border-radius: var(--ms-radius-sm);
+  border: var(--ms-border-width) solid var(--ms-color-border);
+  background: color-mix(in oklab, var(--ms-color-surface) 60%, transparent);
+  transition: border-color 150ms ease, background 150ms ease;
+  min-width: 0;
+}
+
+.card:hover,
+.card:focus-within {
+  border-color: color-mix(in oklab, var(--ms-color-accent-alt) 40%, transparent);
+  background: color-mix(in oklab, var(--ms-color-surface) 80%, transparent);
+}
+
+/* Left column — all the content except the action */
+.cardMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-2xs);
+  min-width: 0;
+}
+
+/* Right column — action button */
+.cardAction {
+  display: flex;
+  align-items: center;
+  padding-top: 0.1rem;
+}
+
+/* --- Row 1: PR meta line --- */
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-xs);
+  flex-wrap: wrap;
+}
+
+.prNumber {
+  font-size: var(--ms-text-xs);
+  font-weight: var(--ms-font-weight-semibold);
+  color: var(--ms-color-text-muted);
+  font-family: var(--ms-font-family-mono);
+  letter-spacing: var(--ms-tracking-snug);
+  flex-shrink: 0;
+}
+
+.prTitle {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-font-weight-semibold);
+  color: var(--ms-color-text-emphasis);
+  line-height: var(--ms-leading-snug);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* --- Branch chip --- */
+.branchChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--ms-radius-full);
+  font-size: var(--ms-text-xs);
+  font-family: var(--ms-font-family-mono);
+  letter-spacing: var(--ms-tracking-snug);
+  color: var(--ms-color-text-muted);
+  border: var(--ms-border-width) solid var(--ms-color-border);
+  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 50%, transparent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* --- Row 2: posture + score --- */
+.signalRow {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-sm);
+  flex-wrap: wrap;
+}
+
+.postureBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--ms-radius-full);
+  font-size: var(--ms-text-xs);
+  font-weight: var(--ms-font-weight-semibold);
+  border: var(--ms-border-width) solid transparent;
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
+}
+
+.postureRisky {
+  background: color-mix(in oklab, var(--ms-color-danger) 15%, transparent);
+  border-color: color-mix(in oklab, var(--ms-color-danger) 35%, transparent);
+  color: var(--ms-color-danger);
+}
+
+.postureReview {
+  background: color-mix(in oklab, var(--ms-color-warning) 15%, transparent);
+  border-color: color-mix(in oklab, var(--ms-color-warning) 35%, transparent);
+  color: var(--ms-color-warning);
+}
+
+.postureSafe {
+  background: color-mix(in oklab, var(--ms-color-success) 15%, transparent);
+  border-color: color-mix(in oklab, var(--ms-color-success) 35%, transparent);
+  color: var(--ms-color-success);
+}
+
+.postureNone {
+  background: color-mix(in oklab, var(--ms-color-border) 40%, transparent);
+  border-color: var(--ms-color-border);
+  color: var(--ms-color-text-muted);
+}
+
+.scoreBar {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-2xs);
+  flex-shrink: 0;
+}
+
+.scoreNumber {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-font-weight-semibold);
+  letter-spacing: var(--ms-tracking-tight);
+  min-width: 2.2rem;
+  text-align: right;
+}
+
+.scoreHigh   { color: var(--ms-color-danger); }
+.scoreMedium { color: var(--ms-color-warning); }
+.scoreLow    { color: var(--ms-color-success); }
+.scoreNone   { color: var(--ms-color-text-muted); }
+
+.scoreMeter {
+  width: 3.5rem;
+  height: 4px;
+  border-radius: var(--ms-radius-full);
+  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 70%, transparent);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.scoreMeterFill {
+  height: 100%;
+  border-radius: var(--ms-radius-full);
+  transition: width 300ms ease;
+}
+
+.scoreMeterFillHigh   { background: var(--ms-color-danger); }
+.scoreMeterFillMedium { background: var(--ms-color-warning); }
+.scoreMeterFillLow    { background: var(--ms-color-success); }
+
+/* --- State badges --- */
+.stateBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--ms-radius-full);
+  font-size: var(--ms-text-xs);
+  font-weight: var(--ms-font-weight-medium);
+  border: var(--ms-border-width) solid transparent;
+}
+
+.stateInProgress {
+  background: color-mix(in oklab, var(--ms-color-warning) 15%, transparent);
+  border-color: color-mix(in oklab, var(--ms-color-warning) 30%, transparent);
+  color: var(--ms-color-warning);
+}
+
+.stateFailed {
+  background: color-mix(in oklab, var(--ms-color-danger) 12%, transparent);
+  border-color: color-mix(in oklab, var(--ms-color-danger) 25%, transparent);
+  color: var(--ms-color-danger);
+}
+
+.stateNotScanned {
+  background: color-mix(in oklab, var(--ms-color-border) 40%, transparent);
+  border-color: var(--ms-color-border);
+  color: var(--ms-color-text-muted);
+}
+
+.stateOutdated {
+  background: color-mix(in oklab, var(--ms-color-warning) 10%, transparent);
+  border-color: color-mix(in oklab, var(--ms-color-warning) 25%, transparent);
+  color: var(--ms-color-warning);
+}
+
+/* --- Row 3: summary text --- */
+.summaryText {
+  font-size: var(--ms-text-md);
+  color: var(--ms-color-text-muted);
+  line-height: var(--ms-leading-snug);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70ch;
+}
+
+/* --- Row 4: top areas --- */
+.topAreas {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ms-space-xs);
+  flex-wrap: wrap;
+}
+
+.topAreasLabel {
+  font-size: var(--ms-text-xs);
+  color: var(--ms-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--ms-tracking-wider);
+  flex-shrink: 0;
+}
+
+.topAreasItems {
+  font-size: var(--ms-text-xs);
+  color: var(--ms-color-text-muted);
+  line-height: var(--ms-leading-snug);
+}
+
+/* --- Row 5: footer meta --- */
+.footerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-sm);
+  flex-wrap: wrap;
+  padding-top: var(--ms-space-2xs);
+}
+
+.updatedAt {
+  font-size: var(--ms-text-xs);
+  color: var(--ms-color-text-muted);
+}
+
+/* --- Action button strip --- */
+.viewDetailsLink {
+  font-size: var(--ms-text-xs);
+  font-weight: var(--ms-font-weight-semibold);
+  color: var(--ms-color-accent-alt);
+  text-decoration: none;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--ms-radius-xs);
+  border: var(--ms-border-width) solid color-mix(in oklab, var(--ms-color-accent-alt) 40%, transparent);
+  background: color-mix(in oklab, var(--ms-color-accent-alt) 8%, transparent);
+  white-space: nowrap;
+  transition: background 120ms ease, border-color 120ms ease;
+  outline-offset: 2px;
+}
+
+.viewDetailsLink:hover {
+  background: color-mix(in oklab, var(--ms-color-accent-alt) 15%, transparent);
+  border-color: color-mix(in oklab, var(--ms-color-accent-alt) 60%, transparent);
+}
+
+.viewDetailsLink:focus-visible {
+  outline: 2px solid var(--ms-color-focus-ring);
+}
+
+/* --- Mobile / responsive --- */
+@media (max-width: 600px) {
+  .card {
+    grid-template-columns: 1fr;
+  }
+
+  .cardAction {
+    padding-top: 0;
+  }
+
+  .prTitle {
+    white-space: normal;
+  }
+
+  .summaryText {
+    white-space: normal;
+  }
+}
