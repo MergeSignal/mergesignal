@@ -27,22 +27,28 @@ function scoreColorClass(score: number | null | undefined): {
   number: string;
   meterFill: string;
 } {
-  if (score == null) return { number: styles.scoreNone, meterFill: "" };
+  if (score == null) return { number: styles.scoreNone ?? "", meterFill: "" };
   if (score > 60)
-    return { number: styles.scoreHigh, meterFill: styles.scoreMeterFillHigh };
+    return {
+      number: styles.scoreHigh ?? "",
+      meterFill: styles.scoreMeterFillHigh ?? "",
+    };
   if (score > 30)
     return {
-      number: styles.scoreMedium,
-      meterFill: styles.scoreMeterFillMedium,
+      number: styles.scoreMedium ?? "",
+      meterFill: styles.scoreMeterFillMedium ?? "",
     };
-  return { number: styles.scoreLow, meterFill: styles.scoreMeterFillLow };
+  return {
+    number: styles.scoreLow ?? "",
+    meterFill: styles.scoreMeterFillLow ?? "",
+  };
 }
 
 function postureClass(posture: MergePosture | null): string {
-  if (posture === "risky") return styles.postureRisky;
-  if (posture === "needs_review") return styles.postureReview;
-  if (posture === "safe") return styles.postureSafe;
-  return styles.postureNone;
+  if (posture === "risky") return styles.postureRisky ?? "";
+  if (posture === "needs_review") return styles.postureReview ?? "";
+  if (posture === "safe") return styles.postureSafe ?? "";
+  return styles.postureNone ?? "";
 }
 
 function ScanStateBadge({ state }: { state: ScanState }) {
@@ -57,13 +63,13 @@ function ScanStateBadge({ state }: { state: ScanState }) {
           : "Not scanned";
   const cls =
     state === "in_progress"
-      ? styles.stateInProgress
+      ? (styles.stateInProgress ?? "")
       : state === "failed"
-        ? styles.stateFailed
+        ? (styles.stateFailed ?? "")
         : state === "outdated"
-          ? styles.stateOutdated
-          : styles.stateNotScanned;
-  return <span className={`${styles.stateBadge} ${cls}`}>{label}</span>;
+          ? (styles.stateOutdated ?? "")
+          : (styles.stateNotScanned ?? "");
+  return <span className={`${styles.stateBadge ?? ""} ${cls}`}>{label}</span>;
 }
 
 export function PRHealthCard({ row }: { row: PRHealthRow }) {
