@@ -21,7 +21,23 @@ type ScanRow = {
   status: "queued" | "running" | "done" | "failed";
   result?: ScanResult;
   error?: string | null;
+  /** DB `methodology_version` (stub scans use `engine-stub/...`). */
+  methodologyVersion?: string | null;
 };
+
+function normalizeScanRow(raw: Record<string, unknown>): ScanRow {
+  const methodology = (raw.methodology_version ?? raw.methodologyVersion) as
+    | string
+    | null
+    | undefined;
+  return {
+    id: String(raw.id ?? ""),
+    status: raw.status as ScanRow["status"],
+    result: raw.result as ScanResult | undefined,
+    error: (raw.error as string | null | undefined) ?? null,
+    methodologyVersion: methodology ?? null,
+  };
+}
 
 type ScanResult = {
   totalScore?: number;
@@ -82,7 +98,9 @@ export default function ScanClient({
 
     es.addEventListener("status", (e) => {
       try {
-        const next = JSON.parse((e as MessageEvent).data) as ScanRow;
+        const next = normalizeScanRow(
+          JSON.parse((e as MessageEvent).data) as Record<string, unknown>,
+        );
         terminalRef.current =
           next.status === "done" || next.status === "failed";
         setErr(null);
@@ -148,6 +166,14 @@ export default function ScanClient({
         {data.status === "running" || data.status === "queued" ? (
           <MSCardNote>This page updates automatically.</MSCardNote>
         ) : null}
+        {data.status === "done" &&
+          data.methodologyVersion &&
+          /^engine-stub\//i.test(data.methodologyVersion) && (
+            <MSCardNote>
+              Legacy demo scan (stub engine). Re-run the scan after deploying
+              the real engine to see live analysis.
+            </MSCardNote>
+          )}
         {decision && data.status === "done" && (
           <div className={styles.decisionSection}>
             <span

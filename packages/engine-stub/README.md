@@ -29,15 +29,9 @@ The following proprietary analysis capabilities are **not** available in this op
 
 ## Implementation
 
-All functions in this package throw errors when called:
+`analyze` and `simulateUpgrade` return **deterministic mock `ScanResult` data** (tagged with `methodologyVersion: "engine-stub/v2"`) so local development and CI work without the proprietary engine.
 
-```typescript
-export async function analyze(req: ScanRequest): Promise<ScanResult> {
-  throw new Error(
-    "Analysis engine not available in open-source version. This is a stub implementation.",
-  );
-}
-```
+In **production**, the BullMQ worker must load the real engine via `MERGESIGNAL_ENGINE_IMPL` on `@mergesignal/engine` (see worker image env). The stub is not used on production paths unless `MERGESIGNAL_ALLOW_STUB=1` is set explicitly for demo stacks.
 
 ## Architecture
 

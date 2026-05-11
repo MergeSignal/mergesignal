@@ -69,6 +69,8 @@ COPY apps/api/sql ./apps/api/dist/sql
 ENV NODE_ENV=production
 ENV PORT=4000
 
+# simulate-upgrade and other engine calls: set MERGESIGNAL_ENGINE_IMPL or MERGESIGNAL_ALLOW_STUB=1 for demo.
+
 EXPOSE 4000
 
 # Run the application

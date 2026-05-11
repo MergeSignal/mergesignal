@@ -15,6 +15,7 @@ import { datasetRoutes } from "./dataset.js";
 import { repoOverviewRoutes } from "./repoOverview.js";
 import { repoPullRequestScansRoutes } from "./repoPullRequestScans.js";
 import { internalUsersRoutes } from "./internalUsers.js";
+import { internalStaleScansRoutes } from "./internalStaleScans.js";
 
 export async function registerRoutes(app: FastifyInstance) {
   // Unversioned routes (backwards-compatible)
@@ -35,6 +36,7 @@ export async function registerRoutes(app: FastifyInstance) {
   app.register(repoPullRequestScansRoutes);
   // Internal-only: not exposed under /v1, not in OpenAPI spec
   app.register(internalUsersRoutes);
+  app.register(internalStaleScansRoutes);
 
   // Versioned API base
   await app.register(

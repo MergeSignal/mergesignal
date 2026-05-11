@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { analyze, simulateUpgrade } from "./index.js";
+import {
+  analyze,
+  simulateUpgrade,
+  __resetEngineLoaderCacheForTests,
+} from "./index.js";
 import type {
   ScanRequest,
   UpgradeSimulationRequest,
@@ -10,10 +14,44 @@ describe("engine", () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
+    __resetEngineLoaderCacheForTests();
   });
 
   afterEach(() => {
     process.env = originalEnv;
+    __resetEngineLoaderCacheForTests();
+  });
+
+  describe("loader policy", () => {
+    it("rejects production without MERGESIGNAL_ENGINE_IMPL when stub disallowed", async () => {
+      process.env.NODE_ENV = "production";
+      delete process.env.MERGESIGNAL_ENGINE_IMPL;
+      delete process.env.MERGESIGNAL_ALLOW_STUB;
+
+      await expect(
+        analyze({ repoId: "o/r", dependencyGraph: {} }),
+      ).rejects.toThrow(/MERGESIGNAL_ENGINE_IMPL is required/);
+    });
+
+    it("allows stub in production when MERGESIGNAL_ALLOW_STUB=1", async () => {
+      process.env.NODE_ENV = "production";
+      delete process.env.MERGESIGNAL_ENGINE_IMPL;
+      process.env.MERGESIGNAL_ALLOW_STUB = "1";
+
+      const result = await analyze({ repoId: "o/r", dependencyGraph: {} });
+      expect(result.methodologyVersion).toBe("engine-stub/v2");
+    });
+
+    it("throws on bad MERGESIGNAL_ENGINE_IMPL when MERGESIGNAL_ENGINE_STRICT=1", async () => {
+      process.env.NODE_ENV = "test";
+      process.env.MERGESIGNAL_ENGINE_IMPL =
+        "nonexistent-mergesignal-engine-module-xyz123";
+      process.env.MERGESIGNAL_ENGINE_STRICT = "1";
+
+      await expect(
+        analyze({ repoId: "o/r", dependencyGraph: {} }),
+      ).rejects.toThrow();
+    });
   });
 
   describe("analyze", () => {

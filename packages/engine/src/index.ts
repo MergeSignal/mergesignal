@@ -5,44 +5,94 @@ import type {
   UpgradeSimulationResult,
 } from "@mergesignal/shared";
 
-type EngineImpl = {
+export type EngineImpl = {
   analyze: (req: ScanRequest) => Promise<ScanResult>;
   simulateUpgrade: (
     req: UpgradeSimulationRequest,
   ) => Promise<UpgradeSimulationResult>;
 };
 
-let cached: Promise<EngineImpl> | null = null;
+function isProduction(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+function allowStub(): boolean {
+  return process.env.MERGESIGNAL_ALLOW_STUB === "1";
+}
+
+function engineStrict(): boolean {
+  return process.env.MERGESIGNAL_ENGINE_STRICT === "1";
+}
+
+function implSpec(): string {
+  return String(process.env.MERGESIGNAL_ENGINE_IMPL ?? "").trim();
+}
+
+async function loadFromSpec(spec: string): Promise<EngineImpl> {
+  const mod = (await import(spec)) as Record<string, unknown>;
+  const analyzeFn = mod.analyze;
+  const simulateUpgradeFn = mod.simulateUpgrade;
+  if (
+    typeof analyzeFn !== "function" ||
+    typeof simulateUpgradeFn !== "function"
+  ) {
+    throw new Error(
+      `Engine module ${spec} does not export analyze and simulateUpgrade functions`,
+    );
+  }
+  return {
+    analyze: analyzeFn as EngineImpl["analyze"],
+    simulateUpgrade: simulateUpgradeFn as EngineImpl["simulateUpgrade"],
+  };
+}
+
+async function loadStub(): Promise<EngineImpl> {
+  const stub = await import("@mergesignal/engine-stub");
+  return {
+    analyze: stub.analyze,
+    simulateUpgrade: stub.simulateUpgrade,
+  };
+}
 
 async function loadImpl(): Promise<EngineImpl> {
-  const spec = String(process.env.MERGESIGNAL_ENGINE_IMPL ?? "").trim();
-  const strict = (process.env.MERGESIGNAL_ENGINE_STRICT ?? "0") === "1";
+  const spec = implSpec();
+  const strict = engineStrict();
+
+  if (isProduction() && !allowStub()) {
+    if (!spec) {
+      throw new Error(
+        "MERGESIGNAL_ENGINE_IMPL is required in production (set MERGESIGNAL_ALLOW_STUB=1 only for demo stacks)",
+      );
+    }
+    return loadFromSpec(spec);
+  }
 
   if (spec) {
     try {
-      const mod = (await import(spec)) as any;
-      if (
-        typeof mod?.analyze !== "function" ||
-        typeof mod?.simulateUpgrade !== "function"
-      ) {
-        throw new Error(
-          `Engine module ${spec} does not export analyze/simulateUpgrade`,
-        );
-      }
-      return { analyze: mod.analyze, simulateUpgrade: mod.simulateUpgrade };
+      return await loadFromSpec(spec);
     } catch (e) {
       if (strict) throw e;
-      // Fall back to stub if a proprietary engine is not installed.
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn(
+        `[mergesignal-engine] Failed to load MERGESIGNAL_ENGINE_IMPL=${spec}: ${msg}. Falling back to stub.`,
+      );
+      return loadStub();
     }
   }
 
-  const stub = (await import("@mergesignal/engine-stub")) as any;
-  return { analyze: stub.analyze, simulateUpgrade: stub.simulateUpgrade };
+  return loadStub();
 }
 
-async function getImpl() {
+let cached: Promise<EngineImpl> | null = null;
+
+async function getImpl(): Promise<EngineImpl> {
   cached ??= loadImpl();
   return cached;
+}
+
+/** Test-only: reset dynamic loader state between Vitest cases. */
+export function __resetEngineLoaderCacheForTests(): void {
+  cached = null;
 }
 
 export async function analyze(req: ScanRequest): Promise<ScanResult> {

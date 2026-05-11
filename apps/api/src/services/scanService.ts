@@ -123,8 +123,9 @@ export async function createScanAndEnqueue({
       },
       {
         jobId: id,
-        attempts: 3,
-        backoff: { type: "exponential", delay: 2000 },
+        // Single attempt: worker marks terminal `failed`/`done` in DB; BullMQ
+        // retries would re-run the engine and could overwrite a failed scan.
+        attempts: 1,
         removeOnComplete: true,
         removeOnFail: false,
       },

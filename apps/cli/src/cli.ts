@@ -97,7 +97,7 @@ function printHelp() {
       "  mergesignal scan --fail-above 20",
       "",
       "Notes:",
-      "  - This runs analysis locally using @mergesignal/engine-stub.",
+      "  - Uses @mergesignal/engine: set MERGESIGNAL_ENGINE_IMPL to load the real engine, or leave unset for the OSS stub in development.",
       "  - Lockfile detection prefers pnpm-lock.yaml, then package-lock.json.",
       "",
     ].join("\n"),

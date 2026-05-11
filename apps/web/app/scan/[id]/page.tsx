@@ -10,6 +10,7 @@ type ApiScan = {
   status: "queued" | "running" | "done" | "failed";
   result?: unknown;
   error?: string | null;
+  methodology_version?: string | null;
 };
 
 export default async function Page({
@@ -44,6 +45,7 @@ export default async function Page({
           status: scan.status,
           result: scan.result as never,
           error: scan.error ?? null,
+          methodologyVersion: scan.methodology_version ?? null,
         }}
       />
     </SiteChrome>

@@ -1,4 +1,9 @@
 import type { FastifyInstance } from "fastify";
+import {
+  deriveScanSummaryText,
+  selectTopAffectedAreas,
+  type ScanResult,
+} from "@mergesignal/shared";
 import { db } from "../db.js";
 import { sendProblem } from "../problem.js";
 
@@ -23,105 +28,11 @@ type PrScanAggregates = {
   byDecision: { safe: number; needs_review: number; risky: number };
 };
 
-function extractSummaryText(
+function asScanResult(
   result: Record<string, unknown> | null,
-): string | null {
+): ScanResult | null {
   if (!result) return null;
-  const decision = result.decision as { reasoning?: string[] } | undefined;
-  const reasoning = decision?.reasoning;
-  if (Array.isArray(reasoning) && reasoning.length > 0) {
-    const first = String(reasoning[0]).trim();
-    return first.length > 120 ? first.slice(0, 119) + "…" : first;
-  }
-  const findings = result.findings as Array<{ severity?: string }> | undefined;
-  if (Array.isArray(findings) && findings.length > 0) {
-    const high = findings.filter((f) => f.severity === "high").length;
-    const medium = findings.filter((f) => f.severity === "medium").length;
-    if (high > 0)
-      return `${high} high-severity finding${high > 1 ? "s" : ""} detected`;
-    if (medium > 0)
-      return `${medium} medium-severity finding${medium > 1 ? "s" : ""} detected`;
-  }
-  return null;
-}
-
-function extractTopAffectedAreas(
-  result: Record<string, unknown> | null,
-  max = 3,
-  maxLabelLen = 38,
-): string[] {
-  if (!result) return [];
-
-  function trimLabel(s: string): string {
-    const clean = s.replace(/^(Finding:\s*|Area:\s*)/i, "").trim();
-    return clean.length > maxLabelLen
-      ? clean.slice(0, maxLabelLen - 1) + "…"
-      : clean;
-  }
-
-  const seen = new Set<string>();
-  const areas: string[] = [];
-
-  function add(label: string): boolean {
-    if (areas.length >= max) return false;
-    const t = trimLabel(label);
-    const key = t.toLowerCase();
-    if (!t || seen.has(key)) return false;
-    seen.add(key);
-    areas.push(t);
-    return true;
-  }
-
-  // Priority 1: explain reasons sorted by |scoreImpact|
-  const explain = result.explain as
-    | { reasons?: Array<{ title?: string; scoreImpact?: number }> }
-    | undefined;
-  if (Array.isArray(explain?.reasons)) {
-    const sorted = [...explain.reasons]
-      .filter((r) => r.title)
-      .sort(
-        (a, b) => Math.abs(b.scoreImpact ?? 0) - Math.abs(a.scoreImpact ?? 0),
-      );
-    for (const r of sorted) {
-      if (!add(r.title!)) break;
-    }
-  }
-
-  if (areas.length >= max) return areas;
-
-  // Priority 2: PR insights (dedupe by message prefix)
-  const insights = result.insights as Array<{ message?: string }> | undefined;
-  if (Array.isArray(insights)) {
-    for (const ins of insights) {
-      if (!ins.message) continue;
-      if (!add(ins.message.split(".")[0] ?? ins.message)) break;
-    }
-  }
-
-  if (areas.length >= max) return areas;
-
-  // Priority 3: layer names from layerScores only when nothing else found
-  if (areas.length === 0) {
-    const layerScores = result.layerScores as
-      | Record<string, number>
-      | undefined;
-    if (layerScores) {
-      const LAYER_LABELS: Record<string, string> = {
-        security: "Security",
-        maintainability: "Maintainability",
-        ecosystem: "Ecosystem",
-        upgradeImpact: "Upgrade impact",
-      };
-      const sorted = Object.entries(layerScores)
-        .filter(([, v]) => typeof v === "number")
-        .sort(([, a], [, b]) => (b as number) - (a as number));
-      for (const [layer] of sorted) {
-        if (!add(LAYER_LABELS[layer] ?? layer)) break;
-      }
-    }
-  }
-
-  return areas;
+  return result as ScanResult;
 }
 
 export async function repoPullRequestScansRoutes(app: FastifyInstance) {
@@ -191,6 +102,8 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
         aggregates.byDecision[d] += 1;
       }
 
+      const scanResult = asScanResult(row.result);
+
       byPrNumber[prKey] = {
         scanId: row.scan_id,
         status: String(row.status ?? "")
@@ -205,8 +118,8 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
         resultGeneratedAt: row.result_generated_at
           ? new Date(row.result_generated_at).toISOString()
           : null,
-        summaryText: extractSummaryText(row.result),
-        topAffectedAreas: extractTopAffectedAreas(row.result),
+        summaryText: deriveScanSummaryText(scanResult),
+        topAffectedAreas: selectTopAffectedAreas(scanResult),
       };
     }
 

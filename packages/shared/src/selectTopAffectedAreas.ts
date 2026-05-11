@@ -77,8 +77,9 @@ export function selectTopAffectedAreas(
       ecosystem: "Ecosystem",
       upgradeImpact: "Upgrade impact",
     };
-    const layerScores = result.layerScores as Record<string, number>;
-    const sorted = Object.entries(layerScores)
+    const layerScores = result.layerScores;
+    if (!layerScores || typeof layerScores !== "object") return areas;
+    const sorted = Object.entries(layerScores as Record<string, number>)
       .filter(([, v]) => typeof v === "number")
       // highest score = most impactful layer (inverted: higher score = worse)
       .sort(([, a], [, b]) => (b as number) - (a as number));

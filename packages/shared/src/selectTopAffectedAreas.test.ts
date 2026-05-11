@@ -181,4 +181,13 @@ describe("selectTopAffectedAreas", () => {
     const areas = selectTopAffectedAreas(result, { max: 3 });
     expect(areas.length).toBeLessThanOrEqual(3);
   });
+
+  it("returns [] when layerScores is missing and no explain/insights", () => {
+    const partial = {
+      totalScore: 10,
+      findings: [],
+      generatedAt: "2026-01-01T00:00:00Z",
+    } as unknown as ScanResult;
+    expect(selectTopAffectedAreas(partial)).toEqual([]);
+  });
 });

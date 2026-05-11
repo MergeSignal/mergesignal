@@ -39,11 +39,22 @@ export type CodeAnalysisMetrics = {
   filesAnalyzed: number;
 };
 
+/** Subset of PR identity passed into analysis (no installation tokens). */
+export type ScanRequestGithubContext = {
+  owner: string;
+  repo: string;
+  prNumber: number;
+};
+
 export type ScanRequest = {
   repoId: string;
   dependencyGraph: unknown;
   lockfile?: ScanLockfileInput;
+  /** Base branch lockfile for PR scans (optional). */
+  baseLockfile?: ScanLockfileInput;
   repoSource?: RepoSource;
+  /** Optional PR context for engine/logging (no installation id). */
+  github?: ScanRequestGithubContext;
   changedPackages?: string[];
   changedFiles?: string[];
   codeAnalysisMetrics?: CodeAnalysisMetrics;
