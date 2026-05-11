@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MERGE_POSTURE_LABEL } from "@mergesignal/shared";
 import type { RepoPullHealthViewModel } from "../../../../lib/repo-health-view-model";
 import { PRHealthCard } from "./PRHealthCard";
+import { RepoHealthScanPoller } from "./RepoHealthScanPoller";
 import styles from "./RepoHealthDashboard.module.css";
 
 type Props = {
@@ -81,9 +82,13 @@ export function RepoHealthDashboard({
   scansFetchError,
 }: Props) {
   const hasErrors = prsFetchError || scansFetchError;
+  const hasInProgressScans = viewModel.rows.some(
+    (r) => r.scanState === "in_progress",
+  );
 
   return (
     <div className={styles.dashboard}>
+      {hasInProgressScans && <RepoHealthScanPoller active />}
       <SummaryStrip
         totalPRs={viewModel.totalPRs}
         coveredPRs={viewModel.coveredPRs}
