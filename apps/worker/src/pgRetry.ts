@@ -20,7 +20,7 @@ function isTransientPgError(e: unknown): boolean {
   );
 }
 
-export type WithPgRetriesOptions = {
+type WithPgRetriesOptions = {
   maxAttempts?: number;
   baseDelayMs?: number;
 };
