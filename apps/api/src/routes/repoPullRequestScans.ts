@@ -193,7 +193,9 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
 
       byPrNumber[prKey] = {
         scanId: row.scan_id,
-        status: row.status,
+        status: String(row.status ?? "")
+          .trim()
+          .toLowerCase(),
         decision: row.decision,
         totalScore: row.total_score,
         githubPrNumber: row.github_pr_number,

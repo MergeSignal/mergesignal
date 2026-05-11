@@ -96,6 +96,15 @@ describe("buildRepoPullHealthViewModel", () => {
     expect(vm.rows[0]!.scanState).toBe("in_progress");
   });
 
+  it("normalizes scan status casing from API", () => {
+    const vm = buildRepoPullHealthViewModel(
+      [makePR(1)],
+      makeIndex([{ prNumber: 1, status: "DONE", decision: "safe" }]),
+      false,
+    );
+    expect(vm.rows[0]!.scanState).toBe("done");
+  });
+
   it("marks PR as failed for failed status", () => {
     const vm = buildRepoPullHealthViewModel(
       [makePR(1)],

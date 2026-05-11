@@ -12,6 +12,8 @@ import {
 import { RepoHealthDashboard } from "../../../../components/app/RepoHealthDashboard/RepoHealthDashboard";
 import { ShellTitlebar } from "../../../../components/shared/layout/SiteChrome/ShellTitlebar";
 
+export const dynamic = "force-dynamic";
+
 export default async function RepoOverviewPage({
   params,
 }: {

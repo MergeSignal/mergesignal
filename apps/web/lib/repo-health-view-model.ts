@@ -53,6 +53,12 @@ export type RepoPullHealthViewModel = {
   hasMore: boolean;
 };
 
+function normalizeScanStatus(status: string | undefined): string {
+  return String(status ?? "")
+    .trim()
+    .toLowerCase();
+}
+
 /**
  * Merge a list of GitHub open PRs with the latest scan entry per PR.
  * Sorting: riskiest posture first, then highest risk score, then most-recently updated.
@@ -70,13 +76,14 @@ export function buildRepoPullHealthViewModel(
 
     let scanState: ScanState = "not_scanned";
     if (scan) {
-      if (scan.status === "done") {
+      const st = normalizeScanStatus(scan.status);
+      if (st === "done") {
         const isOutdated =
           scan.githubHeadSha != null && scan.githubHeadSha !== pr.headSha;
         scanState = isOutdated ? "outdated" : "done";
-      } else if (scan.status === "queued" || scan.status === "running") {
+      } else if (st === "queued" || st === "running") {
         scanState = "in_progress";
-      } else if (scan.status === "failed") {
+      } else if (st === "failed") {
         scanState = "failed";
       }
     }
