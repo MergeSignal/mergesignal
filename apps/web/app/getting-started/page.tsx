@@ -337,14 +337,47 @@ export default function GettingStartedPage() {
             events.
           </li>
           <li>
-            Under repository permissions, set <strong>Contents</strong> and{" "}
-            <strong>Pull requests</strong> to read-only, and{" "}
-            <strong>Issues</strong> to read and write if you need PR comments
-            from the product.
+            Under <strong>Repository permissions</strong>, match how you use
+            GitHub:
+            <ul>
+              <li>
+                <strong>Contents</strong>: <strong>Read-only</strong> so
+                MergeSignal can read lockfiles from the repository.
+              </li>
+              <li>
+                <strong>Pull requests</strong>: <strong>Read-only</strong> is
+                enough for webhook-driven scans (list PR files, read lockfiles).
+                Use <strong>Read &amp; write</strong> only if MergeSignal should
+                also <strong>write on the pull request</strong> on GitHub (for
+                example comments).
+              </li>
+              <li>
+                <strong>Checks</strong>: use <strong>Read &amp; write</strong>{" "}
+                when you want scan status on the pull request{" "}
+                <strong>Checks</strong> tab (GitHub <strong>Check Runs</strong>
+                ). If results only live in MergeSignal, leave Checks unset or
+                read-only. Without Read &amp; write, Check Run calls return
+                “Resource not accessible by integration”.
+              </li>
+              <li>
+                <strong>Issues</strong>: <strong>Read &amp; write</strong> only
+                when the features you enable need that scope (for example
+                certain comment paths on GitHub).
+              </li>
+            </ul>
           </li>
           <li>
             <strong>Install</strong> the App on the repositories (or all repos)
             that should send events.
+          </li>
+          <li>
+            If you later <strong>change</strong> permissions on the App, each
+            installation must accept the update: in GitHub, open{" "}
+            <strong>Settings → GitHub Apps</strong> (or{" "}
+            <strong>Organization settings → Installed GitHub Apps</strong>),
+            choose <strong>Configure</strong> for this App, and complete{" "}
+            <strong>Review request</strong> until the banner clears. Until then,
+            new tokens do not include added scopes.
           </li>
           <li>
             On the API, set <code>GITHUB_APP_ID</code>,{" "}
@@ -404,6 +437,13 @@ export default function GettingStartedPage() {
           <li>
             Local API, web, and Docker: <a href={README}>README</a> and{" "}
             <a href={`${REPO_BLOB}/DEPLOYMENT.md`}>DEPLOYMENT.md</a>.
+          </li>
+          <li>
+            <strong>GitHub App</strong> “Resource not accessible by integration”
+            on the <strong>Checks</strong> API or <strong>Check Runs</strong>:
+            set <strong>Checks</strong> to Read &amp; write on the App and
+            complete <strong>Review request</strong> on the installation (see{" "}
+            <a href="#github-app">GitHub App</a> setup above).
           </li>
         </ul>
       </div>

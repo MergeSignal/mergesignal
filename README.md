@@ -83,7 +83,7 @@ For the full stack (Docker, Postgres, Redis, API, web, worker), environment vari
 
 ## Optional: GitHub App
 
-**Canonical guide:** [mergesignal-web.fly.dev/getting-started#github-app](https://mergesignal-web.fly.dev/getting-started#github-app) (use your own web host if self-hosted). This repository still contains a short [pointer file](./docs/github-app.md) for legacy links.
+**Canonical guide:** [mergesignal-web.fly.dev/getting-started#github-app](https://mergesignal-web.fly.dev/getting-started#github-app) (use your own web host if self-hosted). That page lists **repository permissions** (when to add **Checks** for PR **Check Runs**, and **Review request** after permission changes). This repository still contains a short [pointer file](./docs/github-app.md) for legacy links.
 
 ---
 

@@ -32,7 +32,7 @@ Before deploying, update the following files with your production values:
 
 - `DATABASE_URL` - Production database connection string
 - `REDIS_URL` - Production Redis connection string
-- GitHub App credentials (if using)
+- GitHub App credentials (if using); set repository permissions per the web app **Getting started → GitHub App** (add **Checks → Read & write** when scan status should appear as GitHub **Check Runs** on PRs)
 
 **k8s/postgres.yaml:**
 

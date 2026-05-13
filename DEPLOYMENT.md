@@ -383,7 +383,7 @@ Current preview deployment:
 
 1. Set the web app `NEXT_PUBLIC_API_BASE_URL` to `https://mergesignal-api.fly.dev`.
 2. Set API `CORS_ORIGINS` to `https://mergesignal-web.fly.dev` (comma-separated if you add more origins later).
-3. Update the **GitHub App** webhook to `https://mergesignal-api.fly.dev/github/webhook` and the **GitHub OAuth** callback to `https://mergesignal-web.fly.dev/api/auth/callback/github`.
+3. Update the **GitHub App** webhook to `https://mergesignal-api.fly.dev/github/webhook` and the **GitHub OAuth** callback to `https://mergesignal-web.fly.dev/api/auth/callback/github`. Align **repository permissions** with how you use GitHub (see the web app **Getting started → GitHub App**), including **Checks → Read & write** when scan status should appear as **Check Runs** on pull requests. After any permission increase, complete **Review request** on each installation in GitHub.
 4. Configure web secrets: `MERGESIGNAL_API_KEY`, `MERGESIGNAL_LINKED_GITHUB_OWNER`, `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET` (Fly: `fly secrets set`, Kubernetes: `k8s/secret.yaml`).
 
 When you move to a custom domain later, replace these hostnames in DNS, `CORS_ORIGINS`, GitHub App, and OAuth settings.
