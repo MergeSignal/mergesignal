@@ -5,9 +5,13 @@
   "ignoreFiles": [
     "apps/api/eslint.config.js",
     "apps/worker/eslint.config.js",
-    "scripts/ci/render-mergesignal-step-summary.mjs"
+    "scripts/ci/render-mergesignal-step-summary.mjs",
+    "scripts/ci/render-mergesignal-failure-summary.mjs"
   ],
   "workspaces": {
+    "apps/cli": {
+      "ignoreDependencies": ["@mergesignal/engine-test-fixture"]
+    },
     "apps/api": {
       "ignoreDependencies": ["@repo/eslint-config"]
     },
