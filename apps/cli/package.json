@@ -20,6 +20,7 @@
     "@mergesignal/shared": "workspace:^"
   },
   "devDependencies": {
+    "@mergesignal/engine-test-fixture": "workspace:^",
     "@repo/eslint-config": "workspace:*",
     "@vitest/coverage-v8": "^2.1.9",
     "@types/node": "^22.15.3",

@@ -64,6 +64,8 @@ The web app proxies **SSE** live scan updates via `GET /api/scan/:id/events` so 
 
 MergeSignal can run on **GitHub Actions** and write a risk summary to each workflow run’s **Summary**-no MergeSignal server required for that path.
 
+**Trusted vs demo scans:** The composite action supports `scan_profile: trusted` (real engine via `pnpm add` + `MERGESIGNAL_TRUSTED_ANALYSIS`) or `development` (OSS stub with a clearly labeled demo summary). Fork workflows without your registry secret should use **`development`** or skip the job—see the [action README](./.github/actions/merge-signal-scan/README.md#trusted-vs-development-scan-profile). Operator setup for secrets and variables is summarized in [DEPLOYMENT.md](./DEPLOYMENT.md#github-actions-merge-signal-scan).
+
 **Full guide (recommended workflow, optional `fail_above` gate, first-run notes):** use the canonical page on your web deployment, e.g. **[mergesignal-web.fly.dev/getting-started#github-actions](https://mergesignal-web.fly.dev/getting-started#github-actions)** (replace the host with yours if self-hosted).
 
 **Contract and versioning:** input/output details and release pins are in [.github/actions/merge-signal-scan/README.md](./.github/actions/merge-signal-scan/README.md) and [RELEASING.md](./RELEASING.md). This repository’s [`.github/workflows/mergesignal-scan.yml`](./.github/workflows/mergesignal-scan.yml) dogfoods the same action.

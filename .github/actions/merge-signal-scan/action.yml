@@ -5,6 +5,29 @@ inputs:
     description: Fail if totalScore exceeds this value (0-100). Leave empty to not fail the job.
     required: false
     default: ""
+  scan_profile:
+    description: >
+      "trusted" loads a real engine (requires secrets + engine_package). "development" uses the OSS stub for demos and forks without private engine access.
+    required: false
+    default: "development"
+  npm_registry_url:
+    description: Registry URL for .npmrc (used when scan_profile is trusted).
+    required: false
+    default: "https://registry.npmjs.org"
+  engine_package:
+    description: Package spec for pnpm add (e.g. @scope/mergesignal-engine@1.0.0). Required when scan_profile is trusted.
+    required: false
+    default: ""
+  engine_impl_module:
+    description: >
+      MERGESIGNAL_ENGINE_IMPL import specifier (e.g. @scope/mergesignal-engine). When empty, a trailing @version on engine_package is stripped when possible.
+    required: false
+    default: ""
+
+secrets:
+  npm_token:
+    description: Registry auth token (never logged). Required for trusted profile.
+    required: false
 
 runs:
   using: composite
@@ -46,11 +69,67 @@ runs:
         pnpm install --frozen-lockfile
         pnpm turbo run build --filter=@mergesignal/cli...
 
+    - name: Resolve MERGESIGNAL_ENGINE_IMPL
+      id: engine-impl
+      shell: bash
+      env:
+        PROFILE: ${{ inputs.scan_profile }}
+        MOD: ${{ inputs.engine_impl_module }}
+        PKG: ${{ inputs.engine_package }}
+      run: |
+        set -euo pipefail
+        if [ "$PROFILE" != "trusted" ]; then
+          echo "spec=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if [ -n "${MOD:-}" ]; then
+          echo "spec=${MOD}" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if [ -z "${PKG:-}" ]; then
+          echo "spec=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        spec="$(node -e "const pkg=process.env.PKG||'';const mod=process.env.MOD||'';if(mod){process.stdout.write(mod);process.exit(0);}if(!pkg)process.exit(0);if(pkg[0]==='@'){const last=pkg.lastIndexOf('@');const first=pkg.indexOf('@',1);process.stdout.write(last>first?pkg.slice(0,last):pkg);}else{const i=pkg.lastIndexOf('@');process.stdout.write(i>0?pkg.slice(0,i):pkg);}")"
+        echo "spec=${spec}" >> "$GITHUB_OUTPUT"
+
+    - name: Install private engine (trusted only)
+      if: inputs.scan_profile == 'trusted'
+      shell: bash
+      env:
+        NPM_TOKEN: ${{ secrets.npm_token }}
+        ENGINE_PKG: ${{ inputs.engine_package }}
+        REG_URL: ${{ inputs.npm_registry_url }}
+      run: |
+        set -euo pipefail
+        if [ -z "${NPM_TOKEN:-}" ]; then
+          echo "merge-signal-scan: trusted profile requires secrets.npm_token" >&2
+          exit 1
+        fi
+        if [ -z "${ENGINE_PKG:-}" ]; then
+          echo "merge-signal-scan: trusted profile requires inputs.engine_package" >&2
+          exit 1
+        fi
+        cd "$GITHUB_WORKSPACE/_ms_rt"
+        HOST="${REG_URL#https://}"
+        HOST="${HOST#http://}"
+        HOST="${HOST%%/*}"
+        {
+          echo "always-auth=true"
+          echo "registry=${REG_URL}"
+          echo "//${HOST}/:_authToken=${NPM_TOKEN}"
+        } >> .npmrc
+        pnpm add "${ENGINE_PKG}" --no-frozen-lockfile
+
     - name: Run dependency scan
+      id: scan
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
         SCAN_JSON: ${{ runner.temp }}/mergesignal-scan.json
+        MERGESIGNAL_TRUSTED_ANALYSIS: ${{ inputs.scan_profile == 'trusted' && '1' || '' }}
+        MERGESIGNAL_ENGINE_STRICT: ${{ inputs.scan_profile == 'trusted' && '1' || '' }}
+        MERGESIGNAL_ENGINE_IMPL: ${{ inputs.scan_profile == 'trusted' && steps.engine-impl.outputs.spec || '' }}
       run: |
         set -euo pipefail
         cd "$GITHUB_WORKSPACE"
@@ -58,19 +137,31 @@ runs:
         pnpm --dir _ms_rt ms scan --repo-id "$GITHUB_REPOSITORY" --out "$SCAN_JSON"
 
     - name: Add scan summary to workflow
+      if: success()
       shell: bash
       env:
         SCAN_JSON: ${{ runner.temp }}/mergesignal-scan.json
+        MERGESIGNAL_ACTIONS_SUMMARY_PROFILE: ${{ inputs.scan_profile }}
       run: |
         set -euo pipefail
         node "$GITHUB_WORKSPACE/_ms_rt/scripts/ci/render-mergesignal-step-summary.mjs" \
           "$SCAN_JSON"
+
+    - name: Add failure summary to workflow
+      if: failure()
+      shell: bash
+      run: |
+        set -euo pipefail
+        node "$GITHUB_WORKSPACE/_ms_rt/scripts/ci/render-mergesignal-failure-summary.mjs" || true
 
     - name: Verify score threshold
       if: ${{ inputs.fail_above != '' }}
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        MERGESIGNAL_TRUSTED_ANALYSIS: ${{ inputs.scan_profile == 'trusted' && '1' || '' }}
+        MERGESIGNAL_ENGINE_STRICT: ${{ inputs.scan_profile == 'trusted' && '1' || '' }}
+        MERGESIGNAL_ENGINE_IMPL: ${{ inputs.scan_profile == 'trusted' && steps.engine-impl.outputs.spec || '' }}
       run: |
         set -euo pipefail
         cd "$GITHUB_WORKSPACE"

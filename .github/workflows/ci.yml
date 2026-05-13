@@ -63,3 +63,52 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+  # Proves MERGESIGNAL_TRUSTED_ANALYSIS + MERGESIGNAL_ENGINE_IMPL resolve a real module on CI runners (workspace test engine).
+  trusted-scan-fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack install
+
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build CLI
+        run: pnpm turbo run build --filter=@mergesignal/cli...
+
+      - name: Trusted scan with workspace test engine
+        env:
+          MERGESIGNAL_TRUSTED_ANALYSIS: "1"
+          # Package name is not resolvable from @mergesignal/engine's graph; use built file URL (same as private tarball/file installs).
+          MERGESIGNAL_ENGINE_IMPL: "file:${{ github.workspace }}/packages/engine-test-fixture/dist/index.js"
+          MERGESIGNAL_ENGINE_STRICT: "1"
+        run: |
+          set -euo pipefail
+          OUT="${RUNNER_TEMP}/mergesignal-trusted-fixture.json"
+          pnpm ms scan --repo-id "${{ github.repository }}" --out "$OUT"
+          node -e "const fs=require('fs');const o=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!/^engine-test-fixture\\//.test(String(o.methodologyVersion||''))){console.error('expected engine-test-fixture methodology, got',o.methodologyVersion);process.exit(1)}" "$OUT"

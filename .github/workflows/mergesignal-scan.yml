@@ -31,8 +31,15 @@ jobs:
         uses: ./.github/actions/merge-signal-scan
         with:
           fail_above: ${{ github.event.inputs.fail_above || '' }}
+          scan_profile: ${{ secrets.MERGESIGNAL_NPM_TOKEN != '' && 'trusted' || 'development' }}
+          npm_registry_url: ${{ vars.MERGESIGNAL_NPM_REGISTRY_URL || 'https://registry.npmjs.org' }}
+          engine_package: ${{ secrets.MERGESIGNAL_ENGINE_PACKAGE }}
+          engine_impl_module: ${{ vars.MERGESIGNAL_ENGINE_IMPL_MODULE }}
+        secrets:
+          npm_token: ${{ secrets.MERGESIGNAL_NPM_TOKEN }}
 
       - name: Upload results
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: mergesignal-scan

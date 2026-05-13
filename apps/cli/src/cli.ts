@@ -9,6 +9,7 @@ import type {
   ScanResult,
   ScoreLayer,
 } from "@mergesignal/shared";
+import { parseScanResultOrThrow, scanSurfaceCopy } from "@mergesignal/shared";
 
 type ArgMap = {
   _: string[];
@@ -18,10 +19,15 @@ type ArgMap = {
   "--repo-id"?: string;
   "--lockfile"?: string;
   "--fail-above"?: string;
+  "--trusted"?: true;
 };
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args["--trusted"]) {
+    process.env.MERGESIGNAL_TRUSTED_ANALYSIS = "1";
+  }
+
   const [cmd] = args._;
 
   if (
@@ -50,11 +56,24 @@ async function main() {
     explicitPath: args["--lockfile"],
   });
 
-  const result = (await analyze({
+  let result = (await analyze({
     repoId,
     dependencyGraph: {},
     lockfile,
   })) as ScanResult;
+
+  if (process.env.MERGESIGNAL_TRUSTED_ANALYSIS === "1") {
+    try {
+      result = parseScanResultOrThrow(result);
+    } catch (e: unknown) {
+      const debug = process.env.MERGESIGNAL_DEBUG === "1";
+      const msg = e instanceof Error ? e.message : String(e);
+      process.stderr.write(
+        `${debug ? msg : scanSurfaceCopy.cli.stderrOutputNotVerified}\n`,
+      );
+      process.exit(1);
+    }
+  }
 
   const outPath = args["--out"] ? path.resolve(cwd, args["--out"]) : null;
   if (outPath) {
@@ -71,8 +90,13 @@ async function main() {
     ? Number(args["--fail-above"])
     : undefined;
   if (typeof failAbove === "number" && Number.isFinite(failAbove)) {
-    const score = Number(result.totalScore ?? 0);
-    if (score > failAbove) process.exit(3);
+    const score = result.totalScore;
+    if (
+      typeof score === "number" &&
+      Number.isFinite(score) &&
+      score > failAbove
+    )
+      process.exit(3);
   }
 }
 
@@ -88,16 +112,18 @@ function printHelp() {
       "MergeSignal CLI",
       "",
       "Usage:",
-      "  mergesignal scan [--repo-id <id>] [--lockfile <path>] [--json] [--out <file>] [--fail-above <n>]",
+      "  mergesignal scan [--repo-id <id>] [--lockfile <path>] [--json] [--out <file>] [--fail-above <n>] [--trusted]",
       "",
       "Examples:",
       "  mergesignal scan",
       "  mergesignal scan --repo-id acme/web --json",
       "  mergesignal scan --lockfile pnpm-lock.yaml --out mergesignal-result.json",
       "  mergesignal scan --fail-above 20",
+      "  mergesignal scan --trusted --out result.json",
       "",
       "Notes:",
-      "  - Uses @mergesignal/engine: set MERGESIGNAL_ENGINE_IMPL to load the real engine, or leave unset for the OSS stub in development.",
+      "  - MERGESIGNAL_TRUSTED_ANALYSIS=1 or --trusted: require MERGESIGNAL_ENGINE_IMPL and validate scan output (CI-style).",
+      "  - Otherwise: set MERGESIGNAL_ENGINE_IMPL for a real engine, or omit for the OSS stub in local development.",
       "  - Lockfile detection prefers pnpm-lock.yaml, then package-lock.json.",
       "",
     ].join("\n"),
@@ -159,7 +185,9 @@ function printSummary(opts: {
 }) {
   const { result } = opts;
   const score =
-    typeof result.totalScore === "number" ? result.totalScore : null;
+    typeof result.totalScore === "number" && Number.isFinite(result.totalScore)
+      ? result.totalScore
+      : null;
   const conf = result.confidence ? String(result.confidence) : "n/a";
   const method = result.methodologyVersion
     ? String(result.methodologyVersion)
@@ -186,7 +214,9 @@ function printSummary(opts: {
   lines.push(`Lockfile: ${lockfileLine}`);
   lines.push(`Method: ${method} • Confidence: ${conf}`);
   lines.push("");
-  lines.push(`Total score: ${score ?? "n/a"} (0 best → 100 worst)`);
+  lines.push(
+    `Total score: ${score === null ? "n/a" : score} (0 best → 100 worst)`,
+  );
   lines.push(`Layers: ${formatLayers(layers)}`);
   lines.push(`Findings: ${findings.length} • Recommendations: ${recs.length}`);
 
@@ -195,8 +225,12 @@ function printSummary(opts: {
     lines.push("Why this is risky:");
     for (const r of reasons.slice(0, 6)) {
       const title = String(r.title ?? r.id ?? "Reason");
-      const impact = Number(r.scoreImpact ?? 0);
-      lines.push(`- ${title} (+${impact})`);
+      const rawImpact = (r as { scoreImpact?: unknown }).scoreImpact;
+      const impact =
+        typeof rawImpact === "number" && Number.isFinite(rawImpact)
+          ? rawImpact
+          : null;
+      lines.push(`- ${title}${impact === null ? "" : ` (+${impact})`}`);
     }
   }
 
@@ -205,11 +239,14 @@ function printSummary(opts: {
     lines.push("Dependency graph intelligence:");
     for (const d of deepest.slice(0, 3)) {
       const name = String(d?.packageName ?? "package");
-      const depth = Number(d?.depth ?? 0);
+      const depth =
+        typeof d?.depth === "number" && Number.isFinite(d.depth)
+          ? d.depth
+          : null;
       const direct = Boolean(d?.direct);
       const via = Array.isArray(d?.via) ? d.via.join(" → ") : "";
       lines.push(
-        `- ${name} is ${direct ? "direct" : "transitive"} at depth ${depth}${via ? ` via ${via}` : ""}`,
+        `- ${name} is ${direct ? "direct" : "transitive"} at depth ${depth === null ? "n/a" : depth}${via ? ` via ${via}` : ""}`,
       );
     }
   }
@@ -219,8 +256,12 @@ function printSummary(opts: {
     lines.push("Top recommendations:");
     for (const r of recs.slice(0, 5)) {
       const title = String(r.title ?? "Untitled");
-      const prio = Number(r.priorityScore ?? 0);
-      lines.push(`- ${title} (${prio})`);
+      const rawPrio = (r as { priorityScore?: unknown }).priorityScore;
+      const prio =
+        typeof rawPrio === "number" && Number.isFinite(rawPrio)
+          ? rawPrio
+          : null;
+      lines.push(`- ${title}${prio === null ? "" : ` (${prio})`}`);
     }
   }
 
@@ -246,8 +287,6 @@ function formatLayers(layers: Partial<LayerScores>) {
 
 function toShortNumber(v: unknown) {
   if (typeof v === "number" && Number.isFinite(v)) return String(Math.round(v));
-  const n = Number(v);
-  if (Number.isFinite(n)) return String(Math.round(n));
   return "n/a";
 }
 
@@ -267,6 +306,10 @@ function parseArgs(argv: string[]): ArgMap {
     }
     if (a === "--json") {
       out["--json"] = true;
+      continue;
+    }
+    if (a === "--trusted") {
+      out["--trusted"] = true;
       continue;
     }
 
@@ -294,7 +337,17 @@ async function writeJsonFile(p: string, value: unknown) {
 }
 
 main().catch((e: unknown) => {
+  const debug = process.env.MERGESIGNAL_DEBUG === "1";
   const msg = e instanceof Error ? e.message : String(e);
-  process.stderr.write(`mergesignal: ${msg}\n`);
+  if (
+    process.env.MERGESIGNAL_TRUSTED_ANALYSIS === "1" &&
+    !debug &&
+    typeof msg === "string" &&
+    msg.length > 0
+  ) {
+    process.stderr.write(`${scanSurfaceCopy.cli.stderrAnalysisIncomplete}\n`);
+  } else {
+    process.stderr.write(`mergesignal: ${msg}\n`);
+  }
   process.exit(1);
 });

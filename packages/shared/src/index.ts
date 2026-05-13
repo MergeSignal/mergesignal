@@ -4,3 +4,4 @@ export * from "./riskVocabulary.js";
 export * from "./selectTopAffectedAreas.js";
 export * from "./deriveScanSummaryText.js";
 export * from "./scanResultSchema.js";
+export * from "./scanSurfaceCopy.js";

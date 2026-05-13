@@ -9,6 +9,7 @@ describe("CLI Argument Parsing", () => {
     "--repo-id"?: string;
     "--lockfile"?: string;
     "--fail-above"?: string;
+    "--trusted"?: true;
   };
 
   function parseArgs(argv: string[]): ParsedArgs {
@@ -27,6 +28,10 @@ describe("CLI Argument Parsing", () => {
       }
       if (a === "--json") {
         out["--json"] = true;
+        continue;
+      }
+      if (a === "--trusted") {
+        out["--trusted"] = true;
         continue;
       }
 
@@ -101,6 +106,12 @@ describe("CLI Argument Parsing", () => {
     expect(result["--json"]).toBe(true);
     expect(result["--out"]).toBe("result.json");
     expect(result["--repo-id"]).toBe("test/repo");
+  });
+
+  it("should parse --trusted flag", () => {
+    const result = parseArgs(["scan", "--trusted"]);
+    expect(result._).toEqual(["scan"]);
+    expect(result["--trusted"]).toBe(true);
   });
 
   it("should throw on unknown flag", () => {

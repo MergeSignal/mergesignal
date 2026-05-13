@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   mergePostureLabel,
   ariaLabelForPosture,
+  scanSurfaceCopy,
   type MergePosture,
 } from "@mergesignal/shared";
 import type {
@@ -57,7 +58,7 @@ function ScanStateBadge({ state }: { state: ScanState }) {
     state === "in_progress"
       ? "Scan in progress"
       : state === "failed"
-        ? "Scan failed"
+        ? scanSurfaceCopy.pipeline.analysisIncomplete
         : state === "outdated"
           ? "Scan outdated"
           : "Not scanned";

@@ -390,6 +390,24 @@ When you move to a custom domain later, replace these hostnames in DNS, `CORS_OR
 
 The default **worker** image in `k8s/worker-deployment.yaml` is `mergesignal/worker:latest`; build and push from [`apps/worker/Dockerfile`](apps/worker/Dockerfile) in this repo, or substitute the **mergesignal-engine** image if you use a proprietary engine module via `MERGESIGNAL_ENGINE_IMPL`.
 
+### GitHub Actions merge-signal-scan
+
+For workflows that should **not** silently use the OSS stub, use the composite action with **`scan_profile: trusted`**. That sets `MERGESIGNAL_TRUSTED_ANALYSIS=1` and requires a resolvable **`MERGESIGNAL_ENGINE_IMPL`** (installed module), with `MERGESIGNAL_ENGINE_STRICT=1` on scan steps.
+
+**Recommended repository secrets (names are suggestions; map them to `secrets.npm_token` and inputs in the workflow):**
+
+- **`MERGESIGNAL_NPM_TOKEN`** — registry token passed only as `secrets.npm_token` to the action. Never print this value or commit it to the repository.
+- **`MERGESIGNAL_ENGINE_PACKAGE`** — full `pnpm add` spec for the proprietary engine (pin a version), for example `@your-scope/mergesignal-engine@1.2.3`.
+
+**Optional repository variables:**
+
+- **`MERGESIGNAL_NPM_REGISTRY_URL`** — registry URL for `.npmrc` (defaults to `https://registry.npmjs.org` in the dogfood workflow).
+- **`MERGESIGNAL_ENGINE_IMPL_MODULE`** — explicit `import()` specifier when it differs from the package name.
+
+**Fork behavior:** On `pull_request` from forks, GitHub does not expose your org secrets. Use `scan_profile: development` when `MERGESIGNAL_NPM_TOKEN` is empty, or skip the scan job with an explanatory step—do not imply a trusted scan without credentials. The MergeSignal dogfood workflow selects trusted vs development based on whether `MERGESIGNAL_NPM_TOKEN` is configured.
+
+**API / worker note:** `MERGESIGNAL_TRUSTED_ANALYSIS` is primarily for CLI and CI paths that must mirror “real engine or fail” without overloading `NODE_ENV`. Long-running **worker** deployments typically rely on `NODE_ENV=production` and `MERGESIGNAL_ENGINE_IMPL` as today; see `apps/api/.env.example`.
+
 ### Secrets Management Best Practices
 
 For production, consider using:

@@ -24,6 +24,17 @@ function engineStrict(): boolean {
   return process.env.MERGESIGNAL_ENGINE_STRICT === "1";
 }
 
+/** CI / CLI paths that must load a real engine (no silent stub). */
+function trustedAnalysis(): boolean {
+  return process.env.MERGESIGNAL_TRUSTED_ANALYSIS === "1";
+}
+
+/** Production or explicit trusted scan — stub only when MERGESIGNAL_ALLOW_STUB=1. */
+function mustLoadRealEngine(): boolean {
+  if (allowStub()) return false;
+  return isProduction() || trustedAnalysis();
+}
+
 function implSpec(): string {
   return String(process.env.MERGESIGNAL_ENGINE_IMPL ?? "").trim();
 }
@@ -57,11 +68,15 @@ async function loadStub(): Promise<EngineImpl> {
 async function loadImpl(): Promise<EngineImpl> {
   const spec = implSpec();
   const strict = engineStrict();
+  const realRequired = mustLoadRealEngine();
 
-  if (isProduction() && !allowStub()) {
+  if (realRequired) {
     if (!spec) {
+      const trusted = trustedAnalysis();
       throw new Error(
-        "MERGESIGNAL_ENGINE_IMPL is required in production (set MERGESIGNAL_ALLOW_STUB=1 only for demo stacks)",
+        trusted && !isProduction()
+          ? "MERGESIGNAL_ENGINE_IMPL is required when MERGESIGNAL_TRUSTED_ANALYSIS=1 (set MERGESIGNAL_ALLOW_STUB=1 only for explicit demo/stub runs)"
+          : "MERGESIGNAL_ENGINE_IMPL is required in production (set MERGESIGNAL_ALLOW_STUB=1 only for demo stacks)",
       );
     }
     return loadFromSpec(spec);
@@ -73,8 +88,12 @@ async function loadImpl(): Promise<EngineImpl> {
     } catch (e) {
       if (strict) throw e;
       const msg = e instanceof Error ? e.message : String(e);
+      const specForLog =
+        spec.length > 120 || /^(https?:)?\/\//i.test(spec)
+          ? `${spec.slice(0, 80)}…`
+          : spec;
       console.warn(
-        `[mergesignal-engine] Failed to load MERGESIGNAL_ENGINE_IMPL=${spec}: ${msg}. Falling back to stub.`,
+        `[mergesignal-engine] Failed to load MERGESIGNAL_ENGINE_IMPL=${specForLog}: ${msg}. Falling back to stub.`,
       );
       return loadStub();
     }

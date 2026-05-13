@@ -1,0 +1,14 @@
+{
+  "pipeline.scanRunning": "Scan in progress",
+  "pipeline.scanIncomplete": "Waiting for scan results",
+  "pipeline.scanUnavailable": "Scan data unavailable",
+  "pipeline.analysisIncomplete": "Analysis could not be completed",
+  "pipeline.outputNotVerified": "These results could not be verified",
+  "actions.failureTitle": "MergeSignal",
+  "actions.failureBody": "Analysis could not be completed. Check the workflow logs for details.",
+  "actions.demoSummaryTitle": "MergeSignal (demo output)",
+  "actions.demoSummaryBanner": "Sample analysis only — not production MergeSignal results. Do not use for merge decisions.",
+  "actions.trustedSummaryMethodologyLine": "Methodology",
+  "cli.stderrAnalysisIncomplete": "Analysis could not be completed.",
+  "cli.stderrOutputNotVerified": "These results could not be verified."
+}

@@ -6,6 +6,7 @@ import {
   formatInsight,
   mergePostureLabel,
   ariaLabelForPosture,
+  scanSurfaceCopy,
 } from "@mergesignal/shared";
 import styles from "./ScanClient.module.css";
 import layoutStyles from "./ScanClientLayout.module.css";
@@ -143,6 +144,10 @@ export default function ScanClient({
     ? data.result.insights
     : [];
   const decision = data.result?.decision;
+  const showScorecard =
+    data.status === "done" &&
+    typeof score === "number" &&
+    Number.isFinite(score);
   const dotClass =
     data.status === "queued"
       ? styles.dotQueued
@@ -169,10 +174,7 @@ export default function ScanClient({
         {data.status === "done" &&
           data.methodologyVersion &&
           /^engine-stub\//i.test(data.methodologyVersion) && (
-            <MSCardNote>
-              Legacy demo scan (stub engine). Re-run the scan after deploying
-              the real engine to see live analysis.
-            </MSCardNote>
+            <MSCardNote>{scanSurfaceCopy.actions.demoSummaryBanner}</MSCardNote>
           )}
         {decision && data.status === "done" && (
           <div className={styles.decisionSection}>
@@ -198,21 +200,39 @@ export default function ScanClient({
       </MSCard>
 
       <MSCard title="Risk score">
-        <div className={styles.score}>
-          <div className={styles.scoreValue}>
-            {typeof score === "number" ? score : "n/a"}
-          </div>
-          <div className={styles.scoreMeta}>0 is best • 100 is worst</div>
-        </div>
-        {layers ? (
-          <MSCardNote>
-            security: <b>{layers.security}</b> • maintainability:{" "}
-            <b>{layers.maintainability}</b> • ecosystem:{" "}
-            <b>{layers.ecosystem}</b> • upgradeImpact:{" "}
-            <b>{layers.upgradeImpact}</b>
-          </MSCardNote>
+        {showScorecard ? (
+          <>
+            <div className={styles.score}>
+              <div className={styles.scoreValue}>{score}</div>
+              <div className={styles.scoreMeta}>0 is best • 100 is worst</div>
+            </div>
+            {layers &&
+            typeof layers.security === "number" &&
+            typeof layers.maintainability === "number" &&
+            typeof layers.ecosystem === "number" &&
+            typeof layers.upgradeImpact === "number" ? (
+              <MSCardNote>
+                security: <b>{layers.security}</b> • maintainability:{" "}
+                <b>{layers.maintainability}</b> • ecosystem:{" "}
+                <b>{layers.ecosystem}</b> • upgradeImpact:{" "}
+                <b>{layers.upgradeImpact}</b>
+              </MSCardNote>
+            ) : (
+              <MSCardMuted as="div">No layer breakdown yet.</MSCardMuted>
+            )}
+          </>
+        ) : data.status === "failed" ? (
+          <MSCardMuted as="div">
+            {scanSurfaceCopy.pipeline.analysisIncomplete}
+          </MSCardMuted>
+        ) : data.status === "running" ? (
+          <MSCardMuted as="div">
+            {scanSurfaceCopy.pipeline.scanRunning}
+          </MSCardMuted>
         ) : (
-          <MSCardMuted as="div">No layer breakdown yet.</MSCardMuted>
+          <MSCardMuted as="div">
+            {scanSurfaceCopy.pipeline.scanIncomplete}
+          </MSCardMuted>
         )}
       </MSCard>
 
@@ -226,7 +246,12 @@ export default function ScanClient({
                 <li key={String(r.id ?? r.title)}>
                   <b>{String(r.title ?? "Untitled")}</b>{" "}
                   <MSCardMuted as="span">
-                    ({Number(r.priorityScore ?? 0)})
+                    {(() => {
+                      const p = r.priorityScore;
+                      return typeof p === "number" && Number.isFinite(p)
+                        ? ` (${p})`
+                        : "";
+                    })()}
                   </MSCardMuted>
                 </li>
               ))}
@@ -344,7 +369,12 @@ export default function ScanClient({
                 <li key={String(r.id ?? r.title)}>
                   <b>{String(r.title ?? "Reason")}</b>{" "}
                   <MSCardMuted as="span">
-                    (+{Number(r.scoreImpact ?? 0)})
+                    {(() => {
+                      const imp = r.scoreImpact;
+                      return typeof imp === "number" && Number.isFinite(imp)
+                        ? ` (+${imp})`
+                        : "";
+                    })()}
                   </MSCardMuted>
                 </li>
               ))}
@@ -371,7 +401,9 @@ export default function ScanClient({
                   <b>{String(x.packageName ?? "package")}</b>{" "}
                   <MSCardMuted as="span">
                     {x.direct ? "direct" : "transitive"} • depth{" "}
-                    {Number(x.depth ?? 0)}
+                    {typeof x.depth === "number" && Number.isFinite(x.depth)
+                      ? x.depth
+                      : "n/a"}
                   </MSCardMuted>
                   {Array.isArray(x.via) && x.via.length ? (
                     <MSCardNote style={{ marginTop: "var(--ms-space-xs)" }}>
@@ -386,8 +418,16 @@ export default function ScanClient({
       )}
 
       {data.status === "failed" && (
-        <MSCard title="Failure">
-          <pre className={styles.failurePre}>{data.error}</pre>
+        <MSCard title={scanSurfaceCopy.pipeline.analysisIncomplete}>
+          <MSCardMuted as="p">
+            {scanSurfaceCopy.actions.failureBody}
+          </MSCardMuted>
+          {data.error ? (
+            <details style={{ marginTop: "var(--ms-space-md)" }}>
+              <summary>Details for support</summary>
+              <pre className={styles.failurePre}>{data.error}</pre>
+            </details>
+          ) : null}
         </MSCard>
       )}
 

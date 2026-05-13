@@ -97,18 +97,22 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
 
     for (const row of rows) {
       const prKey = String(row.github_pr_number);
+      const statusLc = String(row.status ?? "")
+        .trim()
+        .toLowerCase();
       const d = row.decision;
-      if (d === "safe" || d === "needs_review" || d === "risky") {
+      if (
+        statusLc === "done" &&
+        (d === "safe" || d === "needs_review" || d === "risky")
+      ) {
         aggregates.byDecision[d] += 1;
       }
 
-      const scanResult = asScanResult(row.result);
+      const scanResult = statusLc === "done" ? asScanResult(row.result) : null;
 
       byPrNumber[prKey] = {
         scanId: row.scan_id,
-        status: String(row.status ?? "")
-          .trim()
-          .toLowerCase(),
+        status: statusLc,
         decision: row.decision,
         totalScore: row.total_score,
         githubPrNumber: row.github_pr_number,

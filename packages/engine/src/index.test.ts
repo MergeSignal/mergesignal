@@ -52,6 +52,42 @@ describe("engine", () => {
         analyze({ repoId: "o/r", dependencyGraph: {} }),
       ).rejects.toThrow();
     });
+
+    it("rejects trusted analysis without MERGESIGNAL_ENGINE_IMPL", async () => {
+      process.env.NODE_ENV = "test";
+      process.env.MERGESIGNAL_TRUSTED_ANALYSIS = "1";
+      delete process.env.MERGESIGNAL_ENGINE_IMPL;
+      delete process.env.MERGESIGNAL_ALLOW_STUB;
+
+      await expect(
+        analyze({ repoId: "o/r", dependencyGraph: {} }),
+      ).rejects.toThrow(
+        /MERGESIGNAL_ENGINE_IMPL is required when MERGESIGNAL_TRUSTED_ANALYSIS/,
+      );
+    });
+
+    it("does not fall back to stub on bad MERGESIGNAL_ENGINE_IMPL when trusted", async () => {
+      process.env.NODE_ENV = "test";
+      process.env.MERGESIGNAL_TRUSTED_ANALYSIS = "1";
+      process.env.MERGESIGNAL_ENGINE_IMPL =
+        "nonexistent-mergesignal-engine-module-xyz123";
+      delete process.env.MERGESIGNAL_ALLOW_STUB;
+      delete process.env.MERGESIGNAL_ENGINE_STRICT;
+
+      await expect(
+        analyze({ repoId: "o/r", dependencyGraph: {} }),
+      ).rejects.toThrow();
+    });
+
+    it("allows stub when trusted and MERGESIGNAL_ALLOW_STUB=1 without impl", async () => {
+      process.env.NODE_ENV = "test";
+      process.env.MERGESIGNAL_TRUSTED_ANALYSIS = "1";
+      process.env.MERGESIGNAL_ALLOW_STUB = "1";
+      delete process.env.MERGESIGNAL_ENGINE_IMPL;
+
+      const result = await analyze({ repoId: "o/r", dependencyGraph: {} });
+      expect(result.methodologyVersion).toBe("engine-stub/v2");
+    });
   });
 
   describe("analyze", () => {
