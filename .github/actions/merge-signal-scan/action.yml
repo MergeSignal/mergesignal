@@ -25,8 +25,9 @@ inputs:
     default: ""
   npm_token:
     description: >
-      Registry auth token (never log or echo). Pass from the workflow as
-      with.npm_token: ${{ secrets.YOUR_TOKEN }}. Required when scan_profile is trusted.
+      Registry auth token (never log or echo). Pass from the calling workflow
+      with inputs.npm_token set to a secret reference (for example the value of
+      repository secret MERGESIGNAL_NPM_TOKEN). Required when scan_profile is trusted.
     required: false
     default: ""
 
