@@ -54,7 +54,7 @@ COPY --from=builder /app/packages/engine-stub/dist ./packages/engine-stub/dist
 
 ENV NODE_ENV=production
 
-# Real scans: set MERGESIGNAL_ENGINE_IMPL to a resolvable module (e.g. private package name or file: URL).
+# Real scans: set MERGESIGNAL_ENGINE_IMPL to a resolvable module (npm package specifier or file: URL to built engine).
 # OSS/demo images only: MERGESIGNAL_ALLOW_STUB=1
 # SCAN_HEARTBEAT_INTERVAL_MS=30000
 

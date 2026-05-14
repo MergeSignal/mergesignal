@@ -7,29 +7,31 @@ inputs:
     default: ""
   scan_profile:
     description: >
-      "trusted" loads a real engine (requires npm_token + engine_package). "development" uses the OSS stub for demos and forks without private engine access.
+      "trusted" checks out the private engine GitHub repository, builds it, and sets MERGESIGNAL_ENGINE_IMPL to a file URL (requires engine_repo_token). "development" uses the OSS stub for demos and forks without private engine access.
     required: false
     default: "development"
-  npm_registry_url:
-    description: Registry URL for .npmrc (used when scan_profile is trusted).
-    required: false
-    default: "https://registry.npmjs.org"
-  engine_package:
-    description: Package spec for pnpm add (e.g. @scope/mergesignal-engine@1.0.0). Required when scan_profile is trusted.
-    required: false
-    default: ""
-  engine_impl_module:
+  engine_repo_token:
     description: >
-      MERGESIGNAL_ENGINE_IMPL import specifier (e.g. @scope/mergesignal-engine). When empty, a trailing @version on engine_package is stripped when possible.
+      GitHub token with read access to the private engine repository only (never log or echo).
+      Pass from the calling workflow with inputs.engine_repo_token set to a secret reference
+      (for example repository secret MERGESIGNAL_ENGINE_REPO_TOKEN). Required when scan_profile is trusted.
     required: false
     default: ""
-  npm_token:
+  engine_repository:
     description: >
-      Registry auth token (never log or echo). Pass from the calling workflow
-      with inputs.npm_token set to a secret reference (for example the value of
-      repository secret MERGESIGNAL_NPM_TOKEN). Required when scan_profile is trusted.
+      Owner/name of the private engine repository to checkout and build when scan_profile is trusted.
     required: false
-    default: ""
+    default: "MergeSignal/mergesignal-engine"
+  engine_ref:
+    description: Git ref (branch, tag, or SHA) to checkout for the engine repository when scan_profile is trusted.
+    required: false
+    default: "main"
+  engine_impl_file:
+    description: >
+      Path relative to the engine repository root for the built ESM entry file (must export analyze and simulateUpgrade)
+      after `pnpm build` or `npm run build`.
+    required: false
+    default: "dist/index.js"
 
 runs:
   using: composite
@@ -71,57 +73,58 @@ runs:
         pnpm install --frozen-lockfile
         pnpm turbo run build --filter=@mergesignal/cli...
 
-    - name: Resolve MERGESIGNAL_ENGINE_IMPL
-      id: engine-impl
-      shell: bash
-      env:
-        PROFILE: ${{ inputs.scan_profile }}
-        MOD: ${{ inputs.engine_impl_module }}
-        PKG: ${{ inputs.engine_package }}
-      run: |
-        set -euo pipefail
-        if [ "$PROFILE" != "trusted" ]; then
-          echo "spec=" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        if [ -n "${MOD:-}" ]; then
-          echo "spec=${MOD}" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        if [ -z "${PKG:-}" ]; then
-          echo "spec=" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        spec="$(node -e "const pkg=process.env.PKG||'';const mod=process.env.MOD||'';if(mod){process.stdout.write(mod);process.exit(0);}if(!pkg)process.exit(0);if(pkg[0]==='@'){const last=pkg.lastIndexOf('@');const first=pkg.indexOf('@',1);process.stdout.write(last>first?pkg.slice(0,last):pkg);}else{const i=pkg.lastIndexOf('@');process.stdout.write(i>0?pkg.slice(0,i):pkg);}")"
-        echo "spec=${spec}" >> "$GITHUB_OUTPUT"
-
-    - name: Install private engine (trusted only)
+    - name: Require engine repo token (trusted only)
       if: inputs.scan_profile == 'trusted'
       shell: bash
       env:
-        NPM_TOKEN: ${{ inputs.npm_token }}
-        ENGINE_PKG: ${{ inputs.engine_package }}
-        REG_URL: ${{ inputs.npm_registry_url }}
+        ENGINE_REPO_TOKEN: ${{ inputs.engine_repo_token }}
       run: |
         set -euo pipefail
-        if [ -z "${NPM_TOKEN:-}" ]; then
-          echo "merge-signal-scan: trusted profile requires inputs.npm_token" >&2
+        if [ -z "${ENGINE_REPO_TOKEN:-}" ]; then
+          echo "::error::merge-signal-scan: trusted profile requires inputs.engine_repo_token" >&2
           exit 1
         fi
-        if [ -z "${ENGINE_PKG:-}" ]; then
-          echo "merge-signal-scan: trusted profile requires inputs.engine_package" >&2
+
+    - name: Checkout private MergeSignal engine
+      if: inputs.scan_profile == 'trusted'
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.engine_repository }}
+        ref: ${{ inputs.engine_ref }}
+        path: _ms_engine
+        token: ${{ inputs.engine_repo_token }}
+        persist-credentials: false
+
+    - name: Build private engine (trusted only)
+      if: inputs.scan_profile == 'trusted'
+      id: engine-impl
+      shell: bash
+      env:
+        ENGINE_IMPL_FILE: ${{ inputs.engine_impl_file }}
+      run: |
+        set -euo pipefail
+        ROOT="$GITHUB_WORKSPACE/_ms_engine"
+        cd "$ROOT"
+        if [ -f pnpm-lock.yaml ]; then
+          corepack enable
+          corepack install
+          pnpm install --frozen-lockfile
+          pnpm run build
+        elif [ -f package-lock.json ]; then
+          npm ci
+          npm run build
+        else
+          echo "::error::merge-signal-scan: engine repository must contain pnpm-lock.yaml or package-lock.json" >&2
           exit 1
         fi
-        cd "$GITHUB_WORKSPACE/_ms_rt"
-        HOST="${REG_URL#https://}"
-        HOST="${HOST#http://}"
-        HOST="${HOST%%/*}"
-        {
-          echo "always-auth=true"
-          echo "registry=${REG_URL}"
-          echo "//${HOST}/:_authToken=${NPM_TOKEN}"
-        } >> .npmrc
-        pnpm add "${ENGINE_PKG}" --no-frozen-lockfile
+        rel="${ENGINE_IMPL_FILE#./}"
+        rel="${rel#/}"
+        file="$ROOT/$rel"
+        if [ ! -f "$file" ]; then
+          echo "::error::merge-signal-scan: engine build did not produce ${rel} (check engine_impl_file input)" >&2
+          exit 1
+        fi
+        echo "spec=file:${file}" >> "$GITHUB_OUTPUT"
 
     - name: Run dependency scan
       id: scan

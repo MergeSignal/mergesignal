@@ -30,16 +30,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Require trusted credentials
+      - name: Require trusted engine credentials
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${{ secrets.MERGESIGNAL_NPM_TOKEN }}" ]; then
-            echo "::error::MergeSignal trusted scan requires repository secret MERGESIGNAL_NPM_TOKEN."
-            exit 1
-          fi
-          if [ -z "${{ secrets.MERGESIGNAL_ENGINE_PACKAGE }}" ]; then
-            echo "::error::MergeSignal trusted scan requires repository secret MERGESIGNAL_ENGINE_PACKAGE."
+          if [ -z "${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}" ]; then
+            echo "::error::MergeSignal trusted scan requires repository secret MERGESIGNAL_ENGINE_REPO_TOKEN (read access to the private engine repository)."
             exit 1
           fi
 
@@ -48,10 +44,10 @@ jobs:
         with:
           fail_above: ${{ github.event.inputs.fail_above || '' }}
           scan_profile: trusted
-          npm_registry_url: ${{ vars.MERGESIGNAL_NPM_REGISTRY_URL || 'https://registry.npmjs.org' }}
-          engine_package: ${{ secrets.MERGESIGNAL_ENGINE_PACKAGE }}
-          engine_impl_module: ${{ vars.MERGESIGNAL_ENGINE_IMPL_MODULE }}
-          npm_token: ${{ secrets.MERGESIGNAL_NPM_TOKEN }}
+          engine_repo_token: ${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}
+          engine_repository: ${{ vars.MERGESIGNAL_ENGINE_REPOSITORY || 'MergeSignal/mergesignal-engine' }}
+          engine_ref: ${{ vars.MERGESIGNAL_ENGINE_REF || 'main' }}
+          engine_impl_file: ${{ vars.MERGESIGNAL_ENGINE_IMPL_FILE || 'dist/index.js' }}
 
       - name: Upload results
         if: success()

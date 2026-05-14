@@ -31,8 +31,7 @@ jobs:
       - uses: MergeSignal/mergesignal/.github/actions/merge-signal-scan@main
         with:
           scan_profile: trusted
-          npm_token: \${{ secrets.MERGESIGNAL_NPM_TOKEN }}
-          engine_package: \${{ secrets.MERGESIGNAL_ENGINE_PACKAGE }}`;
+          engine_repo_token: \${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}`;
 
 export default function GettingStartedPage() {
   return (

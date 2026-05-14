@@ -392,19 +392,21 @@ The default **worker** image in `k8s/worker-deployment.yaml` is `mergesignal/wor
 
 ### GitHub Actions merge-signal-scan
 
-For workflows that should **not** silently use the OSS stub, use the composite action with **`scan_profile: trusted`**. That sets `MERGESIGNAL_TRUSTED_ANALYSIS=1` and requires a resolvable **`MERGESIGNAL_ENGINE_IMPL`** (installed module), with `MERGESIGNAL_ENGINE_STRICT=1` on scan steps.
+For workflows that should **not** silently use the OSS stub, use the composite action with **`scan_profile: trusted`**. That checks out the private engine repository on the runner, installs and builds it, sets **`MERGESIGNAL_ENGINE_IMPL`** to a **`file:`** URL pointing at the built entry file, and sets `MERGESIGNAL_TRUSTED_ANALYSIS=1` with `MERGESIGNAL_ENGINE_STRICT=1` on scan steps. No npm registry, GitHub Packages, or `pnpm add` of a published engine package is required.
 
-**Recommended repository secrets (names are suggestions; pass the registry token with `with.npm_token` in the workflow):**
+**Recommended repository secret:**
 
-- **`MERGESIGNAL_NPM_TOKEN`** — registry token passed as `with.npm_token: ${{ secrets.MERGESIGNAL_NPM_TOKEN }}` to the action. Never print this value or commit it to the repository.
-- **`MERGESIGNAL_ENGINE_PACKAGE`** — full `pnpm add` spec for the proprietary engine (pin a version), for example `@your-scope/mergesignal-engine@1.2.3`.
+- **`MERGESIGNAL_ENGINE_REPO_TOKEN`** — GitHub PAT or GitHub App token with **read** access to the private engine repository only (typically `MergeSignal/mergesignal-engine`). Pass it as `with.engine_repo_token: ${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}`. Never print this value, embed it in logs, or commit it to the repository.
 
-**Optional repository variables:**
+**Optional repository variables (non-secret overrides):**
 
-- **`MERGESIGNAL_NPM_REGISTRY_URL`** — registry URL for `.npmrc` (defaults to `https://registry.npmjs.org` in the dogfood workflow).
-- **`MERGESIGNAL_ENGINE_IMPL_MODULE`** — explicit `import()` specifier when it differs from the package name.
+- **`MERGESIGNAL_ENGINE_REPOSITORY`** — `owner/name` of the engine repo (default `MergeSignal/mergesignal-engine` in the dogfood workflow).
+- **`MERGESIGNAL_ENGINE_REF`** — branch, tag, or SHA to checkout (default `main`).
+- **`MERGESIGNAL_ENGINE_IMPL_FILE`** — path relative to the engine repo root to the built ESM file that exports `analyze` and `simulateUpgrade` (default `dist/index.js`). The engine repo must include `pnpm-lock.yaml` or `package-lock.json` and a `build` script that produces this file.
 
-**Fork behavior:** On `pull_request` from forks, GitHub does not expose your org secrets. **Skip** the MergeSignal job when `github.event.pull_request.head.repo.full_name != github.repository` so fork PRs do not show a fake trusted scan or OSS stub as production signal. The MergeSignal dogfood workflow uses **`scan_profile: trusted`** only on same-repo PRs (plus `push` to `main` / `workflow_dispatch`) and fails early if `MERGESIGNAL_NPM_TOKEN` or `MERGESIGNAL_ENGINE_PACKAGE` is missing.
+**Engine repository contract:** The checkout must contain a standard Node project with `pnpm install --frozen-lockfile` + `pnpm run build`, or `npm ci` + `npm run build`, producing the file at `engine_impl_file`. This matches a private **mergesignal-engine** source repo rather than a published npm package.
+
+**Fork behavior:** On `pull_request` from forks, GitHub does not expose your org secrets. **Skip** the MergeSignal job when `github.event.pull_request.head.repo.full_name != github.repository` so fork PRs do not show a fake trusted scan or OSS stub as production signal. The MergeSignal dogfood workflow uses **`scan_profile: trusted`** only on same-repo PRs (plus `push` to `main` / `workflow_dispatch`) and fails early if `MERGESIGNAL_ENGINE_REPO_TOKEN` is missing.
 
 **API / worker note:** `MERGESIGNAL_TRUSTED_ANALYSIS` is primarily for CLI and CI paths that must mirror “real engine or fail” without overloading `NODE_ENV`. Long-running **worker** deployments typically rely on `NODE_ENV=production` and `MERGESIGNAL_ENGINE_IMPL` as today; see `apps/api/.env.example`.
 

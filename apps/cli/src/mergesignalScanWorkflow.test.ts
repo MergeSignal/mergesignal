@@ -34,6 +34,54 @@ describe("MergeSignal GitHub workflow contract", () => {
     expect(scanStep, "MergeSignal scan composite step").toBeTruthy();
     const withBlock = scanStep?.with as Record<string, string> | undefined;
     expect(withBlock?.scan_profile).toBe("trusted");
+    expect(withBlock?.engine_repo_token).toContain(
+      "secrets.MERGESIGNAL_ENGINE_REPO_TOKEN",
+    );
+    expect(withBlock?.npm_token).toBeUndefined();
+    expect(withBlock?.engine_package).toBeUndefined();
+    expect(withBlock?.npm_registry_url).toBeUndefined();
+  });
+
+  it("mergesignal-scan.yml does not reference npm-based engine secrets", () => {
+    const raw = readFileSync(
+      join(repoRoot, ".github/workflows/mergesignal-scan.yml"),
+      "utf8",
+    );
+    expect(raw).not.toContain("MERGESIGNAL_NPM_TOKEN");
+    expect(raw).not.toContain("MERGESIGNAL_ENGINE_PACKAGE");
+    expect(raw).not.toContain("npm_registry_url:");
+    expect(raw).not.toContain("engine_package:");
+    expect(raw).not.toContain("npm_token:");
+  });
+
+  it("merge-signal-scan action uses GitHub checkout for trusted engine, not npm inputs", () => {
+    const action = parse(
+      readFileSync(
+        join(repoRoot, ".github/actions/merge-signal-scan/action.yml"),
+        "utf8",
+      ),
+    ) as {
+      inputs?: Record<string, { default?: string }>;
+      runs?: { steps?: Array<Record<string, unknown>> };
+    };
+
+    expect(action.inputs?.engine_repo_token).toBeDefined();
+    expect(action.inputs?.engine_repository?.default).toBe(
+      "MergeSignal/mergesignal-engine",
+    );
+    expect(action.inputs?.npm_token).toBeUndefined();
+    expect(action.inputs?.engine_package).toBeUndefined();
+    expect(action.inputs?.npm_registry_url).toBeUndefined();
+
+    const steps = action.runs?.steps ?? [];
+    const engineCheckout = steps.find((s) =>
+      String(s.name ?? "").includes("Checkout private MergeSignal engine"),
+    );
+    expect(engineCheckout, "engine checkout step").toBeTruthy();
+    const checkoutWith = engineCheckout?.with as
+      | Record<string, string>
+      | undefined;
+    expect(String(checkoutWith?.["persist-credentials"])).toBe("false");
   });
 
   it("ci.yml does not expose trusted-scan-fixture on pull_request", () => {
