@@ -394,9 +394,9 @@ The default **worker** image in `k8s/worker-deployment.yaml` is `mergesignal/wor
 
 For workflows that should **not** silently use the OSS stub, use the composite action with **`scan_profile: trusted`**. That sets `MERGESIGNAL_TRUSTED_ANALYSIS=1` and requires a resolvable **`MERGESIGNAL_ENGINE_IMPL`** (installed module), with `MERGESIGNAL_ENGINE_STRICT=1` on scan steps.
 
-**Recommended repository secrets (names are suggestions; map them to `secrets.npm_token` and inputs in the workflow):**
+**Recommended repository secrets (names are suggestions; pass the registry token with `with.npm_token` in the workflow):**
 
-- **`MERGESIGNAL_NPM_TOKEN`** — registry token passed only as `secrets.npm_token` to the action. Never print this value or commit it to the repository.
+- **`MERGESIGNAL_NPM_TOKEN`** — registry token passed as `with.npm_token: ${{ secrets.MERGESIGNAL_NPM_TOKEN }}` to the action. Never print this value or commit it to the repository.
 - **`MERGESIGNAL_ENGINE_PACKAGE`** — full `pnpm add` spec for the proprietary engine (pin a version), for example `@your-scope/mergesignal-engine@1.2.3`.
 
 **Optional repository variables:**

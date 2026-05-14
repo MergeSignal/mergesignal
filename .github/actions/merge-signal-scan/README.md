@@ -10,20 +10,20 @@ This is a **black-box** integration from a repository owner’s perspective: you
 
 The action input **`scan_profile`** controls whether the run must use a **real analysis engine** or may use the **OSS stub** (demo output).
 
-| Value                       | Engine                                                                                                                                                                                                                    | When to use                                                                                                                              |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **`trusted`**               | Requires a resolvable `MERGESIGNAL_ENGINE_IMPL` (private npm package or other installable module). Sets `MERGESIGNAL_TRUSTED_ANALYSIS=1` and `MERGESIGNAL_ENGINE_STRICT=1` on scan steps. Stub output is **not** allowed. | Production-style CI where summaries should represent real MergeSignal analysis. Supply **`secrets.npm_token`** and **`engine_package`**. |
-| **`development`** (default) | OSS stub when no private engine is configured. Summary uses a **demo** title and banner so logs cannot be mistaken for trusted analysis.                                                                                  | Forks, public demos, or repos without access to the proprietary engine package.                                                          |
+| Value                       | Engine                                                                                                                                                                                                                    | When to use                                                                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`trusted`**               | Requires a resolvable `MERGESIGNAL_ENGINE_IMPL` (private npm package or other installable module). Sets `MERGESIGNAL_TRUSTED_ANALYSIS=1` and `MERGESIGNAL_ENGINE_STRICT=1` on scan steps. Stub output is **not** allowed. | Production-style CI where summaries should represent real MergeSignal analysis. Supply **`npm_token`** (from a workflow secret) and **`engine_package`**. |
+| **`development`** (default) | OSS stub when no private engine is configured. Summary uses a **demo** title and banner so logs cannot be mistaken for trusted analysis.                                                                                  | Forks, public demos, or repos without access to the proprietary engine package.                                                                           |
 
 **Forks and pull requests from forks:** Workflows triggered by `pull_request` do not receive repository secrets on forks. Use **`development`** (or skip the job when secrets are empty) so you never imply a trusted scan without credentials. This repository’s dogfood workflow [`.github/workflows/mergesignal-scan.yml`](../../workflows/mergesignal-scan.yml) picks **`trusted`** only when `secrets.MERGESIGNAL_NPM_TOKEN` is set; otherwise it runs **`development`**.
 
-**Security — registry token:** Pass the registry token only via **`secrets.npm_token`** (for example map `secrets.npm_token: ${{ secrets.MERGESIGNAL_NPM_TOKEN }}` in the workflow). Do not echo tokens, full `.npmrc` contents, or raw `MERGESIGNAL_ENGINE_IMPL` values in logs. The composite appends auth lines to `_ms_rt/.npmrc` inside the internal checkout; it does not print them.
+**Security — registry token:** Pass the registry token only via **`with.npm_token`** using a secret expression (for example `npm_token: ${{ secrets.MERGESIGNAL_NPM_TOKEN }}`). Do not echo tokens, full `.npmrc` contents, or raw `MERGESIGNAL_ENGINE_IMPL` values in logs. The composite appends auth lines to `_ms_rt/.npmrc` inside the internal checkout; it does not print them.
 
-### Trusted profile: required inputs and secrets
+### Trusted profile: required inputs
 
 When `scan_profile: trusted`:
 
-1. **`secrets.npm_token`** — non-empty registry auth token (`NODE_AUTH_TOKEN` pattern for npm/GitHub Packages).
+1. **`npm_token`** — non-empty registry auth token (`NODE_AUTH_TOKEN` pattern for npm/GitHub Packages), passed from workflow secrets via `with`.
 2. **`engine_package`** — argument to `pnpm add` (for example `@your-scope/mergesignal-engine@1.2.3`). Pin a version for reproducibility.
 3. **`npm_registry_url`** (optional) — registry base URL for `.npmrc` (default `https://registry.npmjs.org`).
 4. **`engine_impl_module`** (optional) — value for `MERGESIGNAL_ENGINE_IMPL` if it differs from the package name (for example a subpath export). If empty, a trailing `@version` on `engine_package` is stripped when the package is scoped (`@scope/pkg@1.0.0` → `@scope/pkg`).
@@ -46,7 +46,6 @@ jobs:
           scan_profile: trusted
           npm_registry_url: https://registry.npmjs.org
           engine_package: ${{ secrets.MERGESIGNAL_ENGINE_PACKAGE }}
-        secrets:
           npm_token: ${{ secrets.MERGESIGNAL_NPM_TOKEN }}
 ```
 
@@ -116,7 +115,7 @@ Breaking changes to that contract follow **semver** on whatever ref you pin (`@m
 
 ## Troubleshooting
 
-- **`trusted` fails immediately on “requires secrets.npm_token”** — Map `secrets.npm_token` in the workflow step, or switch to `scan_profile: development` when no token is available (e.g. fork PRs).
+- **`trusted` fails immediately on “requires inputs.npm_token”** — Set `with.npm_token` from a workflow secret, or switch to `scan_profile: development` when no token is available (e.g. fork PRs).
 - **`trusted` fails on engine load** — Confirm `engine_package` installs on the runner registry and that `engine_impl_module` (if set) matches the module Node can `import()`. Check workflow logs; do not rely on stub behavior in trusted mode.
 - **Demo banner in Summary** — You are on **`development`** profile or stub methodology; expected for OSS demos.
 

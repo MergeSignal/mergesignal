@@ -7,7 +7,7 @@ inputs:
     default: ""
   scan_profile:
     description: >
-      "trusted" loads a real engine (requires secrets + engine_package). "development" uses the OSS stub for demos and forks without private engine access.
+      "trusted" loads a real engine (requires npm_token + engine_package). "development" uses the OSS stub for demos and forks without private engine access.
     required: false
     default: "development"
   npm_registry_url:
@@ -23,11 +23,12 @@ inputs:
       MERGESIGNAL_ENGINE_IMPL import specifier (e.g. @scope/mergesignal-engine). When empty, a trailing @version on engine_package is stripped when possible.
     required: false
     default: ""
-
-secrets:
   npm_token:
-    description: Registry auth token (never logged). Required for trusted profile.
+    description: >
+      Registry auth token (never log or echo). Pass from the workflow as
+      with.npm_token: ${{ secrets.YOUR_TOKEN }}. Required when scan_profile is trusted.
     required: false
+    default: ""
 
 runs:
   using: composite
@@ -97,13 +98,13 @@ runs:
       if: inputs.scan_profile == 'trusted'
       shell: bash
       env:
-        NPM_TOKEN: ${{ secrets.npm_token }}
+        NPM_TOKEN: ${{ inputs.npm_token }}
         ENGINE_PKG: ${{ inputs.engine_package }}
         REG_URL: ${{ inputs.npm_registry_url }}
       run: |
         set -euo pipefail
         if [ -z "${NPM_TOKEN:-}" ]; then
-          echo "merge-signal-scan: trusted profile requires secrets.npm_token" >&2
+          echo "merge-signal-scan: trusted profile requires inputs.npm_token" >&2
           exit 1
         fi
         if [ -z "${ENGINE_PKG:-}" ]; then
