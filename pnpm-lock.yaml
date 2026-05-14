@@ -123,6 +123,9 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.15.3)(@vitest/ui@4.1.0)(happy-dom@20.9.0)(jsdom@29.1.1)(lightningcss@1.32.0)(sugarss@5.0.1(postcss@8.5.14))
+      yaml:
+        specifier: 2.7.0
+        version: 2.7.0
 
   apps/web:
     dependencies:
@@ -7231,6 +7234,14 @@ packages:
       }
     engines: { node: ">=0.4" }
 
+  yaml@2.7.0:
+    resolution:
+      {
+        integrity: sha512-+hSoy/QHluxmC9kCIJyL/uyFmLmc+e5CFR5Wa+bpIhIj85LVb9ZH2nVnqrHoSvKogwODv0ClqZkmiSSaIH5LTA==,
+      }
+    engines: { node: ">= 14" }
+    hasBin: true
+
   yaml@2.8.3:
     resolution:
       {
@@ -11848,6 +11859,8 @@ snapshots:
     optional: true
 
   xtend@4.0.2: {}
+
+  yaml@2.7.0: {}
 
   yaml@2.8.3: {}
 

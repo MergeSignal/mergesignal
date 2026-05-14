@@ -4,12 +4,17 @@
  * Usage: node scripts/ci/render-mergesignal-step-summary.mjs <path-to-mergesignal-scan.json>
  *
  * MERGESIGNAL_ACTIONS_SUMMARY_PROFILE=trusted|development
- * - trusted: refuses engine-stub methodology (exit 1).
- * - development: distinct demo title + banner (stub / OSS).
+ * - trusted: production layout; stub methodology refused (via @mergesignal/shared).
+ * - development: OSS preview (demo title + banner).
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import {
+  assertTrustedActionsSummaryAllowed,
+  isStubMethodologyVersion,
+} from "../../packages/shared/dist/index.js";
 
 const jsonPath = process.argv[2] || "mergesignal-scan.json";
 const summaryPath = process.env.GITHUB_STEP_SUMMARY;
@@ -42,15 +47,18 @@ const r = JSON.parse(raw);
 const methodology = r.methodologyVersion
   ? String(r.methodologyVersion)
   : null;
-const isStub =
-  methodology != null && /^engine-stub\//i.test(methodology);
 
-if (profile === "trusted" && isStub) {
+try {
+  assertTrustedActionsSummaryAllowed(profile, methodology ?? undefined);
+} catch (e) {
   console.error(
-    "render-mergesignal-step-summary: trusted profile cannot render stub methodology output",
+    e instanceof Error ? e.message : String(e),
   );
   process.exit(1);
 }
+
+const isStub = isStubMethodologyVersion(methodology ?? undefined);
+const isTrustedLayout = profile === "trusted";
 
 const total =
   typeof r.totalScore === "number" && Number.isFinite(r.totalScore)
@@ -77,16 +85,16 @@ function getActionMeta(rec) {
     typeof rec.priorityScore === "number" && Number.isFinite(rec.priorityScore)
       ? rec.priorityScore
       : NaN;
-  if (impact === "high" || prio >= 80) return { icon: "🔴", time: "< 5 min" };
-  if (impact === "medium" || prio >= 50) return { icon: "⚠️", time: "~15 min" };
-  return { icon: "ℹ️", time: "~30 min" };
+  if (impact === "high" || prio >= 80) return { time: "< 5 min" };
+  if (impact === "medium" || prio >= 50) return { time: "~15 min" };
+  return { time: "~30 min" };
 }
 
 function formatLayerStatus(score) {
   if (typeof score !== "number" || !Number.isFinite(score)) return "—";
-  if (score < 20) return `${score} ✅`;
-  if (score < 40) return `${score} ⚠️`;
-  return `${score} 🔴`;
+  if (score < 20) return `${score} ok`;
+  if (score < 40) return `${score} watch`;
+  return `${score} attention`;
 }
 
 const layerOrder = [
@@ -110,18 +118,19 @@ if (profile === "development" || isStub) {
   lines.push(`> **${demoBanner}**`);
   lines.push("");
 } else {
-  lines.push(`# MergeSignal Scan: Score ${total === null ? "—" : total}/100`);
+  lines.push(`# MergeSignal — ${total === null ? "Score unavailable" : `Risk score ${total}/100`}`);
   lines.push("");
 }
 
-lines.push(
-  `${status.emoji} **${status.label}**${recs.length === 0 ? " — No critical issues" : ""}`,
-);
+const riskLead = isTrustedLayout
+  ? `**${status.label}**`
+  : `${status.emoji} **${status.label}**${recs.length === 0 ? " — No critical issues" : ""}`;
+lines.push(riskLead);
 lines.push("");
 
 if (methodology) {
   const methLabel =
-    profile === "trusted" && !isStub
+    isTrustedLayout && !isStub
       ? copy["actions.trustedSummaryMethodologyLine"] ?? "Methodology"
       : "Methodology";
   lines.push(`**${methLabel}:** ${methodology}`);
@@ -129,7 +138,7 @@ if (methodology) {
 }
 
 if (recs.length > 0) {
-  lines.push(`## 🎯 Recommended actions (${Math.min(3, recs.length)}):`);
+  lines.push(`## Recommended actions (${Math.min(3, recs.length)})`);
   const topRecs = recs.slice(0, 3);
   for (let i = 0; i < topRecs.length; i++) {
     const rec = topRecs[i];
@@ -139,16 +148,16 @@ if (recs.length > 0) {
       Array.isArray(rec.packages) && rec.packages.length > 0
         ? ` — \`${rec.packages.slice(0, 3).join("`, `")}\`${rec.packages.length > 3 ? `, +${rec.packages.length - 3} more` : ""}`
         : "";
-    lines.push(`${i + 1}. ${meta.icon} ${title} (${meta.time})${pkgs}`);
+    lines.push(`${i + 1}. ${title} (${meta.time})${pkgs}`);
   }
   lines.push("");
-} else {
-  lines.push("## 🎯 No immediate actions required");
+} else if (!isTrustedLayout) {
+  lines.push("## No immediate actions required");
   lines.push("");
 }
 
 lines.push("<details>");
-lines.push("<summary>📈 Risk breakdown (expand)</summary>");
+lines.push("<summary>Risk breakdown</summary>");
 lines.push("");
 lines.push("| Layer | Score | Status |");
 lines.push("|-------|-------|--------|");

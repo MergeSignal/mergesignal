@@ -1,4 +1,6 @@
-name: MergeSignal scan
+# Customer-facing trusted scan. Workflow display name + job id define the GitHub check (e.g. MergeSignal / Analysis).
+# Structure invariants: apps/cli/src/mergesignalScanWorkflow.test.ts — update when changing fork rules or scan_profile.
+name: MergeSignal
 
 on:
   pull_request:
@@ -15,11 +17,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: mergesignal-scan-${{ github.workflow }}-${{ github.ref }}
+  group: merge-signal-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  scan:
+  analysis:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -27,11 +30,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Require trusted credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${{ secrets.MERGESIGNAL_NPM_TOKEN }}" ]; then
+            echo "::error::MergeSignal trusted scan requires repository secret MERGESIGNAL_NPM_TOKEN."
+            exit 1
+          fi
+          if [ -z "${{ secrets.MERGESIGNAL_ENGINE_PACKAGE }}" ]; then
+            echo "::error::MergeSignal trusted scan requires repository secret MERGESIGNAL_ENGINE_PACKAGE."
+            exit 1
+          fi
+
       - name: MergeSignal scan
         uses: ./.github/actions/merge-signal-scan
         with:
           fail_above: ${{ github.event.inputs.fail_above || '' }}
-          scan_profile: ${{ secrets.MERGESIGNAL_NPM_TOKEN != '' && 'trusted' || 'development' }}
+          scan_profile: trusted
           npm_registry_url: ${{ vars.MERGESIGNAL_NPM_REGISTRY_URL || 'https://registry.npmjs.org' }}
           engine_package: ${{ secrets.MERGESIGNAL_ENGINE_PACKAGE }}
           engine_impl_module: ${{ vars.MERGESIGNAL_ENGINE_IMPL_MODULE }}

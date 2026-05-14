@@ -63,7 +63,7 @@
       "dependsOn": ["^check-types"]
     },
     "test": {
-      "dependsOn": ["^test"]
+      "dependsOn": ["^build"]
     },
     "dev": {
       "cache": false,

@@ -73,7 +73,7 @@ describe("GitHub Actions step summary scripts", () => {
     writeFileSync(jsonFile, JSON.stringify(stubLikeResult));
     const { status, summary } = runRender("trusted", jsonFile);
     expect(status).toBe(1);
-    expect(summary).not.toMatch(/MergeSignal Scan: Score/);
+    expect(summary).not.toMatch(/# MergeSignal — Risk score/);
   });
 
   it("development profile renders demo disclaimer for stub output", () => {
@@ -92,7 +92,7 @@ describe("GitHub Actions step summary scripts", () => {
     writeFileSync(jsonFile, JSON.stringify(trustedLikeResult));
     const { status, summary } = runRender("trusted", jsonFile);
     expect(status).toBe(0);
-    expect(summary).toMatch(/# MergeSignal Scan: Score/);
+    expect(summary).toMatch(/# MergeSignal — Risk score/);
   });
 
   it("failure summary never mimics success scorecard", () => {
@@ -107,7 +107,7 @@ describe("GitHub Actions step summary scripts", () => {
       },
     });
     const summary = readFileSync(summaryPath, "utf8");
-    expect(summary).not.toMatch(/MergeSignal Scan: Score/);
+    expect(summary).not.toMatch(/# MergeSignal — Risk score/);
     expect(summary).not.toMatch(/Recommended actions/);
     expect(summary).toMatch(/Analysis could not be completed/);
   });

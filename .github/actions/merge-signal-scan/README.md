@@ -13,9 +13,13 @@ The action input **`scan_profile`** controls whether the run must use a **real a
 | Value                       | Engine                                                                                                                                                                                                                    | When to use                                                                                                                                               |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`trusted`**               | Requires a resolvable `MERGESIGNAL_ENGINE_IMPL` (private npm package or other installable module). Sets `MERGESIGNAL_TRUSTED_ANALYSIS=1` and `MERGESIGNAL_ENGINE_STRICT=1` on scan steps. Stub output is **not** allowed. | Production-style CI where summaries should represent real MergeSignal analysis. Supply **`npm_token`** (from a workflow secret) and **`engine_package`**. |
-| **`development`** (default) | OSS stub when no private engine is configured. Summary uses a **demo** title and banner so logs cannot be mistaken for trusted analysis.                                                                                  | Forks, public demos, or repos without access to the proprietary engine package.                                                                           |
+| **`development`** (default) | OSS stub when no private engine is configured. Summary uses a **demo** title and banner so logs cannot be mistaken for trusted analysis.                                                                                  | Public demos, example workflows, or repos that intentionally show OSS-only output (never use for production merge gates).                                 |
 
-**Forks and pull requests from forks:** Workflows triggered by `pull_request` do not receive repository secrets on forks. Use **`development`** (or skip the job when secrets are empty) so you never imply a trusted scan without credentials. This repository’s dogfood workflow [`.github/workflows/mergesignal-scan.yml`](../../workflows/mergesignal-scan.yml) picks **`trusted`** only when `secrets.MERGESIGNAL_NPM_TOKEN` is set; otherwise it runs **`development`**.
+Optional: set **`MERGESIGNAL_TRUSTED_METHODOLOGY_PREFIX`** in the environment (for example in a maintainer workflow) so trusted scans only accept methodology versions with that prefix—useful for dogfood engines; omit in customer workflows unless you enforce a stable prefix.
+
+**Fork pull requests (product policy):** Workflows that run on `pull_request` from a **fork** do not receive your repository’s secrets. **Do not** run `scan_profile: trusted` on fork PRs unless you use a separate, audited pattern (for example `pull_request_target`, which has security tradeoffs). The usual approach is to **skip** the MergeSignal job when `github.event.pull_request.head.repo.full_name != github.repository`, so fork PRs show **no** MergeSignal check instead of a stub or fake “trusted” signal. This repository’s dogfood workflow [`.github/workflows/mergesignal-scan.yml`](../../workflows/mergesignal-scan.yml) follows that policy and uses **`scan_profile: trusted`** only on same-repo PRs, **`push` to `main`**, and **`workflow_dispatch`**, with an early step that fails if `MERGESIGNAL_NPM_TOKEN` or `MERGESIGNAL_ENGINE_PACKAGE` is missing.
+
+After a successful trusted scan, the composite runs a short **audit** (`scripts/ci/audit-trusted-actions-output.mjs`) that rejects `engine-stub` methodology and known demo strings in the step summary—see `@mergesignal/shared` `auditTrustedActionsOutput` / `trustedScanGuards`.
 
 **Security — registry token:** Pass the registry token only via **`with.npm_token`** using a secret expression (for example `npm_token: ${{ secrets.MERGESIGNAL_NPM_TOKEN }}`). Do not echo tokens, full `.npmrc` contents, or raw `MERGESIGNAL_ENGINE_IMPL` values in logs. The composite appends auth lines to `_ms_rt/.npmrc` inside the internal checkout; it does not print them.
 
@@ -37,7 +41,7 @@ permissions:
   contents: read
 
 jobs:
-  scan:
+  analysis:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,7 +63,7 @@ Use **repository variables** for non-secret defaults (for example `vars.MERGESIG
 ## Recommended workflow
 
 ```yaml
-name: MergeSignal Scan
+name: MergeSignal
 on:
   pull_request:
   push:
@@ -69,14 +73,16 @@ permissions:
   contents: read
 
 jobs:
-  scan:
+  analysis:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: MergeSignal/mergesignal/.github/actions/merge-signal-scan@main
-        # Optional gate (see “fail_above” below)
-        # with:
-        #   fail_above: "40"
+        with:
+          scan_profile: trusted
+          npm_token: ${{ secrets.MERGESIGNAL_NPM_TOKEN }}
+          engine_package: ${{ secrets.MERGESIGNAL_ENGINE_PACKAGE }}
 ```
 
 Open the workflow run in GitHub and read the **Summary** section for the scan output.
@@ -93,9 +99,10 @@ Open the workflow run in GitHub and read the **Summary** section for the scan ou
 2. The **workflow summary** is **always** written **before** the gate runs, so you still get the rich summary when the gate fails.
 3. The **Verify score threshold** step runs last. If the score is above the threshold, that step **fails** and the **whole job** is marked **failed**.
 4. **Pull request checks:** the workflow appears as a **failed check** on the PR (red X) with the failed step name (e.g. “Verify score threshold”).
-5. **Workflow logs:** the log for the failing step shows the non-zero exit from the scan command; earlier steps remain **green**, including **Add scan summary to workflow**.
+5. **Trusted audit:** when `scan_profile: trusted`, **Audit trusted Actions output** may fail after the summary if methodology or summary text violates trusted rules.
+6. **Workflow logs:** the log for the failing step shows the non-zero exit from the scan command; earlier steps remain **green**, including **Add scan summary to workflow**.
 
-If `fail_above` is **not** set, step 3 is skipped and the job succeeds as long as earlier steps succeed.
+If `fail_above` is **not** set, the **Verify score threshold** step is skipped and the job succeeds as long as earlier steps succeed.
 
 ## CI time (v1)
 
@@ -115,7 +122,7 @@ Breaking changes to that contract follow **semver** on whatever ref you pin (`@m
 
 ## Troubleshooting
 
-- **`trusted` fails immediately on “requires inputs.npm_token”** — Set `with.npm_token` from a workflow secret, or switch to `scan_profile: development` when no token is available (e.g. fork PRs).
+- **`trusted` fails immediately on “requires inputs.npm_token”** — Set `with.npm_token` from a workflow secret. On fork PRs, **skip** the MergeSignal job instead of switching to `development` if you do not want OSS demo output on pull requests.
 - **`trusted` fails on engine load** — Confirm `engine_package` installs on the runner registry and that `engine_impl_module` (if set) matches the module Node can `import()`. Check workflow logs; do not rely on stub behavior in trusted mode.
 - **Demo banner in Summary** — You are on **`development`** profile or stub methodology; expected for OSS demos.
 
@@ -131,4 +138,8 @@ For a **full** workflow you can fork (artifacts, caching, matrices), see [merges
 
 The composite uses an internal checkout path and a standard Node/pnpm build to produce the CLI; that layout may change in Phase 2 when switching to a published binary. **Do not** document internal directory names or build commands in user-facing pages (Getting started, README “Recommended”); keep them here or in code only.
 
-The job summary is generated by `scripts/ci/render-mergesignal-step-summary.mjs` in the MergeSignal tree. Scan JSON for the summary is written under the runner temp directory so the **caller’s repository working tree is not modified** by the scan output file. Pipeline copy for CI scripts is generated at `@mergesignal/shared` build time into `scripts/ci/scan-surface-copy.generated.json`; keep TS and JSON in sync (see `packages/shared` tests).
+The job summary is generated by `scripts/ci/render-mergesignal-step-summary.mjs` in the MergeSignal tree. Scan JSON for the summary is written under the runner temp directory so the **caller’s repository working tree is not modified** by the scan output file. Pipeline copy for CI scripts is generated at `@mergesignal/shared` build time into `scripts/ci/scan-surface-copy.generated.json`; keep TS and JSON in sync (see `packages/shared` tests). Trusted validation lives in `@mergesignal/shared` (`trustedScanGuards.ts`); the audit entrypoint is `scripts/ci/audit-trusted-actions-output.mjs`.
+
+### Branch protection when renaming workflows
+
+The GitHub check name is **`Workflow display name / Job id`**. When you change the workflow `name:` or the job id (for example to **`MergeSignal` / `analysis`**), update **required status checks** in branch protection and any **rulesets** / **merge queue** settings in the same change, or merges can block on stale expected checks. Remove obsolete entries such as `CI / trusted-scan-fixture` or `MergeSignal scan / scan` after they no longer exist.

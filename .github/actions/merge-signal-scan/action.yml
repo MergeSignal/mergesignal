@@ -1,5 +1,5 @@
 name: MergeSignal scan
-description: Scan npm lockfile risk on every run and add an actionable summary to GitHub Actions (no merge server required).
+description: Scan npm lockfile risk on every run and add an actionable summary to GitHub Actions (no merge server required). When scan_profile is trusted, runs a short post-summary audit so stub/demo output cannot pass as production.
 inputs:
   fail_above:
     description: Fail if totalScore exceeds this value (0-100). Leave empty to not fail the job.
@@ -148,6 +148,17 @@ runs:
         set -euo pipefail
         node "$GITHUB_WORKSPACE/_ms_rt/scripts/ci/render-mergesignal-step-summary.mjs" \
           "$SCAN_JSON"
+
+    - name: Audit trusted Actions output
+      if: success() && inputs.scan_profile == 'trusted'
+      shell: bash
+      env:
+        SCAN_JSON: ${{ runner.temp }}/mergesignal-scan.json
+        MERGESIGNAL_TRUSTED_ANALYSIS: "1"
+      run: |
+        set -euo pipefail
+        node "$GITHUB_WORKSPACE/_ms_rt/scripts/ci/audit-trusted-actions-output.mjs" \
+          "$SCAN_JSON" "$GITHUB_STEP_SUMMARY"
 
     - name: Add failure summary to workflow
       if: failure()

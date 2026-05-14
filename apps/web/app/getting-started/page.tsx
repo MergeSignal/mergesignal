@@ -13,7 +13,7 @@ pnpm install`;
 
 const RUN_SCAN_SAME_REPO = `pnpm ms scan`;
 
-const GHA_RECOMMENDED_SNIPPET = `name: MergeSignal Scan
+const GHA_RECOMMENDED_SNIPPET = `name: MergeSignal
 on:
   pull_request:
   push:
@@ -23,11 +23,16 @@ permissions:
   contents: read
 
 jobs:
-  scan:
+  analysis:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: MergeSignal/mergesignal/.github/actions/merge-signal-scan@main`;
+      - uses: MergeSignal/mergesignal/.github/actions/merge-signal-scan@main
+        with:
+          scan_profile: trusted
+          npm_token: \${{ secrets.MERGESIGNAL_NPM_TOKEN }}
+          engine_package: \${{ secrets.MERGESIGNAL_ENGINE_PACKAGE }}`;
 
 export default function GettingStartedPage() {
   return (

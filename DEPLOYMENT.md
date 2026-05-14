@@ -404,7 +404,7 @@ For workflows that should **not** silently use the OSS stub, use the composite a
 - **`MERGESIGNAL_NPM_REGISTRY_URL`** — registry URL for `.npmrc` (defaults to `https://registry.npmjs.org` in the dogfood workflow).
 - **`MERGESIGNAL_ENGINE_IMPL_MODULE`** — explicit `import()` specifier when it differs from the package name.
 
-**Fork behavior:** On `pull_request` from forks, GitHub does not expose your org secrets. Use `scan_profile: development` when `MERGESIGNAL_NPM_TOKEN` is empty, or skip the scan job with an explanatory step—do not imply a trusted scan without credentials. The MergeSignal dogfood workflow selects trusted vs development based on whether `MERGESIGNAL_NPM_TOKEN` is configured.
+**Fork behavior:** On `pull_request` from forks, GitHub does not expose your org secrets. **Skip** the MergeSignal job when `github.event.pull_request.head.repo.full_name != github.repository` so fork PRs do not show a fake trusted scan or OSS stub as production signal. The MergeSignal dogfood workflow uses **`scan_profile: trusted`** only on same-repo PRs (plus `push` to `main` / `workflow_dispatch`) and fails early if `MERGESIGNAL_NPM_TOKEN` or `MERGESIGNAL_ENGINE_PACKAGE` is missing.
 
 **API / worker note:** `MERGESIGNAL_TRUSTED_ANALYSIS` is primarily for CLI and CI paths that must mirror “real engine or fail” without overloading `NODE_ENV`. Long-running **worker** deployments typically rely on `NODE_ENV=production` and `MERGESIGNAL_ENGINE_IMPL` as today; see `apps/api/.env.example`.
 

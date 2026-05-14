@@ -35,4 +35,4 @@ uses: MergeSignal/mergesignal/.github/actions/merge-signal-scan@vX.Y.Z
 
 ## Smoke test before tagging
 
-From another **public** repository (or a throwaway fork), add the minimal workflow from `.github/actions/merge-signal-scan/README.md`, open a PR, and confirm the **Actions** summary appears. This repository’s [`.github/workflows/mergesignal-scan.yml`](.github/workflows/mergesignal-scan.yml) also exercises the same action on every PR to `main`.
+From another **public** repository (or a throwaway fork), add the minimal workflow from `.github/actions/merge-signal-scan/README.md`, open a PR, and confirm the **Actions** summary appears. This repository’s [`.github/workflows/mergesignal-scan.yml`](.github/workflows/mergesignal-scan.yml) also exercises the same action on every same-repo PR to `main` (check name **`MergeSignal / Analysis`**). After changing workflow or job display names, update required checks in GitHub.
