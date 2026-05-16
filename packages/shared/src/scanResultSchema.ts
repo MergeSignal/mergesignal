@@ -1,8 +1,11 @@
 import { z } from "zod";
-import type { ScanResult } from "./types.js";
+import type { EngineEmittedScanResult, ScanResult } from "./types.js";
 
-/** Bump when persisted `result` JSON validation rules change materially. */
+/** Bump when persisted `result` JSON validation rules change materially (relaxed / legacy-tolerant). */
 export const SCAN_RESULT_ABI = "1" as const;
+
+/** Bump when strict fresh-engine-output validation rules change materially. */
+export const ENGINE_OUTPUT_SCAN_ABI = "1" as const;
 
 const layerScoresSchema = z.object({
   security: z.number(),
@@ -12,7 +15,8 @@ const layerScoresSchema = z.object({
 });
 
 /**
- * Minimum structural invariants required for persistence and UI.
+ * Minimum structural invariants for **persisted** `scans.result` JSON and legacy reads.
+ * `methodologyVersion` stays optional so historical rows without it remain valid.
  * Unknown top-level keys are preserved (forward-compatible with newer engines).
  */
 export const scanResultSchema = z
@@ -44,6 +48,62 @@ export const scanResultSchema = z
     codeAnalysisMetrics: z.unknown().optional(),
   })
   .passthrough();
+
+const engineOutputGeneratedAtSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine((s) => !Number.isNaN(Date.parse(s)), {
+    error: "generatedAt must be a parseable ISO-8601 timestamp",
+  });
+
+/**
+ * Stricter schema for **fresh** `analyze()` output only. Do not use when hydrating
+ * historical `scans.result` blobs from the database.
+ */
+export const engineOutputScanResultSchema = scanResultSchema.extend({
+  methodologyVersion: z.string().trim().min(1),
+  generatedAt: engineOutputGeneratedAtSchema,
+});
+
+export type EngineOutputScanResultParseFailure = {
+  ok: false;
+  message: string;
+  issues: string[];
+};
+
+export type EngineOutputScanResultParseSuccess = {
+  ok: true;
+  result: EngineEmittedScanResult;
+};
+
+export function safeParseEngineOutputScanResult(
+  data: unknown,
+): EngineOutputScanResultParseSuccess | EngineOutputScanResultParseFailure {
+  const parsed = engineOutputScanResultSchema.safeParse(data);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map(
+      (i) => `${i.path.join(".") || "(root)"}: ${i.message}`,
+    );
+    return {
+      ok: false,
+      message: issues.join("; "),
+      issues,
+    };
+  }
+  return { ok: true, result: parsed.data as EngineEmittedScanResult };
+}
+
+/** Validates fresh engine output; throws on failure. Not for legacy persisted JSON. */
+export function parseEngineOutputScanResultOrThrow(
+  data: unknown,
+): EngineEmittedScanResult {
+  const r = safeParseEngineOutputScanResult(data);
+  if (!r.ok) {
+    throw new Error(`validation: ${r.message}`);
+  }
+  return r.result;
+}
 
 export type ScanResultParseFailure = {
   ok: false;

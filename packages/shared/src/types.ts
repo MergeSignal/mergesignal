@@ -199,6 +199,16 @@ export type ScanResult = {
   codeAnalysisMetrics?: CodeAnalysisMetrics;
 };
 
+/** Provenance the analysis engine must set on fresh output (historical DB rows may omit methodology). */
+export type ScanProvenanceFields = Pick<
+  ScanResult,
+  "methodologyVersion" | "generatedAt"
+>;
+
+/** Result that passed strict engine-output validation (non-empty methodology). */
+export type EngineEmittedScanResult = ScanResult &
+  Required<Pick<ScanResult, "methodologyVersion">>;
+
 export type UpgradeTarget = {
   packageName: string;
   targetVersion?: string;

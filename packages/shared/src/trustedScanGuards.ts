@@ -1,4 +1,5 @@
-import type { ScanResult } from "./types.js";
+import { parseEngineOutputScanResultOrThrow } from "./scanResultSchema.js";
+import type { EngineEmittedScanResult, ScanResult } from "./types.js";
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
 
 const STUB_METHODOLOGY = /^engine-stub\//i;
@@ -60,6 +61,18 @@ export function assertTrustedScanResult(result: ScanResult): void {
   }
 }
 
+/**
+ * Strict structural validation for fresh engine JSON + trusted policy.
+ * Do not pass historical `scans.result` rows (may omit methodology).
+ */
+export function validateTrustedEngineScanResult(
+  raw: unknown,
+): EngineEmittedScanResult {
+  const result = parseEngineOutputScanResultOrThrow(raw);
+  assertTrustedScanResult(result);
+  return result;
+}
+
 export type TrustedActionsAuditResult =
   | { ok: true }
   | { ok: false; errors: readonly string[] };
@@ -69,7 +82,8 @@ export type TrustedActionsAuditResult =
  */
 export function auditTrustedActionsOutput(opts: {
   summaryText: string;
-  scanResult: ScanResult;
+  /** Raw scan JSON (e.g. from disk); validated with strict engine-output schema + trusted policy. */
+  scanResult: unknown;
   /** When true, require trusted-analysis mode in process.env for this audit. */
   requireTrustedEnv?: boolean;
 }): TrustedActionsAuditResult {
@@ -82,22 +96,25 @@ export function auditTrustedActionsOutput(opts: {
     errors.push(scanSurfaceCopy.actions.trustedAuditEnvInvalid);
   }
 
+  let scanResult: ScanResult | undefined;
   try {
-    assertTrustedScanResult(opts.scanResult);
+    scanResult = validateTrustedEngineScanResult(opts.scanResult);
   } catch (e) {
     errors.push(e instanceof Error ? e.message : String(e));
   }
 
-  const text = opts.summaryText;
-  let denylistHit = false;
-  for (const phrase of trustedActionsSummaryDenylistPhrases()) {
-    if (phrase && text.includes(phrase)) {
-      denylistHit = true;
-      break;
+  if (scanResult) {
+    const text = opts.summaryText;
+    let denylistHit = false;
+    for (const phrase of trustedActionsSummaryDenylistPhrases()) {
+      if (phrase && text.includes(phrase)) {
+        denylistHit = true;
+        break;
+      }
     }
-  }
-  if (denylistHit) {
-    errors.push(scanSurfaceCopy.actions.trustedSummaryVerificationFailed);
+    if (denylistHit) {
+      errors.push(scanSurfaceCopy.actions.trustedSummaryVerificationFailed);
+    }
   }
 
   return errors.length ? { ok: false, errors } : { ok: true };

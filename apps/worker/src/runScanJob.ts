@@ -1,8 +1,14 @@
 import type { Job } from "bullmq";
 import type { Pool } from "pg";
-import { analyze } from "@mergesignal/engine";
+import {
+  analyze,
+  requiresStrictEngineScanValidation,
+} from "@mergesignal/engine";
 import type { ScanQueueJob, ScanResult } from "@mergesignal/shared";
-import { parseScanResultOrThrow } from "@mergesignal/shared";
+import {
+  parseScanResultOrThrow,
+  validateTrustedEngineScanResult,
+} from "@mergesignal/shared";
 import { scanQueueJobToScanRequest } from "./jobToScanRequest.js";
 import { withPgRetries } from "./pgRetry.js";
 import { captureWorkerException } from "./sentry.js";
@@ -193,7 +199,11 @@ export async function executeScanJob(
 
     let validated: ScanResult;
     try {
-      validated = parseScanResultOrThrow(rawResult);
+      // Strict provenance only for fresh engine output when stub is disallowed
+      // (mirrors engine loader). Never use this path for JSON loaded from DB.
+      validated = requiresStrictEngineScanValidation()
+        ? validateTrustedEngineScanResult(rawResult)
+        : parseScanResultOrThrow(rawResult);
     } catch (e: unknown) {
       captureWorkerException(e);
       const msg = e instanceof Error ? e.message : String(e);

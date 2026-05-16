@@ -5,6 +5,7 @@ import {
   auditTrustedActionsOutput,
   isStubMethodologyVersion,
   trustedActionsSummaryDenylistPhrases,
+  validateTrustedEngineScanResult,
 } from "./trustedScanGuards.js";
 import type { ScanResult } from "./types.js";
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
@@ -100,6 +101,43 @@ describe("trustedScanGuards", () => {
     });
   });
 
+  describe("validateTrustedEngineScanResult", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = { ...originalEnv };
+      delete process.env.MERGESIGNAL_TRUSTED_METHODOLOGY_PREFIX;
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it("rejects structurally valid relaxed payload without methodologyVersion", () => {
+      expect(() =>
+        validateTrustedEngineScanResult({
+          totalScore: 10,
+          layerScores: {
+            security: 10,
+            maintainability: 10,
+            ecosystem: 10,
+            upgradeImpact: 10,
+          },
+          findings: [],
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        }),
+      ).toThrow(/^validation:/);
+    });
+
+    it("returns result when strict schema and trusted policy pass", () => {
+      const r = validateTrustedEngineScanResult({
+        ...baseResult,
+        methodologyVersion: "acme-prod/v2",
+      });
+      expect(r.methodologyVersion).toBe("acme-prod/v2");
+    });
+  });
+
   describe("auditTrustedActionsOutput", () => {
     it("fails when summary contains demo title", () => {
       const r = auditTrustedActionsOutput({
@@ -122,6 +160,27 @@ describe("trustedScanGuards", () => {
         },
       });
       expect(r).toEqual({ ok: true });
+    });
+
+    it("fails when scan JSON omits methodology (strict engine contract)", () => {
+      const r = auditTrustedActionsOutput({
+        summaryText: "# MergeSignal\n\nLow risk posture.",
+        scanResult: {
+          totalScore: 10,
+          layerScores: {
+            security: 10,
+            maintainability: 10,
+            ecosystem: 10,
+            upgradeImpact: 10,
+          },
+          findings: [],
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      });
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.errors.some((e) => e.startsWith("validation:"))).toBe(true);
+      }
     });
   });
 });

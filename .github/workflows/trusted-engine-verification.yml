@@ -60,4 +60,3 @@ jobs:
           set -euo pipefail
           OUT="${RUNNER_TEMP}/mergesignal-trusted-fixture.json"
           pnpm ms scan --repo-id "${{ github.repository }}" --out "$OUT"
-          node -e "const fs=require('fs');const o=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!/^engine-test-fixture\\//.test(String(o.methodologyVersion||''))){console.error('expected engine-test-fixture methodology, got',o.methodologyVersion);process.exit(1)}" "$OUT"

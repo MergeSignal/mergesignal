@@ -3,6 +3,7 @@ import {
   analyze,
   simulateUpgrade,
   __resetEngineLoaderCacheForTests,
+  requiresStrictEngineScanValidation,
 } from "./index.js";
 import type {
   ScanRequest,
@@ -87,6 +88,39 @@ describe("engine", () => {
 
       const result = await analyze({ repoId: "o/r", dependencyGraph: {} });
       expect(result.methodologyVersion).toBe("engine-stub/v2");
+    });
+  });
+
+  describe("requiresStrictEngineScanValidation", () => {
+    it("is false when MERGESIGNAL_ALLOW_STUB=1", () => {
+      expect(
+        requiresStrictEngineScanValidation({
+          ...process.env,
+          MERGESIGNAL_ALLOW_STUB: "1",
+          NODE_ENV: "production",
+        }),
+      ).toBe(false);
+    });
+
+    it("is true in production when stub is not allowed", () => {
+      expect(
+        requiresStrictEngineScanValidation({
+          ...process.env,
+          NODE_ENV: "production",
+          MERGESIGNAL_ALLOW_STUB: undefined,
+        }),
+      ).toBe(true);
+    });
+
+    it("is true when MERGESIGNAL_TRUSTED_ANALYSIS=1 and stub is not allowed", () => {
+      expect(
+        requiresStrictEngineScanValidation({
+          ...process.env,
+          NODE_ENV: "test",
+          MERGESIGNAL_TRUSTED_ANALYSIS: "1",
+          MERGESIGNAL_ALLOW_STUB: undefined,
+        }),
+      ).toBe(true);
     });
   });
 

@@ -3,6 +3,8 @@ import {
   safeParseScanResult,
   parseScanResultOrThrow,
   scanResultSchema,
+  safeParseEngineOutputScanResult,
+  parseEngineOutputScanResultOrThrow,
 } from "./scanResultSchema.js";
 
 const minimalValid = {
@@ -83,5 +85,38 @@ describe("scanResultSchema", () => {
     const { findings: _f, ...rest } = minimalValid;
     const parsed = scanResultSchema.parse(rest);
     expect(parsed.findings).toEqual([]);
+  });
+});
+
+describe("engineOutputScanResultSchema (strict, fresh engine only)", () => {
+  const withMethodology = {
+    ...minimalValid,
+    methodologyVersion: "engine-test-fixture/v1",
+  };
+
+  it("rejects payload that relaxed parser accepts when methodology is missing", () => {
+    const r = safeParseEngineOutputScanResult(minimalValid);
+    expect(r.ok).toBe(false);
+  });
+
+  it("accepts when methodology and parseable generatedAt are present", () => {
+    const r = safeParseEngineOutputScanResult(withMethodology);
+    expect(r.ok).toBe(true);
+    if (r.ok)
+      expect(r.result.methodologyVersion).toBe("engine-test-fixture/v1");
+  });
+
+  it("parseEngineOutputScanResultOrThrow throws with validation prefix", () => {
+    expect(() => parseEngineOutputScanResultOrThrow(minimalValid)).toThrow(
+      /^validation:/,
+    );
+  });
+
+  it("rejects unparseable generatedAt", () => {
+    const r = safeParseEngineOutputScanResult({
+      ...withMethodology,
+      generatedAt: "not-a-date",
+    });
+    expect(r.ok).toBe(false);
   });
 });

@@ -10,9 +10,8 @@ import type {
   ScoreLayer,
 } from "@mergesignal/shared";
 import {
-  parseScanResultOrThrow,
   scanSurfaceCopy,
-  assertTrustedScanResult,
+  validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
 
 type ArgMap = {
@@ -68,8 +67,7 @@ async function main() {
 
   if (process.env.MERGESIGNAL_TRUSTED_ANALYSIS === "1") {
     try {
-      result = parseScanResultOrThrow(result);
-      assertTrustedScanResult(result);
+      result = validateTrustedEngineScanResult(result);
     } catch (e: unknown) {
       const debug = process.env.MERGESIGNAL_DEBUG === "1";
       const msg = e instanceof Error ? e.message : String(e);

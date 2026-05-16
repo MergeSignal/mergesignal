@@ -17,10 +17,6 @@ function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
-function allowStub(): boolean {
-  return process.env.MERGESIGNAL_ALLOW_STUB === "1";
-}
-
 function engineStrict(): boolean {
   return process.env.MERGESIGNAL_ENGINE_STRICT === "1";
 }
@@ -31,9 +27,17 @@ function trustedAnalysis(): boolean {
 }
 
 /** Production or explicit trusted scan — stub only when MERGESIGNAL_ALLOW_STUB=1. */
+export function requiresStrictEngineScanValidation(
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (env.MERGESIGNAL_ALLOW_STUB === "1") return false;
+  return (
+    env.NODE_ENV === "production" || env.MERGESIGNAL_TRUSTED_ANALYSIS === "1"
+  );
+}
+
 function mustLoadRealEngine(): boolean {
-  if (allowStub()) return false;
-  return isProduction() || trustedAnalysis();
+  return requiresStrictEngineScanValidation();
 }
 
 function implSpec(): string {
@@ -115,6 +119,13 @@ export function __resetEngineLoaderCacheForTests(): void {
   cached = null;
 }
 
+/**
+ * Runs repository analysis using the configured engine implementation.
+ *
+ * **Provenance contract**: implementations must set `methodologyVersion` and
+ * `generatedAt` on each returned `ScanResult` (centralize in the proprietary
+ * engine repo). Callers must not patch or inject these fields after the fact.
+ */
 export async function analyze(req: ScanRequest): Promise<ScanResult> {
   const impl = await getImpl();
   return impl.analyze(req);

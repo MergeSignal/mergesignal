@@ -1,12 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Job } from "bullmq";
 import type { Pool } from "pg";
 import type { ScanQueueJob } from "@mergesignal/shared";
 import { executeScanJob } from "./runScanJob.js";
 
-vi.mock("@mergesignal/engine", () => ({
-  analyze: vi.fn(),
-}));
+vi.mock("@mergesignal/engine", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("@mergesignal/engine")>();
+  return {
+    ...mod,
+    analyze: vi.fn(),
+  };
+});
 
 vi.mock("./sentry.js", () => ({
   captureWorkerException: vi.fn(),
@@ -24,6 +28,7 @@ const validEngineOutput = {
   },
   findings: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
+  methodologyVersion: "acme-prod/v1",
   decision: {
     recommendation: "needs_review" as const,
     confidence: "medium" as const,
@@ -42,8 +47,17 @@ function makeJob(over: Partial<ScanQueueJob>): Job<ScanQueueJob> {
 }
 
 describe("executeScanJob", () => {
+  const originalEnv = process.env;
+
   beforeEach(() => {
     vi.mocked(analyze).mockReset();
+    process.env = { ...originalEnv };
+    delete process.env.MERGESIGNAL_TRUSTED_ANALYSIS;
+    delete process.env.MERGESIGNAL_ALLOW_STUB;
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
   });
 
   it("persists a validated result on success and preserves PR columns in SQL", async () => {
@@ -163,6 +177,82 @@ describe("executeScanJob", () => {
     expect(failCalls.length).toBeGreaterThanOrEqual(1);
     const err = String(failCalls[0]![1]?.[1] ?? "");
     expect(err.startsWith("validation:")).toBe(true);
+  });
+
+  it("when MERGESIGNAL_TRUSTED_ANALYSIS is set, fails if methodologyVersion is missing", async () => {
+    process.env.MERGESIGNAL_TRUSTED_ANALYSIS = "1";
+    vi.mocked(analyze).mockResolvedValue({
+      totalScore: 40,
+      layerScores: {
+        security: 10,
+        maintainability: 10,
+        ecosystem: 10,
+        upgradeImpact: 10,
+      },
+      findings: [],
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      decision: {
+        recommendation: "needs_review" as const,
+        confidence: "medium" as const,
+        reasoning: ["r1"],
+      },
+    });
+
+    let status = "queued";
+    const pool = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.startsWith("SELECT status")) {
+          return { rows: [{ status }], rowCount: 1 };
+        }
+        if (sql.includes("status IN ('queued', 'running')")) {
+          status = "running";
+          return { rowCount: 1 };
+        }
+        if (sql.includes("heartbeat_at = NOW()")) return { rowCount: 1 };
+        if (sql.includes("status = 'failed'")) {
+          status = "failed";
+          return { rowCount: 1 };
+        }
+        if (sql.includes("status = 'done'")) {
+          throw new Error("should not succeed");
+        }
+        return { rows: [], rowCount: 0 };
+      }),
+    } as unknown as Pool;
+
+    await executeScanJob(pool, makeJob({}), "worker-test");
+    expect(status).toBe("failed");
+  });
+
+  it("when MERGESIGNAL_TRUSTED_ANALYSIS is set, persists with valid provenance", async () => {
+    process.env.MERGESIGNAL_TRUSTED_ANALYSIS = "1";
+    vi.mocked(analyze).mockResolvedValue(validEngineOutput);
+
+    let status = "queued";
+    const pool = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.startsWith("SELECT status")) {
+          return { rows: [{ status }], rowCount: 1 };
+        }
+        if (sql.includes("status IN ('queued', 'running')")) {
+          status = "running";
+          return { rowCount: 1 };
+        }
+        if (sql.includes("heartbeat_at = NOW()")) return { rowCount: 1 };
+        if (sql.includes("status = 'done'")) {
+          status = "done";
+          return { rowCount: 1 };
+        }
+        if (sql.includes("status = 'failed'")) {
+          status = "failed";
+          return { rowCount: 1 };
+        }
+        return { rows: [], rowCount: 0 };
+      }),
+    } as unknown as Pool;
+
+    await executeScanJob(pool, makeJob({}), "worker-test");
+    expect(status).toBe("done");
   });
 
   it("skips analyze when scan is not runnable", async () => {
