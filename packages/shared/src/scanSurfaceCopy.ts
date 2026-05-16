@@ -48,6 +48,9 @@ export const scanSurfaceCopy = {
     /** push/workflow_dispatch on a clone with no engine token configured (forks/mirrors). */
     pushTrustedScanSkippedNoEngineToken:
       "Trusted MergeSignal analysis was skipped because no engine access token is configured for this repository.",
+    /** Step summary when trusted scan cannot start (canonical repo, token missing). */
+    trustedWorkflowCredentialHintBody:
+      "The engine checkout token was not available to this workflow run. Add it under this repository's Actions secrets, or grant this repository access to an organization secret. Secrets that exist only on a GitHub Environment are not available here unless this job declares that environment.",
   },
   cli: {
     stderrAnalysisIncomplete: "Analysis could not be completed.",

@@ -21,6 +21,7 @@
   "actions.prAnalysisUnavailableFork": "MergeSignal analysis is not available for this pull request (fork PRs use a restricted CI context).",
   "actions.prAnalysisUnavailableDependabot": "MergeSignal analysis is not available for automated dependency update PRs in this CI context.",
   "actions.pushTrustedScanSkippedNoEngineToken": "Trusted MergeSignal analysis was skipped because no engine access token is configured for this repository.",
+  "actions.trustedWorkflowCredentialHintBody": "The engine checkout token was not available to this workflow run. Add it under this repository's Actions secrets, or grant this repository access to an organization secret. Secrets that exist only on a GitHub Environment are not available here unless this job declares that environment.",
   "cli.stderrAnalysisIncomplete": "Analysis could not be completed.",
   "cli.stderrOutputNotVerified": "These results could not be verified.",
   "engineLoader.implRequiredTrustedScan": "Trusted analysis requires a configured analysis engine. Use demo output only when you explicitly intend to run without a real engine.",

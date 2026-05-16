@@ -32,6 +32,7 @@ describe("MergeSignal GitHub workflow contract", () => {
     expect(yamlText).toContain("actions.prAnalysisUnavailableFork");
     expect(yamlText).toContain("actions.prAnalysisUnavailableDependabot");
     expect(yamlText).toContain("actions.pushTrustedScanSkippedNoEngineToken");
+    expect(yamlText).toContain("actions.trustedWorkflowCredentialHintBody");
     expect(yamlText).toContain("MergeSignal/mergesignal");
     expect(yamlText).toContain("MERGESIGNAL_ENGINE_REPO_TOKEN");
     expect(yamlText).toContain("id: ms_context");

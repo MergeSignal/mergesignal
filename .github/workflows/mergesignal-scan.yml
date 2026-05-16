@@ -55,7 +55,11 @@ jobs:
           HEAD_REPO="${{ github.event.pull_request.head.repo.full_name }}"
           BASE_REPO="${{ github.repository }}"
           ACTOR="${{ github.actor }}"
-          if [ "$HEAD_REPO" != "$BASE_REPO" ] || [ "$ACTOR" = "dependabot[bot]" ]; then
+          BOT=0
+          if [[ "$ACTOR" == dependabot* ]]; then
+            BOT=1
+          fi
+          if [ "$HEAD_REPO" != "$BASE_REPO" ] || [ "$BOT" = "1" ]; then
             echo "run_trusted_scan=false" >> "$GITHUB_OUTPUT"
             FORK_MSG="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.prAnalysisUnavailableFork']")"
             DEP_MSG="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.prAnalysisUnavailableDependabot']")"
@@ -78,6 +82,12 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${MERGESIGNAL_ENGINE_REPO_TOKEN:-}" ]; then
+            HINT="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.trustedWorkflowCredentialHintBody']")"
+            {
+              echo "## MergeSignal"
+              echo ""
+              echo "$HINT"
+            } >> "$GITHUB_STEP_SUMMARY"
             echo "::error::Trusted MergeSignal analysis is unavailable in this repository. Complete engine access setup, then re-run the workflow."
             exit 1
           fi
