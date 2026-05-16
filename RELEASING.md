@@ -33,7 +33,7 @@ uses: MergeSignal/mergesignal/.github/actions/merge-signal-scan@vX.Y.Z
 - **Minor** - New optional inputs, backward-compatible summary additions.
 - **Major** - Remove/rename inputs, or breaking changes to fields consumed by `render-mergesignal-step-summary.mjs` from `mergesignal-scan.json`.
 
-**Note (trusted engine integration):** Versions after the switch to **GitHub checkout** of the private engine repo removed action inputs `npm_token`, `engine_package`, `npm_registry_url`, and `engine_impl_module`, and replaced registry-based install with `engine_repo_token`, `engine_repository`, `engine_ref`, and `engine_impl_file`. Consumers must rename the dogfood secret to **`MERGESIGNAL_ENGINE_REPO_TOKEN`** and drop npm-package-based configuration. Treat that migration as a **major** bump when pinning tags.
+**Note (trusted engine integration):** Trusted scans use **`engine_repo_token`** (this repository’s dogfood workflow expects the secret **`MERGESIGNAL_ENGINE_REPO_TOKEN`**) plus optional **`engine_repository`**, **`engine_ref`**, and **`engine_impl_file`** as documented in the composite README. Treat incompatible changes to those inputs as **major** when pinning tags.
 
 ## Smoke test before tagging
 

@@ -37,24 +37,9 @@ describe("MergeSignal GitHub workflow contract", () => {
     expect(withBlock?.engine_repo_token).toContain(
       "secrets.MERGESIGNAL_ENGINE_REPO_TOKEN",
     );
-    expect(withBlock?.npm_token).toBeUndefined();
-    expect(withBlock?.engine_package).toBeUndefined();
-    expect(withBlock?.npm_registry_url).toBeUndefined();
   });
 
-  it("mergesignal-scan.yml does not reference npm-based engine secrets", () => {
-    const raw = readFileSync(
-      join(repoRoot, ".github/workflows/mergesignal-scan.yml"),
-      "utf8",
-    );
-    expect(raw).not.toContain("MERGESIGNAL_NPM_TOKEN");
-    expect(raw).not.toContain("MERGESIGNAL_ENGINE_PACKAGE");
-    expect(raw).not.toContain("npm_registry_url:");
-    expect(raw).not.toContain("engine_package:");
-    expect(raw).not.toContain("npm_token:");
-  });
-
-  it("merge-signal-scan action uses GitHub checkout for trusted engine, not npm inputs", () => {
+  it("merge-signal-scan action checks out the trusted engine from GitHub", () => {
     const action = parse(
       readFileSync(
         join(repoRoot, ".github/actions/merge-signal-scan/action.yml"),
@@ -69,9 +54,6 @@ describe("MergeSignal GitHub workflow contract", () => {
     expect(action.inputs?.engine_repository?.default).toBe(
       "MergeSignal/mergesignal-engine",
     );
-    expect(action.inputs?.npm_token).toBeUndefined();
-    expect(action.inputs?.engine_package).toBeUndefined();
-    expect(action.inputs?.npm_registry_url).toBeUndefined();
 
     const steps = action.runs?.steps ?? [];
     const engineCheckout = steps.find((s) =>

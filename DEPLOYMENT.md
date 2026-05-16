@@ -392,7 +392,7 @@ The default **worker** image in `k8s/worker-deployment.yaml` is `mergesignal/wor
 
 ### GitHub Actions merge-signal-scan
 
-For workflows that should **not** silently use the OSS stub, use the composite action with **`scan_profile: trusted`**. That checks out the private engine repository on the runner, installs and builds it, sets **`MERGESIGNAL_ENGINE_IMPL`** to a **`file:`** URL pointing at the built entry file, and sets `MERGESIGNAL_TRUSTED_ANALYSIS=1` with `MERGESIGNAL_ENGINE_STRICT=1` on scan steps. No npm registry, GitHub Packages, or `pnpm add` of a published engine package is required.
+For workflows that should **not** silently use the OSS stub, use the composite action with **`scan_profile: trusted`**. That checks out the private engine repository on the runner, installs and builds it, sets **`MERGESIGNAL_ENGINE_IMPL`** to a **`file:`** URL pointing at the built entry file, and sets `MERGESIGNAL_TRUSTED_ANALYSIS=1` with `MERGESIGNAL_ENGINE_STRICT=1` on scan steps.
 
 **Recommended repository secret:**
 
@@ -404,7 +404,7 @@ For workflows that should **not** silently use the OSS stub, use the composite a
 - **`MERGESIGNAL_ENGINE_REF`** — branch, tag, or SHA to checkout (default `main`).
 - **`MERGESIGNAL_ENGINE_IMPL_FILE`** — path relative to the engine repo root to the built ESM file that exports `analyze` and `simulateUpgrade` (default `dist/index.js`). The engine repo must include `pnpm-lock.yaml` or `package-lock.json` and a `build` script that produces this file.
 
-**Engine repository contract:** The checkout must contain a standard Node project with `pnpm install --frozen-lockfile` + `pnpm run build`, or `npm ci` + `npm run build`, producing the file at `engine_impl_file`. This matches a private **mergesignal-engine** source repo rather than a published npm package.
+**Engine repository contract:** The checkout must contain a standard Node project with `pnpm install --frozen-lockfile` + `pnpm run build`, or `npm ci` + `npm run build`, producing the file at `engine_impl_file`. This matches a private **mergesignal-engine** source checkout.
 
 **Fork behavior:** On `pull_request` from forks, GitHub does not expose your org secrets. **Skip** the MergeSignal job when `github.event.pull_request.head.repo.full_name != github.repository` so fork PRs do not show a fake trusted scan or OSS stub as production signal. The MergeSignal dogfood workflow uses **`scan_profile: trusted`** only on same-repo PRs (plus `push` to `main` / `workflow_dispatch`) and fails early if `MERGESIGNAL_ENGINE_REPO_TOKEN` is missing.
 
