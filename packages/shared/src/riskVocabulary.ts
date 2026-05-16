@@ -3,6 +3,10 @@ import type { PRDecisionRecommendation } from "./types.js";
 // =============================================================================
 // Canonical risk vocabulary — single source of truth for user-facing strings.
 //
+// Merge posture wire values are exactly `MERGE_POSTURE_RECOMMENDATIONS` in
+// `@mergesignal/shared` types / scan schema; engines must not emit alternate
+// tokens (e.g. uppercase variants) on `ScanResult.decision.recommendation`.
+//
 // Two separate tiers (never mix as peer labels in the same UI context):
 //
 //   MergePosture — the PR/repo verdict headline (Safe / Needs review / Risky).

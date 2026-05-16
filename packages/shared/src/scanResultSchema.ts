@@ -5,7 +5,7 @@ import type { EngineEmittedScanResult, ScanResult } from "./types.js";
 export const SCAN_RESULT_ABI = "1" as const;
 
 /** Bump when strict fresh-engine-output validation rules change materially. */
-export const ENGINE_OUTPUT_SCAN_ABI = "1" as const;
+export const ENGINE_OUTPUT_SCAN_ABI = "2" as const;
 
 const layerScoresSchema = z.object({
   security: z.number(),

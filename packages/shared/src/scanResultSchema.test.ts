@@ -65,6 +65,14 @@ describe("scanResultSchema", () => {
     expect(r.ok).toBe(false);
   });
 
+  it("rejects non-canonical merge posture tokens (e.g. proprietary uppercase)", () => {
+    const r = safeParseScanResult({
+      ...minimalValid,
+      decision: { recommendation: "SAFE", reasoning: [] },
+    });
+    expect(r.ok).toBe(false);
+  });
+
   it("rejects empty generatedAt", () => {
     const r = safeParseScanResult({
       ...minimalValid,

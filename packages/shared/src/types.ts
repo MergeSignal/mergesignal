@@ -171,7 +171,19 @@ export type PRInsight = {
   details?: Record<string, unknown>;
 };
 
-export type PRDecisionRecommendation = "safe" | "needs_review" | "risky";
+/**
+ * Canonical merge posture tokens for `ScanResult.decision.recommendation` and
+ * persisted/API `decision` fields. Analysis engines must emit **only** these
+ * lowercase strings (no alternate vocabularies in the wire contract).
+ */
+export const MERGE_POSTURE_RECOMMENDATIONS = [
+  "safe",
+  "needs_review",
+  "risky",
+] as const;
+
+export type PRDecisionRecommendation =
+  (typeof MERGE_POSTURE_RECOMMENDATIONS)[number];
 
 export type PRDecisionConfidence = "low" | "medium" | "high";
 
