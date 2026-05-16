@@ -70,9 +70,11 @@ async function main() {
       result = validateTrustedEngineScanResult(result);
     } catch (e: unknown) {
       const debug = process.env.MERGESIGNAL_DEBUG === "1";
+      const ciLike =
+        process.env.GITHUB_ACTIONS === "true" || process.env.CI === "true";
       const msg = e instanceof Error ? e.message : String(e);
       process.stderr.write(
-        `${debug ? msg : scanSurfaceCopy.cli.stderrOutputNotVerified}\n`,
+        `${debug || ciLike ? msg : scanSurfaceCopy.cli.stderrOutputNotVerified}\n`,
       );
       process.exit(1);
     }
