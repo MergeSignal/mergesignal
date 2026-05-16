@@ -45,6 +45,9 @@ export const scanSurfaceCopy = {
       "MergeSignal analysis is not available for this pull request (fork PRs use a restricted CI context).",
     prAnalysisUnavailableDependabot:
       "MergeSignal analysis is not available for automated dependency update PRs in this CI context.",
+    /** push/workflow_dispatch on a clone with no engine token configured (forks/mirrors). */
+    pushTrustedScanSkippedNoEngineToken:
+      "Trusted MergeSignal analysis was skipped because no engine access token is configured for this repository.",
   },
   cli: {
     stderrAnalysisIncomplete: "Analysis could not be completed.",
