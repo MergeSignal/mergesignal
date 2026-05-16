@@ -39,7 +39,10 @@ describe("MergeSignal GitHub workflow contract", () => {
     expect(yamlText).toContain("actions.prAnalysisUnavailableFork");
     expect(yamlText).toContain("actions.prAnalysisUnavailableDependabot");
     expect(yamlText).toContain("actions.pushTrustedScanSkippedNoEngineToken");
-    expect(yamlText).toMatch(/if \[ -n "\$\{MS_ENGINE_PAT:-\}" \]/);
+    expect(yamlText).toContain("actions.trustedWorkflowSecretMissing");
+    expect(yamlText).toContain("MergeSignal/mergesignal");
+    expect(yamlText).toContain("fail_trusted_required_no_pat");
+    expect(yamlText).toContain("exit 1");
     expect(yamlText).toContain("MS_ENGINE_PAT");
     expect(yamlText).toContain("MERGESIGNAL_ENGINE_REPO_TOKEN");
     expect(yamlText).toContain("id: ms_context");

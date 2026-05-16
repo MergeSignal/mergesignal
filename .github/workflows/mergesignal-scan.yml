@@ -1,8 +1,8 @@
 # Customer-facing trusted scan. Workflow display name + job id define the GitHub check (e.g. MergeSignal / Analysis).
 # Structure invariants: apps/cli/src/mergesignalScanWorkflow.test.ts — update when changing fork/Dependabot rules or scan_profile.
 #
-# Trusted engine checkout uses job env MERGESIGNAL_ENGINE_REPO_TOKEN plus composite inputs; ms_context only sets
-# run_trusted_scan when MERGESIGNAL_ENGINE_REPO_TOKEN is non-empty so the composite never runs trusted without a PAT.
+# Dogfood (github.repository == MergeSignal/mergesignal): trusted scan is mandatory — missing
+# MERGESIGNAL_ENGINE_REPO_TOKEN fails the job (no stub/demo downgrade). Other repos skip the scan when the token is absent.
 name: MergeSignal
 
 on:
@@ -42,9 +42,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          REPO="${{ github.repository }}"
+          CANONICAL="MergeSignal/mergesignal"
+          fail_trusted_required_no_pat() {
+            SUMMARY="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.trustedWorkflowSecretMissing']")"
+            HINT="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.trustedWorkflowCredentialHintBody']")"
+            echo "::error::${SUMMARY}" >&2
+            {
+              echo "## MergeSignal"
+              echo ""
+              echo "$SUMMARY"
+              echo ""
+              echo "$HINT"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
           if [ "${{ github.event_name }}" != "pull_request" ]; then
             if [ -n "${MS_ENGINE_PAT:-}" ]; then
               echo "run_trusted_scan=true" >> "$GITHUB_OUTPUT"
+            elif [ "$REPO" = "$CANONICAL" ]; then
+              fail_trusted_required_no_pat
             else
               echo "run_trusted_scan=false" >> "$GITHUB_OUTPUT"
               MSG="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.pushTrustedScanSkippedNoEngineToken']")"
@@ -79,6 +96,8 @@ jobs:
           else
             if [ -n "${MS_ENGINE_PAT:-}" ]; then
               echo "run_trusted_scan=true" >> "$GITHUB_OUTPUT"
+            elif [ "$REPO" = "$CANONICAL" ]; then
+              fail_trusted_required_no_pat
             else
               echo "run_trusted_scan=false" >> "$GITHUB_OUTPUT"
               MSG="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.pushTrustedScanSkippedNoEngineToken']")"
