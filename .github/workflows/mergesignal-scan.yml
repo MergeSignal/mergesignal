@@ -1,9 +1,8 @@
 # Customer-facing trusted scan. Workflow display name + job id define the GitHub check (e.g. MergeSignal / Analysis).
 # Structure invariants: apps/cli/src/mergesignalScanWorkflow.test.ts — update when changing fork/Dependabot rules or scan_profile.
 #
-# Trusted engine checkout uses job env MERGESIGNAL_ENGINE_REPO_TOKEN so the composite can read the token via
-# the env context (with secrets.MERGESIGNAL_ENGINE_REPO_TOKEN); passing secrets only through composite inputs can
-# arrive empty in some runners. Still requires the Actions secret to be set on this repository (or org access).
+# Trusted engine checkout uses job env MERGESIGNAL_ENGINE_REPO_TOKEN plus composite inputs; ms_context only sets
+# run_trusted_scan when MERGESIGNAL_ENGINE_REPO_TOKEN is non-empty so the composite never runs trusted without a PAT.
 name: MergeSignal
 
 on:
@@ -44,9 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" != "pull_request" ]; then
-            REPO="${{ github.repository }}"
-            CANONICAL="MergeSignal/mergesignal"
-            if [ -n "${MS_ENGINE_PAT:-}" ] || [ "$REPO" = "$CANONICAL" ]; then
+            if [ -n "${MS_ENGINE_PAT:-}" ]; then
               echo "run_trusted_scan=true" >> "$GITHUB_OUTPUT"
             else
               echo "run_trusted_scan=false" >> "$GITHUB_OUTPUT"
@@ -80,7 +77,17 @@ jobs:
               fi
             } >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "run_trusted_scan=true" >> "$GITHUB_OUTPUT"
+            if [ -n "${MS_ENGINE_PAT:-}" ]; then
+              echo "run_trusted_scan=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "run_trusted_scan=false" >> "$GITHUB_OUTPUT"
+              MSG="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.pushTrustedScanSkippedNoEngineToken']")"
+              {
+                echo "## MergeSignal"
+                echo ""
+                echo "$MSG"
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
           fi
 
       - name: MergeSignal scan

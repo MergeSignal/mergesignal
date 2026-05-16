@@ -39,7 +39,7 @@ describe("MergeSignal GitHub workflow contract", () => {
     expect(yamlText).toContain("actions.prAnalysisUnavailableFork");
     expect(yamlText).toContain("actions.prAnalysisUnavailableDependabot");
     expect(yamlText).toContain("actions.pushTrustedScanSkippedNoEngineToken");
-    expect(yamlText).toContain("MergeSignal/mergesignal");
+    expect(yamlText).toMatch(/if \[ -n "\$\{MS_ENGINE_PAT:-\}" \]/);
     expect(yamlText).toContain("MS_ENGINE_PAT");
     expect(yamlText).toContain("MERGESIGNAL_ENGINE_REPO_TOKEN");
     expect(yamlText).toContain("id: ms_context");
