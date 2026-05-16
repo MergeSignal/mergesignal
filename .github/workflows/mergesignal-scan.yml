@@ -1,8 +1,9 @@
 # Customer-facing trusted scan. Workflow display name + job id define the GitHub check (e.g. MergeSignal / Analysis).
 # Structure invariants: apps/cli/src/mergesignalScanWorkflow.test.ts — update when changing fork/Dependabot rules or scan_profile.
 #
-# Engine checkout: pass secrets.MERGESIGNAL_ENGINE_REPO_TOKEN when set; otherwise github.token is used so the
-# private engine repo can grant read access to MergeSignal/mergesignal workflows (no PAT required).
+# Trusted engine checkout requires the Actions secret from deploy docs (read access to the private engine repo).
+# Do not pass github.token for that checkout: without explicit cross-repo workflow access on the engine repo,
+# actions/checkout fails at git fetch (exit 128).
 name: MergeSignal
 
 on:
@@ -85,7 +86,7 @@ jobs:
         with:
           fail_above: ${{ github.event.inputs.fail_above || '' }}
           scan_profile: trusted
-          engine_repo_token: ${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN || github.token }}
+          engine_repo_token: ${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}
           engine_repository: ${{ vars.MERGESIGNAL_ENGINE_REPOSITORY || 'MergeSignal/mergesignal-engine' }}
           engine_ref: ${{ vars.MERGESIGNAL_ENGINE_REF || 'main' }}
           engine_impl_file: ${{ vars.MERGESIGNAL_ENGINE_IMPL_FILE || 'dist/index.js' }}
