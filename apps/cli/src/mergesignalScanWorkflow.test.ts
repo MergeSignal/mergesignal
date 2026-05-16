@@ -32,9 +32,10 @@ describe("MergeSignal GitHub workflow contract", () => {
     expect(yamlText).toContain("actions.prAnalysisUnavailableFork");
     expect(yamlText).toContain("actions.prAnalysisUnavailableDependabot");
     expect(yamlText).toContain("actions.pushTrustedScanSkippedNoEngineToken");
-    expect(yamlText).toContain("actions.trustedWorkflowCredentialHintBody");
     expect(yamlText).toContain("MergeSignal/mergesignal");
+    expect(yamlText).toContain("MS_ENGINE_PAT");
     expect(yamlText).toContain("MERGESIGNAL_ENGINE_REPO_TOKEN");
+    expect(yamlText).toContain("github.token");
     expect(yamlText).toContain("id: ms_context");
     expect(yamlText).toContain(
       "steps.ms_context.outputs.run_trusted_scan == 'true'",
@@ -50,6 +51,7 @@ describe("MergeSignal GitHub workflow contract", () => {
     expect(withBlock?.engine_repo_token).toContain(
       "secrets.MERGESIGNAL_ENGINE_REPO_TOKEN",
     );
+    expect(withBlock?.engine_repo_token).toContain("github.token");
   });
 
   it("merge-signal-scan action checks out the trusted engine from GitHub", () => {

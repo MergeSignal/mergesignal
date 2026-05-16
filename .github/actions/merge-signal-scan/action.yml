@@ -13,7 +13,7 @@ inputs:
   engine_repo_token:
     description: >
       GitHub token with read access to the private engine repository only (never log or echo).
-      Pass a repository or organization secret reference from the calling workflow. Required when scan_profile is trusted.
+      Pass a repository or organization secret, or github.token when the engine repository grants workflow access to the calling repo. Required when scan_profile is trusted (non-empty).
     required: false
     default: ""
   engine_repository:
