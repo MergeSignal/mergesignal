@@ -402,7 +402,7 @@ For workflows that should **not** silently use the OSS stub, use the composite a
 
 - **`MERGESIGNAL_ENGINE_REPOSITORY`** — `owner/name` of the engine repo (default `MergeSignal/mergesignal-engine` in the dogfood workflow).
 - **`MERGESIGNAL_ENGINE_REF`** — branch, tag, or SHA to checkout (default `main`).
-- **`MERGESIGNAL_ENGINE_IMPL_FILE`** — path relative to the engine repo root to the built ESM file that exports `analyze` and `simulateUpgrade` (default `dist/index.js`). The engine repo must include `pnpm-lock.yaml` or `package-lock.json` and a `build` script that produces this file.
+- **`MERGESIGNAL_ENGINE_IMPL_FILE`** — path relative to the engine repo root to the built ESM file that exports `analyze` and `simulateUpgrade` (dogfood default `packages/analysis-engine/dist/index.js` for `MergeSignal/mergesignal-engine`). The engine repo must include `pnpm-lock.yaml` or `package-lock.json` and a `build` script that produces this file.
 
 **Engine repository contract:** The checkout must contain a standard Node project with `pnpm install --frozen-lockfile` + `pnpm run build`, or `npm ci` + `npm run build`, producing the file at `engine_impl_file`. This matches a private **mergesignal-engine** source checkout.
 

@@ -60,6 +60,7 @@ describe("MergeSignal GitHub workflow contract", () => {
     expect(withBlock?.engine_repo_token).toContain(
       "secrets.MERGESIGNAL_ENGINE_REPO_TOKEN",
     );
+    expect(yamlText).toContain("packages/analysis-engine/dist/index.js");
   });
 
   it("merge-signal-scan action checks out the trusted engine from GitHub", () => {
@@ -76,6 +77,9 @@ describe("MergeSignal GitHub workflow contract", () => {
     expect(action.inputs?.engine_repo_token).toBeDefined();
     expect(action.inputs?.engine_repository?.default).toBe(
       "MergeSignal/mergesignal-engine",
+    );
+    expect(action.inputs?.engine_impl_file?.default).toBe(
+      "packages/analysis-engine/dist/index.js",
     );
 
     const steps = action.runs?.steps ?? [];

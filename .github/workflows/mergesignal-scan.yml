@@ -118,7 +118,7 @@ jobs:
           engine_repo_token: ${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}
           engine_repository: ${{ vars.MERGESIGNAL_ENGINE_REPOSITORY || 'MergeSignal/mergesignal-engine' }}
           engine_ref: ${{ vars.MERGESIGNAL_ENGINE_REF || 'main' }}
-          engine_impl_file: ${{ vars.MERGESIGNAL_ENGINE_IMPL_FILE || 'dist/index.js' }}
+          engine_impl_file: ${{ vars.MERGESIGNAL_ENGINE_IMPL_FILE || 'packages/analysis-engine/dist/index.js' }}
 
       - name: Upload results
         if: success() && steps.ms_context.outputs.run_trusted_scan == 'true'

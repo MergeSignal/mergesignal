@@ -28,9 +28,9 @@ inputs:
   engine_impl_file:
     description: >
       Path relative to the engine repository root for the built ESM entry file (must export analyze and simulateUpgrade)
-      after `pnpm build` or `npm run build`.
+      after `pnpm build` or `npm run build`. Default matches MergeSignal/mergesignal-engine (pnpm -r build → packages/analysis-engine).
     required: false
-    default: "dist/index.js"
+    default: "packages/analysis-engine/dist/index.js"
 
 runs:
   using: composite

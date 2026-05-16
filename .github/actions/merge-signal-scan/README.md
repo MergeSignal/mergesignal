@@ -30,7 +30,7 @@ When `scan_profile: trusted`:
 1. **`engine_repo_token`** — non-empty GitHub token (PAT or GitHub App installation token) with **contents: read** (or equivalent) on the private engine repository only. Pass from workflow secrets via `with`.
 2. **`engine_repository`** (optional) — `owner/name` of the engine repository (default `MergeSignal/mergesignal-engine`).
 3. **`engine_ref`** (optional) — branch, tag, or SHA to checkout (default `main`).
-4. **`engine_impl_file`** (optional) — path relative to the engine repo root to the built ESM entry that exports `analyze` and `simulateUpgrade` (default `dist/index.js`). The engine repo must contain **`pnpm-lock.yaml`** or **`package-lock.json`** and a **`build`** script that produces this file.
+4. **`engine_impl_file`** (optional) — path relative to the engine repo root to the built ESM entry that exports `analyze` and `simulateUpgrade` (default `packages/analysis-engine/dist/index.js` for `MergeSignal/mergesignal-engine`). The engine repo must contain **`pnpm-lock.yaml`** or **`package-lock.json`** and a **`build`** script that produces this file.
 
 Scan failures append a short **failure** summary (no scorecard) via `scripts/ci/render-mergesignal-failure-summary.mjs`, using copy from `scripts/ci/scan-surface-copy.generated.json` built with `@mergesignal/shared`.
 
@@ -51,7 +51,7 @@ jobs:
           engine_repo_token: ${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}
           engine_repository: MergeSignal/mergesignal-engine
           engine_ref: main
-          engine_impl_file: dist/index.js
+          engine_impl_file: packages/analysis-engine/dist/index.js
 ```
 
 Use **repository variables** for non-secret overrides (`vars.MERGESIGNAL_ENGINE_REPOSITORY`, `vars.MERGESIGNAL_ENGINE_REF`, `vars.MERGESIGNAL_ENGINE_IMPL_FILE`) and **secrets** only for `MERGESIGNAL_ENGINE_REPO_TOKEN`. Avoid printing any secret value in logs.
