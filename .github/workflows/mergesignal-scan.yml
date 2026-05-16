@@ -1,5 +1,5 @@
 # Customer-facing trusted scan. Workflow display name + job id define the GitHub check (e.g. MergeSignal / Analysis).
-# Structure invariants: apps/cli/src/mergesignalScanWorkflow.test.ts — update when changing fork rules or scan_profile.
+# Structure invariants: apps/cli/src/mergesignalScanWorkflow.test.ts — update when changing fork/Dependabot rules or scan_profile.
 name: MergeSignal
 
 on:
@@ -22,7 +22,6 @@ concurrency:
 
 jobs:
   analysis:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -30,16 +29,47 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: MergeSignal PR context
+        id: ms_context
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run_trusted_scan=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          HEAD_REPO="${{ github.event.pull_request.head.repo.full_name }}"
+          BASE_REPO="${{ github.repository }}"
+          ACTOR="${{ github.actor }}"
+          if [ "$HEAD_REPO" != "$BASE_REPO" ] || [ "$ACTOR" = "dependabot[bot]" ]; then
+            echo "run_trusted_scan=false" >> "$GITHUB_OUTPUT"
+            FORK_MSG="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.prAnalysisUnavailableFork']")"
+            DEP_MSG="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.prAnalysisUnavailableDependabot']")"
+            {
+              echo "## MergeSignal"
+              echo ""
+              if [ "$HEAD_REPO" != "$BASE_REPO" ]; then
+                echo "$FORK_MSG"
+              else
+                echo "$DEP_MSG"
+              fi
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "run_trusted_scan=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Require trusted engine credentials
+        if: steps.ms_context.outputs.run_trusted_scan == 'true'
         shell: bash
         run: |
           set -euo pipefail
           if [ -z "${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}" ]; then
-            echo "::error::MergeSignal trusted scan requires repository secret MERGESIGNAL_ENGINE_REPO_TOKEN (read access to the private engine repository)."
+            echo "::error::Trusted MergeSignal analysis is unavailable in this repository. Complete engine access setup, then re-run the workflow."
             exit 1
           fi
 
       - name: MergeSignal scan
+        if: steps.ms_context.outputs.run_trusted_scan == 'true'
         uses: ./.github/actions/merge-signal-scan
         with:
           fail_above: ${{ github.event.inputs.fail_above || '' }}
@@ -50,7 +80,7 @@ jobs:
           engine_impl_file: ${{ vars.MERGESIGNAL_ENGINE_IMPL_FILE || 'dist/index.js' }}
 
       - name: Upload results
-        if: success()
+        if: success() && steps.ms_context.outputs.run_trusted_scan == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: mergesignal-scan

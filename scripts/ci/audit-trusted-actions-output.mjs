@@ -13,7 +13,7 @@ const summaryPath = process.argv[3] ?? process.env.GITHUB_STEP_SUMMARY;
 
 if (!jsonPath || !summaryPath) {
   console.error(
-    "audit-trusted-actions-output: usage: node audit-trusted-actions-output.mjs <scan.json> <summary-path>",
+    "MergeSignal: pass the scan JSON path and the workflow summary file path.",
   );
   process.exit(2);
 }
@@ -33,7 +33,7 @@ const result = auditTrustedActionsOutput({
 
 if (!result.ok) {
   for (const err of result.errors) {
-    console.error(`audit-trusted-actions-output: ${err}`);
+    console.error(err);
   }
   process.exit(1);
 }

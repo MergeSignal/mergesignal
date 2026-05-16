@@ -12,7 +12,7 @@ const copyPath = path.join(here, "scan-surface-copy.generated.json");
 
 if (!summaryPath) {
   console.error(
-    "render-mergesignal-failure-summary: GITHUB_STEP_SUMMARY is not set",
+    "MergeSignal: workflow summary is not available for this step.",
   );
   process.exit(1);
 }

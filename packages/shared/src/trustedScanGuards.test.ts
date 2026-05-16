@@ -40,7 +40,7 @@ describe("trustedScanGuards", () => {
   it("assertTrustedActionsSummaryAllowed throws for trusted + stub", () => {
     expect(() =>
       assertTrustedActionsSummaryAllowed("trusted", "engine-stub/v2"),
-    ).toThrow(/stub methodology/);
+    ).toThrow(/verification requirements/);
   });
 
   it("assertTrustedActionsSummaryAllowed allows trusted + real methodology", () => {
@@ -69,7 +69,7 @@ describe("trustedScanGuards", () => {
 
     it("rejects stub methodology", () => {
       expect(() => assertTrustedScanResult(baseResult)).toThrow(
-        /engine-stub methodologyVersion/,
+        /verification requirements/,
       );
     });
 
@@ -96,7 +96,7 @@ describe("trustedScanGuards", () => {
           ...baseResult,
           methodologyVersion: "other/v1",
         }),
-      ).toThrow(/methodologyVersion must start/);
+      ).toThrow(/methodology output did not match/);
     });
   });
 

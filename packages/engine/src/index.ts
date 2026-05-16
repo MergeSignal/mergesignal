@@ -4,6 +4,7 @@ import type {
   UpgradeSimulationRequest,
   UpgradeSimulationResult,
 } from "@mergesignal/shared";
+import { scanSurfaceCopy } from "@mergesignal/shared";
 
 export type EngineImpl = {
   analyze: (req: ScanRequest) => Promise<ScanResult>;
@@ -75,8 +76,8 @@ async function loadImpl(): Promise<EngineImpl> {
       const trusted = trustedAnalysis();
       throw new Error(
         trusted && !isProduction()
-          ? "MERGESIGNAL_ENGINE_IMPL is required when MERGESIGNAL_TRUSTED_ANALYSIS=1 (set MERGESIGNAL_ALLOW_STUB=1 only for explicit demo/stub runs)"
-          : "MERGESIGNAL_ENGINE_IMPL is required in production (set MERGESIGNAL_ALLOW_STUB=1 only for demo stacks)",
+          ? scanSurfaceCopy.engineLoader.implRequiredTrustedScan
+          : scanSurfaceCopy.engineLoader.implRequiredProduction,
       );
     }
     return loadFromSpec(spec);
@@ -93,7 +94,7 @@ async function loadImpl(): Promise<EngineImpl> {
           ? `${spec.slice(0, 80)}…`
           : spec;
       console.warn(
-        `[mergesignal-engine] Failed to load MERGESIGNAL_ENGINE_IMPL=${specForLog}: ${msg}. Falling back to stub.`,
+        `[mergesignal-engine] Failed to load configured analysis engine (${specForLog}): ${msg}. Falling back to stub.`,
       );
       return loadStub();
     }

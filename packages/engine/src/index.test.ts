@@ -30,7 +30,7 @@ describe("engine", () => {
 
       await expect(
         analyze({ repoId: "o/r", dependencyGraph: {} }),
-      ).rejects.toThrow(/MERGESIGNAL_ENGINE_IMPL is required/);
+      ).rejects.toThrow(/configured analysis engine is required/);
     });
 
     it("allows stub in production when MERGESIGNAL_ALLOW_STUB=1", async () => {
@@ -62,7 +62,7 @@ describe("engine", () => {
       await expect(
         analyze({ repoId: "o/r", dependencyGraph: {} }),
       ).rejects.toThrow(
-        /MERGESIGNAL_ENGINE_IMPL is required when MERGESIGNAL_TRUSTED_ANALYSIS/,
+        /Trusted analysis requires a configured analysis engine/,
       );
     });
 

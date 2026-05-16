@@ -37,7 +37,7 @@ const copy = loadCopy();
 
 if (!summaryPath) {
   console.error(
-    "render-mergesignal-step-summary: GITHUB_STEP_SUMMARY is not set",
+    "MergeSignal: workflow summary is not available for this step.",
   );
   process.exit(1);
 }

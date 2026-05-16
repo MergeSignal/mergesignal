@@ -37,9 +37,7 @@ export function assertTrustedActionsSummaryAllowed(
   const p = String(profile ?? "").trim();
   if (p !== "trusted") return;
   if (isStubMethodologyVersion(methodologyVersion)) {
-    throw new Error(
-      "trusted profile cannot render stub methodology output (engine-stub)",
-    );
+    throw new Error(scanSurfaceCopy.actions.trustedSummaryStubBlocked);
   }
 }
 
@@ -48,21 +46,17 @@ export function assertTrustedActionsSummaryAllowed(
  */
 export function assertTrustedScanResult(result: ScanResult): void {
   if (isStubMethodologyVersion(result.methodologyVersion)) {
-    throw new Error(
-      "Trusted analysis rejected engine-stub methodologyVersion output",
-    );
+    throw new Error(scanSurfaceCopy.actions.trustedSummaryStubBlocked);
   }
   const mv = result.methodologyVersion?.trim();
   if (!mv) {
-    throw new Error("Trusted analysis requires a non-empty methodologyVersion");
+    throw new Error(scanSurfaceCopy.actions.trustedMethodologyMissing);
   }
   const prefix = String(
     process.env.MERGESIGNAL_TRUSTED_METHODOLOGY_PREFIX ?? "",
   ).trim();
   if (prefix && !mv.startsWith(prefix)) {
-    throw new Error(
-      `Trusted analysis: methodologyVersion must start with configured prefix (set MERGESIGNAL_TRUSTED_METHODOLOGY_PREFIX only when required)`,
-    );
+    throw new Error(scanSurfaceCopy.actions.trustedMethodologyPolicyMismatch);
   }
 }
 
@@ -76,7 +70,7 @@ export type TrustedActionsAuditResult =
 export function auditTrustedActionsOutput(opts: {
   summaryText: string;
   scanResult: ScanResult;
-  /** When true, require MERGESIGNAL_TRUSTED_ANALYSIS=1 in process.env. */
+  /** When true, require trusted-analysis mode in process.env for this audit. */
   requireTrustedEnv?: boolean;
 }): TrustedActionsAuditResult {
   const errors: string[] = [];
@@ -85,7 +79,7 @@ export function auditTrustedActionsOutput(opts: {
     opts.requireTrustedEnv &&
     process.env.MERGESIGNAL_TRUSTED_ANALYSIS !== "1"
   ) {
-    errors.push("Expected MERGESIGNAL_TRUSTED_ANALYSIS=1 for trusted audit");
+    errors.push(scanSurfaceCopy.actions.trustedAuditEnvInvalid);
   }
 
   try {
@@ -95,12 +89,15 @@ export function auditTrustedActionsOutput(opts: {
   }
 
   const text = opts.summaryText;
+  let denylistHit = false;
   for (const phrase of trustedActionsSummaryDenylistPhrases()) {
     if (phrase && text.includes(phrase)) {
-      errors.push(
-        `Trusted Actions summary contains forbidden phrase: ${JSON.stringify(phrase.slice(0, 80))}`,
-      );
+      denylistHit = true;
+      break;
     }
+  }
+  if (denylistHit) {
+    errors.push(scanSurfaceCopy.actions.trustedSummaryVerificationFailed);
   }
 
   return errors.length ? { ok: false, errors } : { ok: true };

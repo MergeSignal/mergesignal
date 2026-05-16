@@ -7,14 +7,13 @@ inputs:
     default: ""
   scan_profile:
     description: >
-      "trusted" checks out the private engine GitHub repository, builds it, and sets MERGESIGNAL_ENGINE_IMPL to a file URL (requires engine_repo_token). "development" uses the OSS stub for demos and forks without private engine access.
+      "trusted" checks out the private engine GitHub repository, builds it, and points the scan at that build (requires a read-only engine repo token). "development" uses the OSS stub for demos and contexts without private engine access.
     required: false
     default: "development"
   engine_repo_token:
     description: >
       GitHub token with read access to the private engine repository only (never log or echo).
-      Pass from the calling workflow with inputs.engine_repo_token set to a secret reference
-      (for example repository secret MERGESIGNAL_ENGINE_REPO_TOKEN). Required when scan_profile is trusted.
+      Pass a repository or organization secret reference from the calling workflow. Required when scan_profile is trusted.
     required: false
     default: ""
   engine_repository:
@@ -81,7 +80,7 @@ runs:
       run: |
         set -euo pipefail
         if [ -z "${ENGINE_REPO_TOKEN:-}" ]; then
-          echo "::error::merge-signal-scan: trusted profile requires inputs.engine_repo_token" >&2
+          echo "::error::Trusted analysis is unavailable: engine access was not provided to this workflow run." >&2
           exit 1
         fi
 
@@ -114,14 +113,14 @@ runs:
           npm ci
           npm run build
         else
-          echo "::error::merge-signal-scan: engine repository must contain pnpm-lock.yaml or package-lock.json" >&2
+          echo "::error::MergeSignal could not prepare the analysis engine (unsupported project layout)." >&2
           exit 1
         fi
         rel="${ENGINE_IMPL_FILE#./}"
         rel="${rel#/}"
         file="$ROOT/$rel"
         if [ ! -f "$file" ]; then
-          echo "::error::merge-signal-scan: engine build did not produce ${rel} (check engine_impl_file input)" >&2
+          echo "::error::MergeSignal could not prepare the analysis engine (expected build output was not found)." >&2
           exit 1
         fi
         echo "spec=file:${file}" >> "$GITHUB_OUTPUT"

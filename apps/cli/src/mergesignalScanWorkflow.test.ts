@@ -7,7 +7,7 @@ import { parse } from "yaml";
 const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 
 describe("MergeSignal GitHub workflow contract", () => {
-  it("mergesignal-scan.yml uses MergeSignal / analysis with fork skip and literal trusted profile", () => {
+  it("mergesignal-scan.yml uses MergeSignal / analysis with PR context gate and literal trusted profile", () => {
     const doc = parse(
       readFileSync(
         join(repoRoot, ".github/workflows/mergesignal-scan.yml"),
@@ -22,10 +22,19 @@ describe("MergeSignal GitHub workflow contract", () => {
     expect(jobs.analysis).toBeDefined();
 
     const analysis = jobs.analysis as Record<string, unknown>;
-    expect(String(analysis.if)).toContain(
-      "github.event.pull_request.head.repo.full_name",
+    expect(analysis.if).toBeUndefined();
+
+    const yamlText = readFileSync(
+      join(repoRoot, ".github/workflows/mergesignal-scan.yml"),
+      "utf8",
     );
-    expect(String(analysis.if)).toContain("github.repository");
+    expect(yamlText).toContain("scan-surface-copy.generated.json");
+    expect(yamlText).toContain("actions.prAnalysisUnavailableFork");
+    expect(yamlText).toContain("actions.prAnalysisUnavailableDependabot");
+    expect(yamlText).toContain("id: ms_context");
+    expect(yamlText).toContain(
+      "steps.ms_context.outputs.run_trusted_scan == 'true'",
+    );
 
     const steps = analysis.steps as Array<Record<string, unknown>>;
     const scanStep = steps.find((s) =>

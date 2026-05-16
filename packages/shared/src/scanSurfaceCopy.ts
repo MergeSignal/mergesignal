@@ -19,10 +19,43 @@ export const scanSurfaceCopy = {
     demoSummaryBanner:
       "Sample analysis only — not production MergeSignal results. Do not use for merge decisions.",
     trustedSummaryMethodologyLine: "Methodology",
+    /** Dogfood workflow: secret missing on same-repo runs (annotation + logs). */
+    trustedWorkflowSecretMissing:
+      "Trusted MergeSignal analysis is unavailable in this repository. Complete engine access setup, then re-run the workflow.",
+    /** Composite: trusted profile without engine token input. */
+    trustedCompositeTokenMissing:
+      "Trusted analysis is unavailable: engine access was not provided to this workflow run.",
+    trustedEngineRepoLayoutInvalid:
+      "MergeSignal could not prepare the analysis engine (unsupported project layout).",
+    trustedEngineBuildOutputMissing:
+      "MergeSignal could not prepare the analysis engine (expected build output was not found).",
+    /** Stub methodology or trusted summary preflight. */
+    trustedSummaryStubBlocked:
+      "Trusted analysis is unavailable: output did not meet verification requirements.",
+    trustedMethodologyMissing:
+      "Trusted analysis is unavailable: verified analysis metadata was missing.",
+    trustedMethodologyPolicyMismatch:
+      "Trusted analysis is unavailable: methodology output did not match the configured policy.",
+    trustedAuditEnvInvalid:
+      "Trusted analysis verification could not run in this environment.",
+    /** Post-render audit: summary text failed trusted verification. */
+    trustedSummaryVerificationFailed:
+      "MergeSignal could not verify this summary for trusted analysis.",
+    prAnalysisUnavailableFork:
+      "MergeSignal analysis is not available for this pull request (fork PRs use a restricted CI context).",
+    prAnalysisUnavailableDependabot:
+      "MergeSignal analysis is not available for automated dependency update PRs in this CI context.",
   },
   cli: {
     stderrAnalysisIncomplete: "Analysis could not be completed.",
     stderrOutputNotVerified: "These results could not be verified.",
+  },
+  /** @mergesignal/engine loader (stderr / thrown when impl missing). */
+  engineLoader: {
+    implRequiredTrustedScan:
+      "Trusted analysis requires a configured analysis engine. Use demo output only when you explicitly intend to run without a real engine.",
+    implRequiredProduction:
+      "A configured analysis engine is required in this environment. Use demo output only when you explicitly intend to run without a real engine.",
   },
 } as const;
 
