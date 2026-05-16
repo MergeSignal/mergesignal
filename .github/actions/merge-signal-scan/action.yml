@@ -13,7 +13,7 @@ inputs:
   engine_repo_token:
     description: >
       GitHub token with read access to the private engine repository only (never log or echo).
-      Pass a repository or organization secret (PAT or GitHub App installation token). Required when scan_profile is trusted; empty values fail before checkout.
+      Pass via this input, or set job env MERGESIGNAL_ENGINE_REPO_TOKEN in the calling workflow (recommended for repository secrets). Required when scan_profile is trusted; empty values fail before checkout.
     required: false
     default: ""
   engine_repository:
@@ -76,7 +76,7 @@ runs:
       if: inputs.scan_profile == 'trusted'
       shell: bash
       env:
-        ENGINE_REPO_TOKEN: ${{ inputs.engine_repo_token }}
+        ENGINE_REPO_TOKEN: ${{ env.MERGESIGNAL_ENGINE_REPO_TOKEN || inputs.engine_repo_token }}
       run: |
         set -euo pipefail
         if [ -z "${ENGINE_REPO_TOKEN:-}" ]; then
@@ -91,7 +91,7 @@ runs:
         repository: ${{ inputs.engine_repository }}
         ref: ${{ inputs.engine_ref }}
         path: _ms_engine
-        token: ${{ inputs.engine_repo_token }}
+        token: ${{ env.MERGESIGNAL_ENGINE_REPO_TOKEN || inputs.engine_repo_token }}
         persist-credentials: false
 
     - name: Build private engine (trusted only)

@@ -23,6 +23,13 @@ describe("MergeSignal GitHub workflow contract", () => {
 
     const analysis = jobs.analysis as Record<string, unknown>;
     expect(analysis.if).toBeUndefined();
+    expect(analysis.env).toBeDefined();
+    expect(
+      String(
+        (analysis.env as Record<string, unknown>)
+          .MERGESIGNAL_ENGINE_REPO_TOKEN ?? "",
+      ),
+    ).toContain("secrets.MERGESIGNAL_ENGINE_REPO_TOKEN");
 
     const yamlText = readFileSync(
       join(repoRoot, ".github/workflows/mergesignal-scan.yml"),
@@ -77,6 +84,9 @@ describe("MergeSignal GitHub workflow contract", () => {
       | Record<string, string>
       | undefined;
     expect(String(checkoutWith?.["persist-credentials"])).toBe("false");
+    expect(String(checkoutWith?.token)).toContain(
+      "env.MERGESIGNAL_ENGINE_REPO_TOKEN",
+    );
   });
 
   it("ci.yml does not expose trusted-scan-fixture on pull_request", () => {
