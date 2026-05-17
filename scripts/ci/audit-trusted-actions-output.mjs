@@ -19,7 +19,15 @@ if (!jsonPath || !summaryPath) {
 }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const sharedEntry = path.join(here, "..", "packages", "shared", "dist", "index.js");
+const sharedEntry = path.join(
+  here,
+  "..",
+  "..",
+  "packages",
+  "shared",
+  "dist",
+  "index.js",
+);
 const { auditTrustedActionsOutput } = await import(pathToFileURL(sharedEntry).href);
 
 const scanResult = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
