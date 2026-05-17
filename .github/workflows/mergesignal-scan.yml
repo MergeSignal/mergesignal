@@ -1,4 +1,4 @@
-# Customer-facing trusted scan. Workflow display name + job id define the GitHub check (e.g. MergeSignal / Analysis).
+# Customer-facing trusted scan. Workflow name + job `name:` define the GitHub check (e.g. MergeSignal / Dependency review).
 # Structure invariants: apps/cli/src/mergesignalScanWorkflow.test.ts — update when changing fork/Dependabot rules or scan_profile.
 #
 # Dogfood (github.repository == MergeSignal/mergesignal): trusted scan is mandatory — missing
@@ -24,7 +24,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  analysis:
+  mergesignal_scan:
+    name: Dependency review
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:

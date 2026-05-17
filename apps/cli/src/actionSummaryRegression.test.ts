@@ -96,7 +96,9 @@ describe("GitHub Actions step summary scripts", () => {
       string,
       string
     >;
-    expect(summary).toMatch(/# MergeSignal — Safe · Risk index/);
+    expect(summary).toMatch(
+      /# MergeSignal dependency review — Safe · Risk index/,
+    );
     expect(summary).toContain(demo["actions.riskIndexDirectionShort"]!);
     expect(summary).toContain("| Layer | Score | Layer risk |");
     const defaultFold =

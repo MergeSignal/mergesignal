@@ -68,7 +68,7 @@ MergeSignal can run on **GitHub Actions** and write a risk summary to each workf
 
 **Full guide (recommended workflow, optional `fail_above` gate, first-run notes):** use the canonical page on your web deployment, e.g. **[mergesignal-web.fly.dev/getting-started#github-actions](https://mergesignal-web.fly.dev/getting-started#github-actions)** (replace the host with yours if self-hosted).
 
-**Contract and versioning:** input/output details and release pins are in [.github/actions/merge-signal-scan/README.md](./.github/actions/merge-signal-scan/README.md) and [RELEASING.md](./RELEASING.md). This repository’s [`.github/workflows/mergesignal-scan.yml`](./.github/workflows/mergesignal-scan.yml) dogfoods the action as **`MergeSignal / Analysis`** (workflow `name: MergeSignal`, job `analysis`). After renaming workflows or jobs, update **required checks** in GitHub branch protection and any rulesets so merges are not blocked on stale check names.
+**Contract and versioning:** input/output details and release pins are in [.github/actions/merge-signal-scan/README.md](./.github/actions/merge-signal-scan/README.md) and [RELEASING.md](./RELEASING.md). This repository’s [`.github/workflows/mergesignal-scan.yml`](./.github/workflows/mergesignal-scan.yml) dogfoods the action as **`MergeSignal / Dependency review`** (workflow `name: MergeSignal`, job display name `Dependency review`). After renaming workflows or jobs, update **required checks** in GitHub branch protection and any rulesets so merges are not blocked on stale check names.
 
 ---
 

@@ -140,7 +140,7 @@ runs:
         echo "MergeSignal scan for $GITHUB_REPOSITORY"
         pnpm --dir _ms_rt ms scan --repo-id "$GITHUB_REPOSITORY" --out "$SCAN_JSON"
 
-    - name: Add scan summary to workflow
+    - name: MergeSignal — write job summary
       if: success()
       shell: bash
       env:
@@ -151,7 +151,7 @@ runs:
         node "$GITHUB_WORKSPACE/_ms_rt/scripts/ci/render-mergesignal-step-summary.mjs" \
           "$SCAN_JSON"
 
-    - name: Audit trusted Actions output
+    - name: MergeSignal — audit trusted summary
       if: success() && inputs.scan_profile == 'trusted'
       shell: bash
       env:

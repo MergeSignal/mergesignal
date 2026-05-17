@@ -7,7 +7,7 @@ import { parse } from "yaml";
 const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 
 describe("MergeSignal GitHub workflow contract", () => {
-  it("mergesignal-scan.yml uses MergeSignal / analysis with PR context gate and literal trusted profile", () => {
+  it("mergesignal-scan.yml uses MergeSignal / Dependency review with PR context gate and literal trusted profile", () => {
     const doc = parse(
       readFileSync(
         join(repoRoot, ".github/workflows/mergesignal-scan.yml"),
@@ -19,9 +19,9 @@ describe("MergeSignal GitHub workflow contract", () => {
 
     const jobs = doc.jobs as Record<string, unknown>;
     expect(jobs.scan).toBeUndefined();
-    expect(jobs.analysis).toBeDefined();
+    expect(jobs.mergesignal_scan).toBeDefined();
 
-    const analysis = jobs.analysis as Record<string, unknown>;
+    const analysis = jobs.mergesignal_scan as Record<string, unknown>;
     expect(analysis.if).toBeUndefined();
     expect(analysis.env).toBeDefined();
     expect(

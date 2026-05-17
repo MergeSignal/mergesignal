@@ -19,6 +19,7 @@ import type {
   PRInsight,
   Recommendation,
   ScanResult,
+  ScoreLayer,
 } from "./types.js";
 
 export type ActionsSummaryProfile = "trusted" | "development";
@@ -30,7 +31,7 @@ export const ACTIONS_SUMMARY_DEFAULT_MAX_CHARS = 1200;
 /** Full markdown soft cap (character count, includes `<details>` bodies). */
 export const ACTIONS_SUMMARY_SOFT_MAX_CHARS = 6200;
 /** Truncated recommendation `rationale` in default fold. */
-export const ACTIONS_REC_RATIONALE_MAX_CHARS = 110;
+export const ACTIONS_REC_RATIONALE_MAX_CHARS = 130;
 
 const LAYER_ORDER: readonly [
   keyof NonNullable<ScanResult["layerScores"]>,
@@ -41,6 +42,10 @@ const LAYER_ORDER: readonly [
   ["ecosystem", "Ecosystem"],
   ["upgradeImpact", "Upgrade Impact"],
 ] as const;
+
+/** Titles that read like generic hygiene advice — prefer rationale-first layout. */
+const GENERIC_RECOMMENDATION_TITLE =
+  /\b(reduce|flatten|minimize|minimise|avoid|improve|consider|optimize|optimise|review|upgrade|decrease|increase)\b.*\b(depend|transitiv|surface|depth|chain|area|footprint|overlap|duplicat)/i;
 
 function copyLine(
   flat: Record<string, string>,
@@ -56,6 +61,76 @@ export function layerRiskBandLabel(score: number | null | undefined): string {
   if (score < 20) return "Low";
   if (score < 40) return "Moderate";
   return "High";
+}
+
+function shouldShowLayerDrivers(score: number | null | undefined): boolean {
+  const band = layerRiskBandLabel(score);
+  return band === "High" || band === "Moderate";
+}
+
+function explainTitlesForLayer(
+  result: ScanResult,
+  layer: ScoreLayer,
+  limit: number,
+): string[] {
+  const reasons = result.explain?.reasons;
+  if (!Array.isArray(reasons)) return [];
+  return [...reasons]
+    .filter((r): r is NonNullable<typeof r> => Boolean(r) && r.layer === layer)
+    .sort(
+      (a, b) =>
+        Math.abs(Number(b.scoreImpact) || 0) -
+        Math.abs(Number(a.scoreImpact) || 0),
+    )
+    .slice(0, limit)
+    .map((r) => String(r.title ?? r.id ?? "").trim())
+    .filter(Boolean);
+}
+
+function humanizeContributionId(id: string): string {
+  return id.replace(/[-_]+/g, " ").trim();
+}
+
+function contributionHintsForLayer(
+  result: ScanResult,
+  layer: ScoreLayer,
+  limit: number,
+): string[] {
+  const list = result.contributions;
+  if (!Array.isArray(list)) return [];
+  return [...list]
+    .filter((c): c is NonNullable<typeof c> => Boolean(c) && c.layer === layer)
+    .sort(
+      (a, b) =>
+        Math.abs(Number(b.scoreImpact) || 0) -
+        Math.abs(Number(a.scoreImpact) || 0),
+    )
+    .slice(0, limit)
+    .map((c) => humanizeContributionId(String(c.id ?? "")).trim())
+    .filter(Boolean);
+}
+
+/** Plain-language drivers for one layer from engine `explain` / `contributions` only (no invented causes). */
+export function layerDriverSummary(
+  result: ScanResult,
+  layer: ScoreLayer,
+  maxChars: number,
+): string | null {
+  const fromExplain = explainTitlesForLayer(result, layer, 5);
+  const fromContrib = contributionHintsForLayer(result, layer, 3);
+  const parts: string[] = [];
+  for (const t of fromExplain) {
+    if (!parts.includes(t)) parts.push(t);
+  }
+  for (const c of fromContrib) {
+    const exists = parts.some((p) =>
+      p.toLowerCase().includes(c.toLowerCase().slice(0, 12)),
+    );
+    if (!exists) parts.push(c);
+    if (parts.length >= 5) break;
+  }
+  if (parts.length === 0) return null;
+  return truncateWithEllipsis(parts.join(" · "), maxChars);
 }
 
 function impactOrder(impact: string | undefined): number {
@@ -261,6 +336,21 @@ function buildScoreBreakdownDetails(
     lines.push(`| ${label} | ${display} | ${band} |`);
   }
   lines.push("");
+  const driverLines: string[] = [];
+  for (const [key, label] of LAYER_ORDER) {
+    const v = layers[key];
+    const n = typeof v === "number" && Number.isFinite(v) ? v : null;
+    if (!shouldShowLayerDrivers(n)) continue;
+    const drivers = layerDriverSummary(result, key, 200);
+    if (drivers) driverLines.push(`- **${label}:** ${drivers}`);
+  }
+  if (driverLines.length > 0) {
+    lines.push(
+      `**${copyLine(flat, "actions.layerDriversHeading", scanSurfaceCopy.actions.layerDriversHeading)}**`,
+    );
+    lines.push(...driverLines);
+    lines.push("");
+  }
   lines.push("</details>");
   return lines.join("\n");
 }
@@ -295,7 +385,7 @@ function buildGraphDetails(
   const eStr =
     typeof edges === "number" && Number.isFinite(edges) ? String(edges) : "—";
   lines.push(
-    `**Counts:** ${nStr} packages · max depth ${dStr} · ${eStr} edges${hotspotCount > 0 ? ` · ${hotspotCount} hotspot${hotspotCount > 1 ? "s" : ""}` : ""}${vulnCount > 0 ? ` · ${vulnCount} flagged vulnerable` : ""}.`,
+    `*${nStr} pkgs · depth ${dStr} · ${eStr} edges${hotspotCount > 0 ? ` · ${hotspotCount} hotspot${hotspotCount > 1 ? "s" : ""}` : ""}${vulnCount > 0 ? ` · ${vulnCount} flagged vulnerable` : ""}*`,
   );
   if (vulnCount > 0) {
     lines.push("");
@@ -358,17 +448,21 @@ function buildMoreActionsDetails(
   );
   lines.push("");
   recs.forEach((rec, i) => {
-    const title = String(rec.title ?? "Review dependencies");
-    const rat = rec.rationale ? truncateWithEllipsis(rec.rationale, 400) : "";
+    const bodyLines = formatRecommendationPrimaryLines(
+      rec,
+      ACTIONS_REC_RATIONALE_MAX_CHARS,
+    );
     const pkgs =
       Array.isArray(rec.packages) && rec.packages.length > 0
         ? `\`${rec.packages.slice(0, 8).join("`, `")}\`${rec.packages.length > 8 ? ` +${rec.packages.length - 8} more` : ""}`
         : "";
-    lines.push(`${i + 1}. **${title}**`);
-    if (rat) {
-      lines.push("");
-      lines.push(rat);
-    }
+    bodyLines.forEach((line, j) => {
+      if (j === 0) {
+        lines.push(`${i + 1}. ${line}`);
+      } else {
+        lines.push(line);
+      }
+    });
     if (pkgs) {
       lines.push("");
       lines.push(`Packages: ${pkgs}`);
@@ -410,8 +504,13 @@ function buildTrustedTitleLines(
       ? "Risk index unavailable"
       : `Risk index ${roundScore(total)}/100`;
   const titleLines: string[] = [];
+  const productPrefix = copyLine(
+    flat,
+    "actions.trustedStepSummaryTitlePrefix",
+    scanSurfaceCopy.actions.trustedStepSummaryTitlePrefix,
+  );
   titleLines.push(
-    `# MergeSignal — ${postureLabel} · ${indexPart} (${direction})`,
+    `# ${productPrefix} — ${postureLabel} · ${indexPart} (${direction})`,
   );
   if (!postureToken && total !== null) {
     titleLines.push("");
@@ -474,6 +573,25 @@ function buildWhatToDoItems(result: ScanResult): {
   return { defaultItems, overflowInsights, overflowRecs };
 }
 
+function formatRecommendationPrimaryLines(
+  rec: Recommendation,
+  rationaleMax: number,
+): string[] {
+  const title = String(rec.title ?? "Review dependencies").trim() || "Review";
+  const rat = (rec.rationale ?? "").trim();
+  if (!rat) return [`**${title}**`];
+  const leadWithRationale =
+    GENERIC_RECOMMENDATION_TITLE.test(title) ||
+    (rat.length > title.length * 1.15 && title.length < 52);
+  if (leadWithRationale) {
+    return [
+      truncateWithEllipsis(rat, Math.min(220, rationaleMax + 85)),
+      `   → *Focus:* **${title}**`,
+    ];
+  }
+  return [`**${title}** — ${truncateWithEllipsis(rat, rationaleMax)}`];
+}
+
 function formatDefaultWhatLine(
   item: WhatItem,
   index: number,
@@ -493,15 +611,10 @@ function formatDefaultWhatLine(
     return linesOut;
   }
   const rec = item.rec;
-  const title = String(rec.title ?? "Review dependencies");
-  const rat = rec.rationale
-    ? truncateWithEllipsis(rec.rationale, opts.rationaleMax)
-    : "";
-  if (rat) {
-    linesOut.push(`${index}. **${title}** — ${rat}`);
-  } else {
-    linesOut.push(`${index}. **${title}**`);
-  }
+  const parts = formatRecommendationPrimaryLines(rec, opts.rationaleMax);
+  parts.forEach((line, j) => {
+    linesOut.push(j === 0 ? `${index}. ${line}` : line);
+  });
   return linesOut;
 }
 
@@ -541,10 +654,7 @@ export function buildActionsStepSummaryMarkdown(opts: {
     buildDemoHeader(flat, lines);
   }
 
-  if (trustedLayout) {
-    lines.push(...buildTrustedTitleLines(result, flat));
-    lines.push("");
-  } else {
+  if (!trustedLayout) {
     const recs = Array.isArray(result.recommendations)
       ? result.recommendations
       : [];

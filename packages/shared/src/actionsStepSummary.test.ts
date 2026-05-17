@@ -4,6 +4,7 @@ import {
   ACTIONS_SUMMARY_DEFAULT_MAX_LINES,
   actionsSummaryDefaultFoldPrefix,
   buildActionsStepSummaryMarkdown,
+  layerDriverSummary,
   layerRiskBandLabel,
   sortPRInsightsForDisplay,
   sortRecommendationsForDisplay,
@@ -117,7 +118,7 @@ describe("buildActionsStepSummaryMarkdown", () => {
       profile: "trusted",
       copy,
     });
-    expect(md).toMatch(/# MergeSignal — Needs review/);
+    expect(md).toMatch(/# MergeSignal dependency review — Needs review/);
     expect(md).toMatch(/Risk index 42\/100/);
     expect(md).toContain(copy["actions.riskIndexDirectionShort"]!);
     expect(md).toContain("| Layer | Score | Layer risk |");
@@ -209,6 +210,63 @@ describe("buildActionsStepSummaryMarkdown", () => {
     expect(prefix.length).toBeLessThanOrEqual(
       ACTIONS_SUMMARY_DEFAULT_MAX_CHARS + 400,
     );
+  });
+
+  it("includes scan-specific layer drivers from explain.reasons", () => {
+    const md = buildActionsStepSummaryMarkdown({
+      result: {
+        ...trustedBase,
+        layerScores: { ...trustedBase.layerScores!, maintainability: 72 },
+        explain: {
+          reasons: [
+            {
+              id: "x",
+              layer: "maintainability",
+              title: "Duplicate majors on runtime boundary",
+              scoreImpact: 12,
+            },
+            {
+              id: "y",
+              layer: "maintainability",
+              title: "Churn in devDependencies cluster",
+              scoreImpact: 5,
+            },
+          ],
+        },
+      },
+      profile: "trusted",
+      copy,
+    });
+    expect(md).toContain(copy["actions.layerDriversHeading"]!);
+    expect(md).toContain("Duplicate majors on runtime boundary");
+  });
+
+  it("layerDriverSummary returns null when no explain data for layer", () => {
+    expect(layerDriverSummary(trustedBase, "security", 120)).toBeNull();
+  });
+
+  it("generic recommendation titles lead with rationale in default fold", () => {
+    const md = buildActionsStepSummaryMarkdown({
+      result: {
+        ...trustedBase,
+        insights: [],
+        recommendations: [
+          {
+            id: "r1",
+            title: "Reduce transitive dependency surface area",
+            rationale:
+              "This PR adds lodash twice at incompatible semver ranges pulled through different path aliases, widening the install tree.",
+            impact: "high",
+            priorityScore: 90,
+          },
+        ],
+      },
+      profile: "trusted",
+      copy,
+    });
+    expect(md).toContain("incompatible semver");
+    expect(md).toContain("*Focus:*");
+    expect(md).toContain("Reduce transitive dependency surface area");
   });
 
   it("includes graph details when graphInsights present", () => {
