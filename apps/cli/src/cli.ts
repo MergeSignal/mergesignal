@@ -220,7 +220,7 @@ function printSummary(opts: {
   lines.push(`Method: ${method} • Confidence: ${conf}`);
   lines.push("");
   lines.push(
-    `Total score: ${score === null ? "n/a" : score} (0 best → 100 worst)`,
+    `Total score: ${score === null ? "n/a" : score} (${scanSurfaceCopy.product.riskIndexDirectionShort})`,
   );
   lines.push(`Layers: ${formatLayers(layers)}`);
   lines.push(`Findings: ${findings.length} • Recommendations: ${recs.length}`);

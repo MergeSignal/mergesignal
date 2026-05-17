@@ -51,6 +51,30 @@ export const scanSurfaceCopy = {
     /** Step summary when trusted scan cannot start (canonical repo, token missing). */
     trustedWorkflowCredentialHintBody:
       "The engine checkout token was not available to this workflow run. Add it under this repository's Actions secrets, or grant this repository access to an organization secret. Secrets that exist only on a GitHub Environment are not available here unless this job declares that environment.",
+    /** GitHub Actions step summary: risk index direction (shared with web/CLI where imported). */
+    riskIndexDirectionShort: "0 = lowest merge risk, 100 = highest merge risk",
+    /** When `decision` is missing on scan JSON (legacy output). */
+    mergePostureUnavailableShort: "Posture unavailable",
+    mergePostureUnavailableDetail:
+      "This scan did not include a merge posture verdict; use the risk index as a coarse signal only.",
+    /** `<summary>` lines for collapsible sections. */
+    scoreBreakdownDetailsSummary: "Score breakdown",
+    dependencyGraphDetailsSummary: "Dependency graph",
+    moreActionsDetailsSummary: "More actions",
+    moreInsightsDetailsSummary: "More insights",
+    /** Inside dependency graph `<details>`. */
+    supportingGraphContextNote:
+      "Supporting context — not a merge verdict by itself.",
+    layerScoreGlossary:
+      "Higher scores in each column mean more risk in that dimension (0 is best, 100 is worst).",
+    vulnerableReviewerHint:
+      "If vulnerable packages are listed, confirm they apply to your usage before treating counts as merge blockers.",
+    /** Development profile: no recommendations or actionable insights. */
+    devNoImmediateActions: "No immediate actions required",
+  },
+  product: {
+    /** Single line for UI/CLI/Actions parity (risk index semantics). */
+    riskIndexDirectionShort: "0 is best · 100 is worst",
   },
   cli: {
     stderrAnalysisIncomplete: "Analysis could not be completed.",

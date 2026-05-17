@@ -1,6 +1,6 @@
 # merge-signal-scan (composite action)
 
-Official **GitHub Actions** integration for MergeSignal. Add one step to your workflow: MergeSignal **scans dependency changes on every run** and adds a **clear, actionable risk summary** to the workflow run (scores, recommendations, and layer breakdown in the **Summary** tab).
+Official **GitHub Actions** integration for MergeSignal. Add one step to your workflow: MergeSignal **scans dependency changes on every run** and adds a **compact, reviewer-oriented summary** to the workflow run (**merge posture**, risk index, prioritized guidance, and expandable score/graph context in the **Summary** tab).
 
 This is a **black-box** integration from a repository owner’s perspective: you reference the action; you do not configure how MergeSignal is built or installed inside the runner.
 
@@ -59,7 +59,7 @@ Use **repository variables** for non-secret overrides (`vars.MERGESIGNAL_ENGINE_
 ## What you get
 
 - **Problem addressed:** dependency and lockfile changes can introduce security, maintenance, and upgrade risk that is easy to miss in review.
-- **Immediately after adding the action:** each matching workflow run includes a **job summary** in GitHub Actions with an overall score, top recommendations, and an expandable risk breakdown-no separate MergeSignal server required.
+- **Immediately after adding the action:** each matching workflow run includes a **job summary** in GitHub Actions with **merge posture**, a compact **risk index** (0 = lowest merge risk, 100 = highest), prioritized **reviewer guidance** (PR insights and recommendations), and **expandable** score and dependency-graph context—no separate MergeSignal server required.
 
 ## Recommended workflow
 

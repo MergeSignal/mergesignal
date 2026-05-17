@@ -204,7 +204,9 @@ export default function ScanClient({
           <>
             <div className={styles.score}>
               <div className={styles.scoreValue}>{score}</div>
-              <div className={styles.scoreMeta}>0 is best • 100 is worst</div>
+              <div className={styles.scoreMeta}>
+                {scanSurfaceCopy.product.riskIndexDirectionShort}
+              </div>
             </div>
             {layers &&
             typeof layers.security === "number" &&

@@ -88,11 +88,22 @@ describe("GitHub Actions step summary scripts", () => {
     expect(summary).toContain("MergeSignal (demo output)");
   });
 
-  it("trusted profile renders production score header for non-stub result", () => {
+  it("trusted profile renders production merge posture + risk index header", () => {
     writeFileSync(jsonFile, JSON.stringify(trustedLikeResult));
     const { status, summary } = runRender("trusted", jsonFile);
     expect(status).toBe(0);
-    expect(summary).toMatch(/# MergeSignal — Risk score/);
+    const demo = JSON.parse(readFileSync(copyJson, "utf8")) as Record<
+      string,
+      string
+    >;
+    expect(summary).toMatch(/# MergeSignal — Safe · Risk index/);
+    expect(summary).toContain(demo["actions.riskIndexDirectionShort"]!);
+    expect(summary).toContain("| Layer | Score | Layer risk |");
+    const defaultFold =
+      summary.indexOf("<details>") === -1
+        ? summary
+        : summary.slice(0, summary.indexOf("<details>"));
+    expect(defaultFold.length).toBeLessThan(1600);
   });
 
   it("failure summary never mimics success scorecard", () => {
