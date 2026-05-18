@@ -4,6 +4,7 @@ import {
   ACTIONS_SUMMARY_DEFAULT_MAX_LINES,
   actionsSummaryDefaultFoldPrefix,
   buildActionsStepSummaryMarkdown,
+  humanizeEngineSurfaceText,
   layerDriverSummary,
   layerRiskBandLabel,
   sortPRInsightsForDisplay,
@@ -35,6 +36,26 @@ describe("layerRiskBandLabel", () => {
     expect(layerRiskBandLabel(25)).toBe("Moderate");
     expect(layerRiskBandLabel(50)).toBe("High");
     expect(layerRiskBandLabel(null)).toBe("—");
+  });
+});
+
+describe("humanizeEngineSurfaceText", () => {
+  it("rewrites known graph metric tokens without adding new facts", () => {
+    expect(humanizeEngineSurfaceText("graph.depth")).toBe(
+      "Dependency chain depth",
+    );
+    expect(humanizeEngineSurfaceText("graph.transitive volume")).toBe(
+      "Transitive dependency volume",
+    );
+    expect(humanizeEngineSurfaceText("graph.fan in max")).toBe(
+      "Peak fan-in on shared packages",
+    );
+  });
+
+  it("leaves ordinary explain titles mostly intact", () => {
+    expect(
+      humanizeEngineSurfaceText("Duplicate majors on runtime boundary"),
+    ).toBe("Duplicate majors on runtime boundary");
   });
 });
 
@@ -124,6 +145,7 @@ describe("buildActionsStepSummaryMarkdown", () => {
     expect(md).toContain("| Layer | Score | Layer risk |");
     expect(md).toContain("| Security | 10 | Low |");
     expect(md).toMatch(/<details>/);
+    expect(md).not.toContain(copy["actions.layerScoreGlossary"]!);
   });
 
   it("trusted: surfaces top insights and moves remainder to details", () => {
@@ -169,6 +191,7 @@ describe("buildActionsStepSummaryMarkdown", () => {
     });
     expect(md).toContain(copy["actions.demoSummaryBanner"]!);
     expect(md).toContain("| Layer | Score | Layer risk |");
+    expect(md).toContain(copy["actions.layerScoreGlossary"]!);
   });
 
   it("default-fold budget: heavy fixture stays within caps", () => {
@@ -264,9 +287,33 @@ describe("buildActionsStepSummaryMarkdown", () => {
       profile: "trusted",
       copy,
     });
+    expect(md).toContain(copy["actions.recReviewLeadPrefix"]!);
     expect(md).toContain("incompatible semver");
     expect(md).toContain("*Focus:*");
     expect(md).toContain("Reduce transitive dependency surface area");
+  });
+
+  it("humanizes graph metric tokens in explain-driven layer drivers", () => {
+    const md = buildActionsStepSummaryMarkdown({
+      result: {
+        ...trustedBase,
+        layerScores: { ...trustedBase.layerScores!, maintainability: 72 },
+        explain: {
+          reasons: [
+            {
+              id: "gdepth",
+              layer: "maintainability",
+              title: "graph.depth",
+              scoreImpact: 12,
+            },
+          ],
+        },
+      },
+      profile: "trusted",
+      copy,
+    });
+    expect(md).toContain("Dependency chain depth");
+    expect(md).not.toContain("graph.depth");
   });
 
   it("includes graph details when graphInsights present", () => {
@@ -301,6 +348,8 @@ describe("buildActionsStepSummaryMarkdown", () => {
       copy,
     });
     expect(md).toContain(copy["actions.dependencyGraphDetailsSummary"]!);
-    expect(md).toContain("900");
+    expect(md).toContain("moderately deep");
+    expect(md).toContain("fairly broad");
+    expect(md).toMatch(/> \*900 packages · max depth 7/);
   });
 });

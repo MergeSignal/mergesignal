@@ -70,7 +70,9 @@ export const scanSurfaceCopy = {
     layerScoreGlossary:
       "*Higher column scores = more risk in that dimension (0 best → 100 worst).*",
     /** After layer table: scan-specific drivers from explain/contributions. */
-    layerDriversHeading: "What drove higher layers (this scan)",
+    layerDriversHeading: "Signals behind elevated scores",
+    /** When surfacing recommendation rationale first (trusted default fold). */
+    recReviewLeadPrefix: "**For this PR:**",
     vulnerableReviewerHint:
       "If vulnerable packages are listed, confirm they apply to your usage before treating counts as merge blockers.",
     /** Development profile: no recommendations or actionable insights. */

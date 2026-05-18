@@ -45,7 +45,7 @@ const LAYER_ORDER: readonly [
 
 /** Titles that read like generic hygiene advice — prefer rationale-first layout. */
 const GENERIC_RECOMMENDATION_TITLE =
-  /\b(reduce|flatten|minimize|minimise|avoid|improve|consider|optimize|optimise|review|upgrade|decrease|increase)\b.*\b(depend|transitiv|surface|depth|chain|area|footprint|overlap|duplicat)/i;
+  /\b(reduce|flatten|minimize|minimise|avoid|improve|consider|optimize|optimise|review|upgrade|decrease|increase|check|verify|ensure|audit)\b.*\b(depend|transitiv|surface|depth|chain|area|footprint|overlap|duplicat|lockfile|semver|vulnerabil|supply)/i;
 
 function copyLine(
   flat: Record<string, string>,
@@ -68,6 +68,39 @@ function shouldShowLayerDrivers(score: number | null | undefined): boolean {
   return band === "High" || band === "Moderate";
 }
 
+/**
+ * Presentation-only: turn engine metric tokens in explain titles / contribution ids
+ * into reviewer-oriented phrasing. Does not add facts — only rewrites known patterns.
+ */
+export function humanizeEngineSurfaceText(raw: string): string {
+  const input = raw.trim();
+  if (!input) return input;
+  let t = input.replace(/_/g, " ");
+  const subs: Array<[RegExp, string]> = [
+    [
+      /graph\.fan\s*in\s*max|graph\s+fan\s+in\s+max/gi,
+      "peak fan-in on shared packages",
+    ],
+    [/graph\.fan\s*in|graph\s+fan\s+in/gi, "fan-in on shared packages"],
+    [
+      /graph\.transitive(?:\s+volume)?|graph\s+transitive(?:\s+volume)?/gi,
+      "transitive dependency volume",
+    ],
+    [/graph\.depth|graph\s+depth/gi, "dependency chain depth"],
+    [/graph\.hotspot|graph\s+hotspot/gi, "dependency hotspots"],
+    [/graph\.hidden|graph\s+hidden/gi, "hidden transitive paths"],
+    [
+      /graph\.vulnerable|graph\s+vulnerable/gi,
+      "known vulnerable packages on the graph",
+    ],
+    [/graph\.fan|graph\s+fan/gi, "fan-in"],
+  ];
+  for (const [re, rep] of subs) t = t.replace(re, rep);
+  t = t.replace(/\s+/g, " ").trim();
+  if (!t) return input;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 function explainTitlesForLayer(
   result: ScanResult,
   layer: ScoreLayer,
@@ -83,12 +116,12 @@ function explainTitlesForLayer(
         Math.abs(Number(a.scoreImpact) || 0),
     )
     .slice(0, limit)
-    .map((r) => String(r.title ?? r.id ?? "").trim())
+    .map((r) => humanizeEngineSurfaceText(String(r.title ?? r.id ?? "").trim()))
     .filter(Boolean);
 }
 
 function humanizeContributionId(id: string): string {
-  return id.replace(/[-_]+/g, " ").trim();
+  return humanizeEngineSurfaceText(id.replace(/[-_]+/g, " ").trim());
 }
 
 function contributionHintsForLayer(
@@ -259,9 +292,44 @@ function buildMethodologyLine(
   lines.push("");
 }
 
+function qualitativeGraphSentences(g: DependencyGraphInsights): string[] {
+  const out: string[] = [];
+  const depth =
+    typeof g.maxDepth === "number" && Number.isFinite(g.maxDepth)
+      ? g.maxDepth
+      : null;
+  const nodes =
+    typeof g.nodes === "number" && Number.isFinite(g.nodes) ? g.nodes : null;
+  const hotspotCount = Array.isArray(g.hotspots) ? g.hotspots.length : 0;
+
+  if (depth !== null && depth >= 8) {
+    out.push(
+      "The deepest resolved chain is long, so indirect impact from upgrades and security patches is harder to reason about.",
+    );
+  } else if (depth !== null && depth >= 5) {
+    out.push(
+      "Dependency chains run moderately deep—expect meaningful transitive distance from your direct dependencies.",
+    );
+  }
+  if (out.length < 2 && nodes !== null && nodes >= 1200) {
+    out.push(
+      "This is a large resolved install: more packages usually widens the review surface for churn and advisories.",
+    );
+  } else if (out.length < 2 && nodes !== null && nodes >= 600) {
+    out.push(
+      "The install graph is fairly broad—watch where new indirect dependencies cluster.",
+    );
+  }
+  if (out.length < 2 && hotspotCount >= 4) {
+    out.push(
+      "Several packages sit on many import paths (high fan-in)—upgrades touching them deserve a quick spot-check.",
+    );
+  }
+  return out.slice(0, 2);
+}
+
 function formatGraphNarrativeLines(
   gi: DependencyGraphInsights | undefined,
-  flat: Record<string, string>,
 ): string[] {
   const out: string[] = [];
   if (!gi) return out;
@@ -272,19 +340,12 @@ function formatGraphNarrativeLines(
       typeof d?.depth === "number" && Number.isFinite(d.depth) ? d.depth : null;
     const direct = Boolean(d?.direct);
     const via = Array.isArray(d?.via) ? d.via.join(" → ") : "";
-    const depthStr = depth === null ? "n/a" : String(depth);
+    const depthPhrase =
+      depth === null ? "deep in the graph" : `${depth} levels deep`;
     out.push(
-      `- **${name}** is ${direct ? "direct" : "transitive"} at depth ${depthStr}${via ? ` via ${via}` : ""}.`,
+      `- **${name}** is reached ${direct ? "directly" : "transitively"} (${depthPhrase})${via ? ` via ${via}` : ""}.`,
     );
   }
-  if (out.length === 0) return out;
-  const note = copyLine(
-    flat,
-    "actions.supportingGraphContextNote",
-    scanSurfaceCopy.actions.supportingGraphContextNote,
-  );
-  out.push("");
-  out.push(`*${note}*`);
   return out;
 }
 
@@ -310,6 +371,7 @@ function graphDetailsHasContent(gi: unknown): boolean {
 function buildScoreBreakdownDetails(
   result: ScanResult,
   flat: Record<string, string>,
+  opts: { includeScoreGlossary: boolean },
 ): string {
   const layers = result.layerScores ?? {};
   const lines: string[] = [];
@@ -318,14 +380,16 @@ function buildScoreBreakdownDetails(
     `<summary>${copyLine(flat, "actions.scoreBreakdownDetailsSummary", scanSurfaceCopy.actions.scoreBreakdownDetailsSummary)}</summary>`,
   );
   lines.push("");
-  lines.push(
-    copyLine(
-      flat,
-      "actions.layerScoreGlossary",
-      scanSurfaceCopy.actions.layerScoreGlossary,
-    ),
-  );
-  lines.push("");
+  if (opts.includeScoreGlossary) {
+    lines.push(
+      copyLine(
+        flat,
+        "actions.layerScoreGlossary",
+        scanSurfaceCopy.actions.layerScoreGlossary,
+      ),
+    );
+    lines.push("");
+  }
   lines.push("| Layer | Score | Layer risk |");
   lines.push("|-------|-------|------------|");
   for (const [key, label] of LAYER_ORDER) {
@@ -368,11 +432,23 @@ function buildGraphDetails(
     `<summary>${copyLine(flat, "actions.dependencyGraphDetailsSummary", scanSurfaceCopy.actions.dependencyGraphDetailsSummary)}</summary>`,
   );
   lines.push("");
-  const narrative = formatGraphNarrativeLines(g, flat);
+  const qualitative = qualitativeGraphSentences(g);
+  if (qualitative.length > 0) {
+    lines.push(...qualitative);
+    lines.push("");
+  }
+  const narrative = formatGraphNarrativeLines(g);
   if (narrative.length > 0) {
     lines.push(...narrative);
     lines.push("");
   }
+  const note = copyLine(
+    flat,
+    "actions.supportingGraphContextNote",
+    scanSurfaceCopy.actions.supportingGraphContextNote,
+  );
+  lines.push(`*${note}*`);
+  lines.push("");
   const nodes = g.nodes;
   const depth = g.maxDepth;
   const edges = g.edges;
@@ -385,7 +461,7 @@ function buildGraphDetails(
   const eStr =
     typeof edges === "number" && Number.isFinite(edges) ? String(edges) : "—";
   lines.push(
-    `*${nStr} pkgs · depth ${dStr} · ${eStr} edges${hotspotCount > 0 ? ` · ${hotspotCount} hotspot${hotspotCount > 1 ? "s" : ""}` : ""}${vulnCount > 0 ? ` · ${vulnCount} flagged vulnerable` : ""}*`,
+    `> *${nStr} packages · max depth ${dStr} · ${eStr} edges${hotspotCount > 0 ? ` · ${hotspotCount} hotspot${hotspotCount > 1 ? "s" : ""}` : ""}${vulnCount > 0 ? ` · ${vulnCount} flagged vulnerable` : ""}*`,
   );
   if (vulnCount > 0) {
     lines.push("");
@@ -526,7 +602,7 @@ function collectWhyBullets(result: ScanResult, max: number): string[] {
   const reasoning = result.decision?.reasoning;
   if (Array.isArray(reasoning)) {
     for (const r of reasoning) {
-      const s = String(r).trim();
+      const s = humanizeEngineSurfaceText(String(r).trim());
       if (s && !out.includes(s)) out.push(s);
       if (out.length >= max) return out;
     }
@@ -535,7 +611,8 @@ function collectWhyBullets(result: ScanResult, max: number): string[] {
   if (Array.isArray(reasons) && out.length < max) {
     for (const r of reasons) {
       const title = String(r?.title ?? r?.id ?? "").trim();
-      if (title && !out.includes(title)) out.push(title);
+      const readable = humanizeEngineSurfaceText(title);
+      if (readable && !out.includes(readable)) out.push(readable);
       if (out.length >= max) break;
     }
   }
@@ -576,6 +653,7 @@ function buildWhatToDoItems(result: ScanResult): {
 function formatRecommendationPrimaryLines(
   rec: Recommendation,
   rationaleMax: number,
+  flat?: Record<string, string>,
 ): string[] {
   const title = String(rec.title ?? "Review dependencies").trim() || "Review";
   const rat = (rec.rationale ?? "").trim();
@@ -584,10 +662,21 @@ function formatRecommendationPrimaryLines(
     GENERIC_RECOMMENDATION_TITLE.test(title) ||
     (rat.length > title.length * 1.15 && title.length < 52);
   if (leadWithRationale) {
-    return [
-      truncateWithEllipsis(rat, Math.min(220, rationaleMax + 85)),
-      `   → *Focus:* **${title}**`,
-    ];
+    const ratBudget = Math.min(220, rationaleMax + 85);
+    let ratTrunc = truncateWithEllipsis(rat, ratBudget);
+    if (flat) {
+      const prefix = copyLine(
+        flat,
+        "actions.recReviewLeadPrefix",
+        scanSurfaceCopy.actions.recReviewLeadPrefix,
+      ).trim();
+      ratTrunc = truncateWithEllipsis(
+        rat,
+        Math.max(48, ratBudget - prefix.length - 2),
+      );
+      ratTrunc = `${prefix} ${ratTrunc}`.trim();
+    }
+    return [ratTrunc, `   → *Focus:* **${title}**`];
   }
   return [`**${title}** — ${truncateWithEllipsis(rat, rationaleMax)}`];
 }
@@ -595,7 +684,11 @@ function formatRecommendationPrimaryLines(
 function formatDefaultWhatLine(
   item: WhatItem,
   index: number,
-  opts: { firstInsightSubLine: boolean; rationaleMax: number },
+  opts: {
+    firstInsightSubLine: boolean;
+    rationaleMax: number;
+    copy: Record<string, string>;
+  },
 ): string[] {
   const linesOut: string[] = [];
   if (item.kind === "insight") {
@@ -611,7 +704,11 @@ function formatDefaultWhatLine(
     return linesOut;
   }
   const rec = item.rec;
-  const parts = formatRecommendationPrimaryLines(rec, opts.rationaleMax);
+  const parts = formatRecommendationPrimaryLines(
+    rec,
+    opts.rationaleMax,
+    opts.copy,
+  );
   parts.forEach((line, j) => {
     linesOut.push(j === 0 ? `${index}. ${line}` : line);
   });
@@ -686,6 +783,7 @@ export function buildActionsStepSummaryMarkdown(opts: {
         const chunk = formatDefaultWhatLine(item, n, {
           firstInsightSubLine: firstSub,
           rationaleMax: ACTIONS_REC_RATIONALE_MAX_CHARS,
+          copy: flat,
         });
         whatLines.push(...chunk);
         n += 1;
@@ -719,7 +817,11 @@ export function buildActionsStepSummaryMarkdown(opts: {
       lines.push(...methLines);
     }
 
-    lines.push(buildScoreBreakdownDetails(result, flat));
+    lines.push(
+      buildScoreBreakdownDetails(result, flat, {
+        includeScoreGlossary: false,
+      }),
+    );
     const graphBlock = buildGraphDetails(result, flat);
     if (graphBlock) {
       lines.push("");
@@ -759,7 +861,11 @@ export function buildActionsStepSummaryMarkdown(opts: {
       );
       lines.push("");
     }
-    lines.push(buildScoreBreakdownDetails(result, flat));
+    lines.push(
+      buildScoreBreakdownDetails(result, flat, {
+        includeScoreGlossary: true,
+      }),
+    );
     const graphBlock = buildGraphDetails(result, flat);
     if (graphBlock) {
       lines.push("");
