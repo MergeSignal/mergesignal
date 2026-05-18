@@ -82,7 +82,7 @@ export async function datasetRoutes(app: FastifyInstance) {
     ) {
       req.log.warn(
         { name, rawUrl, repository_url: row.repository_url },
-        "package_health repository URL differs from registry raw payload",
+        "package_health repository URL differs from npm registry raw payload",
       );
     }
 
