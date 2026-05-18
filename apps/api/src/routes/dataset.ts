@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../db.js";
+import { readRepositoryUrlFromRegistryRaw } from "../lib/registryRawPaths.js";
 import { sendProblem } from "../problem.js";
 
 function clampInt(v: unknown, fallback: number, min: number, max: number) {
@@ -70,6 +71,19 @@ export async function datasetRoutes(app: FastifyInstance) {
         title: "Not Found",
         detail: `Package ${name} not found`,
       });
+    }
+
+    const rawUrl = readRepositoryUrlFromRegistryRaw(row.raw);
+    if (
+      rawUrl &&
+      row.repository_url &&
+      typeof row.repository_url === "string" &&
+      rawUrl !== row.repository_url
+    ) {
+      req.log.warn(
+        { name, rawUrl, repository_url: row.repository_url },
+        "package_health repository URL differs from npm registry raw payload",
+      );
     }
 
     const history = await db.query(

@@ -61,6 +61,9 @@ importers:
       ioredis:
         specifier: ^5.9.3
         version: 5.9.3
+      lodash:
+        specifier: 4.17.15
+        version: 4.17.15
       pg:
         specifier: ^8.19.0
         version: 8.19.0
@@ -4908,6 +4911,12 @@ packages:
     resolution:
       {
         integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==,
+      }
+
+  lodash@4.17.15:
+    resolution:
+      {
+        integrity: sha512-8xOcRHvCjnocdS5cpwXQXVzmmh5e5+saE2QGoeQmbKmRS6J3VQppPOIt0MnmE+4xlZoumy0GPG0D0MVIQbNA1A==,
       }
 
   log-update@6.1.0:
@@ -10149,6 +10158,8 @@ snapshots:
   lodash.isarguments@3.1.0: {}
 
   lodash.merge@4.6.2: {}
+
+  lodash@4.17.15: {}
 
   log-update@6.1.0:
     dependencies:
