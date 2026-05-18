@@ -76,17 +76,32 @@ export function humanizeEngineSurfaceText(raw: string): string {
   const input = raw.trim();
   if (!input) return input;
   let t = input.replace(/_/g, " ");
+  t = t.replace(
+    /^(security|maintainability|ecosystem|upgradeimpact|upgrade\s+impact)[.:]\s*/i,
+    "",
+  );
   const subs: Array<[RegExp, string]> = [
     [
-      /graph\.fan\s*in\s*max|graph\s+fan\s+in\s+max/gi,
-      "peak fan-in on shared packages",
+      /ecosystem\.package\s*surface|ecosystem\s+package\s*surface|package\s+surface\b/gi,
+      "broad declared package footprint",
     ],
-    [/graph\.fan\s*in|graph\s+fan\s+in/gi, "fan-in on shared packages"],
+    [
+      /graph\.duplicates?\b|graph\s+duplicates?\b/gi,
+      "overlapping dependency paths to the same packages",
+    ],
+    [
+      /graph\.fan\s*in\s*max|graph\s+fan\s+in\s+max/gi,
+      "many import paths converge on a few widely shared packages",
+    ],
+    [
+      /graph\.fan\s*in|graph\s+fan\s+in/gi,
+      "shared packages see many inbound dependency paths",
+    ],
     [
       /graph\.transitive(?:\s+volume)?|graph\s+transitive(?:\s+volume)?/gi,
       "transitive dependency volume",
     ],
-    [/graph\.depth|graph\s+depth/gi, "dependency chain depth"],
+    [/graph\.depth|graph\s+depth/gi, "indirect dependency depth"],
     [/graph\.hotspot|graph\s+hotspot/gi, "dependency hotspots"],
     [/graph\.hidden|graph\s+hidden/gi, "hidden transitive paths"],
     [
@@ -96,6 +111,9 @@ export function humanizeEngineSurfaceText(raw: string): string {
     [/graph\.fan|graph\s+fan/gi, "fan-in"],
   ];
   for (const [re, rep] of subs) t = t.replace(re, rep);
+  t = t
+    .replace(/\bdependency\s+chain\s+depth\b/gi, "indirect dependency depth")
+    .replace(/^dependency\s+depth$/gi, "indirect dependency depth");
   t = t.replace(/\s+/g, " ").trim();
   if (!t) return input;
   return t.charAt(0).toUpperCase() + t.slice(1);
@@ -143,6 +161,38 @@ function contributionHintsForLayer(
     .filter(Boolean);
 }
 
+function driverPhraseDedupeKey(phrase: string): string {
+  const n = phrase.toLowerCase().replace(/\s+/g, " ").trim();
+  if (
+    n.includes("indirect dependency depth") ||
+    n.includes("dependency chain depth") ||
+    n === "dependency depth"
+  ) {
+    return "__depth__";
+  }
+  if (
+    n.includes("converge on") ||
+    n.includes("inbound dependency paths") ||
+    n.includes("widely shared packages")
+  ) {
+    return "__shared_paths__";
+  }
+  if (n.includes("transitive dependency volume")) return "__transitive_vol__";
+  return n;
+}
+
+function dedupeDriverDisplayPhrases(phrases: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const p of phrases) {
+    const key = driverPhraseDedupeKey(p);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(p);
+  }
+  return out;
+}
+
 /** Plain-language drivers for one layer from engine `explain` / `contributions` only (no invented causes). */
 export function layerDriverSummary(
   result: ScanResult,
@@ -163,7 +213,8 @@ export function layerDriverSummary(
     if (parts.length >= 5) break;
   }
   if (parts.length === 0) return null;
-  return truncateWithEllipsis(parts.join(" · "), maxChars);
+  const deduped = dedupeDriverDisplayPhrases(parts);
+  return truncateWithEllipsis(deduped.join(" · "), maxChars);
 }
 
 function impactOrder(impact: string | undefined): number {
@@ -322,7 +373,7 @@ function qualitativeGraphSentences(g: DependencyGraphInsights): string[] {
   }
   if (out.length < 2 && hotspotCount >= 4) {
     out.push(
-      "Several packages sit on many import paths (high fan-in)—upgrades touching them deserve a quick spot-check.",
+      "Several packages sit on many import paths—upgrades touching them deserve a quick spot-check.",
     );
   }
   return out.slice(0, 2);
@@ -366,6 +417,41 @@ function graphDetailsHasContent(gi: unknown): boolean {
     (Array.isArray(hotspots) && hotspots.length > 0) ||
     (Array.isArray(vulnerable) && vulnerable.length > 0)
   );
+}
+
+/** Raw counts: terse when qualitative or deepest-path narrative already carries meaning. */
+function buildGraphRawMetricsLine(
+  g: DependencyGraphInsights,
+  terse: boolean,
+): string | null {
+  const nodes = g.nodes;
+  const depth = g.maxDepth;
+  const edges = g.edges;
+  const hotspotCount = Array.isArray(g.hotspots) ? g.hotspots.length : 0;
+  const vulnCount = Array.isArray(g.vulnerable) ? g.vulnerable.length : 0;
+
+  if (terse) {
+    const bits: string[] = [];
+    if (typeof depth === "number" && Number.isFinite(depth)) {
+      bits.push(`max chain length ${String(depth)}`);
+    }
+    if (typeof nodes === "number" && Number.isFinite(nodes)) {
+      bits.push(`${String(nodes)} resolved packages`);
+    }
+    if (vulnCount > 0) {
+      bits.push(`${String(vulnCount)} with listed advisories`);
+    }
+    if (bits.length > 0) return `> *${bits.join(" · ")}*`;
+    return null;
+  }
+
+  const nStr =
+    typeof nodes === "number" && Number.isFinite(nodes) ? String(nodes) : "—";
+  const dStr =
+    typeof depth === "number" && Number.isFinite(depth) ? String(depth) : "—";
+  const eStr =
+    typeof edges === "number" && Number.isFinite(edges) ? String(edges) : "—";
+  return `> *${nStr} packages · max depth ${dStr} · ${eStr} edges${hotspotCount > 0 ? ` · ${hotspotCount} hotspot${hotspotCount > 1 ? "s" : ""}` : ""}${vulnCount > 0 ? ` · ${vulnCount} flagged vulnerable` : ""}*`;
 }
 
 function buildScoreBreakdownDetails(
@@ -449,20 +535,11 @@ function buildGraphDetails(
   );
   lines.push(`*${note}*`);
   lines.push("");
-  const nodes = g.nodes;
-  const depth = g.maxDepth;
-  const edges = g.edges;
-  const hotspotCount = Array.isArray(g.hotspots) ? g.hotspots.length : 0;
+  const hasStory = qualitative.length > 0 || narrative.length > 0;
+  let rawLine = buildGraphRawMetricsLine(g, hasStory);
+  if (!rawLine) rawLine = buildGraphRawMetricsLine(g, false);
+  if (rawLine) lines.push(rawLine);
   const vulnCount = Array.isArray(g.vulnerable) ? g.vulnerable.length : 0;
-  const nStr =
-    typeof nodes === "number" && Number.isFinite(nodes) ? String(nodes) : "—";
-  const dStr =
-    typeof depth === "number" && Number.isFinite(depth) ? String(depth) : "—";
-  const eStr =
-    typeof edges === "number" && Number.isFinite(edges) ? String(edges) : "—";
-  lines.push(
-    `> *${nStr} packages · max depth ${dStr} · ${eStr} edges${hotspotCount > 0 ? ` · ${hotspotCount} hotspot${hotspotCount > 1 ? "s" : ""}` : ""}${vulnCount > 0 ? ` · ${vulnCount} flagged vulnerable` : ""}*`,
-  );
   if (vulnCount > 0) {
     lines.push("");
     lines.push(
@@ -604,7 +681,8 @@ function collectWhyBullets(result: ScanResult, max: number): string[] {
     for (const r of reasoning) {
       const s = humanizeEngineSurfaceText(String(r).trim());
       if (s && !out.includes(s)) out.push(s);
-      if (out.length >= max) return out;
+      if (out.length >= max)
+        return dedupeDriverDisplayPhrases(out).slice(0, max);
     }
   }
   const reasons = result.explain?.reasons;
@@ -620,7 +698,7 @@ function collectWhyBullets(result: ScanResult, max: number): string[] {
     const one = deriveScanSummaryText(result);
     if (one) out.push(one);
   }
-  return out.slice(0, max);
+  return dedupeDriverDisplayPhrases(out).slice(0, max);
 }
 
 function buildWhatToDoItems(result: ScanResult): {
@@ -650,10 +728,23 @@ function buildWhatToDoItems(result: ScanResult): {
   return { defaultItems, overflowInsights, overflowRecs };
 }
 
+function recommendationLeadsWithRationale(rec: Recommendation): boolean {
+  const title = String(rec.title ?? "Review dependencies").trim() || "Review";
+  const rat = (rec.rationale ?? "").trim();
+  if (!rat) return false;
+  return (
+    GENERIC_RECOMMENDATION_TITLE.test(title) ||
+    (rat.length > title.length * 1.15 && title.length < 52)
+  );
+}
+
 function formatRecommendationPrimaryLines(
   rec: Recommendation,
   rationaleMax: number,
-  flat?: Record<string, string>,
+  opts?: {
+    copy?: Record<string, string>;
+    recReviewPrefix?: boolean;
+  },
 ): string[] {
   const title = String(rec.title ?? "Review dependencies").trim() || "Review";
   const rat = (rec.rationale ?? "").trim();
@@ -664,9 +755,9 @@ function formatRecommendationPrimaryLines(
   if (leadWithRationale) {
     const ratBudget = Math.min(220, rationaleMax + 85);
     let ratTrunc = truncateWithEllipsis(rat, ratBudget);
-    if (flat) {
+    if (opts?.copy && opts?.recReviewPrefix) {
       const prefix = copyLine(
-        flat,
+        opts.copy,
         "actions.recReviewLeadPrefix",
         scanSurfaceCopy.actions.recReviewLeadPrefix,
       ).trim();
@@ -688,6 +779,7 @@ function formatDefaultWhatLine(
     firstInsightSubLine: boolean;
     rationaleMax: number;
     copy: Record<string, string>;
+    applyRecReviewPrefix: boolean;
   },
 ): string[] {
   const linesOut: string[] = [];
@@ -704,11 +796,10 @@ function formatDefaultWhatLine(
     return linesOut;
   }
   const rec = item.rec;
-  const parts = formatRecommendationPrimaryLines(
-    rec,
-    opts.rationaleMax,
-    opts.copy,
-  );
+  const parts = formatRecommendationPrimaryLines(rec, opts.rationaleMax, {
+    copy: opts.copy,
+    recReviewPrefix: opts.applyRecReviewPrefix,
+  });
   parts.forEach((line, j) => {
     linesOut.push(j === 0 ? `${index}. ${line}` : line);
   });
@@ -777,14 +868,21 @@ export function buildActionsStepSummaryMarkdown(opts: {
     const whatLines: string[] = [];
     if (defaultItems.length > 0) {
       let n = 1;
+      let usedRecReviewPrefix = false;
       for (let i = 0; i < defaultItems.length; i++) {
         const item = defaultItems[i]!;
         const firstSub = i === 0 && item.kind === "insight";
+        const applyRecReviewPrefix =
+          item.kind === "rec" &&
+          !usedRecReviewPrefix &&
+          recommendationLeadsWithRationale(item.rec);
         const chunk = formatDefaultWhatLine(item, n, {
           firstInsightSubLine: firstSub,
           rationaleMax: ACTIONS_REC_RATIONALE_MAX_CHARS,
           copy: flat,
+          applyRecReviewPrefix,
         });
+        if (applyRecReviewPrefix) usedRecReviewPrefix = true;
         whatLines.push(...chunk);
         n += 1;
       }

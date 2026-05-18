@@ -42,13 +42,31 @@ describe("layerRiskBandLabel", () => {
 describe("humanizeEngineSurfaceText", () => {
   it("rewrites known graph metric tokens without adding new facts", () => {
     expect(humanizeEngineSurfaceText("graph.depth")).toBe(
-      "Dependency chain depth",
+      "Indirect dependency depth",
     );
     expect(humanizeEngineSurfaceText("graph.transitive volume")).toBe(
       "Transitive dependency volume",
     );
     expect(humanizeEngineSurfaceText("graph.fan in max")).toBe(
-      "Peak fan-in on shared packages",
+      "Many import paths converge on a few widely shared packages",
+    );
+  });
+
+  it("rewrites ecosystem surface and duplicate-path tokens", () => {
+    expect(humanizeEngineSurfaceText("Ecosystem.package surface")).toBe(
+      "Broad declared package footprint",
+    );
+    expect(humanizeEngineSurfaceText("Graph.duplicates")).toBe(
+      "Overlapping dependency paths to the same packages",
+    );
+  });
+
+  it("merges dependency depth phrasing into one canonical reviewer line", () => {
+    expect(humanizeEngineSurfaceText("dependency chain depth")).toBe(
+      "Indirect dependency depth",
+    );
+    expect(humanizeEngineSurfaceText("dependency depth")).toBe(
+      "Indirect dependency depth",
     );
   });
 
@@ -293,6 +311,40 @@ describe("buildActionsStepSummaryMarkdown", () => {
     expect(md).toContain("Reduce transitive dependency surface area");
   });
 
+  it("applies rec review prefix only to the first rationale-first recommendation", () => {
+    const md = buildActionsStepSummaryMarkdown({
+      result: {
+        ...trustedBase,
+        insights: [],
+        recommendations: [
+          {
+            id: "r1",
+            title: "Reduce transitive dependency surface area",
+            rationale:
+              "This PR adds lodash twice at incompatible semver ranges pulled through different path aliases, widening the install tree.",
+            impact: "high",
+            priorityScore: 90,
+          },
+          {
+            id: "r2",
+            title: "Minimize dependency footprint in the service layer",
+            rationale:
+              "Several packages are pulled in only for types while runtime bundles still resolve overlapping majors, which increases upgrade coupling across services.",
+            impact: "high",
+            priorityScore: 85,
+          },
+        ],
+      },
+      profile: "trusted",
+      copy,
+    });
+    const prefix = copy["actions.recReviewLeadPrefix"]!;
+    const first = md.indexOf(prefix);
+    const second = md.indexOf(prefix, first + 1);
+    expect(first).toBeGreaterThan(-1);
+    expect(second).toBe(-1);
+  });
+
   it("humanizes graph metric tokens in explain-driven layer drivers", () => {
     const md = buildActionsStepSummaryMarkdown({
       result: {
@@ -312,7 +364,7 @@ describe("buildActionsStepSummaryMarkdown", () => {
       profile: "trusted",
       copy,
     });
-    expect(md).toContain("Dependency chain depth");
+    expect(md).toContain("Indirect dependency depth");
     expect(md).not.toContain("graph.depth");
   });
 
@@ -350,6 +402,6 @@ describe("buildActionsStepSummaryMarkdown", () => {
     expect(md).toContain(copy["actions.dependencyGraphDetailsSummary"]!);
     expect(md).toContain("moderately deep");
     expect(md).toContain("fairly broad");
-    expect(md).toMatch(/> \*900 packages · max depth 7/);
+    expect(md).toMatch(/> \*max chain length 7 · 900 resolved packages\*/);
   });
 });
