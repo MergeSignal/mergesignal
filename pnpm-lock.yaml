@@ -61,6 +61,9 @@ importers:
       ioredis:
         specifier: ^5.9.3
         version: 5.9.3
+      minimist:
+        specifier: 1.2.5
+        version: 1.2.5
       pg:
         specifier: ^8.19.0
         version: 8.19.0
@@ -71,6 +74,9 @@ importers:
       "@repo/eslint-config":
         specifier: workspace:*
         version: link:../../packages/eslint-config
+      "@types/minimist":
+        specifier: 1.2.5
+        version: 1.2.5
       "@types/node":
         specifier: ^22.15.3
         version: 22.15.3
@@ -2631,6 +2637,12 @@ packages:
     resolution:
       {
         integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==,
+      }
+
+  "@types/minimist@1.2.5":
+    resolution:
+      {
+        integrity: sha512-hov8bUuiLiyFPGyFPE1lwWhmzYbirOXQNNo40+y3zow8aFVTeyn3VWL0VFFfdNddA8S4Vf0Tc062rzyNr7Paag==,
       }
 
   "@types/ms@2.1.0":
@@ -5313,6 +5325,12 @@ packages:
         integrity: sha512-G6T0ZX48xgozx7587koeX9Ys2NYy6Gmv//P89sEte9V9whIapMNF4idKxnW2QtCcLiTWlb/wfCabAtAFWhhBow==,
       }
     engines: { node: ">=16 || 14 >=14.17" }
+
+  minimist@1.2.5:
+    resolution:
+      {
+        integrity: sha512-FM9nNUYrRBAELZQT3xeZQ7fmMOBg6nWNmJKTcgsJeaLstP/UODVpGsr5OhXhhXg6f+qtJ8uiZ+PUxkDWcgIXLw==,
+      }
 
   minimist@1.2.8:
     resolution:
@@ -8565,6 +8583,8 @@ snapshots:
     dependencies:
       "@types/unist": 3.0.3
 
+  "@types/minimist@1.2.5": {}
+
   "@types/ms@2.1.0": {}
 
   "@types/mysql@2.15.26":
@@ -10566,6 +10586,8 @@ snapshots:
   minimatch@9.0.5:
     dependencies:
       brace-expansion: 2.0.2
+
+  minimist@1.2.5: {}
 
   minimist@1.2.8: {}
 
