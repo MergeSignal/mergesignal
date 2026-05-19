@@ -1,0 +1,52 @@
+# Example only — not executed from this path. Copy into `.github/workflows/` in your repository.
+#
+# Actions-only CI: trusted scan on pull requests (same-repo, non-Dependabot) and on pushes to main.
+# Hosted installs: use the MergeSignal GitHub App for PR Check Runs and persisted scans; this YAML is optional CI.
+name: MergeSignal
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      fail_above:
+        description: "Fail if totalScore > this value (0..100). Leave empty to not fail."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merge-signal-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mergesignal_scan:
+    name: Lockfile scan
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && !startsWith(github.actor, 'dependabot'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: MergeSignal scan
+        uses: MergeSignal/mergesignal/.github/actions/merge-signal-scan@main
+        with:
+          fail_above: ${{ github.event.inputs.fail_above || '' }}
+          scan_profile: trusted
+          engine_repo_token: ${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}
+          engine_repository: ${{ vars.MERGESIGNAL_ENGINE_REPOSITORY || 'MergeSignal/mergesignal-engine' }}
+          engine_ref: ${{ vars.MERGESIGNAL_ENGINE_REF || 'main' }}
+          engine_impl_file: ${{ vars.MERGESIGNAL_ENGINE_IMPL_FILE || 'packages/analysis-engine/dist/index.js' }}
+
+      - name: Upload results
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mergesignal-scan
+          path: ${{ runner.temp }}/mergesignal-scan.json
+          if-no-files-found: error

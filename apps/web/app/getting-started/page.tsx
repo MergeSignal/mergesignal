@@ -5,7 +5,7 @@ import gsStyles from "./getting-started.module.css";
 const REPO_BLOB = "https://github.com/MergeSignal/mergesignal/blob/main";
 const README = `${REPO_BLOB}/README.md`;
 const RELEASING = `${REPO_BLOB}/RELEASING.md`;
-const WORKFLOW_SCAN = `${REPO_BLOB}/.github/workflows/mergesignal-scan.yml`;
+const WORKFLOW_EXAMPLE = `${REPO_BLOB}/docs/examples/mergesignal-scan-with-pull-request.yml`;
 
 const INSTALL_SNIPPET = `git clone https://github.com/MergeSignal/mergesignal.git
 cd mergesignal
@@ -38,10 +38,13 @@ export default function GettingStartedPage() {
     <article className={docStyles.article}>
       <h1>Getting started</h1>
       <p className={gsStyles.subtitle}>
-        MergeSignal detects dependency risks before merge so you catch issues
-        early instead of in production.
+        MergeSignal surfaces dependency risk before merge so you can review with
+        context instead of guessing from diffs alone.
       </p>
-      <p>Start locally in seconds, then run it on every pull request.</p>
+      <p>
+        Start locally in seconds, then add PR intelligence and dashboards backed
+        by scans.
+      </p>
 
       <section
         id="quick-start"
@@ -98,11 +101,11 @@ export default function GettingStartedPage() {
         className={`${gsStyles.sectionBlock} ${gsStyles.anchorSection}`}
         aria-labelledby="pr-product-heading"
       >
-        <h2 id="pr-product-heading">Run on every Pull Request (recommended)</h2>
+        <h2 id="pr-product-heading">GitHub Actions (CI)</h2>
         <p className={gsStyles.sectionLead}>
-          MergeSignal scans dependency changes on every pull request and adds a
-          clear, actionable risk summary directly in your GitHub Actions
-          workflow - no MergeSignal server to run yourself!
+          Add a short workflow so every qualifying pull request runs MergeSignal
+          in GitHub Actions and writes a clear risk summary to the workflow
+          Summary—useful when you want CI-only integration.
         </p>
 
         <div className={gsStyles.stepBlock}>
@@ -140,10 +143,10 @@ export default function GettingStartedPage() {
             ships as a smaller install (Phase 2).
           </p>
           <p>
-            <strong>Advanced.</strong> For a full template you can fork (for
-            example uploading artifacts), see{" "}
-            <a href={WORKFLOW_SCAN}>
-              <code>mergesignal-scan.yml</code>
+            <strong>Advanced.</strong> For a full YAML template (including{" "}
+            <code>pull_request</code> and artifact upload), see{" "}
+            <a href={WORKFLOW_EXAMPLE}>
+              <code>mergesignal-scan-with-pull-request.yml</code>
             </a>
             . Operator details:{" "}
             <a

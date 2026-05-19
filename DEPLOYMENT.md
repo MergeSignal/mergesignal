@@ -407,7 +407,15 @@ For workflows that should **not** silently use the OSS stub, use the composite a
 
 **Engine repository contract:** The checkout must contain a standard Node project with `pnpm install --frozen-lockfile` + `pnpm run build`, or `npm ci` + `npm run build`, producing the file at `engine_impl_file`. This matches a private **mergesignal-engine** source checkout.
 
-**Fork behavior:** On `pull_request` from forks, GitHub does not expose your org secrets. **Skip** the MergeSignal job when `github.event.pull_request.head.repo.full_name != github.repository` so fork PRs do not show a fake trusted scan or OSS stub as production signal. **Dependabot** pull requests do not receive normal repository Actions secrets either; skip when `github.actor == 'dependabot[bot]'` or supply the token under **Dependabot secrets** if you need trusted scans there. The MergeSignal dogfood workflow uses **`scan_profile: trusted`** only on same-repo PRs (excluding Dependabot), plus `push` to `main` / `workflow_dispatch`, and fails early if `MERGESIGNAL_ENGINE_REPO_TOKEN` is missing.
+**Fork behavior (Actions-only repositories):** On `pull_request` from forks, GitHub does not expose your org secrets. **Skip** the MergeSignal job when `github.event.pull_request.head.repo.full_name != github.repository` so fork PRs do not show a fake trusted scan or OSS stub as production signal. **Dependabot** pull requests do not receive normal repository Actions secrets either; skip when `github.actor == 'dependabot[bot]'` or supply the token under **Dependabot secrets** if you need trusted scans there. A copy-paste workflow with `pull_request` is in [docs/examples/mergesignal-scan-with-pull-request.yml](./docs/examples/mergesignal-scan-with-pull-request.yml).
+
+**MergeSignal `mergesignal` repo dogfood:** [`.github/workflows/mergesignal-scan.yml`](./.github/workflows/mergesignal-scan.yml) runs **`scan_profile: trusted`** on **`push` to `main`** and **`workflow_dispatch`** only (not on pull requests). Missing `MERGESIGNAL_ENGINE_REPO_TOKEN` fails the workflow on `MergeSignal/mergesignal`.
+
+### MergeSignal maintainers: branch protection and ScanResult
+
+**Branch protection / rulesets:** The dogfood workflow check name is derived from workflow `name:` and job `name:` (for example **`MergeSignal Dogfood / Engine validation`**). Before merging workflow renames or trigger changes, inventory **required status checks**, **rulesets**, and **merge queue** on the default branch; remove or update entries that pointed at an **obsolete** check so merges are not blocked.
+
+**Reading stored `ScanResult`:** [docs/engineering/scanresult-debug.md](./docs/engineering/scanresult-debug.md). **Surface roles (internal):** [docs/engineering/surfaces.md](./docs/engineering/surfaces.md). **Post-merge verification list:** [docs/engineering/post-change-e2e-checklist.md](./docs/engineering/post-change-e2e-checklist.md).
 
 **API / worker note:** `MERGESIGNAL_TRUSTED_ANALYSIS` is primarily for CLI and CI paths that must mirror “real engine or fail” without overloading `NODE_ENV`. Long-running **worker** deployments typically rely on `NODE_ENV=production` and `MERGESIGNAL_ENGINE_IMPL` as today; see `apps/api/.env.example`.
 

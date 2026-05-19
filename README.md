@@ -68,7 +68,7 @@ MergeSignal can run on **GitHub Actions** and write a risk summary to each workf
 
 **Full guide (recommended workflow, optional `fail_above` gate, first-run notes):** use the canonical page on your web deployment, e.g. **[mergesignal-web.fly.dev/getting-started#github-actions](https://mergesignal-web.fly.dev/getting-started#github-actions)** (replace the host with yours if self-hosted).
 
-**Contract and versioning:** input/output details and release pins are in [.github/actions/merge-signal-scan/README.md](./.github/actions/merge-signal-scan/README.md) and [RELEASING.md](./RELEASING.md). This repository’s [`.github/workflows/mergesignal-scan.yml`](./.github/workflows/mergesignal-scan.yml) dogfoods the action as **`MergeSignal / Dependency review`** (workflow `name: MergeSignal`, job display name `Dependency review`). After renaming workflows or jobs, update **required checks** in GitHub branch protection and any rulesets so merges are not blocked on stale check names.
+**Contract and versioning:** input/output details and release pins are in [.github/actions/merge-signal-scan/README.md](./.github/actions/merge-signal-scan/README.md) and [RELEASING.md](./RELEASING.md). This repository’s [`.github/workflows/mergesignal-scan.yml`](./.github/workflows/mergesignal-scan.yml) is an **internal dogfood** workflow (**`MergeSignal Dogfood / Engine validation`** on runs that execute): trusted composite on **`push` to `main`** and **`workflow_dispatch`** only. A copy-paste **PR + push** template for other repositories lives in [docs/examples/mergesignal-scan-with-pull-request.yml](./docs/examples/mergesignal-scan-with-pull-request.yml). Maintainer notes (branch protection, reading `ScanResult`): [DEPLOYMENT.md](./DEPLOYMENT.md) (section **MergeSignal maintainers: branch protection and ScanResult**), [docs/engineering/surfaces.md](./docs/engineering/surfaces.md).
 
 ---
 
@@ -77,7 +77,7 @@ MergeSignal can run on **GitHub Actions** and write a risk summary to each workf
 - **`pnpm ms scan` not found** - The `ms` script is defined on the MergeSignal repo root. Use `pnpm --dir /path/to/mergesignal ms scan` from your project, or `cd` into the clone and run `pnpm ms scan` there.
 - **No lockfile** - Run from the package root that contains `pnpm-lock.yaml` or `package-lock.json`, or pass `--lockfile` with a path. Yarn lockfiles are supported when passed explicitly.
 - **Node version** - Use Node ≥ 20.19 (see `.nvmrc`). With plain nvm, run `nvm install && nvm use` before `pnpm install` if your shell does not auto-read `.nvmrc`.
-- **GitHub Actions** - Use the [official action README](./.github/actions/merge-signal-scan/README.md). The dogfood workflow uploads the scan JSON artifact from the runner temp path used by the action.
+- **GitHub Actions** - Use the [official action README](./.github/actions/merge-signal-scan/README.md). The dogfood workflow uploads the scan JSON artifact on **`push` to `main`** and **`workflow_dispatch`** (not on pull requests in this repo).
 
 For the full stack (Docker, Postgres, Redis, API, web, worker), environment variables, and deployment, see **Web app and API locally** above and [DEPLOYMENT.md](./DEPLOYMENT.md).
 

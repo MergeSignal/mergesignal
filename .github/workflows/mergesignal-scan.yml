@@ -1,12 +1,13 @@
-# Customer-facing trusted scan. Workflow name + job `name:` define the GitHub check (e.g. MergeSignal / Dependency review).
-# Structure invariants: apps/cli/src/mergesignalScanWorkflow.test.ts — update when changing fork/Dependabot rules or scan_profile.
+# Internal dogfood: trusted composite + private engine on push to main and workflow_dispatch.
+# Does not run on pull_request — hosted GitHub App Check Run is the PR surface for MergeSignal.
+# Workflow `name:` + job `name:` define the GitHub check name on runs that still execute.
+# Structure invariants: apps/cli/src/mergesignalScanWorkflow.test.ts — update when changing token rules or scan_profile.
 #
-# Dogfood (github.repository == MergeSignal/mergesignal): trusted scan is mandatory — missing
-# MERGESIGNAL_ENGINE_REPO_TOKEN fails the job (no stub/demo downgrade). Other repos skip the scan when the token is absent.
-name: MergeSignal
+# MergeSignal/mergesignal: missing MERGESIGNAL_ENGINE_REPO_TOKEN fails the job (no stub/demo downgrade).
+# Other forks/clones: skip trusted scan when token absent (non-blocking summary on push/dispatch).
+name: MergeSignal Dogfood
 
 on:
-  pull_request:
   push:
     branches: [main]
   workflow_dispatch:
@@ -20,23 +21,22 @@ permissions:
   contents: read
 
 concurrency:
-  group: merge-signal-${{ github.workflow }}-${{ github.ref }}
+  group: merge-signal-dogfood-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   mergesignal_scan:
-    name: Dependency review
+    name: Engine validation
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      # Composite steps read this via env context (more reliable than with: alone for repository secrets).
       MERGESIGNAL_ENGINE_REPO_TOKEN: ${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: MergeSignal PR context
+      - name: MergeSignal dogfood context
         id: ms_context
         env:
           MS_ENGINE_PAT: ${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}
@@ -50,7 +50,7 @@ jobs:
             HINT="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.trustedWorkflowCredentialHintBody']")"
             echo "::error::${SUMMARY}" >&2
             {
-              echo "## MergeSignal"
+              echo "## MergeSignal Dogfood"
               echo ""
               echo "$SUMMARY"
               echo ""
@@ -58,56 +58,18 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           }
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            if [ -n "${MS_ENGINE_PAT:-}" ]; then
-              echo "run_trusted_scan=true" >> "$GITHUB_OUTPUT"
-            elif [ "$REPO" = "$CANONICAL" ]; then
-              fail_trusted_required_no_pat
-            else
-              echo "run_trusted_scan=false" >> "$GITHUB_OUTPUT"
-              MSG="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.pushTrustedScanSkippedNoEngineToken']")"
-              {
-                echo "## MergeSignal"
-                echo ""
-                echo "$MSG"
-              } >> "$GITHUB_STEP_SUMMARY"
-            fi
-            exit 0
-          fi
-          HEAD_REPO="${{ github.event.pull_request.head.repo.full_name }}"
-          BASE_REPO="${{ github.repository }}"
-          ACTOR="${{ github.actor }}"
-          BOT=0
-          if [[ "$ACTOR" == dependabot* ]]; then
-            BOT=1
-          fi
-          if [ "$HEAD_REPO" != "$BASE_REPO" ] || [ "$BOT" = "1" ]; then
-            echo "run_trusted_scan=false" >> "$GITHUB_OUTPUT"
-            FORK_MSG="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.prAnalysisUnavailableFork']")"
-            DEP_MSG="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.prAnalysisUnavailableDependabot']")"
-            {
-              echo "## MergeSignal"
-              echo ""
-              if [ "$HEAD_REPO" != "$BASE_REPO" ]; then
-                echo "$FORK_MSG"
-              else
-                echo "$DEP_MSG"
-              fi
-            } >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${MS_ENGINE_PAT:-}" ]; then
+            echo "run_trusted_scan=true" >> "$GITHUB_OUTPUT"
+          elif [ "$REPO" = "$CANONICAL" ]; then
+            fail_trusted_required_no_pat
           else
-            if [ -n "${MS_ENGINE_PAT:-}" ]; then
-              echo "run_trusted_scan=true" >> "$GITHUB_OUTPUT"
-            elif [ "$REPO" = "$CANONICAL" ]; then
-              fail_trusted_required_no_pat
-            else
-              echo "run_trusted_scan=false" >> "$GITHUB_OUTPUT"
-              MSG="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.pushTrustedScanSkippedNoEngineToken']")"
-              {
-                echo "## MergeSignal"
-                echo ""
-                echo "$MSG"
-              } >> "$GITHUB_STEP_SUMMARY"
-            fi
+            echo "run_trusted_scan=false" >> "$GITHUB_OUTPUT"
+            MSG="$(node -p "JSON.parse(require('fs').readFileSync('scripts/ci/scan-surface-copy.generated.json','utf8'))['actions.pushTrustedScanSkippedNoEngineToken']")"
+            {
+              echo "## MergeSignal Dogfood"
+              echo ""
+              echo "$MSG"
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: MergeSignal scan

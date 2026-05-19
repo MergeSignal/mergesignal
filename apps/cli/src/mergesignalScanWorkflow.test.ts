@@ -6,8 +6,11 @@ import { parse } from "yaml";
 
 const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 
+const DOGFOOD_WORKFLOW = "MergeSignal Dogfood";
+const DOGFOOD_JOB_NAME = "Engine validation";
+
 describe("MergeSignal GitHub workflow contract", () => {
-  it("mergesignal-scan.yml uses MergeSignal / Dependency review with PR context gate and literal trusted profile", () => {
+  it("mergesignal-scan.yml dogfood: no pull_request, internal workflow name, trusted composite", () => {
     const doc = parse(
       readFileSync(
         join(repoRoot, ".github/workflows/mergesignal-scan.yml"),
@@ -15,7 +18,12 @@ describe("MergeSignal GitHub workflow contract", () => {
       ),
     ) as Record<string, unknown>;
 
-    expect(doc.name).toBe("MergeSignal");
+    expect(doc.name).toBe(DOGFOOD_WORKFLOW);
+
+    const on = doc.on as Record<string, unknown>;
+    expect(on.pull_request).toBeUndefined();
+    expect(on.push).toBeDefined();
+    expect(on.workflow_dispatch).toBeDefined();
 
     const jobs = doc.jobs as Record<string, unknown>;
     expect(jobs.scan).toBeUndefined();
@@ -23,6 +31,7 @@ describe("MergeSignal GitHub workflow contract", () => {
 
     const analysis = jobs.mergesignal_scan as Record<string, unknown>;
     expect(analysis.if).toBeUndefined();
+    expect(analysis.name).toBe(DOGFOOD_JOB_NAME);
     expect(analysis.env).toBeDefined();
     expect(
       String(
@@ -35,12 +44,9 @@ describe("MergeSignal GitHub workflow contract", () => {
       join(repoRoot, ".github/workflows/mergesignal-scan.yml"),
       "utf8",
     );
+    expect(yamlText).not.toContain("name: Dependency review");
+    expect(yamlText).not.toContain("pull_request:");
     expect(yamlText).toContain("scan-surface-copy.generated.json");
-    expect(yamlText).toContain("actions.prAnalysisUnavailableFork");
-    expect(yamlText).toContain("actions.prAnalysisUnavailableDependabot");
-    expect(yamlText).toContain("actions.pushTrustedScanSkippedNoEngineToken");
-    expect(yamlText).toContain("actions.trustedWorkflowSecretMissing");
-    expect(yamlText).toContain("MergeSignal/mergesignal");
     expect(yamlText).toContain("fail_trusted_required_no_pat");
     expect(yamlText).toContain("exit 1");
     expect(yamlText).toContain("MS_ENGINE_PAT");
@@ -61,6 +67,32 @@ describe("MergeSignal GitHub workflow contract", () => {
       "secrets.MERGESIGNAL_ENGINE_REPO_TOKEN",
     );
     expect(yamlText).toContain("packages/analysis-engine/dist/index.js");
+  });
+
+  it("docs PR example workflow includes pull_request and trusted composite", () => {
+    const examplePath = join(
+      repoRoot,
+      "docs/examples/mergesignal-scan-with-pull-request.yml",
+    );
+    const doc = parse(readFileSync(examplePath, "utf8")) as Record<
+      string,
+      unknown
+    >;
+    const on = doc.on as Record<string, unknown>;
+    expect(on.pull_request).toBeNull();
+    expect(on.push).toBeDefined();
+
+    const jobs = doc.jobs as Record<string, unknown>;
+    const job = jobs.mergesignal_scan as Record<string, unknown>;
+    expect(String(job.if ?? "")).toContain("github.event_name");
+    const steps = job.steps as Array<Record<string, unknown>>;
+    const scanStep = steps.find((s) =>
+      String(s.uses ?? "").includes("merge-signal-scan"),
+    );
+    expect(scanStep).toBeTruthy();
+    expect(
+      (scanStep?.with as Record<string, string> | undefined)?.scan_profile,
+    ).toBe("trusted");
   });
 
   it("merge-signal-scan action checks out the trusted engine from GitHub", () => {
