@@ -36,6 +36,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           registry-url: "https://registry.npmjs.org"
+          scope: "@mergesignal"
+          always-auth: true
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -95,6 +97,11 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
+          # Ensure scoped auth applies from packages/shared (setup-node writes ~/.npmrc)
+          if ! grep -q '_authToken' ~/.npmrc 2>/dev/null; then
+            echo "::error::~/.npmrc missing auth token — check NPM_TOKEN secret is set."
+            exit 1
+          fi
           npm publish --access public 2>&1 | tee /tmp/npm-publish.log
           exit "${PIPESTATUS[0]}"
 

@@ -16,8 +16,17 @@ The canonical contract and presentation package lives in `packages/shared` and i
 
 **Prerequisites (first publish / token rotation)**
 
-- npm org **`mergesignal`** with publish access for the token identity.
-- GitHub secret **`NPM_TOKEN`**: granular token with **Read and Write** on `@mergesignal` **and** **Bypass 2FA** enabled.
+- npm org **`mergesignal`** with publish access for the token identity (the npm user that owns the token must be allowed to publish `@mergesignal/*`).
+- GitHub secret **`NPM_TOKEN`**: **new** granular token (bypass cannot be added to an existing token).
+
+**Create the granular token (npm → Access Tokens → Generate New Token)**
+
+1. Check **Bypass two-factor authentication** (required when the org enforces 2FA; default is unchecked).
+2. Under **Packages and scopes** → **Only select packages and scopes** → add scope **`@mergesignal`** (or package `@mergesignal/shared`) with **Read and write**.
+3. Do **not** rely on **Organizations → Read and write** alone — [npm docs](https://docs.npmjs.com/creating-and-viewing-access-tokens) state org-level tokens manage org settings/teams, **not** publishing packages.
+4. Leave **Allowed IP ranges** empty unless you maintain GitHub Actions egress CIDRs.
+5. Copy the token once, then **update** (not just view) the repo secret: GitHub → `MergeSignal/mergesignal` → Settings → Secrets and variables → Actions → **`NPM_TOKEN`** → Update. Confirm “Updated …” is recent before re-running the workflow.
+6. Revoke the old token on npm so CI cannot keep using a non-bypass copy by mistake.
 
 **Org-wide 2FA and `EOTP`:** When the org enforces 2FA, `npm publish` in CI fails with:
 
@@ -29,6 +38,16 @@ npm error This operation requires a one-time password from your authenticator.
 Read/write scope alone is not enough. Enable **Bypass 2FA** when creating the granular token (npm → Access Tokens → Generate New Token → Permissions). `npm whoami` and `npm publish --dry-run` can still succeed; only the real `PUT` publish triggers `EOTP` without bypass.
 
 **First publish (org 2FA):** Recreate `NPM_TOKEN` with **Bypass 2FA** checked, update the GitHub secret, then re-run the workflow. Without it, logs show `npm error code EOTP`.
+
+**Sanity-check the new token locally** (optional, publishes for real if bypass works):
+
+```bash
+export NODE_AUTH_TOKEN='npm_…'   # paste the new granular token
+cd packages/shared && pnpm build && npm publish --access public
+npm view @mergesignal/shared@0.2.0
+```
+
+If local publish succeeds but CI still shows `EOTP`, the GitHub **`NPM_TOKEN` secret was not updated** with the new value.
 
 **After first publish:** Optionally add [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) on the package (`publish-shared.yml`, repo `MergeSignal/mergesignal`) to drop the long-lived publish token.
 
