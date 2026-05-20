@@ -35,6 +35,9 @@ jobs:
         with:
           node-version-file: .nvmrc
           registry-url: "https://registry.npmjs.org"
+          always-auth: true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Resolve version from tag or package.json
         id: version
