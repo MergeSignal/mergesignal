@@ -12,7 +12,37 @@ The canonical contract and presentation package lives in `packages/shared` and i
 4. Push the tag: `git push origin shared-v0.2.0`.
 5. GitHub Actions workflow [`.github/workflows/publish-shared.yml`](.github/workflows/publish-shared.yml) runs build, tests, and `pnpm publish` (requires `NPM_TOKEN` secret).
 
-**Consumers (e.g. `mergesignal-engine`)** pin the published version in `package.json` / lockfile — do not copy `packages/shared` source.
+**Consumers (e.g. `mergesignal-engine`)** use an **exact** semver pin in `package.json` (e.g. `"@mergesignal/shared": "0.2.0"`, not `^0.2.0`) plus a frozen `pnpm-lock.yaml` — do not copy `packages/shared` source or vendor tarballs.
+
+**Prerequisites (first publish / token rotation)**
+
+- npm org `@mergesignal` owns the package name.
+- GitHub repo secret `NPM_TOKEN`: npm **Automation** token with publish access to `@mergesignal/shared` only.
+- Optional: GitHub Environment `npm-publish` (workflow uses it for approval gates).
+
+**Two-repo release order**
+
+1. Merge shared changes on `main`, bump `packages/shared/package.json`.
+2. Tag `shared-vX.Y.Z` and push; confirm [publish workflow](.github/workflows/publish-shared.yml) succeeds.
+3. `npm view @mergesignal/shared@X.Y.Z`
+4. In `mergesignal-engine`: exact pin `"@mergesignal/shared": "X.Y.Z"`, `pnpm install`, remove any `vendor/*.tgz`, merge when CI is green.
+5. Deploy engine/worker images if applicable.
+
+**Rollback**
+
+| Situation            | Action                                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| Bad shared release   | Publish a patch from mergesignal; bump engine to the fixed exact version.                   |
+| Revert engine        | Restore previous exact pin in `package.json` and the prior `pnpm-lock.yaml` hunk; redeploy. |
+| Public monorepo apps | Redeploy prior git SHA (shared is workspace-linked, not npm).                               |
+
+Published npm versions are immutable; do not rely on `npm unpublish`.
+
+**After publish (quick checks)**
+
+- `npm view @mergesignal/shared@X.Y.Z`
+- `npm pack @mergesignal/shared@X.Y.Z` — tarball should contain `dist/` only
+- Engine: `pnpm why @mergesignal/shared` resolves from `registry.npmjs.org`, not `file:`
 
 **Semver for shared**
 
