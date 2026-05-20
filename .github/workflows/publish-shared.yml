@@ -21,7 +21,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment: npm-publish
+    # Optional: set `environment: npm-publish` after creating that environment and
+    # copying NPM_TOKEN into it (environment secrets override repo secrets).
     steps:
       - uses: actions/checkout@v4
 

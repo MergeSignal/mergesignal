@@ -16,9 +16,10 @@ The canonical contract and presentation package lives in `packages/shared` and i
 
 **Prerequisites (first publish / token rotation)**
 
-- npm org `@mergesignal` owns the package name.
+- npm org `@mergesignal` exists and your account can publish scoped packages (first publish returns **404** if the org or token scope is wrong).
 - GitHub repo secret `NPM_TOKEN`: npm **Automation** token with publish access to `@mergesignal/shared` only.
-- Optional: GitHub Environment `npm-publish` (workflow uses it for approval gates).
+- Optional: GitHub Environment `npm-publish` (workflow uses it; add `NPM_TOKEN` to the environment or repo secrets).
+- If publish fails, fix token/org then re-tag (e.g. delete remote `shared-v0.2.0` and push again, or bump patch and use `shared-v0.2.1`).
 
 **Two-repo release order**
 
