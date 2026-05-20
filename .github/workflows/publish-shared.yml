@@ -91,6 +91,9 @@ jobs:
           echo "Version ${{ steps.version.outputs.version }} is not published yet."
 
       - name: Publish to npm
+        working-directory: packages/shared
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: pnpm -F @mergesignal/shared publish --no-git-checks --access public
+        run: |
+          set -euo pipefail
+          npm publish --access public
