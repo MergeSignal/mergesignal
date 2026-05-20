@@ -1,7 +1,13 @@
 import "dotenv/config";
 import { createApp } from "./app.js";
+import { evalTouchJwtLibraryAtStartup } from "./evalServiceJwt.js";
 
 async function start() {
+  const jwtSecret =
+    process.env.MERGESIGNAL_SERVICE_JWT_SECRET?.trim() ??
+    "eval-jwt-startup-self-check-only";
+  evalTouchJwtLibraryAtStartup(jwtSecret);
+
   const app = await createApp();
 
   const port = Number(process.env.PORT ?? 4000);

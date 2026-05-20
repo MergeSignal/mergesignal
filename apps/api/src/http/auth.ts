@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { createHash } from "crypto";
+import { verifyServiceJwtBearer } from "../evalServiceJwt.js";
 import { queries } from "../db.js";
 import { sendProblem } from "../problem.js";
 
@@ -55,6 +56,15 @@ export function registerAuth(app: FastifyInstance) {
     } catch {
       // Database error - fail closed for security
       // Log the error for debugging but return unauthorized
+    }
+
+    const serviceJwtSecret = process.env.MERGESIGNAL_SERVICE_JWT_SECRET?.trim();
+    if (serviceJwtSecret) {
+      const claims = verifyServiceJwtBearer(providedKey, serviceJwtSecret);
+      if (claims?.owner) {
+        req.authenticatedOwner = claims.owner;
+        return;
+      }
     }
 
     return sendProblem(reply, req, {
