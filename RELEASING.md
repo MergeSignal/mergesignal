@@ -28,15 +28,13 @@ npm error This operation requires a one-time password from your authenticator.
 
 Read/write scope alone is not enough. Enable **Bypass 2FA** when creating the granular token (npm → Access Tokens → Generate New Token → Permissions). `npm whoami` and `npm publish --dry-run` can still succeed; only the real `PUT` publish triggers `EOTP` without bypass.
 
-**Trusted publishing (recommended):** [npm trusted publishers](https://docs.npmjs.com/trusted-publishers) — workflow publishes via OIDC (no OTP). On npmjs.com configure **before** re-running CI:
+**First publish (org 2FA):** Recreate `NPM_TOKEN` with **Bypass 2FA** checked, update the GitHub secret, then re-run the workflow. Without it, logs show `npm error code EOTP`.
 
-- Repository: `MergeSignal/mergesignal`
-- Workflow filename: `publish-shared.yml` (exact)
-- Requires npm CLI 11+ (workflow installs globally)
-
-**Token fallback:** If OIDC is not configured, the workflow retries with `NPM_TOKEN` (must include **Bypass 2FA** when org 2FA is on). Do not set `NODE_AUTH_TOKEN` on the primary publish step — that forces token auth and triggers `EOTP` even when OIDC is configured.
+**After first publish:** Optionally add [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) on the package (`publish-shared.yml`, repo `MergeSignal/mergesignal`) to drop the long-lived publish token.
 
 - Re-run: Actions → **Publish @mergesignal/shared** → **Run workflow**, or re-push `shared-v*`.
+- Verify: `npm view @mergesignal/shared@X.Y.Z`
+- Pack check: `npm pack @mergesignal/shared@X.Y.Z --dry-run` — tarball should list `dist/` only
 
 **Two-repo release order**
 
