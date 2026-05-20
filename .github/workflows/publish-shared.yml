@@ -1,0 +1,46 @@
+# Publish @mergesignal/shared to the public npm registry on shared-v* tags.
+#
+# Maintainer flow:
+#   git tag shared-v0.2.0
+#   git push origin shared-v0.2.0
+#
+# Requires repository secret NPM_TOKEN (Automation token with publish permission).
+
+name: Publish @mergesignal/shared
+
+on:
+  push:
+    tags:
+      - "shared-v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and test shared package
+        run: |
+          pnpm -F @mergesignal/shared build
+          pnpm -F @mergesignal/shared test
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm -F @mergesignal/shared publish --no-git-checks --access public

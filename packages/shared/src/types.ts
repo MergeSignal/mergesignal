@@ -7,6 +7,29 @@ export type LayerScores = {
 
 export type FindingSeverity = "low" | "medium" | "high" | "critical";
 
+/**
+ * Producer-authored classification for {@link Finding}. Prefer this over inferring from `id` strings.
+ */
+export type FindingCategory =
+  | "graph_structure"
+  | "input_coverage"
+  | "security_vulnerability"
+  | "ecosystem_registry"
+  | "ecosystem_adoption"
+  | "ecosystem_github"
+  | "breaking_change"
+  | "deprecation"
+  | "major_version"
+  | "unknown";
+
+/** Structured lockfile delta (optional; from worker base vs head comparison). */
+export type LockfilePackageDelta = {
+  added: string[];
+  removed: string[];
+  /** Package names whose resolved version changed between base and head. */
+  updated: string[];
+};
+
 export type Finding = {
   id: string;
   title: string;
@@ -14,6 +37,10 @@ export type Finding = {
   severity: FindingSeverity;
   packageName: string;
   recommendation?: string;
+  /** When set, drives insight-layer mapping; omit only for external/legacy fixtures. */
+  category?: FindingCategory;
+  /** Optional structured hints (e.g. OSV ids); omit if public contract forbids extra keys. */
+  evidence?: Record<string, unknown>;
 };
 
 export type LockfileManager = "pnpm" | "npm" | "yarn";
@@ -56,6 +83,8 @@ export type ScanRequest = {
   /** Optional PR context for engine/logging (no installation id). */
   github?: ScanRequestGithubContext;
   changedPackages?: string[];
+  /** When both base and head lockfiles were compared in the worker. */
+  lockfilePackageDelta?: LockfilePackageDelta;
   changedFiles?: string[];
   codeAnalysisMetrics?: CodeAnalysisMetrics;
 };
@@ -151,6 +180,7 @@ export type DependencyGraphInsights = {
 export type PRInsightType =
   | "behavioral_change"
   | "usage_risk"
+  | "dependency_risk"
   | "hot_path_impact"
   | "complexity_creep";
 
@@ -158,6 +188,20 @@ export type PRInsightPriority = "critical" | "high" | "medium";
 
 export type InsightConfidence = "confirmed" | "likely" | "speculative";
 export type InsightScope = "changed" | "all";
+
+/** PR-facing merge decision vocabulary per insight (emitted insights use RISKY | BLOCK only). */
+export type InsightDecisionLevel = "SAFE" | "RISKY" | "BLOCK";
+
+/** Bar for whether an insight may appear on a PR (strict gate: only `high` emits). */
+export type EmissionConfidenceLevel = "low" | "medium" | "high";
+
+/**
+ * Per-repo threshold controlling which emission confidence levels trigger a PR comment.
+ * - `'high'`   → only `emissionConfidence === 'high'` (default; free tier)
+ * - `'medium'` → `'high' | 'medium'` (paid tier opt-in)
+ * - `'low'`    → all confidence levels (reserved; no analyzer produces low-confidence today)
+ */
+export type CommentThreshold = "high" | "medium" | "low";
 
 export type PRInsight = {
   type: PRInsightType;
@@ -169,6 +213,21 @@ export type PRInsight = {
   remediation: string;
   affectedFiles?: string[];
   details?: Record<string, unknown>;
+  /**
+   * Decision-first contract. Optional on analyzer drafts; required on {@link PRInsightEmission}.
+   */
+  decisionLevel?: InsightDecisionLevel;
+  emissionConfidence?: EmissionConfidenceLevel;
+  mechanism?: string;
+  action?: string;
+};
+
+/** Insights returned from `analyze()` after synthesis + emission contract. */
+export type PRInsightEmission = PRInsight & {
+  decisionLevel: InsightDecisionLevel;
+  emissionConfidence: EmissionConfidenceLevel;
+  mechanism: string;
+  action: string;
 };
 
 /**
@@ -193,6 +252,40 @@ export type PRDecision = {
   reasoning: string[];
 };
 
+/** Presentation-only: how the engine surfaces results when PR-local signal is weak vs strong. */
+export type ReportPresentationMode =
+  | "high_signal_pr"
+  | "lightweight_pr_graph_baseline";
+
+export type ReportPresentation = {
+  mode: ReportPresentationMode;
+};
+
+/**
+ * Optional bounded engineering trace for `MERGESIGNAL_ENGINEERING_TRACE=1`.
+ * Not end-user telemetry; deterministic, size-capped, for debugging narrative/emission ordering.
+ */
+export type EngineeringTrace = {
+  narrativeProfileSnapshot: {
+    dominantKind: string;
+    dominantTuple: readonly [number, number, number];
+    runnerUpKind: string | null;
+    decidedAtStep: string;
+    marginApplied: boolean;
+    prChangedPackages: readonly string[];
+  };
+  explainDriverIds: readonly string[];
+  orderingTrace: readonly {
+    messagePreview: string;
+    narrativeTier: number;
+    qualityPass: boolean;
+    priority: PRInsightPriority;
+    type: PRInsightType;
+  }[];
+  emissionDrops: readonly { ruleId: string }[];
+  analyzerContributions: Readonly<Record<string, number>>;
+};
+
 export type ScanResult = {
   totalScore: number;
   layerScores: LayerScores;
@@ -209,6 +302,14 @@ export type ScanResult = {
   insights?: PRInsight[];
   decision?: PRDecision;
   codeAnalysisMetrics?: CodeAnalysisMetrics;
+  /** Present when `MERGESIGNAL_ENGINEERING_TRACE=1` during analysis (bounded, deterministic). */
+  engineeringTrace?: EngineeringTrace;
+  /**
+   * Binary presentation policy (fallback vs high-signal). Does not drive analyzer or scoring logic.
+   */
+  reportPresentation?: ReportPresentation;
+  /** Echo of `ScanRequest.changedPackages` when non-empty (e.g. lockfile diff); for Check Run / UI copy. */
+  changedPackages?: string[];
 };
 
 /** Provenance the analysis engine must set on fresh output (historical DB rows may omit methodology). */

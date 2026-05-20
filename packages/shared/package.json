@@ -1,10 +1,21 @@
 {
   "name": "@mergesignal/shared",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.2.0",
+  "description": "MergeSignal shared scan contract, presentation policy, and trusted validation",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MergeSignal/mergesignal.git",
+    "directory": "packages/shared"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -19,6 +30,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && pnpm run generate:ci-copy",
+    "prepublishOnly": "pnpm run build",
     "generate:ci-copy": "tsx scripts/emit-scan-surface-copy.ts",
     "typecheck": "tsc --noEmit",
     "check-types": "tsc --noEmit",
@@ -32,5 +44,6 @@
     "tsx": "^4.21.0",
     "typescript": "^5.3.0",
     "vitest": "^2.1.8"
-  }
+  },
+  "license": "MIT"
 }

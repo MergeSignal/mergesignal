@@ -1,5 +1,27 @@
 # Releasing (GitHub Actions integration)
 
+## `@mergesignal/shared` (npm)
+
+The canonical contract and presentation package lives in `packages/shared` and is published to the **public npm registry** as `@mergesignal/shared`.
+
+**Publish (maintainers)**
+
+1. Bump `version` in `packages/shared/package.json` (semver).
+2. Merge to `main`.
+3. Tag: `git tag shared-v0.2.0` (prefix must match `shared-v*`).
+4. Push the tag: `git push origin shared-v0.2.0`.
+5. GitHub Actions workflow [`.github/workflows/publish-shared.yml`](.github/workflows/publish-shared.yml) runs build, tests, and `pnpm publish` (requires `NPM_TOKEN` secret).
+
+**Consumers (e.g. `mergesignal-engine`)** pin the published version in `package.json` / lockfile — do not copy `packages/shared` source.
+
+**Semver for shared**
+
+- **Patch** — copy tweaks, non-breaking validation relaxations, presentation-only text.
+- **Minor** — backward-compatible new optional fields on `ScanRequest` / `ScanResult` / insights.
+- **Major** — tighten trusted validation, remove/rename wire fields, bump `SCAN_RESULT_ABI` or `ENGINE_OUTPUT_SCAN_ABI`.
+
+---
+
 The composite action lives at `.github/actions/merge-signal-scan/`.
 
 ## Using `@main` (always latest)
