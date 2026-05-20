@@ -7,3 +7,4 @@ export * from "./scanResultSchema.js";
 export * from "./scanSurfaceCopy.js";
 export * from "./trustedScanGuards.js";
 export * from "./actionsStepSummary.js";
+export * from "./prCheckRunPresentation.js";

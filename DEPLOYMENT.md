@@ -415,7 +415,7 @@ For workflows that should **not** silently use the OSS stub, use the composite a
 
 **Branch protection / rulesets:** The dogfood workflow check name is derived from workflow `name:` and job `name:` (for example **`MergeSignal Dogfood / Engine validation`**). Before merging workflow renames or trigger changes, inventory **required status checks**, **rulesets**, and **merge queue** on the default branch; remove or update entries that pointed at an **obsolete** check so merges are not blocked.
 
-**Reading stored `ScanResult`:** [docs/engineering/scanresult-debug.md](./docs/engineering/scanresult-debug.md). **Surface roles (internal):** [docs/engineering/surfaces.md](./docs/engineering/surfaces.md). **Post-merge verification list:** [docs/engineering/post-change-e2e-checklist.md](./docs/engineering/post-change-e2e-checklist.md).
+**Reading stored `ScanResult`:** [docs/engineering/scanresult-debug.md](./docs/engineering/scanresult-debug.md). **Post-merge verification list:** [docs/engineering/post-change-e2e-checklist.md](./docs/engineering/post-change-e2e-checklist.md).
 
 **API / worker note:** `MERGESIGNAL_TRUSTED_ANALYSIS` is primarily for CLI and CI paths that must mirror “real engine or fail” without overloading `NODE_ENV`. Long-running **worker** deployments typically rely on `NODE_ENV=production` and `MERGESIGNAL_ENGINE_IMPL` as today; see `apps/api/.env.example`.
 
