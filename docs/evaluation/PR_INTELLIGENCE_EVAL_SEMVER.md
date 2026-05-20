@@ -28,3 +28,5 @@ Themes that **should** be in scope for a capable engine + advisory layer (exact 
 
 1. Close or merge as appropriate; **do not** merge to `main` unless upgrading to `semver@^7.5.2` (or removing the eval module) first.
 2. Open a follow-up PR that bumps `semver` to **≥7.5.2** and deletes `evalSemverUsage.ts` + the `server.ts` hook if this scenario should not persist.
+
+<!-- noop: re-sync PR to re-run hosted Check Run -->
