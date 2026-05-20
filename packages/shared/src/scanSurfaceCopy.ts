@@ -78,6 +78,22 @@ export const scanSurfaceCopy = {
     /** Development profile: no recommendations or actionable insights. */
     devNoImmediateActions: "No immediate actions required",
   },
+  /** GitHub App Check Run (PR) — calm, concise; not Actions step summary. */
+  checkRun: {
+    titleBase: "MergeSignal scan - PR dependency change",
+    titleBaselineSuffix: "baseline scan only",
+    baselineOutcomePrimary:
+      "No actionable dependency concerns showed up for this PR in this scan.",
+    baselineOutcomeScope:
+      "This run emphasizes repository-wide context; open the scan for PR-specific detail when available.",
+    baselineBoundaryNote:
+      "PR-targeted dependency signals are not included in baseline-only runs.",
+    footerLinkLabel: "View full scan",
+    layerScoresDetailsSummary: "Layer scores",
+    layerNoDrivers: "No notable drivers surfaced for this dimension.",
+    repoContextLabel: "Risk index",
+    mergePostureUnavailable: "Posture unavailable",
+  },
   product: {
     /** Single line for UI/CLI/Actions parity (risk index semantics). */
     riskIndexDirectionShort: "0 is best · 100 is worst",
