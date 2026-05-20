@@ -4,8 +4,9 @@
 #   git tag shared-v0.2.0
 #   git push origin shared-v0.2.0
 #
-# Requires repository secret NPM_TOKEN (Automation token with publish permission).
-# Optional: GitHub Environment "npm-publish" with required reviewers.
+# Requires NPM_TOKEN: granular Read/Write on @mergesignal with Bypass 2FA when org 2FA is enforced.
+# Without Bypass 2FA, publish fails with npm error EOTP (not 404).
+# Alternative: npm trusted publishing (OIDC) — see RELEASING.md.
 
 name: Publish @mergesignal/shared
 
@@ -99,4 +100,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
-          npm publish --access public
+          if ! npm publish --access public; then
+            echo "::error::Publish failed. If the log shows EOTP, recreate NPM_TOKEN with Bypass 2FA enabled. See RELEASING.md."
+            exit 1
+          fi

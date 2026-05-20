@@ -10,17 +10,27 @@ The canonical contract and presentation package lives in `packages/shared` and i
 2. Merge to `main`.
 3. Tag: `git tag shared-v0.2.0` (prefix must match `shared-v*`).
 4. Push the tag: `git push origin shared-v0.2.0`.
-5. GitHub Actions workflow [`.github/workflows/publish-shared.yml`](.github/workflows/publish-shared.yml) runs build, tests, and `pnpm publish` (requires `NPM_TOKEN` secret).
+5. GitHub Actions workflow [`.github/workflows/publish-shared.yml`](.github/workflows/publish-shared.yml) runs build, tests, and `npm publish` (requires `NPM_TOKEN` with **Bypass 2FA** when org 2FA is on).
 
 **Consumers (e.g. `mergesignal-engine`)** use an **exact** semver pin in `package.json` (e.g. `"@mergesignal/shared": "0.2.0"`, not `^0.2.0`) plus a frozen `pnpm-lock.yaml` — do not copy `packages/shared` source or vendor tarballs.
 
 **Prerequisites (first publish / token rotation)**
 
-- npm org **`mergesignal`** exists at [npmjs.com](https://www.npmjs.com/org/create) (scope `@mergesignal`). The `NPM_TOKEN` user must be an org member with publish access. A valid token with no org membership still fails with **404** on publish.
-- GitHub repo secret `NPM_TOKEN`: npm **Automation** or **Granular** token with **Read and Write** on packages under the `mergesignal` org (install-only tokens pass `npm whoami` but fail publish with **404**).
-- Create org tokens at npm → **mergesignal** → **Access Tokens** → **Generate New Token** → type **Publish** (recommended).
-- Optional: GitHub Environment `npm-publish` (workflow uses it; add `NPM_TOKEN` to the environment or repo secrets).
-- If publish fails, fix token/org then re-tag (e.g. delete remote `shared-v0.2.0` and push again, or bump patch and use `shared-v0.2.1`).
+- npm org **`mergesignal`** with publish access for the token identity.
+- GitHub secret **`NPM_TOKEN`**: granular token with **Read and Write** on `@mergesignal` **and** **Bypass 2FA** enabled.
+
+**Org-wide 2FA and `EOTP`:** When the org enforces 2FA, `npm publish` in CI fails with:
+
+```text
+npm error code EOTP
+npm error This operation requires a one-time password from your authenticator.
+```
+
+Read/write scope alone is not enough. Enable **Bypass 2FA** when creating the granular token (npm → Access Tokens → Generate New Token → Permissions). `npm whoami` and `npm publish --dry-run` can still succeed; only the real `PUT` publish triggers `EOTP` without bypass.
+
+**Alternative (recommended long-term):** [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC from GitHub Actions) — no long-lived publish token. Configure on npm for `MergeSignal/mergesignal` + workflow `publish-shared.yml`; workflow already sets `id-token: write`.
+
+- Re-run: Actions → **Publish @mergesignal/shared** → **Run workflow**, or re-push `shared-v*`.
 
 **Two-repo release order**
 
