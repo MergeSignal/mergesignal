@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-function walk(dir, out = []) {
+function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.name === "node_modules" || entry.name === ".next") continue;
     const full = join(dir, entry.name);
@@ -17,7 +17,7 @@ function walk(dir, out = []) {
 describe("auth v4 URL regression", () => {
   it("forbids legacy callback query on signin URLs", () => {
     const webRoot = join(__dirname, "..", "..");
-    const offenders = [];
+    const offenders: string[] = [];
     for (const file of walk(webRoot)) {
       const text = readFileSync(file, "utf8");
       if (text.includes("signin/") && text.includes("?callbackUrl")) {
