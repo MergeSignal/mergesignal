@@ -93,6 +93,12 @@ jobs:
           fi
           echo "Version ${{ steps.version.outputs.version }} is not published yet."
 
+      - name: Verify publish permission (dry-run)
+        working-directory: packages/shared
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --dry-run --access public
+
       - name: Publish to npm
         working-directory: packages/shared
         env:
