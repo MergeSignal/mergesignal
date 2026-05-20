@@ -63,10 +63,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
-          echo "npm user: $(npm whoami)"
-          if ! npm team ls mergesignal 2>/dev/null | head -5; then
-            echo "::warning::Could not list @mergesignal team — ensure the token user is a member of the npm org mergesignal."
+          WHOAMI=$(npm whoami)
+          echo "npm user: $WHOAMI"
+          if ! npm team ls mergesignal >/dev/null 2>&1; then
+            echo "::error::npm user '$WHOAMI' is not a member of the @mergesignal org (or the org does not exist)."
+            echo "Create https://www.npmjs.com/org/create (name: mergesignal) and add this user with publish access,"
+            echo "or use an org-scoped Automation token from npm → mergesignal → Access Tokens."
+            exit 1
           fi
+          echo "OK: $WHOAMI can access @mergesignal"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
