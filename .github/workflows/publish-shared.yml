@@ -95,6 +95,7 @@ jobs:
         working-directory: packages/shared
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
         run: |
           set -euo pipefail
           # Ensure scoped auth applies from packages/shared (setup-node writes ~/.npmrc)
