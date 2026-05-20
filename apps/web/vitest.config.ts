@@ -19,6 +19,7 @@ export default defineConfig({
     ],
     include: [
       "lib/**/*.test.{ts,tsx}",
+      "lib/auth/**/*.test.ts",
       "app/components/**/*.test.tsx",
       "app/api/**/*.test.ts",
     ],

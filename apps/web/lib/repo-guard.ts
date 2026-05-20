@@ -3,6 +3,12 @@ import "server-only";
 import { cache } from "react";
 import { redirect, notFound } from "next/navigation";
 import { auth } from "../auth";
+import {
+  AuthLogEvent,
+  DEFAULT_AUTH_PROVIDER,
+  buildProviderSignInPath,
+  logAuthEvent,
+} from "./auth";
 
 // ---------------------------------------------------------------------------
 // Process-level TTL cache for positive repo access checks.
@@ -92,13 +98,17 @@ const _checkGitHubAccess = cache(
 export async function requireRepoAccess(
   owner: string,
   repo: string,
+  options?: { redirectTo?: string },
 ): Promise<void> {
-  const callbackUrl = `/app/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
-  const signInUrl = `/api/auth/signin/github?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+  const redirectTo =
+    options?.redirectTo ??
+    "/app/" + encodeURIComponent(owner) + "/" + encodeURIComponent(repo);
+  const signInUrl = buildProviderSignInPath(DEFAULT_AUTH_PROVIDER, redirectTo);
 
   const session = await auth();
 
   if (!session) {
+    logAuthEvent(AuthLogEvent.GuardUnauthenticated, { redirectTo });
     redirect(signInUrl);
   }
 

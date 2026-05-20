@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 import { MSSelect } from "../../shared/MSSelect/MSSelect";
 import { MSTooltip } from "../../shared/MSTooltip/MSTooltip";
@@ -50,10 +51,8 @@ function AppGithubScopeBarInner({ githubLogin, githubOrgs }: InnerProps) {
       typeof window !== "undefined"
         ? window.location.pathname + window.location.search
         : pathname;
-    router.push(
-      `/api/auth/signin/github?callbackUrl=${encodeURIComponent(callbackUrl)}`,
-    );
-  }, [isUnauthorized, pathname, router]);
+    void signIn("github", { callbackUrl });
+  }, [isUnauthorized, pathname]);
 
   useEffect(() => {
     if (flatOwnerSlugs.length !== 1) return;

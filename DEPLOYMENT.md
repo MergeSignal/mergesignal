@@ -674,3 +674,7 @@ terraform apply -var="eks_desired_size=3"
 - [Terraform Documentation](terraform/README.md)
 - [AWS EKS Best Practices](https://aws.github.io/aws-eks-best-practices/)
 - [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
+
+### Web sign-in flow (Auth.js v5)
+
+Browser sign-in uses the wrapper route with relative redirectTo. Set AUTH_DEBUG in development.

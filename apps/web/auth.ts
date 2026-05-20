@@ -1,11 +1,7 @@
 import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
+import { AuthLogEvent, logAuthEvent } from "./lib/auth";
 
-/**
- * Session encryption/signing secret. Required in production — set `AUTH_SECRET`
- * (e.g. `openssl rand -base64 32`). In development only, a fixed placeholder is
- * used when unset so `next dev` works without `.env.local`; never rely on this in prod.
- */
 function resolveAuthSecret(): string | undefined {
   const fromEnv = process.env.AUTH_SECRET?.trim();
   if (fromEnv) return fromEnv;
@@ -18,7 +14,7 @@ function resolveAuthSecret(): string | undefined {
 async function fetchGithubOrgs(accessToken: string): Promise<string[]> {
   const res = await fetch("https://api.github.com/user/orgs?per_page=100", {
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: "Bearer " + accessToken,
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28",
     },
@@ -28,12 +24,6 @@ async function fetchGithubOrgs(accessToken: string): Promise<string[]> {
   return data.map((o) => o.login);
 }
 
-/**
- * Upsert the authenticated user into the DB via the internal Fastify endpoint.
- * Returns the DB UUID or null if the call fails (non-fatal — user can still log in).
- * Uses raw fetch to avoid importing server-only modules that would break
- * the Edge runtime used by the auth middleware.
- */
 async function upsertUser(profile: {
   githubId: number;
   githubLogin: string;
@@ -52,11 +42,11 @@ async function upsertUser(profile: {
 
     if (!apiKey) return null;
 
-    const res = await fetch(`${apiBase}/internal/users/upsert`, {
+    const res = await fetch(apiBase + "/internal/users/upsert", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: "Bearer " + apiKey,
       },
       body: JSON.stringify({
         githubId: profile.githubId,
@@ -78,9 +68,9 @@ async function upsertUser(profile: {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: resolveAuthSecret(),
   trustHost: true,
+  debug: process.env.AUTH_DEBUG === "true",
   session: {
-    // Bound session lifetime to limit githubOrgs staleness and force periodic re-auth
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 24 * 60 * 60,
   },
   providers: [
     GitHub({
@@ -91,10 +81,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  events: {
+    signIn: ({ user, account, profile }) => {
+      const githubLogin =
+        (profile as { login?: string } | null)?.login ??
+        user?.name ??
+        undefined;
+      logAuthEvent(AuthLogEvent.SignInSuccess, {
+        provider: account?.provider,
+        githubLogin: typeof githubLogin === "string" ? githubLogin : undefined,
+      });
+    },
+    signOut: ({ token }) => {
+      logAuthEvent(AuthLogEvent.SignOut, {
+        githubLogin:
+          typeof token?.githubLogin === "string"
+            ? token.githubLogin
+            : undefined,
+      });
+    },
+  },
   callbacks: {
     async jwt({ token, account, profile }) {
       if (account?.access_token && profile) {
-        // First sign-in: account and profile are only present on initial OAuth callback
         const p = profile as {
           id?: number;
           login?: string;
@@ -109,7 +118,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.accessToken = account.access_token;
         token.githubOrgs = await fetchGithubOrgs(account.access_token);
 
-        // Persist user in DB; store UUID for use as cache key in repo-guard
         if (typeof p.id === "number" && typeof p.login === "string") {
           const userId = await upsertUser({
             githubId: p.id,
@@ -118,7 +126,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             avatarUrl: p.avatar_url,
             email: p.email,
           });
-          if (userId) token.userId = userId;
+          if (userId) {
+            token.userId = userId;
+          } else {
+            logAuthEvent(AuthLogEvent.JwtUpsertFailed, {
+              githubLogin: p.login,
+            });
+          }
         }
       }
       return token;
@@ -129,6 +143,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       if (typeof token.accessToken === "string") {
         session.accessToken = token.accessToken;
+      } else if (typeof token.githubLogin === "string") {
+        logAuthEvent(AuthLogEvent.SessionMissingClaims, {
+          githubLogin: token.githubLogin,
+        });
       }
       if (Array.isArray(token.githubOrgs)) {
         session.githubOrgs = token.githubOrgs as string[];

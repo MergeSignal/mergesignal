@@ -34,7 +34,9 @@ export default async function Page({
   }
 
   const owner = repoOwnerFromRepoId(scan.repo_id);
-  await requireOrgAccess(owner);
+  await requireOrgAccess(owner, {
+    redirectTo: "/scan/" + encodeURIComponent(id),
+  });
 
   return (
     <SiteChrome title="Scan" subtitle={scan.repo_id} owner={owner}>

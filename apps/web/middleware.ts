@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "./auth";
 import { isDevAuthBypass } from "./lib/dev-auth";
+import {
+  AuthLogEvent,
+  isProtectedApiPath,
+  isProtectedAppPath,
+  logAuthEvent,
+  resolveUnauthenticatedMiddlewareResponse,
+} from "./lib/auth";
 
 export default auth((req) => {
   if (isDevAuthBypass()) {
@@ -13,18 +20,25 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  const isProtectedApp =
-    pathname.startsWith("/org") ||
-    pathname.startsWith("/scan") ||
-    pathname.startsWith("/app");
+  const isProtected =
+    isProtectedAppPath(pathname) || isProtectedApiPath(pathname);
 
-  const isProtectedApi =
-    pathname.startsWith("/api/scan") || pathname.startsWith("/api/benchmark");
+  if (isProtected && !req.auth) {
+    const result = resolveUnauthenticatedMiddlewareResponse({
+      pathname,
+      search: req.nextUrl.search,
+    });
 
-  if ((isProtectedApp || isProtectedApi) && !req.auth) {
-    const signIn = new URL("/api/auth/signin/github", req.nextUrl.origin);
-    signIn.searchParams.set("callbackUrl", req.nextUrl.href);
-    return NextResponse.redirect(signIn);
+    if (result.kind === "unauthorized") {
+      logAuthEvent(AuthLogEvent.MiddlewareApiUnauthorized, { pathname });
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    logAuthEvent(AuthLogEvent.MiddlewareUnauthenticated, {
+      pathname,
+      redirectTo: result.redirectTo,
+    });
+    return NextResponse.redirect(new URL(result.location, req.nextUrl.origin));
   }
 
   return NextResponse.next();
