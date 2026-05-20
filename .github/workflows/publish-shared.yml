@@ -4,9 +4,11 @@
 #   git tag shared-v0.2.0
 #   git push origin shared-v0.2.0
 #
-# Requires NPM_TOKEN: granular Read/Write on @mergesignal with Bypass 2FA when org 2FA is enforced.
-# Without Bypass 2FA, publish fails with npm error EOTP (not 404).
-# Alternative: npm trusted publishing (OIDC) — see RELEASING.md.
+# Publishing uses npm trusted publishing (OIDC) when configured on npmjs.com:
+#   Package @mergesignal/shared → Settings → Trusted publishing
+#   Provider: GitHub Actions, repo MergeSignal/mergesignal, workflow publish-shared.yml
+#
+# Fallback: set GitHub secret NPM_TOKEN (granular Read/Write + Bypass 2FA if org 2FA is on).
 
 name: Publish @mergesignal/shared
 
@@ -23,8 +25,6 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # Optional: set `environment: npm-publish` after creating that environment and
-    # copying NPM_TOKEN into it (environment secrets override repo secrets).
     steps:
       - uses: actions/checkout@v4
 
@@ -35,10 +35,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          registry-url: "https://registry.npmjs.org"
-          always-auth: true
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Resolve version from tag or package.json
         id: version
@@ -62,21 +58,6 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Publishing version: $VERSION"
 
-      - name: Verify npm token and org access
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          set -euo pipefail
-          WHOAMI=$(npm whoami)
-          echo "npm user: $WHOAMI"
-          if ! npm team ls mergesignal >/dev/null 2>&1; then
-            echo "::error::npm user '$WHOAMI' is not a member of the @mergesignal org (or the org does not exist)."
-            echo "Create https://www.npmjs.com/org/create (name: mergesignal) and add this user with publish access,"
-            echo "or use an org-scoped Automation token from npm → mergesignal → Access Tokens."
-            exit 1
-          fi
-          echo "OK: $WHOAMI can access @mergesignal"
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -94,13 +75,30 @@ jobs:
           fi
           echo "Version ${{ steps.version.outputs.version }} is not published yet."
 
-      - name: Publish to npm
+      - name: Publish to npm (OIDC trusted publishing)
+        working-directory: packages/shared
+        env:
+          NODE_AUTH_TOKEN: ""
+        run: |
+          set -euo pipefail
+          npm install -g npm@11
+          # Ensure publish uses GitHub OIDC, not a stale _authToken from setup-node
+          if [ -f "$HOME/.npmrc" ]; then
+            grep -v '_authToken' "$HOME/.npmrc" > "$HOME/.npmrc.tmp" || true
+            mv "$HOME/.npmrc.tmp" "$HOME/.npmrc"
+          fi
+          npm publish --access public
+
+      - name: Publish to npm (NPM_TOKEN fallback)
+        if: failure()
         working-directory: packages/shared
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
-          if ! npm publish --access public; then
-            echo "::error::Publish failed. If the log shows EOTP, recreate NPM_TOKEN with Bypass 2FA enabled. See RELEASING.md."
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "OIDC publish failed and NPM_TOKEN is not set; skipping token fallback."
             exit 1
           fi
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > "$HOME/.npmrc"
+          npm publish --access public

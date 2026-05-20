@@ -28,7 +28,13 @@ npm error This operation requires a one-time password from your authenticator.
 
 Read/write scope alone is not enough. Enable **Bypass 2FA** when creating the granular token (npm → Access Tokens → Generate New Token → Permissions). `npm whoami` and `npm publish --dry-run` can still succeed; only the real `PUT` publish triggers `EOTP` without bypass.
 
-**Alternative (recommended long-term):** [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC from GitHub Actions) — no long-lived publish token. Configure on npm for `MergeSignal/mergesignal` + workflow `publish-shared.yml`; workflow already sets `id-token: write`.
+**Trusted publishing (recommended):** [npm trusted publishers](https://docs.npmjs.com/trusted-publishers) — workflow publishes via OIDC (no OTP). On npmjs.com configure **before** re-running CI:
+
+- Repository: `MergeSignal/mergesignal`
+- Workflow filename: `publish-shared.yml` (exact)
+- Requires npm CLI 11+ (workflow installs globally)
+
+**Token fallback:** If OIDC is not configured, the workflow retries with `NPM_TOKEN` (must include **Bypass 2FA** when org 2FA is on). Do not set `NODE_AUTH_TOKEN` on the primary publish step — that forces token auth and triggers `EOTP` even when OIDC is configured.
 
 - Re-run: Actions → **Publish @mergesignal/shared** → **Run workflow**, or re-push `shared-v*`.
 
