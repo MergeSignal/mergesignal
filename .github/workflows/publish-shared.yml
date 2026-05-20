@@ -98,11 +98,8 @@ jobs:
           NPM_CONFIG_PROVENANCE: "true"
         run: |
           set -euo pipefail
-          # Ensure scoped auth applies from packages/shared (setup-node writes ~/.npmrc)
-          if ! grep -q '_authToken' ~/.npmrc 2>/dev/null; then
-            echo "::error::~/.npmrc missing auth token — check NPM_TOKEN secret is set."
-            exit 1
-          fi
+          # setup-node writes auth to $RUNNER_TEMP/.npmrc and sets NPM_CONFIG_USERCONFIG (not ~/.npmrc)
+          npm whoami
           npm publish --access public 2>&1 | tee /tmp/npm-publish.log
           exit "${PIPESTATUS[0]}"
 
