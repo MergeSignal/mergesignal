@@ -106,7 +106,7 @@ export function buildPrCheckRunTitle(
 ): string {
   const base = scanSurfaceCopy.checkRun.titleBase;
   if (opts.baselineOnly) {
-    return `${base} - ${scanSurfaceCopy.checkRun.titleBaselineSuffix}`;
+    return `${base} – ${scanSurfaceCopy.checkRun.titleBaselineSuffix}`;
   }
   return base;
 }
@@ -405,7 +405,9 @@ export function renderCheckRunMarkdown(sections: CheckRunSection[]): string {
         break;
       }
       case "footer": {
-        parts.push(`[${section.label}](${section.url})`);
+        parts.push(
+          `<a href="${section.url}" target="_blank" rel="noopener noreferrer">${section.label}</a>`,
+        );
         break;
       }
       default: {

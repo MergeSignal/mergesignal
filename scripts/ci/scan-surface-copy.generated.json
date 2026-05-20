@@ -36,7 +36,7 @@
   "actions.recReviewLeadPrefix": "**For this PR:**",
   "actions.vulnerableReviewerHint": "If vulnerable packages are listed, confirm they apply to your usage before treating counts as merge blockers.",
   "actions.devNoImmediateActions": "No immediate actions required",
-  "checkRun.titleBase": "MergeSignal scan - PR dependency change",
+  "checkRun.titleBase": "PR dependency change",
   "checkRun.titleBaselineSuffix": "baseline scan only",
   "checkRun.baselineOutcomePrimary": "No actionable dependency concerns showed up for this PR in this scan.",
   "checkRun.baselineOutcomeScope": "This run emphasizes repository-wide context; open the scan for PR-specific detail when available.",

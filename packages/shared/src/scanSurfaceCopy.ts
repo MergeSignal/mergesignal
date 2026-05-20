@@ -80,7 +80,7 @@ export const scanSurfaceCopy = {
   },
   /** GitHub App Check Run (PR) — calm, concise; not Actions step summary. */
   checkRun: {
-    titleBase: "MergeSignal scan - PR dependency change",
+    titleBase: "PR dependency change",
     titleBaselineSuffix: "baseline scan only",
     baselineOutcomePrimary:
       "No actionable dependency concerns showed up for this PR in this scan.",

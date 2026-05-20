@@ -44,16 +44,15 @@ function minimalResult(overrides: Partial<ScanResult> = {}): ScanResult {
 }
 
 describe("buildPrCheckRunTitle", () => {
-  it("uses hyphenated product title", () => {
-    expect(buildPrCheckRunTitle()).toBe(
-      "MergeSignal scan - PR dependency change",
-    );
+  it("uses short product title without app prefix", () => {
+    expect(buildPrCheckRunTitle()).toBe("PR dependency change");
+    expect(buildPrCheckRunTitle()).not.toContain("MergeSignal scan");
     expect(buildPrCheckRunTitle()).not.toContain("—");
   });
 
   it("appends baseline suffix when requested", () => {
     expect(buildPrCheckRunTitle({ baselineOnly: true })).toBe(
-      "MergeSignal scan - PR dependency change - baseline scan only",
+      "PR dependency change – baseline scan only",
     );
   });
 });
@@ -127,7 +126,9 @@ describe("buildPrCheckRunSummaryMarkdown", () => {
       webAppOrigin: ORIGIN,
       baseline: false,
     });
-    expect(md).toContain(`[View full scan](${ORIGIN}/scan/${SCAN_ID})`);
+    expect(md).toContain(
+      `<a href="${ORIGIN}/scan/${SCAN_ID}" target="_blank" rel="noopener noreferrer">View full scan</a>`,
+    );
   });
 
   it("baseline body omits repo graph score lines", () => {
