@@ -92,13 +92,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         githubLogin: typeof githubLogin === "string" ? githubLogin : undefined,
       });
     },
-    signOut: ({ token }) => {
-      logAuthEvent(AuthLogEvent.SignOut, {
-        githubLogin:
-          typeof token?.githubLogin === "string"
-            ? token.githubLogin
-            : undefined,
-      });
+    signOut: (message) => {
+      let githubLogin: string | undefined;
+      if ("token" in message && message.token) {
+        githubLogin =
+          typeof message.token.githubLogin === "string"
+            ? message.token.githubLogin
+            : undefined;
+      } else if ("session" in message && message.session) {
+        const session = message.session as { githubLogin?: string };
+        githubLogin =
+          typeof session.githubLogin === "string"
+            ? session.githubLogin
+            : undefined;
+      }
+      logAuthEvent(AuthLogEvent.SignOut, { githubLogin });
     },
   },
   callbacks: {
