@@ -5,7 +5,6 @@
 }
 
 .article :global(h1) {
-  font-family:  var(--ms-font-family-display);
   font-size:    var(--ms-font-size-doc-h1);
   font-weight:  var(--ms-font-weight-semibold);
   line-height:  var(--ms-leading-display);
@@ -14,7 +13,6 @@
 }
 
 .article :global(h2) {
-  font-family:  var(--ms-font-family-display);
   font-size:    var(--ms-font-size-doc-h2);
   font-weight:  var(--ms-font-weight-semibold);
   line-height:  var(--ms-leading-sub);

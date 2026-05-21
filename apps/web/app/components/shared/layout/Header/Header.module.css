@@ -1,6 +1,11 @@
 .header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--ms-site-header-height);
   z-index: 10;
   display: flex;
   align-items: center;
@@ -29,7 +34,9 @@
 }
 
 .brandLogo {
-  height: 2.5rem;
+  height: calc(
+    var(--ms-site-header-height) - 2 * var(--ms-space-sm) - var(--ms-border-width)
+  );
   width: auto;
   max-width: min(var(--ms-space-layout-min), 58vw);
   object-fit: contain;
@@ -47,7 +54,9 @@
 .nav {
   display: flex;
   gap: var(--ms-space-sm);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   justify-content: flex-end;
 }
 

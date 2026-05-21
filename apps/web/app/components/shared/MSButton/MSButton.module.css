@@ -1,6 +1,5 @@
 .button {
   border-radius: var(--ms-radius-xs);
-  font-family: var(--ms-type-body-font-family);
   transition: background 120ms ease, opacity 120ms ease;
 }
 

@@ -1,7 +1,6 @@
 .footer {
   border-top: var(--ms-border-width) solid var(--ms-color-border);
-  padding: 2rem 1.5rem;
-  margin-top: 4rem;
+  padding: var(--ms-space-xl) var(--ms-space-lg);
   background: color-mix(in oklab, var(--ms-color-black) 18%, var(--ms-color-canvas) 82%);
 }
 
@@ -10,13 +9,13 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: var(--ms-space-lg);
 }
 
 .links {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: var(--ms-space-lg);
   align-items: center;
   font-size: var(--ms-text-md);
 }
@@ -43,13 +42,13 @@
 
 @media (max-width: 768px) {
   .footer {
-    padding: 1.5rem 1rem;
+    padding: var(--ms-space-lg) var(--ms-space-md);
   }
 
   .links {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.75rem;
+    gap: var(--ms-space-sm);
   }
 
   .separator {

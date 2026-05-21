@@ -144,7 +144,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: calc(100svh - var(--ms-site-header-height));
+  min-height: calc(var(--ms-layout-viewport-min) - var(--ms-layout-main-padding-top));
   margin-bottom: var(--ms-space-2xl);
   padding: var(--ms-space-2xl) var(--ms-space-md);
   border: none;

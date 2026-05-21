@@ -193,7 +193,6 @@
 }
 
 .prCommentExamplePanel :global(h2) {
-  font-family:  var(--ms-font-family-display);
   font-size:    var(--ms-font-size-panel-h2);
   font-weight:  var(--ms-font-weight-semibold);
   line-height:  var(--ms-leading-sub);
@@ -286,5 +285,5 @@
 
 /* In-page anchor targets: clear fixed/sticky header */
 .anchorSection {
-  scroll-margin-top: 5.5rem;
+  scroll-margin-top: var(--ms-layout-scroll-padding-top);
 }

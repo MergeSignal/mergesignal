@@ -14,7 +14,7 @@
  * -------------------------------------------------------------------------- */
 .summaryStrip {
   position: sticky;
-  top: var(--ms-site-header-height);
+  top: var(--ms-layout-scroll-padding-top);
   z-index: 10;
   background: var(--ms-color-canvas-elevated);
   border-bottom: var(--ms-border-width) solid var(--ms-color-border);

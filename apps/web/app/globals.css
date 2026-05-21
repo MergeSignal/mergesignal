@@ -1,4 +1,5 @@
 @import "./_styles/typography.css";
+@import "./_styles/layout.css";
 
 :root {
   /* =============================================================================
@@ -111,8 +112,6 @@
   --ms-radius-lg: 1rem; /* 16px */
   --ms-radius-full: 9999px;
 
-  /* Sticky header block height (logo row + padding) - used for viewport math */
-  --ms-site-header-height: 3.75rem;
 
   /* GitHub sign-in button (matches common github.com OAuth styling) */
   --ms-github-button-bg: #24292f;
@@ -137,6 +136,11 @@
   :root {
     color-scheme: dark;
   }
+}
+
+html {
+  scroll-padding-top: var(--ms-layout-scroll-padding-top);
+  overscroll-behavior: none; 
 }
 
 html,
@@ -170,7 +174,14 @@ body {
   line-height:  var(--ms-type-body-line-height);
 }
 
-/* Semantic typography - h1/h2 use display serif; h3-h6 stay sans (inherit body) */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+/* Semantic typography - h1/h2 use Inter via display token alias; h3-h6 stay sans (inherit body) */
 h1 {
   font-family:    var(--ms-type-h1-font-family);
   font-size:      var(--ms-type-h1-font-size);
@@ -188,24 +199,28 @@ h2 {
 }
 
 h3 {
+  font-family: var(--ms-type-body-font-family);
   font-size:   var(--ms-type-h3-font-size);
   font-weight: var(--ms-type-h3-font-weight);
   line-height: var(--ms-type-h3-line-height);
 }
 
 h4 {
+  font-family: var(--ms-type-body-font-family);
   font-size:   var(--ms-type-h4-font-size);
   font-weight: var(--ms-type-h4-font-weight);
   line-height: var(--ms-type-h4-line-height);
 }
 
 h5 {
+  font-family: var(--ms-type-body-font-family);
   font-size:   var(--ms-type-h5-font-size);
   font-weight: var(--ms-type-h5-font-weight);
   line-height: var(--ms-type-h5-line-height);
 }
 
 h6 {
+  font-family: var(--ms-type-body-font-family);
   font-size:      var(--ms-type-h6-font-size);
   font-weight:    var(--ms-type-h6-font-weight);
   line-height:    var(--ms-type-h6-line-height);

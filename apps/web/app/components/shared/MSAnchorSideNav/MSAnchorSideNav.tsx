@@ -4,6 +4,35 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import styles from "./MSAnchorSideNav.module.css";
 
+function readSiteHeaderHeightPx(): number {
+  const rootStyles = getComputedStyle(document.documentElement);
+  const token = rootStyles.getPropertyValue("--ms-site-header-height").trim();
+  if (token.endsWith("rem")) {
+    const rem = parseFloat(token);
+    const rootFont = parseFloat(rootStyles.fontSize) || 16;
+    return rem * rootFont;
+  }
+  if (token.endsWith("px")) {
+    return parseFloat(token);
+  }
+  const header = document.querySelector("header");
+  return header?.getBoundingClientRect().height ?? 64;
+}
+
+function readScrollSpyGapPx(): number {
+  const rootStyles = getComputedStyle(document.documentElement);
+  const token = rootStyles.getPropertyValue("--ms-space-sm").trim();
+  if (token.endsWith("rem")) {
+    const rem = parseFloat(token);
+    const rootFont = parseFloat(rootStyles.fontSize) || 16;
+    return rem * rootFont;
+  }
+  if (token.endsWith("px")) {
+    return parseFloat(token);
+  }
+  return 12;
+}
+
 export type MSAnchorSideNavItem = {
   href: string;
   label: string;
@@ -35,10 +64,7 @@ export function MSAnchorSideNav({
   const [activeId, setActiveId] = useState<string>(() => ids[0] ?? "");
 
   const updateActive = useCallback(() => {
-    const header = document.querySelector("header");
-    const headerH = header?.getBoundingClientRect().height ?? 60;
-    /* Scroll-spy offset below header; ~var(--ms-space-sm) visually */
-    const marker = headerH + 12;
+    const marker = readSiteHeaderHeightPx() + readScrollSpyGapPx();
     let current = ids[0] ?? "";
     for (const id of ids) {
       const el = document.getElementById(id);

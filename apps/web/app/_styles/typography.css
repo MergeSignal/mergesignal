@@ -21,18 +21,17 @@
   /* ═══════════════════════════════════════════════════════════════════
    * I. Font family stacks
    *    Next/font CSS variables (--font-sans, --font-brand,
-   *    --font-geist-mono) are injected on <body> in layout.tsx.
+   *    --font-geist-mono) are injected on <html> in layout.tsx.
    *    These stacks reference them with graceful system fallbacks.
    * ═══════════════════════════════════════════════════════════════════ */
 
   --ms-font-family-sans:
     var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
-  --ms-font-family-display:
-    Georgia, "Iowan Old Style", "Palatino Linotype", ui-serif, serif;
+  --ms-font-family-display: var(--ms-font-family-sans);
 
   --ms-font-family-brand:
-    var(--font-brand), "Palatino Linotype", Palatino, ui-serif, serif;
+    var(--font-brand), "EB Garamond", Georgia;
 
   --ms-font-family-mono:
     var(--font-geist-mono), ui-monospace, SFMono-Regular,

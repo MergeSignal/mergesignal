@@ -73,9 +73,6 @@ export default async function Home() {
           id="why-hard"
           className={styles.sectionCard}
           aria-labelledby="pain-heading"
-          style={{
-            scrollMarginTop: "calc(var(--ms-site-header-height) + 1.5rem)",
-          }}
         >
           <div className={styles.sectionHead}>
             <h2 id="pain-heading" className={styles.h2}>

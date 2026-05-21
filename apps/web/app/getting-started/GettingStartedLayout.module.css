@@ -23,10 +23,10 @@
 
 .navRailSticky {
   position: sticky;
-  top: calc(var(--ms-site-header-height, 3.75rem) + 0.5rem);
+  top: calc(var(--ms-site-header-height) + var(--ms-space-xs));
   align-self: flex-start;
   width: 100%;
-  max-height: calc(100dvh - var(--ms-site-header-height, 3.75rem) - 1.5rem);
+  max-height: calc(var(--ms-layout-viewport-min) - var(--ms-site-header-height) - var(--ms-space-lg));
   overflow-y: auto;
   overscroll-behavior: contain;
 }

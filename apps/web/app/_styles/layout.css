@@ -1,0 +1,20 @@
+/*
+ * layout.css — MergeSignal layout system
+ *
+ * Loaded via @import in globals.css (after typography.css) so spacing
+ * tokens from :root are available for derived layout values.
+ *
+ * SiteChrome uses a flex column sticky-footer shell with a fixed header.
+ * Main padding-top clears the fixed header plus a content gap (--ms-space-sm).
+ * Bottom padding keeps space before the in-flow footer.
+ */
+
+:root {
+  --ms-layout-viewport-min: 100dvh;
+  --ms-site-header-height: 4rem;
+  --ms-layout-main-padding-top: calc(
+    var(--ms-site-header-height) + var(--ms-space-xl)
+  );
+  --ms-layout-scroll-padding-top: var(--ms-layout-main-padding-top);
+  --ms-layout-main-bottom-padding: var(--ms-space-xl);
+}

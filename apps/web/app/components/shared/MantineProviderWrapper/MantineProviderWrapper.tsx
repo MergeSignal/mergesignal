@@ -12,6 +12,7 @@ import { theme } from "../../../theme";
 const resolver: CSSVariablesResolver = () => ({
   variables: {
     "--mantine-font-family": "var(--ms-type-body-font-family)",
+    "--mantine-font-family-headings": "var(--ms-type-body-font-family)",
     "--mantine-font-family-monospace": "var(--ms-type-mono-inline-font-family)",
     "--mantine-radius-xs": "var(--ms-radius-xs)",
     "--mantine-radius-sm": "var(--ms-radius-sm)",

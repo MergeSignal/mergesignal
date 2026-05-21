@@ -3,7 +3,6 @@
   border: var(--ms-border-width) solid var(--ms-color-border);
   border-radius: var(--ms-radius-xs);
   color: var(--ms-color-ink);
-  font-family: var(--ms-type-body-font-family);
   font-size: var(--ms-type-body-font-size);
   padding: var(--ms-space-xs) var(--ms-space-sm);
   transition: border-color 120ms ease;
@@ -26,7 +25,6 @@
 
 .label {
   color: var(--ms-color-ink);
-  font-family: var(--ms-type-body-font-family);
   font-size: var(--ms-type-label-font-size);
   font-weight: var(--ms-type-label-font-weight);
   margin-bottom: var(--ms-space-2xs);

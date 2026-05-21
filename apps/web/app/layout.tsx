@@ -39,16 +39,18 @@ export default async function RootLayout({
   const session = await auth();
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${ebGaramond.variable} ${geistMono.variable}`}
+    >
       <head>
         {/* ColorSchemeScript sets data-mantine-color-scheme on <html> before React
             hydrates. suppressHydrationWarning on <html> prevents the resulting
             attribute mismatch from being treated as an error. */}
         <MantineColorSchemeScript defaultColorScheme="dark" />
       </head>
-      <body
-        className={`${inter.variable} ${ebGaramond.variable} ${geistMono.variable}`}
-      >
+      <body className={inter.className}>
         <MantineProviderWrapper>
           <ClientSessionProvider session={session}>
             {children}
