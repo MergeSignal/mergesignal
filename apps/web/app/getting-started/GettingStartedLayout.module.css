@@ -21,12 +21,13 @@
   flex-direction: column;
 }
 
+/* Match main content inset so sticky pins at scroll 0 without jumping. */
 .navRailSticky {
   position: sticky;
-  top: calc(var(--ms-site-header-height) + var(--ms-space-xs));
+  top: var(--ms-layout-main-padding-top);
   align-self: flex-start;
   width: 100%;
-  max-height: calc(var(--ms-layout-viewport-min) - var(--ms-site-header-height) - var(--ms-space-lg));
+  max-height: calc(var(--ms-layout-viewport-min) - var(--ms-layout-main-padding-top) - var(--ms-space-lg));
   overflow-y: auto;
   overscroll-behavior: contain;
 }
