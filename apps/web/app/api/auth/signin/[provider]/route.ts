@@ -1,4 +1,4 @@
-import { signIn } from "../../../../../auth";
+import { handlers, signIn } from "../../../../../auth";
 import {
   AuthLogEvent,
   SUPPORTED_AUTH_PROVIDERS,
@@ -6,6 +6,9 @@ import {
   sanitizeRedirectTo,
 } from "../../../../../lib/auth";
 import type { SupportedAuthProvider } from "../../../../../lib/auth/constants";
+
+// next-auth/react signIn() POSTs here; delegate to Auth.js catch-all handler.
+export const { POST } = handlers;
 
 function isSupportedProvider(
   provider: string,

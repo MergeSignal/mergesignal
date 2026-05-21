@@ -1,10 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { GET } from "./route";
+import { GET, POST } from "./route";
 import { signIn as initiateAuth } from "../../../../../auth";
 
 vi.mock("../../../../../auth", () => ({
   signIn: vi.fn(),
+  handlers: { POST: vi.fn(), GET: vi.fn() },
 }));
+
+describe("signin provider route exports", () => {
+  it("exports POST for client signIn", () => {
+    expect(typeof POST).toBe("function");
+  });
+});
 
 describe("GET signin provider route", () => {
   const initiateMock = vi.mocked(initiateAuth);
