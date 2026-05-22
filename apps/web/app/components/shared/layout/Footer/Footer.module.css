@@ -1,6 +1,6 @@
 .footer {
   border-top: var(--ms-border-width) solid var(--ms-color-border);
-  padding: var(--ms-space-xl) var(--ms-space-lg);
+  padding: var(--ms-space-lg) var(--ms-space-lg);
   background: color-mix(in oklab, var(--ms-color-black) 18%, var(--ms-color-canvas) 82%);
 }
 
@@ -36,6 +36,8 @@
 }
 
 .copyright {
+  display: flex;
+  justify-content: center;
   color: var(--ms-color-text-muted);
   font-size: var(--ms-text-md);
 }
