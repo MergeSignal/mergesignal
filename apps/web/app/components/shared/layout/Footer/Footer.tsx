@@ -7,13 +7,6 @@ export function Footer({ variant = "full" }: { variant?: "full" | "minimal" }) {
       <div className={styles.footerContent}>
         {variant === "full" ? (
           <div className={styles.links}>
-            <Link
-              href="https://github.com/MergeSignal/mergesignal"
-              className={styles.link}
-            >
-              GitHub
-            </Link>
-            <span className={styles.separator}>•</span>
             <Link href="/getting-started" className={styles.link}>
               Getting started
             </Link>
@@ -32,13 +25,6 @@ export function Footer({ variant = "full" }: { variant?: "full" | "minimal" }) {
             <span className={styles.separator}>•</span>
             <Link href="/contact" className={styles.link}>
               Contact
-            </Link>
-            <span className={styles.separator}>•</span>
-            <Link
-              href="https://github.com/MergeSignal/mergesignal/blob/main/LICENSE"
-              className={styles.link}
-            >
-              Apache 2.0 License
             </Link>
           </div>
         ) : null}
