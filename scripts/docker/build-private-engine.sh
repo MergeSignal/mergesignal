@@ -145,13 +145,21 @@ copy_dist_output() {
 copy_engine_runtime_deps() {
   local root="$1"
   local output_dir="$2"
+  local impl_file="$3"
   local deploy_dir
+  local pkg_dir
   deploy_dir="$(mktemp -d)"
+  pkg_dir="$(dirname "$impl_file")"
+  while [ "$pkg_dir" != "/" ] && [ ! -f "${pkg_dir}/package.json" ]; do
+    pkg_dir="$(dirname "$pkg_dir")"
+  done
+  test -f "${pkg_dir}/package.json" || fail "analysis-engine package.json not found for ${impl_file}"
 
   cd "$root"
   pnpm --filter @mergesignal/analysis-engine deploy --prod "$deploy_dir"
   rm -rf "${output_dir}/node_modules"
   cp -a "${deploy_dir}/node_modules" "${output_dir}/node_modules"
+  cp "${pkg_dir}/package.json" "${output_dir}/package.json"
   rm -rf "$deploy_dir"
 }
 
@@ -175,7 +183,7 @@ main() {
   if [ -n "$ENGINE_OUTPUT" ]; then
     mkdir -p "$ENGINE_OUTPUT"
     copy_dist_output "$impl_file" "$ENGINE_OUTPUT"
-    copy_engine_runtime_deps "$ENGINE_ROOT" "$ENGINE_OUTPUT"
+    copy_engine_runtime_deps "$ENGINE_ROOT" "$ENGINE_OUTPUT" "$impl_file"
     write_manifest "$ENGINE_ROOT" "$impl_file" "${ENGINE_OUTPUT}/engine-manifest.json"
     log "Wrote dist + manifest to ${ENGINE_OUTPUT}"
   fi

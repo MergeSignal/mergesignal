@@ -13,6 +13,7 @@ warn() {
 
 test -f /app/engine/dist/index.js || fail "missing engine dist entry"
 test -f /app/engine/engine-manifest.json || fail "missing engine manifest"
+test -f /app/engine/package.json || fail "missing engine package.json"
 
 if find /app -name .git -type d 2>/dev/null | grep -q .; then
   fail "runtime image contains .git"
