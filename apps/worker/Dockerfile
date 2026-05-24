@@ -56,6 +56,7 @@ RUN --mount=type=secret,id=engine_repo_token \
       test -n "$MERGESIGNAL_ENGINE_REF" || (echo "MERGESIGNAL_ENGINE_REF is required" >&2; exit 1) && \
       ENGINE_REPO_TOKEN="$(cat /run/secrets/engine_repo_token)" && \
       test -n "$ENGINE_REPO_TOKEN" || (echo "engine_repo_token build secret is required" >&2; exit 1) && \
+      ENGINE_REPO_TOKEN="$ENGINE_REPO_TOKEN" \
       ENGINE_ROOT=/engine-src \
       MERGESIGNAL_ENGINE_REPOSITORY="$MERGESIGNAL_ENGINE_REPOSITORY" \
       MERGESIGNAL_ENGINE_REF="$MERGESIGNAL_ENGINE_REF" \
