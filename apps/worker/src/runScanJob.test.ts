@@ -9,6 +9,17 @@ vi.mock("@mergesignal/engine", async (importOriginal) => {
   return {
     ...mod,
     analyze: vi.fn(),
+    getEngineLoadInfo: vi.fn(() => ({
+      spec: "file:/app/engine/dist/index.js",
+      stub: false,
+      releaseVersion: "v1.0.0",
+      releaseRef: "v1.0.0",
+      releaseGitSha: "abc123",
+      methodologyVersion: "acme-prod/v1",
+      loadedAt: "2026-01-01T00:00:00.000Z",
+      loadDurationMs: 1,
+      abiValidationDurationMs: 1,
+    })),
   };
 });
 
@@ -116,6 +127,8 @@ describe("executeScanJob", () => {
 
     const doneSql = calls.find((c) => c.includes("status = 'done'"));
     expect(doneSql).toBeDefined();
+    expect(doneSql).toMatch(/engine_release_version/);
+    expect(doneSql).toMatch(/engine_release_git_sha/);
   });
 
   it("marks failed on engine error and does not persist done", async () => {

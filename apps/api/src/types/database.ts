@@ -20,6 +20,8 @@ export interface Scan {
   layer_ecosystem: number | null;
   layer_upgrade_impact: number | null;
   methodology_version: string | null;
+  engine_release_version: string | null;
+  engine_release_git_sha: string | null;
   result_generated_at: Date | null;
   result: unknown | null;
   decision: Decision | null;

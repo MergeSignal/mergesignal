@@ -2,6 +2,7 @@ import type { Job } from "bullmq";
 import type { Pool } from "pg";
 import {
   analyze,
+  getEngineLoadInfo,
   requiresStrictEngineScanValidation,
 } from "@mergesignal/engine";
 import type { ScanQueueJob, ScanResult } from "@mergesignal/shared";
@@ -63,6 +64,8 @@ async function persistSuccess(
   pool: Pool,
   scanId: string,
   result: ScanResult,
+  engineReleaseVersion: string | null,
+  engineReleaseGitSha: string | null,
 ): Promise<number> {
   const decision = result.decision?.recommendation ?? null;
   const res = await withPgRetries(() =>
@@ -77,11 +80,13 @@ async function persistSuccess(
         layer_upgrade_impact = $6,
         methodology_version = $7,
         decision = $8,
+        engine_release_version = $9,
+        engine_release_git_sha = $10,
         result_generated_at = NOW(),
         finished_at = NOW(),
         updated_at = NOW(),
         error = NULL
-      WHERE id = $9 AND status = 'running'`,
+      WHERE id = $11 AND status = 'running'`,
       [
         JSON.stringify(result),
         Math.round(result.totalScore),
@@ -91,6 +96,8 @@ async function persistSuccess(
         Math.round(result.layerScores.upgradeImpact),
         result.methodologyVersion ?? null,
         decision,
+        engineReleaseVersion,
+        engineReleaseGitSha,
         scanId,
       ],
     ),
@@ -258,7 +265,14 @@ export async function executeScanJob(
     }
 
     try {
-      const n = await persistSuccess(pool, scanId, validated);
+      const engineInfo = getEngineLoadInfo();
+      const n = await persistSuccess(
+        pool,
+        scanId,
+        validated,
+        engineInfo?.releaseVersion ?? engineInfo?.releaseRef ?? null,
+        engineInfo?.releaseGitSha ?? null,
+      );
       if (n === 0) {
         logScanEvent("warn", "scan_persist_done_no_row", {
           scanId,
@@ -272,6 +286,9 @@ export async function executeScanJob(
           repoId,
           jobId,
           pr,
+          engineReleaseVersion:
+            engineInfo?.releaseVersion ?? engineInfo?.releaseRef ?? null,
+          engineReleaseGitSha: engineInfo?.releaseGitSha ?? null,
           methodologyVersion: validated.methodologyVersion,
           totalScore: validated.totalScore,
           decision: validated.decision?.recommendation ?? null,
