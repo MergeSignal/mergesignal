@@ -45,7 +45,7 @@ COPY scripts/docker/write-fixture-engine-manifest.mjs /scripts/write-fixture-eng
 COPY --from=builder /app/packages/engine-test-fixture/dist /fixture-dist/
 
 RUN if [ "$MERGESIGNAL_ENGINE_FIXTURE" = "1" ]; then \
-      mkdir -p /engine-out/dist && cp -a /fixture-dist/. /engine-out/dist/ && \
+      mkdir -p /engine-out/dist /engine-out/node_modules && cp -a /fixture-dist/. /engine-out/dist/ && \
       node /scripts/write-fixture-engine-manifest.mjs /engine-out; \
     fi
 
@@ -92,6 +92,7 @@ COPY --from=builder /app/packages/engine-stub/dist ./packages/engine-stub/dist
 
 COPY --from=engine-builder /engine-out/dist /app/engine/dist
 COPY --from=engine-builder /engine-out/engine-manifest.json /app/engine/engine-manifest.json
+COPY --from=engine-builder /engine-out/node_modules /app/engine/node_modules
 
 ENV NODE_ENV=production
 ENV MERGESIGNAL_ENGINE_IMPL=file:/app/engine/dist/index.js

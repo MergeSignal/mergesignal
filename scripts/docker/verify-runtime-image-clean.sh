@@ -32,10 +32,6 @@ if command -v git >/dev/null 2>&1; then
   fail "runtime image contains git binary"
 fi
 
-if test -d /app/engine/node_modules; then
-  fail "runtime image contains engine node_modules"
-fi
-
 if test -d /app/engine/packages; then
   fail "runtime image contains full engine repo layout"
 fi

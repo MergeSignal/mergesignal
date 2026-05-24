@@ -142,6 +142,19 @@ copy_dist_output() {
   cp -a "${dist_dir}/." "${output_dir}/dist/"
 }
 
+copy_engine_runtime_deps() {
+  local root="$1"
+  local output_dir="$2"
+  local deploy_dir
+  deploy_dir="$(mktemp -d)"
+
+  cd "$root"
+  pnpm --filter @mergesignal/analysis-engine deploy --prod "$deploy_dir"
+  rm -rf "${output_dir}/node_modules"
+  cp -a "${deploy_dir}/node_modules" "${output_dir}/node_modules"
+  rm -rf "$deploy_dir"
+}
+
 main() {
   if [ -n "$ENGINE_REPO_TOKEN" ]; then
     clone_engine
@@ -162,6 +175,7 @@ main() {
   if [ -n "$ENGINE_OUTPUT" ]; then
     mkdir -p "$ENGINE_OUTPUT"
     copy_dist_output "$impl_file" "$ENGINE_OUTPUT"
+    copy_engine_runtime_deps "$ENGINE_ROOT" "$ENGINE_OUTPUT"
     write_manifest "$ENGINE_ROOT" "$impl_file" "${ENGINE_OUTPUT}/engine-manifest.json"
     log "Wrote dist + manifest to ${ENGINE_OUTPUT}"
   fi
