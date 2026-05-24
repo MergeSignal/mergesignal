@@ -17,6 +17,7 @@
     "@mergesignal/shared": "workspace:^"
   },
   "devDependencies": {
+    "@mergesignal/engine-test-fixture": "workspace:^",
     "@types/node": "^22.15.3",
     "@vitest/coverage-v8": "^2.1.9",
     "typescript": "^5.9.3",

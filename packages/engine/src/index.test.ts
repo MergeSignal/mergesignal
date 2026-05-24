@@ -3,6 +3,7 @@ import {
   analyze,
   simulateUpgrade,
   __resetEngineLoaderCacheForTests,
+  __resetEngineStartupCacheForTests,
   requiresStrictEngineScanValidation,
 } from "./index.js";
 import type {
@@ -16,11 +17,13 @@ describe("engine", () => {
   beforeEach(() => {
     process.env = { ...originalEnv };
     __resetEngineLoaderCacheForTests();
+    __resetEngineStartupCacheForTests();
   });
 
   afterEach(() => {
     process.env = originalEnv;
     __resetEngineLoaderCacheForTests();
+    __resetEngineStartupCacheForTests();
   });
 
   describe("loader policy", () => {
