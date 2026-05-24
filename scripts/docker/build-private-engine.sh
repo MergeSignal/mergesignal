@@ -48,9 +48,8 @@ clone_engine() {
   rm -rf "$ENGINE_ROOT"
   mkdir -p "$ENGINE_ROOT"
 
-  git -c "http.extraHeader=AUTHORIZATION: bearer ${ENGINE_REPO_TOKEN}" \
-    clone --depth 1 --branch "$MERGESIGNAL_ENGINE_REF" \
-    "https://github.com/${MERGESIGNAL_ENGINE_REPOSITORY}.git" \
+  git clone --depth 1 --branch "$MERGESIGNAL_ENGINE_REF" \
+    "https://x-access-token:${ENGINE_REPO_TOKEN}@github.com/${MERGESIGNAL_ENGINE_REPOSITORY}.git" \
     "$ENGINE_ROOT"
 }
 
