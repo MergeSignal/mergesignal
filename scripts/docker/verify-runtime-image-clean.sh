@@ -18,7 +18,7 @@ if find /app -name .git -type d 2>/dev/null | grep -q .; then
   fail "runtime image contains .git"
 fi
 
-if find /app/engine -name '*.ts' 2>/dev/null | grep -q .; then
+if find /app/engine -name '*.ts' ! -name '*.d.ts' 2>/dev/null | grep -q .; then
   fail "runtime image contains engine TypeScript source"
 fi
 
