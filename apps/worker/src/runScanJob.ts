@@ -192,6 +192,13 @@ export async function executeScanJob(
     }
 
     let rawResult: unknown;
+    const engineStarted = Date.now();
+    logScanEvent("info", "engine_execution_start", {
+      scanId,
+      repoId,
+      jobId,
+      pr,
+    });
     try {
       rawResult = await analyze(scanQueueJobToScanRequest(job.data));
     } catch (e: unknown) {
@@ -204,9 +211,30 @@ export async function executeScanJob(
         jobId,
         pr,
         rowsUpdated: n,
+        durationMs: Date.now() - engineStarted,
+        err: msg,
       });
       return;
     }
+
+    const engineDurationMs = Date.now() - engineStarted;
+    const methodologyVersion =
+      rawResult &&
+      typeof rawResult === "object" &&
+      "methodologyVersion" in rawResult
+        ? String(
+            (rawResult as { methodologyVersion?: unknown })
+              .methodologyVersion ?? "",
+          )
+        : undefined;
+    logScanEvent("info", "engine_execution_done", {
+      scanId,
+      repoId,
+      jobId,
+      pr,
+      durationMs: engineDurationMs,
+      methodologyVersion,
+    });
 
     let validated: ScanResult;
     try {
@@ -244,6 +272,9 @@ export async function executeScanJob(
           repoId,
           jobId,
           pr,
+          methodologyVersion: validated.methodologyVersion,
+          totalScore: validated.totalScore,
+          decision: validated.decision?.recommendation ?? null,
         });
       }
     } catch (e: unknown) {
