@@ -1,4 +1,27 @@
-# Build stage
+# ── Private engine build (isolated; only dist + manifest copied to runtime) ──
+FROM node:22-alpine AS engine-builder
+
+RUN apk add --no-cache git bash
+
+ARG MERGESIGNAL_ENGINE_REPOSITORY=MergeSignal/mergesignal-engine
+ARG MERGESIGNAL_ENGINE_REF
+ARG MERGESIGNAL_ENGINE_IMPL_FILE=packages/analysis-engine/dist/index.js
+ENV ENGINE_OUTPUT=/engine-out
+
+COPY scripts/docker/build-private-engine.sh /scripts/build-private-engine.sh
+RUN chmod +x /scripts/build-private-engine.sh
+
+RUN --mount=type=secret,id=engine_repo_token \
+    test -n "$MERGESIGNAL_ENGINE_REF" || (echo "MERGESIGNAL_ENGINE_REF is required" >&2; exit 1) && \
+    ENGINE_REPO_TOKEN="$(cat /run/secrets/engine_repo_token)" \
+    ENGINE_ROOT=/engine-src \
+    MERGESIGNAL_ENGINE_REPOSITORY="$MERGESIGNAL_ENGINE_REPOSITORY" \
+    MERGESIGNAL_ENGINE_REF="$MERGESIGNAL_ENGINE_REF" \
+    MERGESIGNAL_ENGINE_IMPL_FILE="$MERGESIGNAL_ENGINE_IMPL_FILE" \
+    ENGINE_OUTPUT="$ENGINE_OUTPUT" \
+    bash /scripts/build-private-engine.sh
+
+# ── Worker build ──
 FROM node:22-alpine AS builder
 
 WORKDIR /app
@@ -28,7 +51,8 @@ RUN pnpm --filter @mergesignal/engine-stub build
 RUN pnpm --filter @mergesignal/engine build
 RUN pnpm --filter @mergesignal/worker build
 
-FROM node:22-alpine
+# ── Lean runtime ──
+FROM node:22-alpine AS runtime
 
 WORKDIR /app
 
@@ -52,10 +76,19 @@ COPY --from=builder /app/packages/shared ./packages/shared
 COPY --from=builder /app/packages/engine/dist ./packages/engine/dist
 COPY --from=builder /app/packages/engine-stub/dist ./packages/engine-stub/dist
 
-ENV NODE_ENV=production
+COPY --from=engine-builder /engine-out/dist /app/engine/dist
+COPY --from=engine-builder /engine-out/engine-manifest.json /app/engine/engine-manifest.json
 
-# Real scans: set MERGESIGNAL_ENGINE_IMPL to a resolvable module (npm package specifier or file: URL to built engine).
-# OSS/demo images only: MERGESIGNAL_ALLOW_STUB=1
-# SCAN_HEARTBEAT_INTERVAL_MS=30000
+ENV NODE_ENV=production
+ENV MERGESIGNAL_ENGINE_IMPL=file:/app/engine/dist/index.js
+ENV MERGESIGNAL_ENGINE_MANIFEST=/app/engine/engine-manifest.json
+
+RUN test -f /app/engine/dist/index.js && test -f /app/engine/engine-manifest.json
+
+COPY scripts/docker/verify-runtime-engine.sh /scripts/verify-runtime-engine.sh
+COPY scripts/docker/verify-runtime-image-clean.sh /scripts/verify-runtime-image-clean.sh
+RUN chmod +x /scripts/verify-runtime-engine.sh /scripts/verify-runtime-image-clean.sh
+
+RUN /scripts/verify-runtime-image-clean.sh && /scripts/verify-runtime-engine.sh
 
 CMD ["node", "--enable-source-maps", "apps/worker/dist/index.js"]
