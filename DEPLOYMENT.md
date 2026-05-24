@@ -388,7 +388,115 @@ Current preview deployment:
 
 When you move to a custom domain later, replace these hostnames in DNS, `CORS_ORIGINS`, GitHub App, and OAuth settings.
 
-The default **worker** image in `k8s/worker-deployment.yaml` is `mergesignal/worker:latest`; build and push from [`apps/worker/Dockerfile`](apps/worker/Dockerfile) in this repo, or substitute the **mergesignal-engine** image if you use a proprietary engine module via `MERGESIGNAL_ENGINE_IMPL`.
+The production **worker** image is built from [`apps/worker/Dockerfile`](apps/worker/Dockerfile). The private analysis engine is **baked into the image at build time** (lean runtime: engine `dist/` + `engine-manifest.json` only). See [Worker engine integration](#worker-engine-integration) below.
+
+### Worker engine integration
+
+Production scans require the real private engine from `MergeSignal/mergesignal-engine`. The worker does **not** use `MERGESIGNAL_ALLOW_STUB` in production.
+
+#### Architecture
+
+```
+GitHub Actions (fly-deploy) ──build-secret──► Docker engine-builder stage
+                                              (clone tag + frozen lockfile build)
+                                                    │
+                                                    ▼
+                                         engine dist + engine-manifest.json
+                                                    │
+                                                    ▼
+                                         lean worker runtime image
+                                                    │
+                                                    ▼
+                              initializeEngine() ABI preflight → BullMQ consumer
+```
+
+**Startup ordering (strict):** env validation → engine ABI preflight (timeout-bounded, once per process) → `worker_startup_complete` → BullMQ `Worker` created → queue consumption begins.
+
+#### Version field glossary (do not conflate)
+
+| Field                    | Meaning                                          | Example                     |
+| ------------------------ | ------------------------------------------------ | --------------------------- |
+| `engine_release_version` | Semver tag of engine **built into worker image** | `v1.2.3`                    |
+| `engine_release_git_sha` | Git commit of engine at image build              | `abc123…`                   |
+| `methodology_version`    | Analysis methodology string **emitted per scan** | `mergesignal-engine/v1.2.3` |
+
+#### Required GitHub configuration (Fly worker deploy)
+
+| Name                               | Type     | Purpose                                                             |
+| ---------------------------------- | -------- | ------------------------------------------------------------------- |
+| `MERGESIGNAL_ENGINE_REPO_TOKEN`    | Secret   | Read-only access to private engine repo (BuildKit secret)           |
+| `MERGESIGNAL_ENGINE_REF`           | Variable | **Required** semver tag (e.g. `v1.2.3`) — intentional upgrades only |
+| `FLY_API_TOKEN_MERGESIGNAL_WORKER` | Secret   | Fly deploy token                                                    |
+
+#### Required Fly runtime secrets (worker)
+
+- `DATABASE_URL`, `REDIS_URL` (must match API)
+
+Engine paths are baked in the image (`MERGESIGNAL_ENGINE_IMPL`, `MERGESIGNAL_ENGINE_MANIFEST`). **Do not** set `MERGESIGNAL_ALLOW_STUB` on production worker.
+
+#### Intentional engine upgrade process
+
+1. Release and tag `mergesignal-engine` → `vX.Y.Z`
+2. Verify engine CI green on that tag
+3. Set GitHub repo variable `MERGESIGNAL_ENGINE_REF=vX.Y.Z`
+4. Deploy worker (push to `main` or `workflow_dispatch` → **Deploy Fly.io**)
+5. Confirm deploy output: `mergesignal-engine vX.Y.Z` + Fly image ref
+6. Verify worker logs: `worker_startup_complete` with matching `engineReleaseVersion`
+7. Run smoke scan; confirm `scans.engine_release_version = vX.Y.Z`
+
+#### Rollback (primary: immutable image)
+
+**Gold standard:** redeploy a previously known-good immutable image — no rebuild.
+
+```bash
+fly releases --app mergesignal-worker
+fly deploy --app mergesignal-worker --image <registry-ref-from-releases>
+```
+
+Verify `worker_startup_complete` logs show the expected engine version. Queued scans resume when a healthy worker starts.
+
+**Last resort:** bump `MERGESIGNAL_ENGINE_REF` to prior tag and redeploy (rebuilds; less reproducible over time).
+
+#### Startup latency budget
+
+| Phase                                         | Budget                                                       |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| Engine module load + ABI probe                | ≤ 30s hard timeout (`MERGESIGNAL_ENGINE_STARTUP_TIMEOUT_MS`) |
+| Total cold start to `worker_startup_complete` | ≤ 45s typical                                                |
+
+#### Local vs production
+
+| Environment               | Engine source                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Production Fly worker** | Private engine baked in Docker image                                                                          |
+| **docker-compose**        | OSS stub (empty `MERGESIGNAL_ENGINE_IMPL`, non-production) — not the production image                         |
+| **Trusted CI scan**       | Engine built on runner via [`scripts/docker/build-private-engine.sh`](scripts/docker/build-private-engine.sh) |
+
+#### Troubleshooting
+
+| Log / symptom                                      | Likely cause                                            |
+| -------------------------------------------------- | ------------------------------------------------------- |
+| `engine_load_failed` / worker exit loop            | Missing/broken engine in image; check Docker build logs |
+| `engine_startup_timeout`                           | Engine ABI probe hung; check engine release             |
+| `scan_job_engine_failed`                           | Runtime engine error mid-scan                           |
+| Deploy fails: `MERGESIGNAL_ENGINE_REF is required` | Set repo variable before deploy                         |
+| Deploy fails: missing build secret                 | Set `MERGESIGNAL_ENGINE_REPO_TOKEN`                     |
+
+**Ops endpoint:** `GET /internal/engine-info` (requires `MERGESIGNAL_INTERNAL_API_KEY`) — recent `engineReleaseVersion` vs `methodologyVersion` from scans.
+
+**Production verification checklist:** [docs/engineering/production-engine-verification.md](./docs/engineering/production-engine-verification.md)
+
+#### Reproducibility checklist
+
+- Frozen lockfiles: `pnpm install --frozen-lockfile` in engine build
+- Pinned toolchain: Node 22, pnpm 9.0.0 in Docker stages
+- Engine tag pinned via `MERGESIGNAL_ENGINE_REF` (no silent default to `main`)
+- Manifest records `engineReleaseGitSha`, `distSha256`, `nodeVersion`, `pnpmVersion`
+
+#### Image size thresholds (CI)
+
+- Soft warn: > 350MB
+- Hard fail: > 600MB
 
 ### GitHub Actions merge-signal-scan
 
@@ -401,7 +509,7 @@ For workflows that should **not** silently use the OSS stub, use the composite a
 **Optional repository variables (non-secret overrides):**
 
 - **`MERGESIGNAL_ENGINE_REPOSITORY`** — `owner/name` of the engine repo (default `MergeSignal/mergesignal-engine` in the dogfood workflow).
-- **`MERGESIGNAL_ENGINE_REF`** — branch, tag, or SHA to checkout (default `main`).
+- **`MERGESIGNAL_ENGINE_REF`** — semver tag for trusted CI checkout (dogfood) and **required** for production worker deploy (repo variable).
 - **`MERGESIGNAL_ENGINE_IMPL_FILE`** — path relative to the engine repo root to the built ESM file that exports `analyze` and `simulateUpgrade` (dogfood default `packages/analysis-engine/dist/index.js` for `MergeSignal/mergesignal-engine`). The engine repo must include `pnpm-lock.yaml` or `package-lock.json` and a `build` script that produces this file.
 - **Scan JSON contract:** `ScanResult.decision.recommendation` must be one of `safe`, `needs_review`, or `risky` (lowercase). The analysis engine should emit this canonical vocabulary only; `@mergesignal/shared` validators reject other tokens.
 
@@ -417,7 +525,7 @@ For workflows that should **not** silently use the OSS stub, use the composite a
 
 **Reading stored `ScanResult`:** [docs/engineering/scanresult-debug.md](./docs/engineering/scanresult-debug.md). **Post-merge verification list:** [docs/engineering/post-change-e2e-checklist.md](./docs/engineering/post-change-e2e-checklist.md).
 
-**API / worker note:** `MERGESIGNAL_TRUSTED_ANALYSIS` is primarily for CLI and CI paths that must mirror “real engine or fail” without overloading `NODE_ENV`. Long-running **worker** deployments typically rely on `NODE_ENV=production` and `MERGESIGNAL_ENGINE_IMPL` as today; see `apps/api/.env.example`.
+**API / worker note:** Production workers load the real engine from the baked-in image path (`file:/app/engine/dist/index.js`). `MERGESIGNAL_TRUSTED_ANALYSIS` is primarily for CLI and CI scan paths; see [Worker engine integration](#worker-engine-integration).
 
 ### Secrets Management Best Practices
 
