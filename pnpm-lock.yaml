@@ -236,6 +236,9 @@ importers:
         specifier: ^8.19.0
         version: 8.19.0
     devDependencies:
+      "@mergesignal/engine-test-fixture":
+        specifier: workspace:^
+        version: link:../../packages/engine-test-fixture
       "@repo/eslint-config":
         specifier: workspace:*
         version: link:../../packages/eslint-config
@@ -264,6 +267,9 @@ importers:
         specifier: workspace:^
         version: link:../shared
     devDependencies:
+      "@mergesignal/engine-test-fixture":
+        specifier: workspace:^
+        version: link:../engine-test-fixture
       "@types/node":
         specifier: ^22.15.3
         version: 22.15.3
