@@ -21,6 +21,10 @@ services:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
+      args:
+        MERGESIGNAL_ENGINE_FIXTURE: "1"
+      secrets:
+        - engine_repo_token
     container_name: mergesignal-worker
     # Local dev only: uses OSS stub (not the production engine image).
     # Production worker image requires private engine at Docker build time — see DEPLOYMENT.md.
@@ -35,3 +39,7 @@ services:
 
 volumes:
   mergesignal_pg:
+
+secrets:
+  engine_repo_token:
+    file: .docker/empty-secret
