@@ -74,3 +74,45 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+  verify-worker-runtime-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack install
+
+      - name: Build worker runtime image (fixture engine)
+        run: |
+          set -euo pipefail
+          : > /tmp/empty-engine-secret
+          docker build \
+            -f apps/worker/Dockerfile \
+            --build-arg MERGESIGNAL_ENGINE_FIXTURE=1 \
+            --secret id=engine_repo_token,src=/tmp/empty-engine-secret \
+            -t mergesignal-worker:ci-verify \
+            .
+          SIZE_MB="$(docker inspect -f '{{.Size}}' mergesignal-worker:ci-verify | awk '{printf "%.0f", $1/1024/1024}')"
+          echo "Runtime image size: ${SIZE_MB}MB"
+          if [ "$SIZE_MB" -gt 600 ]; then
+            echo "::error::Worker image ${SIZE_MB}MB exceeds 600MB hard limit"
+            exit 1
+          elif [ "$SIZE_MB" -gt 350 ]; then
+            echo "::warning::Worker image ${SIZE_MB}MB exceeds 350MB soft threshold"
+          fi
+          if docker inspect mergesignal-worker:ci-verify | grep -iE 'ghp_|github_pat_'; then
+            echo "::error::Possible GitHub token pattern found in image metadata"
+            exit 1
+          fi
+          docker run --rm mergesignal-worker:ci-verify /scripts/verify-runtime-image-clean.sh
+          docker run --rm mergesignal-worker:ci-verify /scripts/verify-runtime-engine.sh

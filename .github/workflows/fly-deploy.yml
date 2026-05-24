@@ -73,19 +73,42 @@ jobs:
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
+      - name: Validate engine deploy inputs
+        run: |
+          set -euo pipefail
+          if [ -z "${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}" ]; then
+            echo "::error::MERGESIGNAL_ENGINE_REPO_TOKEN is required for worker deploy"
+            exit 1
+          fi
+          if [ -z "${{ vars.MERGESIGNAL_ENGINE_REF }}" ]; then
+            echo "::error::MERGESIGNAL_ENGINE_REF repo variable is required (semver tag). Intentional engine upgrades only."
+            exit 1
+          fi
+          echo "Deploying worker with mergesignal-engine ${{ vars.MERGESIGNAL_ENGINE_REF }}"
+
       - name: Deploy worker
         run: |
+          set -euo pipefail
           for attempt in 1 2 3; do
             echo "flyctl deploy attempt $attempt/3"
-            if flyctl deploy . --config apps/worker/fly.toml --dockerfile apps/worker/Dockerfile --depot=false; then
-              exit 0
+            if flyctl deploy . \
+              --config apps/worker/fly.toml \
+              --dockerfile apps/worker/Dockerfile \
+              --build-secret engine_repo_token="${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}" \
+              --build-arg MERGESIGNAL_ENGINE_REF="${{ vars.MERGESIGNAL_ENGINE_REF }}" \
+              --depot=false; then
+              break
             fi
             if [ "$attempt" -lt 3 ]; then
               echo "Deploy failed (e.g. transient network to api.machines.dev); retrying in 30s..."
               sleep 30
+            else
+              echo "All deploy attempts failed"
+              exit 1
             fi
           done
-          echo "All deploy attempts failed"
-          exit 1
+          IMAGE="$(flyctl image show --app mergesignal-worker -j | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);console.log(j[0]?.Tag||'');})")"
+          echo "Deployed worker image: ${IMAGE}"
+          echo "::notice::Worker deployed with mergesignal-engine ${{ vars.MERGESIGNAL_ENGINE_REF }} | image=${IMAGE}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_MERGESIGNAL_WORKER }}
