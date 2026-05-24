@@ -99,31 +99,11 @@ runs:
       id: engine-impl
       shell: bash
       env:
+        ENGINE_ROOT: ${{ github.workspace }}/_ms_engine
         ENGINE_IMPL_FILE: ${{ inputs.engine_impl_file }}
       run: |
         set -euo pipefail
-        ROOT="$GITHUB_WORKSPACE/_ms_engine"
-        cd "$ROOT"
-        if [ -f pnpm-lock.yaml ]; then
-          corepack enable
-          corepack install
-          pnpm install --frozen-lockfile
-          pnpm run build
-        elif [ -f package-lock.json ]; then
-          npm ci
-          npm run build
-        else
-          echo "::error::MergeSignal could not prepare the analysis engine (unsupported project layout)." >&2
-          exit 1
-        fi
-        rel="${ENGINE_IMPL_FILE#./}"
-        rel="${rel#/}"
-        file="$ROOT/$rel"
-        if [ ! -f "$file" ]; then
-          echo "::error::MergeSignal could not prepare the analysis engine (expected build output was not found)." >&2
-          exit 1
-        fi
-        echo "spec=file:${file}" >> "$GITHUB_OUTPUT"
+        bash "$GITHUB_WORKSPACE/_ms_rt/scripts/docker/build-private-engine.sh"
 
     - name: Run dependency scan
       id: scan
