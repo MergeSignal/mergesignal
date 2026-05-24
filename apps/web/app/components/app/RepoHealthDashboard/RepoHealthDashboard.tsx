@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MERGE_POSTURE_LABEL } from "@mergesignal/shared";
 import type { RepoPullHealthViewModel } from "../../../../lib/repo-health-view-model";
+import { MSBadge } from "../../shared/MSBadge/MSBadge";
 import { PRHealthCard } from "./PRHealthCard";
 import { RepoHealthScanPoller } from "./RepoHealthScanPoller";
 import styles from "./RepoHealthDashboard.module.css";
@@ -48,23 +49,19 @@ function SummaryStrip({
           <div className={styles.stripDivider} aria-hidden="true" />
           <div className={styles.stripBadges}>
             {byPosture.risky > 0 && (
-              <span
-                className={`${styles.stripBadge} ${styles.stripBadgeRisky}`}
-              >
+              <MSBadge variant="posture" tone="risky">
                 {byPosture.risky} {MERGE_POSTURE_LABEL.risky}
-              </span>
+              </MSBadge>
             )}
             {byPosture.needs_review > 0 && (
-              <span
-                className={`${styles.stripBadge} ${styles.stripBadgeReview}`}
-              >
+              <MSBadge variant="posture" tone="review">
                 {byPosture.needs_review} {MERGE_POSTURE_LABEL.needs_review}
-              </span>
+              </MSBadge>
             )}
             {byPosture.safe > 0 && (
-              <span className={`${styles.stripBadge} ${styles.stripBadgeSafe}`}>
+              <MSBadge variant="posture" tone="safe">
                 {byPosture.safe} {MERGE_POSTURE_LABEL.safe}
-              </span>
+              </MSBadge>
             )}
           </div>
         </>
@@ -83,7 +80,7 @@ export function RepoHealthDashboard({
 }: Props) {
   const hasErrors = prsFetchError || scansFetchError;
   const hasInProgressScans = viewModel.rows.some(
-    (r) => r.scanState === "in_progress",
+    (r) => r.presentationState === "scanning",
   );
 
   return (

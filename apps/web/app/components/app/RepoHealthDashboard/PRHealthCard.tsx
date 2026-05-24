@@ -1,177 +1,132 @@
 import Link from "next/link";
+import { staleScanSubline } from "@mergesignal/shared";
+import type { PRHealthRow } from "../../../../lib/repo-health-view-model";
 import {
-  mergePostureLabel,
-  ariaLabelForPosture,
-  scanSurfaceCopy,
-  type MergePosture,
-} from "@mergesignal/shared";
-import type {
-  PRHealthRow,
-  ScanState,
-} from "../../../../lib/repo-health-view-model";
+  formatAbsoluteTime,
+  formatRelativeTime,
+} from "../../../../lib/formatRelativeTime";
+import { MSChip } from "../../shared/MSChip/MSChip";
+import { MSRiskSummary } from "../../shared/MSRiskSummary/MSRiskSummary";
+import { MSScanStateIndicator } from "../../shared/MSScanStateIndicator/MSScanStateIndicator";
+import { MSTooltip } from "../../shared/MSTooltip/MSTooltip";
 import styles from "./PRHealthCard.module.css";
 
-function formatRelativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diffMs / 60_000);
-  if (minutes < 2) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  return `${months}mo ago`;
+function postureDataAttr(
+  row: PRHealthRow,
+): "safe" | "review" | "risky" | "neutral" | "pending" {
+  if (
+    row.presentationState === "scanning" ||
+    row.presentationState === "not_scanned" ||
+    row.presentationState === "analysis_failed"
+  ) {
+    return "pending";
+  }
+  if (row.posture === "risky") return "risky";
+  if (row.posture === "needs_review") return "review";
+  if (row.posture === "safe") return "safe";
+  return "neutral";
 }
 
-function scoreColorClass(score: number | null | undefined): {
-  number: string;
-  meterFill: string;
-} {
-  if (score == null) return { number: styles.scoreNone ?? "", meterFill: "" };
-  if (score > 60)
-    return {
-      number: styles.scoreHigh ?? "",
-      meterFill: styles.scoreMeterFillHigh ?? "",
-    };
-  if (score > 30)
-    return {
-      number: styles.scoreMedium ?? "",
-      meterFill: styles.scoreMeterFillMedium ?? "",
-    };
-  return {
-    number: styles.scoreLow ?? "",
-    meterFill: styles.scoreMeterFillLow ?? "",
-  };
+function timestampLabel(presentationState: PRHealthRow["presentationState"]) {
+  if (presentationState === "scanning") return "Started";
+  if (presentationState === "ready" || presentationState === "stale") {
+    return "Scanned";
+  }
+  return "Updated";
 }
 
-function postureClass(posture: MergePosture | null): string {
-  if (posture === "risky") return styles.postureRisky ?? "";
-  if (posture === "needs_review") return styles.postureReview ?? "";
-  if (posture === "safe") return styles.postureSafe ?? "";
-  return styles.postureNone ?? "";
-}
-
-function ScanStateBadge({ state }: { state: ScanState }) {
-  if (state === "done") return null;
-  const label =
-    state === "in_progress"
-      ? "Scan in progress"
-      : state === "failed"
-        ? scanSurfaceCopy.pipeline.analysisIncomplete
-        : state === "outdated"
-          ? "Scan outdated"
-          : "Not scanned";
-  const cls =
-    state === "in_progress"
-      ? (styles.stateInProgress ?? "")
-      : state === "failed"
-        ? (styles.stateFailed ?? "")
-        : state === "outdated"
-          ? (styles.stateOutdated ?? "")
-          : (styles.stateNotScanned ?? "");
-  return <span className={`${styles.stateBadge ?? ""} ${cls}`}>{label}</span>;
+function showMetaRow(presentationState: PRHealthRow["presentationState"]) {
+  return presentationState !== "ready";
 }
 
 export function PRHealthCard({ row }: { row: PRHealthRow }) {
-  const { pr, scan, scanState, posture } = row;
-  const score = scan?.totalScore ?? null;
-  const colors = scoreColorClass(score);
-  const topAreas = scan?.topAffectedAreas ?? [];
-  const areasLabel =
-    topAreas.length > 0 ? `Top risk areas: ${topAreas.join(", ")}` : undefined;
+  const { pr, scan, presentationState, cardSummary, timestampIso } = row;
+  const showRiskBlock =
+    presentationState === "ready" || presentationState === "stale";
+  const showPipelineBody =
+    presentationState === "scanning" ||
+    presentationState === "analysis_failed" ||
+    presentationState === "not_scanned";
 
   return (
-    <li>
+    <li className={styles.listItem}>
       <article
         className={styles.card}
+        data-posture={postureDataAttr(row)}
         aria-labelledby={`pr-title-${pr.number}`}
       >
-        <div className={styles.cardMain}>
-          {/* Row 1: PR number + title + branch */}
-          <div className={styles.metaRow}>
-            <span className={styles.prNumber}>#{pr.number}</span>
-            <span
-              id={`pr-title-${pr.number}`}
-              className={styles.prTitle}
-              title={pr.title}
-            >
+        <header className={styles.headerRow}>
+          <span className={styles.prNumber}>#{pr.number}</span>
+          <MSTooltip
+            label={pr.title}
+            position="bottom"
+            disabled={pr.title.length < 48}
+            events={{ hover: true, focus: true, touch: false }}
+          >
+            <span id={`pr-title-${pr.number}`} className={styles.prTitle}>
               {pr.title}
             </span>
-            <span
-              className={styles.branchChip}
-              aria-label={`Target branch: ${pr.baseRef}`}
-            >
-              {pr.baseRef}
-            </span>
-          </div>
+          </MSTooltip>
+          <MSChip label={pr.baseRef} className={styles.branchChip} />
+        </header>
 
-          {/* Row 2: posture + score + state badge */}
-          <div className={styles.signalRow}>
-            {(scanState === "done" || scanState === "outdated") && (
-              <span
-                className={`${styles.postureBadge} ${postureClass(posture)}`}
-                aria-label={ariaLabelForPosture(scan?.decision, score)}
-              >
-                {mergePostureLabel(scan?.decision, "Unknown")}
-              </span>
-            )}
-            {score != null && (
-              <div
-                className={styles.scoreBar}
-                aria-label={`Risk score ${Math.round(score)}`}
-              >
-                <span className={`${styles.scoreNumber} ${colors.number}`}>
-                  {Math.round(score)}
-                </span>
-                <div className={styles.scoreMeter} aria-hidden="true">
-                  <div
-                    className={`${styles.scoreMeterFill} ${colors.meterFill}`}
-                    style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
-                  />
-                </div>
-              </div>
-            )}
-            <ScanStateBadge state={scanState} />
+        {showMetaRow(presentationState) && (
+          <div className={styles.metaRow}>
+            <MSScanStateIndicator state={presentationState} compact />
           </div>
+        )}
 
-          {/* Row 3: summary text */}
-          {scan?.summaryText && scanState === "done" && (
-            <p className={styles.summaryText}>{scan.summaryText}</p>
+        <div className={styles.body}>
+          {showRiskBlock && cardSummary && (
+            <MSRiskSummary
+              summary={cardSummary}
+              stale={presentationState === "stale"}
+              staleSubline={
+                presentationState === "stale" ? staleScanSubline() : undefined
+              }
+            />
           )}
 
-          {/* Row 4: top areas */}
-          {topAreas.length > 0 && (
-            <div className={styles.topAreas} aria-label={areasLabel}>
-              <span className={styles.topAreasLabel} aria-hidden="true">
-                Top areas
-              </span>
-              <span className={styles.topAreasItems} aria-hidden="true">
-                {topAreas.join(" · ")}
-              </span>
-            </div>
+          {showPipelineBody && cardSummary?.summaryLine && (
+            <p className={styles.pipelineSummary}>{cardSummary.summaryLine}</p>
           )}
 
-          {/* Row 5: updated time */}
-          <div className={styles.footerRow}>
-            <time dateTime={pr.updatedAt} className={styles.updatedAt}>
-              Updated {formatRelativeTime(pr.updatedAt)}
+          {showPipelineBody && !cardSummary?.summaryLine && (
+            <p className={styles.pipelineSummaryMuted}>
+              {presentationState === "not_scanned"
+                ? "No scan available for this pull request yet."
+                : null}
+            </p>
+          )}
+        </div>
+
+        <footer className={styles.footerRow}>
+          <div className={styles.footerActions}>
+            {scan ? (
+              <Link
+                href={`/scan/${encodeURIComponent(scan.scanId)}`}
+                className={styles.viewDetailsLink}
+                aria-label={`View scan details for PR #${pr.number}: ${pr.title}`}
+              >
+                View details
+              </Link>
+            ) : (
+              <span className={styles.noAction} aria-hidden="true">
+                —
+              </span>
+            )}
+          </div>
+          <MSTooltip
+            label={formatAbsoluteTime(timestampIso)}
+            position="bottom"
+            events={{ hover: true, focus: true, touch: false }}
+          >
+            <time dateTime={timestampIso} className={styles.updatedAt}>
+              {timestampLabel(presentationState)}{" "}
+              {formatRelativeTime(timestampIso)}
             </time>
-          </div>
-        </div>
-
-        {/* Right column: action */}
-        <div className={styles.cardAction}>
-          {scan && (
-            <Link
-              href={`/scan/${encodeURIComponent(scan.scanId)}`}
-              className={styles.viewDetailsLink}
-              aria-label={`View scan details for PR #${pr.number}: ${pr.title}`}
-            >
-              View details
-            </Link>
-          )}
-        </div>
+          </MSTooltip>
+        </footer>
       </article>
     </li>
   );

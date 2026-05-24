@@ -71,6 +71,18 @@ export function ariaLabelForPosture(
   return label;
 }
 
+/** Accessible label for unified PR card risk block. */
+export function ariaLabelForCardSummary(
+  headline: string,
+  riskIndex: number | null | undefined,
+  summaryLine: string | null | undefined,
+): string {
+  const parts = [headline];
+  if (riskIndex != null) parts.push(`risk index ${Math.round(riskIndex)}`);
+  if (summaryLine?.trim()) parts.push(summaryLine.trim());
+  return parts.join(". ");
+}
+
 // =============================================================================
 // Signal severity — only for granular findings; always qualified in copy.
 // =============================================================================

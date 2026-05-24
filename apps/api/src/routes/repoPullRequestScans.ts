@@ -1,26 +1,35 @@
 import type { FastifyInstance } from "fastify";
 import {
-  deriveScanSummaryText,
-  selectTopAffectedAreas,
+  resolvePipelineStatus,
+  resolvePrScanCardSummary,
+  type ScanCardSummary,
+  type ScanPipelineStatus,
   type ScanResult,
 } from "@mergesignal/shared";
 import { db } from "../db.js";
 import { sendProblem } from "../problem.js";
 
-// Compact summary extracted server-side from result JSONB to avoid
-// shipping the full multi-KB result to list clients.
-type PrScanSummary = {
+type PrScanIndexEntry = {
   scanId: string;
-  status: string;
-  decision: string | null;
-  totalScore: number | null;
+  pipelineStatus: ScanPipelineStatus;
+  cardSummary: ScanCardSummary;
+  createdAt: string;
   githubPrNumber: number;
   githubHeadSha: string | null;
   githubBaseRef: string | null;
-  createdAt: string;
-  resultGeneratedAt: string | null;
+  scannedAt: string | null;
+  /** @deprecated Use cardSummary fields */
+  status: string;
+  /** @deprecated Use cardSummary.mergePosture */
+  decision: string | null;
+  /** @deprecated Use cardSummary.riskIndex */
+  totalScore: number | null;
+  /** @deprecated Use cardSummary.summaryLine */
   summaryText: string | null;
+  /** @deprecated Use cardSummary.topAffectedAreas */
   topAffectedAreas: string[];
+  /** @deprecated Use scannedAt */
+  resultGeneratedAt: string | null;
 };
 
 type PrScanAggregates = {
@@ -57,8 +66,6 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
       });
     }
 
-    // One query: latest scan per PR (DISTINCT ON) plus the full result JSONB
-    // for server-side extraction of summary/areas; result is not returned raw.
     const { rows } = await db.query<{
       scan_id: string;
       status: string;
@@ -89,7 +96,7 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
       [repoId],
     );
 
-    const byPrNumber: Record<string, PrScanSummary> = {};
+    const byPrNumber: Record<string, PrScanIndexEntry> = {};
     const aggregates: PrScanAggregates = {
       totalCovered: rows.length,
       byDecision: { safe: 0, needs_review: 0, risky: 0 },
@@ -97,33 +104,45 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
 
     for (const row of rows) {
       const prKey = String(row.github_pr_number);
-      const statusLc = String(row.status ?? "")
-        .trim()
-        .toLowerCase();
+      const pipelineStatus = resolvePipelineStatus(row.status, {
+        decision: row.decision,
+        totalScore: row.total_score,
+        hasResult: row.result != null,
+      });
       const d = row.decision;
       if (
-        statusLc === "done" &&
+        pipelineStatus === "done" &&
         (d === "safe" || d === "needs_review" || d === "risky")
       ) {
         aggregates.byDecision[d] += 1;
       }
 
-      const scanResult = statusLc === "done" ? asScanResult(row.result) : null;
+      const cardSummary = resolvePrScanCardSummary({
+        pipelineStatus: row.status,
+        decision: row.decision,
+        totalScore: row.total_score,
+        summaryText: null,
+        result: asScanResult(row.result),
+      });
+      const scannedAt = row.result_generated_at
+        ? new Date(row.result_generated_at).toISOString()
+        : null;
 
       byPrNumber[prKey] = {
         scanId: row.scan_id,
-        status: statusLc,
-        decision: row.decision,
-        totalScore: row.total_score,
+        pipelineStatus,
+        cardSummary,
+        createdAt: new Date(row.created_at).toISOString(),
         githubPrNumber: row.github_pr_number,
         githubHeadSha: row.github_head_sha,
         githubBaseRef: row.github_base_ref,
-        createdAt: new Date(row.created_at).toISOString(),
-        resultGeneratedAt: row.result_generated_at
-          ? new Date(row.result_generated_at).toISOString()
-          : null,
-        summaryText: deriveScanSummaryText(scanResult),
-        topAffectedAreas: selectTopAffectedAreas(scanResult),
+        scannedAt,
+        status: pipelineStatus,
+        decision: row.decision,
+        totalScore: row.total_score,
+        summaryText: cardSummary.summaryLine,
+        topAffectedAreas: cardSummary.topAffectedAreas,
+        resultGeneratedAt: scannedAt,
       };
     }
 

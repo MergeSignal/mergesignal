@@ -1,0 +1,28 @@
+.pulseDot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: var(--ms-radius-full);
+  background: currentColor;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.compact {
+  font-size: var(--ms-text-xs);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulseDot {
+    animation: none;
+    opacity: 0.85;
+  }
+}

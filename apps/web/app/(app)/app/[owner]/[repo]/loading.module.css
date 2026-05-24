@@ -1,8 +1,9 @@
 .skeleton {
   display: flex;
   flex-direction: column;
-  gap: var(--ms-space-xs);
+  gap: var(--ms-space-md);
   min-width: 0;
+  padding: var(--ms-space-md);
 }
 
 .bar {
@@ -16,10 +17,19 @@
   50%       { opacity: 0.9; }
 }
 
-/* Title / heading bar */
-.titleBar { height: 2rem; width: 40%; margin-bottom: var(--ms-space-xs); }
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+    opacity: 0.65;
+  }
+}
 
-/* Summary strip */
+.titleBar {
+  height: 2rem;
+  width: 40%;
+  margin-bottom: var(--ms-space-xs);
+}
+
 .summaryStrip {
   display: flex;
   align-items: center;
@@ -28,61 +38,83 @@
   padding: 0 var(--ms-space-md);
   border-radius: var(--ms-radius-xs);
   background: color-mix(in oklab, var(--ms-color-surface-emphasis) 25%, transparent);
-  margin-bottom: var(--ms-space-sm);
 }
 
 .stripStat {
   height: 1.25rem;
   width: 5rem;
-  border-radius: var(--ms-radius-xs);
-  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 50%, transparent);
-  animation: pulse 1.4s ease-in-out infinite;
 }
 
-.badge {
+.stripBadge {
   height: 1.5rem;
   width: 4.5rem;
   border-radius: var(--ms-radius-full);
-  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 50%, transparent);
-  animation: pulse 1.4s ease-in-out infinite;
 }
 
-/* PR card skeleton */
+.cardGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ms-space-md);
+}
+
+@media (min-width: 768px) {
+  .cardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .prCard {
   border-radius: var(--ms-radius-sm);
   border: var(--ms-border-width) solid var(--ms-color-border);
+  border-inline-start-width: 3px;
   background: color-mix(in oklab, var(--ms-color-surface) 40%, transparent);
-  padding: var(--ms-space-sm) var(--ms-space-md);
+  padding: var(--ms-space-md);
+  min-height: 10rem;
 }
 
 .prCardInner {
   display: flex;
   flex-direction: column;
-  gap: var(--ms-space-xs);
+  gap: var(--ms-space-sm);
+  height: 100%;
 }
 
 .prMeta {
   height: 1rem;
-  width: 70%;
+  width: 85%;
 }
 
-.prSignalRow {
+.riskBlock {
   display: flex;
-  align-items: center;
-  gap: var(--ms-space-sm);
+  flex-direction: column;
+  gap: var(--ms-space-2xs);
+  flex: 1;
 }
 
-.scoreBar {
-  height: 1rem;
-  width: 5.5rem;
+.riskHeadline {
+  height: 1.25rem;
+  width: 45%;
 }
 
 .summaryLine {
   height: 0.875rem;
-  width: 55%;
+  width: 80%;
 }
 
-.areasLine {
+.footerRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ms-space-sm);
+  margin-top: auto;
+  padding-top: var(--ms-space-xs);
+}
+
+.actionBar {
+  height: 1.75rem;
+  width: 5.5rem;
+}
+
+.timestampBar {
   height: 0.75rem;
-  width: 40%;
+  width: 4.5rem;
 }

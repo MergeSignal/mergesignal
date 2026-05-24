@@ -101,11 +101,15 @@ describe("repoPullRequestScansRoutes", () => {
     expect(Object.keys(body.byPrNumber)).toEqual(["42"]);
     const entry = body.byPrNumber["42"];
     expect(entry.scanId).toBe("scan-1");
+    expect(entry.pipelineStatus).toBe("done");
+    expect(entry.cardSummary.mergePosture).toBe("risky");
+    expect(entry.cardSummary.riskIndex).toBe(72);
+    expect(entry.cardSummary.headline).toBe("Risky");
     expect(entry.decision).toBe("risky");
     expect(entry.totalScore).toBe(72);
     expect(entry.githubBaseRef).toBe("main");
-    expect(Array.isArray(entry.topAffectedAreas)).toBe(true);
-    expect(entry.topAffectedAreas.length).toBeLessThanOrEqual(3);
+    expect(Array.isArray(entry.cardSummary.topAffectedAreas)).toBe(true);
+    expect(entry.cardSummary.topAffectedAreas.length).toBeLessThanOrEqual(2);
   });
 
   it("aggregates decisions correctly", async () => {
@@ -149,6 +153,9 @@ describe("repoPullRequestScansRoutes", () => {
       url: "/repo/acme/frontend/pull-request-scans",
     });
     const body = res.json();
+    expect(body.byPrNumber["42"].cardSummary.summaryLine).toBe(
+      "High-risk transitive dependency detected",
+    );
     expect(body.byPrNumber["42"].summaryText).toBe(
       "High-risk transitive dependency detected",
     );
@@ -178,9 +185,59 @@ describe("repoPullRequestScansRoutes", () => {
       url: "/repo/acme/frontend/pull-request-scans",
     });
     const body = res.json();
-    const areas = body.byPrNumber["42"].topAffectedAreas;
-    expect(areas.length).toBe(3);
-    expect(areas).toEqual(["Auth flow", "State sync", "Middleware"]);
+    const areas = body.byPrNumber["42"].cardSummary.topAffectedAreas;
+    expect(areas.length).toBe(2);
+    expect(areas).toEqual(["Auth flow", "State sync"]);
+  });
+
+  it("promotes running status to done when completion evidence exists", async () => {
+    vi.mocked(db.query).mockResolvedValue({
+      rows: [
+        makeRow({
+          status: "running",
+          decision: "risky",
+          total_score: 72,
+          result_generated_at: new Date("2026-01-01T00:01:00Z"),
+        }),
+      ],
+      rowCount: 1,
+    } as never);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/repo/acme/frontend/pull-request-scans",
+    });
+    const body = res.json();
+    expect(body.byPrNumber["42"].pipelineStatus).toBe("done");
+    expect(body.byPrNumber["42"].cardSummary.headline).toBe("Risky");
+    expect(body.byPrNumber["42"].cardSummary.summaryLine).not.toBe(
+      "Waiting for results…",
+    );
+  });
+
+  it("promotes running to done with decision only (no result_generated_at)", async () => {
+    vi.mocked(db.query).mockResolvedValue({
+      rows: [
+        makeRow({
+          status: "running",
+          decision: "needs_review",
+          total_score: 48,
+          result_generated_at: null,
+        }),
+      ],
+      rowCount: 1,
+    } as never);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/repo/acme/frontend/pull-request-scans",
+    });
+    const body = res.json();
+    expect(body.byPrNumber["42"].pipelineStatus).toBe("done");
+    expect(body.byPrNumber["42"].cardSummary.headline).toBe("Needs review");
+    expect(body.byPrNumber["42"].cardSummary.summaryLine).not.toBe(
+      "Waiting for results…",
+    );
   });
 
   it("returns 403 when authenticated owner does not match", async () => {

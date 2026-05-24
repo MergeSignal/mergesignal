@@ -1,22 +1,37 @@
 import {
+  isPipelinePlaceholderCopy,
   mergePostureFromDecision,
   MERGE_POSTURE_SORT_ORDER,
+  resolvePipelineStatus,
+  resolvePrScanCardSummary,
   type MergePosture,
+  type ScanCardPresentationState,
+  type ScanCardSummary,
+  type ScanPipelineStatus,
 } from "@mergesignal/shared";
 import type { GithubOpenPR } from "./github-open-pull-requests";
 
 export type PrScanEntry = {
   scanId: string;
-  status: string;
-  decision: string | null;
-  totalScore: number | null;
+  pipelineStatus: ScanPipelineStatus;
+  cardSummary: ScanCardSummary;
+  createdAt: string;
   githubPrNumber: number;
   githubHeadSha: string | null;
   githubBaseRef: string | null;
-  createdAt: string;
-  resultGeneratedAt: string | null;
+  scannedAt: string | null;
+  /** @deprecated Use cardSummary */
+  status: string;
+  /** @deprecated Use cardSummary.mergePosture */
+  decision: string | null;
+  /** @deprecated Use cardSummary.riskIndex */
+  totalScore: number | null;
+  /** @deprecated Use cardSummary.summaryLine */
   summaryText: string | null;
+  /** @deprecated Use cardSummary.topAffectedAreas */
   topAffectedAreas: string[];
+  /** @deprecated Use scannedAt */
+  resultGeneratedAt: string | null;
 };
 
 export type PrScanAggregates = {
@@ -30,6 +45,7 @@ export type PrScanIndexResponse = {
   aggregates: PrScanAggregates;
 };
 
+/** @deprecated Use ScanCardPresentationState */
 export type ScanState =
   | "done"
   | "in_progress"
@@ -40,9 +56,13 @@ export type ScanState =
 export type PRHealthRow = {
   pr: GithubOpenPR;
   scan: PrScanEntry | null;
+  presentationState: ScanCardPresentationState;
+  /** @deprecated Use presentationState */
   scanState: ScanState;
   posture: MergePosture | null;
   isOutdated: boolean;
+  cardSummary: ScanCardSummary | null;
+  timestampIso: string;
 };
 
 export type RepoPullHealthViewModel = {
@@ -53,15 +73,84 @@ export type RepoPullHealthViewModel = {
   hasMore: boolean;
 };
 
-function normalizeScanStatus(status: string | undefined): string {
-  return String(status ?? "")
-    .trim()
-    .toLowerCase();
+function pipelineForScan(scan: PrScanEntry): ScanPipelineStatus {
+  return resolvePipelineStatus(scan.pipelineStatus ?? scan.status, {
+    decision: scan.decision ?? scan.cardSummary?.mergePosture ?? null,
+    totalScore: scan.totalScore ?? scan.cardSummary?.riskIndex ?? null,
+    hasResult: scan.cardSummary?.mergePosture != null,
+  });
+}
+
+function presentationToLegacyState(
+  state: ScanCardPresentationState,
+): ScanState {
+  switch (state) {
+    case "ready":
+      return "done";
+    case "scanning":
+      return "in_progress";
+    case "analysis_failed":
+      return "failed";
+    case "stale":
+      return "outdated";
+    default:
+      return "not_scanned";
+  }
+}
+
+function derivePresentationState(
+  scan: PrScanEntry | null,
+  prHeadSha: string,
+): ScanCardPresentationState {
+  if (!scan) return "not_scanned";
+
+  const pipeline = pipelineForScan(scan);
+  if (pipeline === "queued" || pipeline === "running") return "scanning";
+  if (pipeline === "failed") return "analysis_failed";
+  if (pipeline === "done") {
+    const isStale =
+      scan.githubHeadSha != null && scan.githubHeadSha !== prHeadSha;
+    return isStale ? "stale" : "ready";
+  }
+  return "analysis_failed";
+}
+
+function cardSummaryForRow(scan: PrScanEntry | null): ScanCardSummary | null {
+  if (!scan) return null;
+
+  const legacySummaryText = isPipelinePlaceholderCopy(scan.summaryText)
+    ? null
+    : scan.summaryText;
+
+  return resolvePrScanCardSummary({
+    pipelineStatus: scan.pipelineStatus ?? scan.status,
+    decision: scan.decision,
+    totalScore: scan.totalScore,
+    summaryText: legacySummaryText,
+    result: null,
+  });
+}
+
+function timestampForRow(
+  pr: GithubOpenPR,
+  scan: PrScanEntry | null,
+  presentationState: ScanCardPresentationState,
+): string {
+  if (
+    (presentationState === "ready" || presentationState === "stale") &&
+    scan?.scannedAt
+  ) {
+    return scan.scannedAt;
+  }
+  if (presentationState === "scanning" && scan?.createdAt) {
+    return scan.createdAt;
+  }
+  return pr.updatedAt;
 }
 
 /**
  * Merge a list of GitHub open PRs with the latest scan entry per PR.
- * Sorting: riskiest posture first, then highest risk score, then most-recently updated.
+ * Sorting: riskiest posture first, then highest risk index, then most-recently updated.
  */
 export function buildRepoPullHealthViewModel(
   prs: GithubOpenPR[],
@@ -72,37 +161,38 @@ export function buildRepoPullHealthViewModel(
 
   const rows: PRHealthRow[] = prs.map((pr): PRHealthRow => {
     const scan = index.byPrNumber[String(pr.number)] ?? null;
-    const posture = scan ? mergePostureFromDecision(scan.decision) : null;
+    const presentationState = derivePresentationState(scan, pr.headSha);
+    const scanState = presentationToLegacyState(presentationState);
+    const cardSummary = cardSummaryForRow(scan);
+    const posture =
+      cardSummary?.mergePosture ??
+      (scan ? mergePostureFromDecision(scan.decision) : null);
+    const isOutdated = presentationState === "stale";
+    const timestampIso = timestampForRow(pr, scan, presentationState);
 
-    let scanState: ScanState = "not_scanned";
-    if (scan) {
-      const st = normalizeScanStatus(scan.status);
-      if (st === "done") {
-        const isOutdated =
-          scan.githubHeadSha != null && scan.githubHeadSha !== pr.headSha;
-        scanState = isOutdated ? "outdated" : "done";
-      } else if (st === "queued" || st === "running") {
-        scanState = "in_progress";
-      } else if (st === "failed") {
-        scanState = "failed";
-      }
+    if (posture && presentationState !== "scanning") {
+      byPosture[posture] += 1;
     }
 
-    const isOutdated = scanState === "outdated";
-
-    if (posture) byPosture[posture] += 1;
-
-    return { pr, scan, scanState, posture, isOutdated };
+    return {
+      pr,
+      scan,
+      presentationState,
+      scanState,
+      posture,
+      isOutdated,
+      cardSummary,
+      timestampIso,
+    };
   });
 
-  // Sort: riskiest first by posture, then by score desc, then by updatedAt desc
   rows.sort((a, b) => {
     const aOrder = a.posture ? MERGE_POSTURE_SORT_ORDER[a.posture] : -1;
     const bOrder = b.posture ? MERGE_POSTURE_SORT_ORDER[b.posture] : -1;
     if (aOrder !== bOrder) return bOrder - aOrder;
 
-    const aScore = a.scan?.totalScore ?? -1;
-    const bScore = b.scan?.totalScore ?? -1;
+    const aScore = a.cardSummary?.riskIndex ?? a.scan?.totalScore ?? -1;
+    const bScore = b.cardSummary?.riskIndex ?? b.scan?.totalScore ?? -1;
     if (aScore !== bScore) return bScore - aScore;
 
     return (

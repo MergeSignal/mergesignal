@@ -414,21 +414,71 @@ function getOpenApiSpec() {
                           type: "object",
                           properties: {
                             scanId: { type: "string" },
+                            pipelineStatus: {
+                              type: "string",
+                              enum: ["queued", "running", "done", "failed"],
+                            },
+                            cardSummary: {
+                              type: "object",
+                              properties: {
+                                mergePosture: {
+                                  type: "string",
+                                  nullable: true,
+                                  enum: ["safe", "needs_review", "risky", null],
+                                },
+                                riskIndex: {
+                                  type: "integer",
+                                  nullable: true,
+                                  description: "Numeric risk index (0–100)",
+                                },
+                                riskIndexBand: {
+                                  type: "string",
+                                  nullable: true,
+                                  enum: ["low", "medium", "high", null],
+                                },
+                                headline: { type: "string" },
+                                summaryLine: {
+                                  type: "string",
+                                  nullable: true,
+                                },
+                                findingCounts: {
+                                  type: "object",
+                                  nullable: true,
+                                  properties: {
+                                    critical: { type: "integer" },
+                                    high: { type: "integer" },
+                                    medium: { type: "integer" },
+                                    low: { type: "integer" },
+                                  },
+                                },
+                                topAffectedAreas: {
+                                  type: "array",
+                                  items: { type: "string" },
+                                  maxItems: 2,
+                                },
+                              },
+                              required: ["headline", "topAffectedAreas"],
+                            },
+                            scannedAt: {
+                              type: "string",
+                              format: "date-time",
+                              nullable: true,
+                            },
                             status: {
                               type: "string",
                               enum: ["queued", "running", "done", "failed"],
+                              deprecated: true,
                             },
                             decision: {
                               type: "string",
                               nullable: true,
                               enum: ["safe", "needs_review", "risky", null],
-                              description:
-                                "Merge posture. Display as: safe→Safe, needs_review→Needs review, risky→Risky.",
+                              deprecated: true,
                             },
                             totalScore: {
                               type: "integer",
                               nullable: true,
-                              description: "Numeric risk score (0–100)",
+                              deprecated: true,
                             },
                             githubPrNumber: { type: "integer" },
                             githubHeadSha: {
@@ -445,24 +495,24 @@ function getOpenApiSpec() {
                               type: "string",
                               format: "date-time",
                               nullable: true,
+                              deprecated: true,
                             },
                             summaryText: {
                               type: "string",
                               nullable: true,
-                              description:
-                                "One-sentence summary (≤120 chars), uses merge-posture vocabulary",
+                              deprecated: true,
                             },
                             topAffectedAreas: {
                               type: "array",
                               items: { type: "string" },
-                              maxItems: 3,
-                              description:
-                                "Up to 3 short human-readable area labels for compact dashboard display",
+                              maxItems: 2,
+                              deprecated: true,
                             },
                           },
                           required: [
                             "scanId",
-                            "status",
+                            "pipelineStatus",
+                            "cardSummary",
                             "githubPrNumber",
                             "createdAt",
                             "topAffectedAreas",
