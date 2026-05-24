@@ -37,7 +37,7 @@ export default function GettingStartedPage() {
   return (
     <article className={docStyles.article}>
       <h1>Getting started</h1>
-      <p className={gsStyles.subtitle}>
+      <p>
         MergeSignal surfaces dependency risk before merge so you can review with
         context instead of guessing from diffs alone.
       </p>
@@ -52,7 +52,7 @@ export default function GettingStartedPage() {
         aria-labelledby="quick-start-heading"
       >
         <h2 id="quick-start-heading">Quick start</h2>
-        <p className={gsStyles.sectionLead}>
+        <p>
           Run a local scan to see potential risks before opening a pull request.
         </p>
 
@@ -80,7 +80,7 @@ export default function GettingStartedPage() {
           The open-source version provides a basic analysis.
         </p> */}
 
-        <p className={gsStyles.sectionLead}>
+        <p>
           Locally you will see an overall score, a layer breakdown, and
           suggested actions in the terminal. More options (JSON export, failing
           a job above a score) are in the <a href={README}>repository README</a>
@@ -94,7 +94,7 @@ export default function GettingStartedPage() {
         {/* <p>To run this on every pull request, continue below.</p> */}
       </section>
 
-      <hr className={gsStyles.sectionDivider} />
+      <hr />
 
       <section
         id="github-actions"
@@ -102,16 +102,14 @@ export default function GettingStartedPage() {
         aria-labelledby="pr-product-heading"
       >
         <h2 id="pr-product-heading">GitHub Actions (CI)</h2>
-        <p className={gsStyles.sectionLead}>
+        <p>
           Add a short workflow so every qualifying pull request runs MergeSignal
           in GitHub Actions and writes a clear risk summary to the workflow
           Summary—useful when you want CI-only integration.
         </p>
 
         <div className={gsStyles.stepBlock}>
-          <h3 className={gsStyles.subGuideHeading} id="gha-heading">
-            GitHub Actions
-          </h3>
+          <h3 id="gha-heading">GitHub Actions</h3>
           <p>
             Add a short workflow: check out your repository, then run the
             official MergeSignal action. On each run you get a{" "}
@@ -123,12 +121,12 @@ export default function GettingStartedPage() {
             text={GHA_RECOMMENDED_SNIPPET}
             copyLabel="Copy workflow YAML"
           />
-          <p className={gsStyles.stepNote}>
+          <p>
             This example uses <code>@main</code> so you always use the latest
             action from the default branch. Optional version pins are described
             in <a href={RELEASING}>RELEASING.md</a>.
           </p>
-          <p className={gsStyles.stepNote}>
+          <p>
             <strong>Optional - fail the check on risk:</strong> add{" "}
             <code>with: fail_above: &quot;40&quot;</code> (use any 0-100
             threshold). The job <strong>fails</strong> when the total score is{" "}
@@ -137,7 +135,7 @@ export default function GettingStartedPage() {
             full picture in the Actions tab. Pull requests show a failed check;
             logs mark the threshold step as the failure.
           </p>
-          <p className={gsStyles.stepNote}>
+          <p>
             First runs can take several minutes while the runner prepares
             MergeSignal-that is expected for now and will improve when the CLI
             ships as a smaller install (Phase 2).
@@ -158,16 +156,14 @@ export default function GettingStartedPage() {
           </p>
         </div>
 
-        <p className={gsStyles.sectionLead}>
+        <p>
           To automatically comment on pull requests via the MergeSignal GitHub
           App, webhook, and API configuration, see the{" "}
           <a href="#github-app">GitHub App</a> section below.
         </p>
 
-        <h3 className={gsStyles.subGuideHeading} id="pr-example-heading">
-          What you can see on pull requests
-        </h3>
-        <p className={gsStyles.exampleHint}>
+        <h3 id="pr-example-heading">What you can see on pull requests</h3>
+        <p>
           With the full hosted setup, comments on pull requests can look like
           the example below (illustrative).
         </p>
@@ -218,7 +214,7 @@ export default function GettingStartedPage() {
         </div>
       </section>
 
-      <hr className={gsStyles.sectionDivider} />
+      <hr />
 
       <section
         id="web-dashboard"
@@ -226,13 +222,13 @@ export default function GettingStartedPage() {
         aria-labelledby="web-dashboard-heading"
       >
         <h2 id="web-dashboard-heading">Web dashboard</h2>
-        <p className={gsStyles.sectionLead}>
+        <p>
           The MergeSignal web app gives you a per-repository health overview -
           risk score, alert breakdown, and scan history - in one place.
         </p>
 
         <div className={gsStyles.stepBlock}>
-          <h3 className={gsStyles.subGuideHeading}>Sign in</h3>
+          <h3>Sign in</h3>
           <p>
             Click <strong>Continue with GitHub</strong> on the home page. After
             authorizing, you land on the repository overview for your personal
@@ -241,20 +237,18 @@ export default function GettingStartedPage() {
         </div>
 
         <div className={gsStyles.stepBlock}>
-          <h3 className={gsStyles.subGuideHeading}>
-            Grant organization access
-          </h3>
+          <h3>Grant organization access</h3>
           <p>
             To see repositories that belong to a GitHub organization, you must
             grant MergeSignal access to that org during the OAuth flow.
           </p>
-          <p className={gsStyles.stepNote}>
+          <p>
             On the GitHub authorization screen, click <strong>Grant</strong>{" "}
             next to each organization whose repositories you want to monitor.
             Without this step, the org will appear in the org selector but its
             repository list will be empty.
           </p>
-          <p className={gsStyles.stepNote}>
+          <p>
             Missed it? You can grant access at any time from{" "}
             <a
               href="https://github.com/settings/connections/applications"
@@ -268,7 +262,7 @@ export default function GettingStartedPage() {
         </div>
 
         <div className={gsStyles.stepBlock}>
-          <h3 className={gsStyles.subGuideHeading}>No scan data yet?</h3>
+          <h3>No scan data yet?</h3>
           <p>
             Repositories that have not been scanned show an empty overview with
             a prompt to run a scan. Complete the{" "}
@@ -279,7 +273,7 @@ export default function GettingStartedPage() {
         </div>
       </section>
 
-      <hr className={gsStyles.sectionDivider} />
+      <hr />
 
       <section
         id="github-app"
@@ -287,7 +281,7 @@ export default function GettingStartedPage() {
         aria-labelledby="github-app-heading"
       >
         <h2 id="github-app-heading">GitHub App</h2>
-        <p className={gsStyles.sectionLead}>
+        <p>
           Optional: connect a GitHub App to your hosted API so repository events
           (for example lockfile changes on pull requests) can enqueue
           scans-useful when you want ingestion aligned with your deployment, not
@@ -421,12 +415,10 @@ export default function GettingStartedPage() {
         </p>
       </section>
 
-      <hr className={gsStyles.sectionDivider} />
+      <hr />
 
       <div className={`${gsStyles.stepBlock} ${gsStyles.troubleshootingPanel}`}>
-        <h3 className={gsStyles.subGuideHeading} id="troubleshooting-heading">
-          Having trouble?
-        </h3>
+        <h3 id="troubleshooting-heading">Having trouble?</h3>
         <ul className={gsStyles.compactHelpList}>
           <li>
             <strong>Node.js</strong> ≥ 20.19 and <strong>pnpm</strong> 9.x - see

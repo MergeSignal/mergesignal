@@ -20,7 +20,7 @@ export function MSCodeBlock({
   copyLabel = "Copy to clipboard",
 }: MSCodeBlockProps) {
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-ms-code-block>
       <pre className={styles.pre}>
         <code>{text}</code>
       </pre>
