@@ -22,9 +22,11 @@ if find /app/engine -name '*.ts' ! -name '*.d.ts' 2>/dev/null | grep -q .; then
   fail "runtime image contains engine TypeScript source"
 fi
 
-if find /app -path '*test-fixture*' -o -path '*__tests__*' 2>/dev/null | grep -q .; then
-  fail "runtime image contains test fixtures"
-fi
+for scan_root in /app/engine /app/packages /app/apps; do
+  if [ -d "$scan_root" ] && find "$scan_root" \( -path '*test-fixture*' -o -path '*__tests__*' \) 2>/dev/null | grep -q .; then
+    fail "runtime image contains test fixtures"
+  fi
+done
 
 if command -v git >/dev/null 2>&1; then
   fail "runtime image contains git binary"

@@ -5,6 +5,8 @@ set -eu
 export NODE_ENV=production
 export MERGESIGNAL_ENGINE_IMPL="${MERGESIGNAL_ENGINE_IMPL:-file:/app/engine/dist/index.js}"
 
+cd /app/apps/worker
+
 node --input-type=module <<'NODE'
 import { validateEngineAbi } from "@mergesignal/engine";
 
