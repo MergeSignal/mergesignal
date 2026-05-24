@@ -156,14 +156,25 @@ export async function executeScanJob(
     const marked = await markRunning(pool, scanId, workerId);
     if (marked === 0) {
       const status = await getScanStatus(pool, scanId);
-      logScanEvent("info", "scan_job_skip_not_runnable", {
+      if (status === "done" || status === "failed") {
+        logScanEvent("info", "scan_job_skip_terminal", {
+          scanId,
+          repoId,
+          jobId,
+          pr,
+          status,
+        });
+        return;
+      }
+      const detail = status ?? "missing";
+      logScanEvent("error", "scan_job_not_runnable", {
         scanId,
         repoId,
         jobId,
         pr,
-        status,
+        status: detail,
       });
-      return;
+      throw new Error(`scan_not_runnable:${scanId}:${detail}`);
     }
 
     if (hbMs > 0 && Number.isFinite(hbMs)) {

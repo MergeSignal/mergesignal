@@ -1,0 +1,29 @@
+# Background BullMQ scan worker (no HTTP service).
+# Deploy: flyctl deploy . --config apps/worker/fly.toml --dockerfile apps/worker/Dockerfile
+#
+# Required secrets (must match mergesignal-api):
+#   DATABASE_URL, REDIS_URL
+# Engine (production):
+#   MERGESIGNAL_ENGINE_IMPL
+# Demo/stub only:
+#   MERGESIGNAL_ALLOW_STUB=1
+
+app = "mergesignal-worker"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  CODE_ANALYSIS_TIMEOUT_MS = "30000"
+  CODE_ANALYSIS_CACHE_TTL_MS = "3600000"
+
+# Override legacy Fly command (packages/worker/dist/start.js — path removed from repo).
+[processes]
+  worker = "node --enable-source-maps apps/worker/dist/index.js"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512

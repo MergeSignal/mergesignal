@@ -47,7 +47,9 @@ describe("internalStaleScansRoutes", () => {
 
   it("runs UPDATE and returns row count on success", async () => {
     process.env.MERGESIGNAL_INTERNAL_API_KEY = "secret";
-    vi.mocked(db.query).mockResolvedValue({ rowCount: 3 } as never);
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({ rowCount: 3 } as never)
+      .mockResolvedValueOnce({ rowCount: 5 } as never);
 
     const res = await app.inject({
       method: "POST",
@@ -55,7 +57,12 @@ describe("internalStaleScansRoutes", () => {
       headers: { authorization: "Bearer secret" },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ staleMinutes: 10, scansMarkedFailed: 3 });
+    expect(res.json()).toEqual({
+      staleMinutes: 10,
+      scansMarkedFailed: 3,
+      orphanedQueuedScansMarkedFailed: 5,
+    });
     expect(vi.mocked(db.query).mock.calls[0]![1]).toEqual([10]);
+    expect(vi.mocked(db.query).mock.calls[1]![1]).toEqual([10]);
   });
 });

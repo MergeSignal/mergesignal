@@ -255,7 +255,7 @@ describe("executeScanJob", () => {
     expect(status).toBe("done");
   });
 
-  it("skips analyze when scan is not runnable", async () => {
+  it("skips analyze when scan is already terminal", async () => {
     const pool = {
       query: vi.fn(async (sql: string) => {
         if (sql.startsWith("SELECT status")) {
@@ -269,6 +269,25 @@ describe("executeScanJob", () => {
     } as unknown as Pool;
 
     await executeScanJob(pool, makeJob({}), "worker-test");
+    expect(analyze).not.toHaveBeenCalled();
+  });
+
+  it("throws when scan row is missing or not runnable", async () => {
+    const pool = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.startsWith("SELECT status")) {
+          return { rows: [], rowCount: 0 };
+        }
+        if (sql.includes("status IN ('queued', 'running')")) {
+          return { rowCount: 0 };
+        }
+        return { rows: [], rowCount: 0 };
+      }),
+    } as unknown as Pool;
+
+    await expect(
+      executeScanJob(pool, makeJob({}), "worker-test"),
+    ).rejects.toThrow("scan_not_runnable:scan-1:missing");
     expect(analyze).not.toHaveBeenCalled();
   });
 

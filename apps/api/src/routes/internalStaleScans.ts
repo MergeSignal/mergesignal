@@ -38,7 +38,7 @@ export async function internalStaleScansRoutes(app: FastifyInstance) {
       ? Math.min(24 * 60, Math.max(5, parsed))
       : 30;
 
-    const { rowCount } = await db.query(
+    const { rowCount: runningMarkedFailed } = await db.query(
       `UPDATE scans
        SET status = 'failed',
            error = 'stale_running_heartbeat',
@@ -49,9 +49,22 @@ export async function internalStaleScansRoutes(app: FastifyInstance) {
       [staleMinutes],
     );
 
+    const { rowCount: orphanedQueuedMarkedFailed } = await db.query(
+      `UPDATE scans
+       SET status = 'failed',
+           error = 'orphaned_queued_no_worker',
+           finished_at = NOW(),
+           updated_at = NOW()
+       WHERE status = 'queued'
+         AND started_at IS NULL
+         AND created_at < NOW() - ($1::int * INTERVAL '1 minute')`,
+      [staleMinutes],
+    );
+
     return reply.code(200).send({
       staleMinutes,
-      scansMarkedFailed: rowCount ?? 0,
+      scansMarkedFailed: runningMarkedFailed ?? 0,
+      orphanedQueuedScansMarkedFailed: orphanedQueuedMarkedFailed ?? 0,
     });
   });
 }

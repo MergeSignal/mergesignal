@@ -42,6 +42,7 @@ const worker = new Worker<ScanQueueJob>(
           err: e instanceof Error ? e.message : String(e),
         }),
       );
+      throw e;
     }
   },
   { connection, concurrency: Number(process.env.WORKER_CONCURRENCY ?? "2") },

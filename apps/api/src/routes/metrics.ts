@@ -50,6 +50,23 @@ export async function metricsRoutes(app: FastifyInstance) {
       metrics.database = { error: "unavailable" };
     }
 
+    try {
+      const { rows } = await db.query<{ status: string; count: number }>(
+        `SELECT status::text AS status, COUNT(*)::int AS count
+         FROM scans
+         WHERE status IN ('queued', 'running', 'done', 'failed')
+         GROUP BY status`,
+      );
+      const byStatus: Record<string, number> = {};
+      for (const row of rows) {
+        byStatus[row.status] = row.count;
+      }
+      metrics.scans = byStatus;
+    } catch (err: unknown) {
+      app.log.warn({ err }, "Failed to fetch scan status metrics");
+      metrics.scans = { error: "unavailable" };
+    }
+
     return reply.send(metrics);
   });
 }

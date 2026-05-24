@@ -130,6 +130,15 @@ export async function createScanAndEnqueue({
         removeOnFail: false,
       },
     );
+    console.info(
+      JSON.stringify({
+        msg: "scan_enqueued",
+        scanId: id,
+        repoId,
+        source: isGithub ? "github" : "manual",
+        prNumber: github?.prNumber ?? null,
+      }),
+    );
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.toLowerCase().includes("already exists")) {
