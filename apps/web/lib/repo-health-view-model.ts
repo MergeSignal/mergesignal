@@ -1,4 +1,5 @@
 import {
+  isPipelineCardSummary,
   isPipelinePlaceholderCopy,
   mergePostureFromDecision,
   MERGE_POSTURE_SORT_ORDER,
@@ -73,12 +74,20 @@ export type RepoPullHealthViewModel = {
   hasMore: boolean;
 };
 
-function pipelineForScan(scan: PrScanEntry): ScanPipelineStatus {
-  return resolvePipelineStatus(scan.pipelineStatus ?? scan.status, {
+function completionEvidenceForScan(scan: PrScanEntry) {
+  const scannedAt = scan.scannedAt ?? scan.resultGeneratedAt ?? null;
+  return {
     decision: scan.decision ?? scan.cardSummary?.mergePosture ?? null,
     totalScore: scan.totalScore ?? scan.cardSummary?.riskIndex ?? null,
     hasResult: scan.cardSummary?.mergePosture != null,
-  });
+    scannedAt,
+  };
+}
+
+function pipelineForScan(scan: PrScanEntry): ScanPipelineStatus {
+  const wire = scan.pipelineStatus ?? scan.status;
+  if (wire === "done" || wire === "failed") return wire;
+  return resolvePipelineStatus(wire, completionEvidenceForScan(scan));
 }
 
 function presentationToLegacyState(
@@ -118,17 +127,25 @@ function derivePresentationState(
 function cardSummaryForRow(scan: PrScanEntry | null): ScanCardSummary | null {
   if (!scan) return null;
 
+  if (scan.cardSummary && !isPipelineCardSummary(scan.cardSummary)) {
+    return scan.cardSummary;
+  }
+
   const legacySummaryText = isPipelinePlaceholderCopy(scan.summaryText)
     ? null
     : scan.summaryText;
 
-  return resolvePrScanCardSummary({
+  const derived = resolvePrScanCardSummary({
     pipelineStatus: scan.pipelineStatus ?? scan.status,
-    decision: scan.decision,
-    totalScore: scan.totalScore,
-    summaryText: legacySummaryText,
+    decision: scan.decision ?? scan.cardSummary?.mergePosture ?? null,
+    totalScore: scan.totalScore ?? scan.cardSummary?.riskIndex ?? null,
+    summaryText: legacySummaryText ?? scan.cardSummary?.summaryLine ?? null,
     result: null,
+    scannedAt: scan.scannedAt ?? scan.resultGeneratedAt ?? null,
   });
+
+  if (!isPipelineCardSummary(derived)) return derived;
+  return derived;
 }
 
 function timestampForRow(

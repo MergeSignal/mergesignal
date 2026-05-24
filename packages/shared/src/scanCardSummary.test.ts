@@ -161,6 +161,14 @@ describe("resolvePipelineStatus", () => {
     expect(resolvePipelineStatus("running", { totalScore: 72 })).toBe("done");
   });
 
+  it("promotes running to done with scannedAt only", () => {
+    expect(
+      resolvePipelineStatus("running", {
+        scannedAt: "2026-01-01T00:00:00.000Z",
+      }),
+    ).toBe("done");
+  });
+
   it("keeps running when no completion evidence", () => {
     expect(resolvePipelineStatus("running", {})).toBe("running");
   });

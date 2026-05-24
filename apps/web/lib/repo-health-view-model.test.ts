@@ -297,4 +297,68 @@ describe("buildRepoPullHealthViewModel", () => {
     const vm = buildRepoPullHealthViewModel([makePR(1)], makeIndex([]), true);
     expect(vm.hasMore).toBe(true);
   });
+
+  it("trusts API cardSummary when denormalized fields are null", () => {
+    const vm = buildRepoPullHealthViewModel(
+      [makePR(1)],
+      {
+        repoId: "acme/repo",
+        byPrNumber: {
+          "1": {
+            scanId: "scan-1",
+            pipelineStatus: "done",
+            cardSummary: makeCardSummary({
+              mergePosture: "needs_review",
+              riskIndex: 48,
+              riskIndexBand: "medium",
+              headline: "Needs review",
+              summaryLine: "Dependency upgrade needs review",
+            }),
+            status: "done",
+            decision: null,
+            totalScore: null,
+            githubPrNumber: 1,
+            githubHeadSha: "sha1",
+            githubBaseRef: "main",
+            createdAt: new Date(2026, 0, 1).toISOString(),
+            scannedAt: new Date(2026, 0, 1, 1).toISOString(),
+            resultGeneratedAt: new Date(2026, 0, 1, 1).toISOString(),
+            summaryText: null,
+            topAffectedAreas: ["Auth flow"],
+          },
+        },
+        aggregates: {
+          totalCovered: 1,
+          byDecision: { safe: 0, needs_review: 1, risky: 0 },
+        },
+      },
+      false,
+    );
+
+    expect(vm.rows[0]!.presentationState).toBe("ready");
+    expect(vm.rows[0]!.posture).toBe("needs_review");
+    expect(vm.rows[0]!.cardSummary?.headline).toBe("Needs review");
+    expect(vm.rows[0]!.cardSummary?.summaryLine).toBe(
+      "Dependency upgrade needs review",
+    );
+  });
+
+  it("promotes running wire status to ready when scannedAt exists", () => {
+    const scannedAt = "2026-02-01T12:00:00.000Z";
+    const vm = buildRepoPullHealthViewModel(
+      [makePR(1)],
+      makeIndex([
+        {
+          prNumber: 1,
+          pipelineStatus: "running",
+          decision: "safe",
+          score: 12,
+          scannedAt,
+        },
+      ]),
+      false,
+    );
+    expect(vm.rows[0]!.presentationState).toBe("ready");
+    expect(vm.rows[0]!.posture).toBe("safe");
+  });
 });

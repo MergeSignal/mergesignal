@@ -92,7 +92,15 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
        FROM scans
        WHERE repo_id = $1
          AND github_pr_number IS NOT NULL
-       ORDER BY github_pr_number, created_at DESC`,
+       ORDER BY github_pr_number,
+         CASE status::text
+           WHEN 'done' THEN 0
+           WHEN 'failed' THEN 1
+           WHEN 'running' THEN 2
+           WHEN 'queued' THEN 3
+           ELSE 4
+         END,
+         created_at DESC`,
       [repoId],
     );
 
@@ -104,10 +112,14 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
 
     for (const row of rows) {
       const prKey = String(row.github_pr_number);
+      const scannedAt = row.result_generated_at
+        ? new Date(row.result_generated_at).toISOString()
+        : null;
       const pipelineStatus = resolvePipelineStatus(row.status, {
         decision: row.decision,
         totalScore: row.total_score,
         hasResult: row.result != null,
+        scannedAt,
       });
       const d = row.decision;
       if (
@@ -123,10 +135,8 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
         totalScore: row.total_score,
         summaryText: null,
         result: asScanResult(row.result),
+        scannedAt,
       });
-      const scannedAt = row.result_generated_at
-        ? new Date(row.result_generated_at).toISOString()
-        : null;
 
       byPrNumber[prKey] = {
         scanId: row.scan_id,

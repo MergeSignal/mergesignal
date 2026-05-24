@@ -76,6 +76,7 @@ export function hasScanCompletionEvidence(
   if (evidence.totalScore != null && Number.isFinite(evidence.totalScore)) {
     return true;
   }
+  if (evidence.scannedAt?.trim()) return true;
   return false;
 }
 
@@ -291,6 +292,7 @@ export type PrScanCardSummaryInput = {
   totalScore: number | null;
   summaryText: string | null;
   result: ScanResult | null;
+  scannedAt?: string | null;
 };
 
 /**
@@ -303,6 +305,7 @@ export function resolvePrScanCardSummary(
     decision: input.decision,
     totalScore: input.totalScore,
     hasResult: input.result != null,
+    scannedAt: input.scannedAt,
   });
 
   if (effectivePipeline === "done") {

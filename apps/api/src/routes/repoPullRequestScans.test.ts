@@ -240,6 +240,28 @@ describe("repoPullRequestScansRoutes", () => {
     );
   });
 
+  it("promotes running to done when only result_generated_at is set", async () => {
+    vi.mocked(db.query).mockResolvedValue({
+      rows: [
+        makeRow({
+          status: "running",
+          decision: null,
+          total_score: null,
+          result_generated_at: new Date("2026-01-01T00:01:00Z"),
+          result: null,
+        }),
+      ],
+      rowCount: 1,
+    } as never);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/repo/acme/frontend/pull-request-scans",
+    });
+    const body = res.json();
+    expect(body.byPrNumber["42"].pipelineStatus).toBe("done");
+  });
+
   it("returns 403 when authenticated owner does not match", async () => {
     // Create a fresh app with a fixed authenticatedOwner pre-set
     const restrictedApp = Fastify();
