@@ -7,7 +7,8 @@
     "apps/worker/eslint.config.js",
     "scripts/ci/render-mergesignal-step-summary.mjs",
     "scripts/ci/render-mergesignal-failure-summary.mjs",
-    "scripts/ci/audit-trusted-actions-output.mjs"
+    "scripts/ci/audit-trusted-actions-output.mjs",
+    "scripts/docker/write-fixture-engine-manifest.mjs"
   ],
   "workspaces": {
     "apps/cli": {
@@ -17,7 +18,13 @@
       "ignoreDependencies": ["@repo/eslint-config"]
     },
     "apps/worker": {
-      "ignoreDependencies": ["@repo/eslint-config"]
+      "ignoreDependencies": [
+        "@repo/eslint-config",
+        "@mergesignal/engine-test-fixture"
+      ]
+    },
+    "packages/engine": {
+      "ignoreDependencies": ["@mergesignal/engine-test-fixture"]
     }
   },
   "ignoreIssues": {
