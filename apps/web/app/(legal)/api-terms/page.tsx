@@ -193,7 +193,7 @@ export default function ApiTermsPage() {
 
       <h3>3.4 Reverse Engineering</h3>
       <ul>
-        <li>Reverse engineer risk scoring algorithms</li>
+        <li>Reverse engineer upgrade impact analysis algorithms</li>
         <li>Decompile or disassemble proprietary components</li>
         <li>Attempt to extract trade secrets or confidential information</li>
       </ul>

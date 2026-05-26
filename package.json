@@ -1,7 +1,7 @@
 {
   "name": "mergesignal",
   "private": true,
-  "description": "Security analysis platform for npm dependencies",
+  "description": "Merge-decision intelligence for dependency upgrades. Know what an upgrade may break before merge.",
   "version": "0.1.0",
   "scripts": {
     "build": "turbo run build",

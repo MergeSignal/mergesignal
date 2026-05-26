@@ -1,8 +1,36 @@
 # MergeSignal
 
-MergeSignal helps teams **see and reason about risk in npm dependencies** before it becomes an incident. It turns lockfiles and dependency graphs into **actionable, explainable scores** you can inspect, and supports **upgrade simulation**, **org-level views** (dashboards, alerts, policies, benchmarks), and an optional **GitHub App** that reacts when lockfiles change on PRs or pushes.
+MergeSignal shows what a dependency upgrade may affect in your app before merge.
 
-**Documentation (users):** the canonical guide (CLI quick start, GitHub Actions, GitHub App) lives on the web app-for the public Fly deployment see **[mergesignal-web.fly.dev/getting-started](https://mergesignal-web.fly.dev/getting-started)** (use your own origin when self-hosting).
+**Example upgrade review:**
+
+```
+Upgrade requires review
+
+This upgrade affects auth middleware ordering in protected routes.
+
+Where it shows up
+- apps/api/src/middleware/auth.ts - auth guard depends on middleware order
+- apps/api/src/routes/account.ts - protected handlers assume validation ran first
+
+What to do
+- Verify validation middleware still runs before handlers
+- Re-run protected-route tests and confirm 401/403 behavior
+
+```
+
+**Quick start** (from your project directory):
+
+```bash
+git clone https://github.com/MergeSignal/mergesignal.git
+cd mergesignal
+pnpm install
+pnpm ms scan
+```
+
+If MergeSignal is cloned elsewhere, run from your project with `pnpm --dir /path/to/mergesignal ms scan`.
+
+**User guide:** [mergesignal-web.fly.dev/getting-started](https://mergesignal-web.fly.dev/getting-started) (replace the host when self-hosting).
 
 ---
 
@@ -23,7 +51,7 @@ cd mergesignal
 pnpm install
 ```
 
-### Command-line scanner (no Docker)
+### CLI (no Docker)
 
 Run the scan from **your** project directory (the folder that contains your lockfile).
 
@@ -46,7 +74,7 @@ Common options: `--json`, `--out mergesignal-result.json`, `--lockfile pnpm-lock
 
 ## Web app and API locally
 
-This repository lets you run the **public web experience**, **HTTP API**, **BullMQ worker**, and **command-line scanner** locally or in your own environment. The in-repo worker (`apps/worker`) consumes the same queue the API enqueues; you can also run a proprietary worker from **mergesignal-engine** by swapping the container image and `MERGESIGNAL_ENGINE_IMPL`. See [DEPLOYMENT.md](./DEPLOYMENT.md). For analysis on your machine without the full stack, use the CLI (**[Install from GitHub](#install-from-github)** above).
+This repository lets you run the **public web experience**, **HTTP API**, **BullMQ worker**, and **CLI** locally or in your own environment. The in-repo worker (`apps/worker`) consumes the same queue the API enqueues; you can also run a proprietary worker from **mergesignal-engine** by swapping the container image and `MERGESIGNAL_ENGINE_IMPL`. See [DEPLOYMENT.md](./DEPLOYMENT.md). For analysis on your machine without the full stack, use the CLI (**[Install from GitHub](#install-from-github)** above).
 
 1. Start databases and worker: `docker compose up -d` (starts Postgres, Redis, and `worker`).
 2. Copy `apps/api/.env.example` to `apps/api/.env` (defaults match the repo’s `docker-compose.yml`).
@@ -62,7 +90,7 @@ The web app proxies **SSE** live scan updates via `GET /api/scan/:id/events` so 
 
 ## CI on GitHub Actions
 
-MergeSignal can run on **GitHub Actions** and write a risk summary to each workflow run’s **Summary**-no MergeSignal server required for that path.
+MergeSignal can run on **GitHub Actions** and write upgrade findings to each workflow run's **Summary** - no MergeSignal server required for that path.
 
 **Trusted vs demo scans:** The composite action supports `scan_profile: trusted` (checkout and build the private **mergesignal-engine** GitHub repository, then `MERGESIGNAL_TRUSTED_ANALYSIS` + `file:` `MERGESIGNAL_ENGINE_IMPL`) or `development` (OSS stub with a clearly labeled demo summary). Fork PRs should **skip** the MergeSignal job when secrets are unavailable—do not silently fall back to `trusted` without credentials. See the [action README](./.github/actions/merge-signal-scan/README.md#trusted-vs-development-scan-profile). Operator setup for secrets and variables is summarized in [DEPLOYMENT.md](./DEPLOYMENT.md#github-actions-merge-signal-scan).
 
@@ -93,7 +121,7 @@ For the full stack (Docker, Postgres, Redis, API, web, worker), environment vari
 
 MergeSignal software in this repository is licensed under **[Apache License 2.0](./LICENSE)**; see also [NOTICE](./NOTICE).
 
-**Data and responsibility:** We publish clear rules for **what we collect, what we do not do with your content, and what remains your responsibility**-including that automated risk output is **informational** and must be validated for your context. The canonical legal pages ship with the **web app** (same routes on your deployment, e.g. the public Fly build: **[Privacy Policy](https://mergesignal-web.fly.dev/privacy)** (Customer Content restrictions), **[Terms of Service](https://mergesignal-web.fly.dev/terms)**, **[API Terms](https://mergesignal-web.fly.dev/api-terms)**, and **[Contact](https://mergesignal-web.fly.dev/contact)**). **These documents are not legal advice for your company**; consult counsel where you need certainty for regulated or high-risk use.
+**Data and responsibility:** We publish clear rules for **what we collect, what we do not do with your content, and what remains your responsibility** - including that automated upgrade impact findings are **informational** and must be validated for your context. The canonical legal pages ship with the **web app** (same routes on your deployment, e.g. the public Fly build: **[Privacy Policy](https://mergesignal-web.fly.dev/privacy)** (Customer Content restrictions), **[Terms of Service](https://mergesignal-web.fly.dev/terms)**, **[API Terms](https://mergesignal-web.fly.dev/api-terms)**, and **[Contact](https://mergesignal-web.fly.dev/contact)**). **These documents are not legal advice for your company**; consult counsel where you need certainty for regulated or high-risk use.
 
 ---
 
@@ -101,5 +129,3 @@ MergeSignal software in this repository is licensed under **[Apache License 2.0]
 
 - **[Getting started](https://mergesignal-web.fly.dev/getting-started)** (user guide on the web app: CLI, GitHub Actions, GitHub App)-replace the host with your deployment when self-hosting.
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - operations and infrastructure for running the stack yourself.
-
-Results are designed to stay interpretable (scores, reasons, and supporting detail where the product exposes them); treat methodology as guidance, not a guarantee.

@@ -1,6 +1,6 @@
 # merge-signal-scan (composite action)
 
-Official **GitHub Actions** integration for MergeSignal. Add one step to your workflow: MergeSignal **scans dependency changes on every run** and adds a **compact, reviewer-oriented summary** to the workflow run (**merge posture**, risk index, prioritized guidance, and expandable score/graph context in the **Summary** tab).
+Official **GitHub Actions** integration for MergeSignal. Add one step to your workflow: MergeSignal analyzes dependency upgrades on every run and adds a compact, reviewer-oriented summary to the workflow run (**affected flows**, reviewer guidance, and upgrade findings in the **Summary** tab).
 
 This is a **black-box** integration from a repository owner’s perspective: you reference the action; you do not configure how MergeSignal is built or installed inside the runner.
 

@@ -1,5 +1,6 @@
 import docStyles from "../components/shared/DocArticle/DocArticle.module.css";
 import { MSCodeBlock } from "../components/shared/MSCodeBlock/MSCodeBlock";
+import { productMessaging } from "@mergesignal/shared";
 import gsStyles from "./getting-started.module.css";
 
 const REPO_BLOB = "https://github.com/MergeSignal/mergesignal/blob/main";
@@ -37,13 +38,10 @@ export default function GettingStartedPage() {
   return (
     <article className={docStyles.article}>
       <h1>Getting started</h1>
+      <p>{productMessaging.formalDefinition}</p>
       <p>
-        MergeSignal surfaces dependency risk before merge so you can review with
-        context instead of guessing from diffs alone.
-      </p>
-      <p>
-        Start locally in seconds, then add PR intelligence and dashboards backed
-        by scans.
+        Start locally in seconds, then add GitHub Actions for reviewer guidance
+        on every upgrade PR.
       </p>
 
       <section
@@ -53,7 +51,8 @@ export default function GettingStartedPage() {
       >
         <h2 id="quick-start-heading">Quick start</h2>
         <p>
-          Run a local scan to see potential risks before opening a pull request.
+          Run a local scan to see affected flows and reviewer checks before
+          opening a pull request.
         </p>
 
         <div className={gsStyles.stepBlock}>
@@ -76,22 +75,17 @@ export default function GettingStartedPage() {
           />
         </div>
 
-        {/* <p className={gsStyles.tierNote}>
-          The open-source version provides a basic analysis.
-        </p> */}
-
         <p>
-          Locally you will see an overall score, a layer breakdown, and
-          suggested actions in the terminal. More options (JSON export, failing
-          a job above a score) are in the <a href={README}>repository README</a>
-          .
+          Locally you will see upgrade findings, affected entrypoints, and
+          reviewer checks in the terminal. More options (JSON export, failing a
+          job above a threshold) are in the{" "}
+          <a href={README}>repository README</a>.
         </p>
 
         <p>
           For deeper insights and automated pull request comments, continue
           below.
         </p>
-        {/* <p>To run this on every pull request, continue below.</p> */}
       </section>
 
       <hr />
@@ -104,8 +98,7 @@ export default function GettingStartedPage() {
         <h2 id="pr-product-heading">GitHub Actions (CI)</h2>
         <p>
           Add a short workflow so every qualifying pull request runs MergeSignal
-          in GitHub Actions and writes a clear risk summary to the workflow
-          Summary—useful when you want CI-only integration.
+          in GitHub Actions and writes upgrade findings to the workflow Summary.
         </p>
 
         <div className={gsStyles.stepBlock}>
@@ -113,9 +106,8 @@ export default function GettingStartedPage() {
           <p>
             Add a short workflow: check out your repository, then run the
             official MergeSignal action. On each run you get a{" "}
-            <strong>Summary</strong> in GitHub Actions with an overall score,
-            top recommendations, and a risk breakdown-right where your team
-            already reviews CI.
+            <strong>Summary</strong> in GitHub Actions with affected flows,
+            reviewer guidance, and upgrade findings.
           </p>
           <MSCodeBlock
             text={GHA_RECOMMENDED_SNIPPET}
@@ -127,7 +119,7 @@ export default function GettingStartedPage() {
             in <a href={RELEASING}>RELEASING.md</a>.
           </p>
           <p>
-            <strong>Optional - fail the check on risk:</strong> add{" "}
+            <strong>Optional - fail the check above a threshold:</strong> add{" "}
             <code>with: fail_above: &quot;40&quot;</code> (use any 0-100
             threshold). The job <strong>fails</strong> when the total score is{" "}
             <strong>strictly higher</strong> than that value; the workflow{" "}
@@ -161,57 +153,6 @@ export default function GettingStartedPage() {
           App, webhook, and API configuration, see the{" "}
           <a href="#github-app">GitHub App</a> section below.
         </p>
-
-        <h3 id="pr-example-heading">What you can see on pull requests</h3>
-        <p>
-          With the full hosted setup, comments on pull requests can look like
-          the example below (illustrative).
-        </p>
-        <div className={gsStyles.exampleMarkdown}>
-          <div className={gsStyles.prCommentExamplePanel}>
-            <h2>MergeSignal</h2>
-            <p>
-              <strong>Elevated dependency merge risk</strong>
-            </p>
-            <p>
-              <code>express</code> may reorder middleware so validation runs
-              after handlers, skipping checks.
-            </p>
-            <p>
-              <strong>Where it shows up</strong>
-            </p>
-            <p>
-              Auth middleware may run after handlers, allowing requests without
-              proper validation.
-            </p>
-            <p>
-              <strong>What to do</strong>
-            </p>
-            <p>
-              Ensure middleware runs before handlers and verify 401 or 403
-              responses on protected routes.
-            </p>
-            <hr />
-            <p>
-              Transitive <code>semver</code> resolution changed - tests may not
-              exercise the resolved graph.
-            </p>
-            <p>
-              <strong>Where it shows up</strong>
-            </p>
-            <p>
-              Affects <code>packages/web</code> and <code>services/api</code>{" "}
-              entrypoints where peer dependencies are resolved at install time.
-            </p>
-            <p>
-              <strong>What to do</strong>
-            </p>
-            <p>
-              Run a clean <code>pnpm install</code> on CI and re-run integration
-              tests before merge.
-            </p>
-          </div>
-        </div>
       </section>
 
       <hr />
@@ -221,10 +162,10 @@ export default function GettingStartedPage() {
         className={`${gsStyles.sectionBlock} ${gsStyles.anchorSection}`}
         aria-labelledby="web-dashboard-heading"
       >
-        <h2 id="web-dashboard-heading">Web dashboard</h2>
+        <h2 id="web-dashboard-heading">Web app</h2>
         <p>
-          The MergeSignal web app gives you a per-repository health overview -
-          risk score, alert breakdown, and scan history - in one place.
+          The MergeSignal web app shows upgrade findings, affected application
+          flows, reviewer guidance, and scan history per repository.
         </p>
 
         <div className={gsStyles.stepBlock}>
@@ -257,7 +198,7 @@ export default function GettingStartedPage() {
             >
               github.com/settings/connections/applications
             </a>{" "}
-            — find MergeSignal in the list and grant the organizations you need.
+            - find MergeSignal in the list and grant the organizations you need.
           </p>
         </div>
 
@@ -400,8 +341,8 @@ export default function GettingStartedPage() {
         <h3>What happens next</h3>
         <p>
           Scans surface in the <strong>MergeSignal web app and API</strong> like
-          any other run. If you have not yet added CI summaries for every PR,
-          complete{" "}
+          any other run. If you have not yet added GitHub Actions summaries for
+          every PR, complete{" "}
           <a href="#github-actions">
             <strong>GitHub Actions</strong>
           </a>{" "}

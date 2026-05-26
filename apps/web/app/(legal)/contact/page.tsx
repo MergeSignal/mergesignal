@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { productMessaging } from "@mergesignal/shared";
+
 import docStyles from "../../components/shared/DocArticle/DocArticle.module.css";
 
 export const metadata: Metadata = {
@@ -12,10 +14,7 @@ export default function ContactPage() {
   return (
     <article className={docStyles.article}>
       <h1>Contact Information</h1>
-      <p>
-        <strong>MergeSignal</strong> is an open-source dependency risk
-        intelligence platform.
-      </p>
+      <p>{productMessaging.formalDefinition}</p>
 
       <h2>Legal Inquiries</h2>
       <p>For legal matters, including:</p>
@@ -31,25 +30,11 @@ export default function ContactPage() {
       <p>
         <strong>Email:</strong> legal@mergesignal.com
       </p>
-      <p>
-        <em>
-          Note: If this project is currently operated by an individual or
-          organization without a dedicated legal email, replace with appropriate
-          contact information or use the GitHub issue system for
-          non-confidential inquiries.
-        </em>
-      </p>
 
       <h2>Data Protection Officer (GDPR)</h2>
       <p>For GDPR-related inquiries and data subject requests:</p>
       <p>
         <strong>Email:</strong> dpo@mergesignal.com
-      </p>
-      <p>
-        <em>
-          Note: Required only if processing EU/EEA user data. Update with actual
-          DPO contact information.
-        </em>
       </p>
 
       <h2>General Support</h2>
@@ -104,21 +89,6 @@ export default function ContactPage() {
         <strong>Email:</strong> hello@mergesignal.com
       </p>
 
-      <h2>Mailing Address (if incorporated)</h2>
-      <p>
-        If MergeSignal is operated by a legal entity, provide a mailing address
-        here for formal legal correspondence:
-      </p>
-      <pre>
-        <code>{`[Legal Entity Name]
-[Street Address]
-[City, State/Province, Postal Code]
-[Country]`}</code>
-      </pre>
-      <p>
-        <em>Note: Update with actual entity information if incorporated.</em>
-      </p>
-
       <h2>Response Time</h2>
       <ul>
         <li>
@@ -151,37 +121,6 @@ export default function ContactPage() {
         This contact information is current as of{" "}
         <strong>March 16, 2026</strong>. Check this file periodically for
         updates.
-      </p>
-
-      <hr />
-
-      <p>
-        <strong>Note to maintainers</strong>:
-      </p>
-      <p>Before public launch, ensure that:</p>
-      <ol>
-        <li>
-          All placeholder email addresses (e.g.,{" "}
-          <code>legal@mergesignal.com</code>) are replaced with real, monitored
-          addresses
-        </li>
-        <li>
-          If operating as an individual, consider using a contact form or
-          creating a business email (e.g., via Google Workspace)
-        </li>
-        <li>If incorporated, add the legal entity name and mailing address</li>
-        <li>Set up email forwarding/monitoring to ensure timely responses</li>
-        <li>
-          Consider using a dedicated email for GDPR/CCPA requests if serving
-          EU/US users
-        </li>
-        <li>
-          Update GitHub repository URLs with the actual organization/username
-        </li>
-      </ol>
-      <p>
-        For now, you can use GitHub issues for most inquiries and add a
-        professional email address before going public.
       </p>
     </article>
   );

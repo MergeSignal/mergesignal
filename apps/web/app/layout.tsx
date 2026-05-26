@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { productMessaging } from "@mergesignal/shared";
 import { EB_Garamond, Inter } from "next/font/google";
 import localFont from "next/font/local";
 import { auth } from "../auth";
@@ -26,9 +27,8 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   metadataBase: getSiteOrigin(),
-  title: "MergeSignal - dependency risk before you merge",
-  description:
-    "MergeSignal analyzes dependency changes and surfaces runtime-impacting risks so you can merge with confidence.",
+  title: productMessaging.seo.title,
+  description: productMessaging.seo.description,
 };
 
 export default async function RootLayout({

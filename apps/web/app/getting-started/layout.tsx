@@ -8,7 +8,7 @@ import layoutStyles from "./GettingStartedLayout.module.css";
 export const metadata: Metadata = {
   title: "Getting started",
   description:
-    "Spot dependency risk before merge: quick local scan, then GitHub Actions summary on every PR-no server required.",
+    "Know what a dependency upgrade may affect before merge. Quick local scan, then GitHub Actions summary on every PR.",
   alternates: { canonical: "/getting-started" },
 };
 

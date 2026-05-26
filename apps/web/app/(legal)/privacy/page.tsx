@@ -21,8 +21,7 @@ export default function PrivacyPage() {
       <p>
         This Privacy Policy describes how MergeSignal (&quot;we&quot;,
         &quot;our&quot;, or &quot;the Service&quot;) collects, uses, stores, and
-        protects information when you use our dependency risk intelligence
-        platform.
+        protects information when you use the Service.
       </p>
       <p>
         By using MergeSignal, you consent to the data practices described in
@@ -150,8 +149,8 @@ export default function PrivacyPage() {
       <p>We use collected information to:</p>
       <ul>
         <li>
-          <strong>Provide the Service</strong>: Analyze dependencies, calculate
-          risk scores, and generate recommendations
+          <strong>Provide the Service</strong>: Analyze dependency upgrades,
+          identify affected flows, and generate reviewer guidance
         </li>
         <li>
           <strong>

@@ -25,11 +25,7 @@ export default function TermsPage() {
       </p>
 
       <h2>2. Description of Service</h2>
-      <p>
-        MergeSignal is a dependency risk intelligence platform that provides
-        risk scoring and analysis for software repositories. The Service
-        includes:
-      </p>
+      <p>The Service includes:</p>
       <ul>
         <li>Web-based user interface</li>
         <li>RESTful API</li>
@@ -54,11 +50,10 @@ export default function TermsPage() {
 
       <h3>3.2 Informational analyses (not professional advice)</h3>
       <p>
-        MergeSignal produces <strong>automated dependency risk insights</strong>
-        . That output is{" "}
-        <strong>informational and decision-support only</strong>. It is{" "}
-        <strong>not</strong> legal advice, not a professional penetration test
-        or audit, and not a certification that a system is free of
+        MergeSignal produces <strong>automated upgrade impact findings</strong>.
+        That output is <strong>informational and decision-support only</strong>.
+        It is <strong>not</strong> legal advice, not a professional penetration
+        test or audit, and not a certification that a system is free of
         vulnerabilities or fit for any regulated purpose. You remain responsible
         for how you use outputs, for compliance with your own policies and laws,
         and for validating material decisions (for example, production releases

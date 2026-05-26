@@ -3,6 +3,6 @@ import type { MSAnchorSideNavItem } from "../components/shared/MSAnchorSideNav/M
 export const gettingStartedAnchorItems: readonly MSAnchorSideNavItem[] = [
   { href: "#quick-start", label: "Quick start" },
   { href: "#github-actions", label: "GitHub Actions" },
-  { href: "#web-dashboard", label: "Web dashboard" },
+  { href: "#web-dashboard", label: "Web app" },
   { href: "#github-app", label: "GitHub App" },
 ];
