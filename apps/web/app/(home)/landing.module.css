@@ -292,13 +292,6 @@
   font-size: var(--ms-text-base);
 }
 
-.rowText {
-  margin: 0;
-  font-size: var(--ms-text-md);
-  line-height: var(--ms-leading-relaxed);
-  color: var(--ms-color-text-muted);
-}
-
 .sectionListOrdered .sectionListItem {
   grid-template-columns: 2.35rem 1fr;
 }

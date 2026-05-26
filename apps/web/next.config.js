@@ -1,10 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    // Turbopack bundles its own CA roots; use the OS store so Google Fonts
-    // (next/font/google) can download during dev on networks with custom CAs.
-    turbopackUseSystemTlsCerts: true,
-  },
   // Process workspace package through the bundler so Turbopack always
   // picks up newly-exported symbols without a stale module-graph cache.
   transpilePackages: ["@mergesignal/shared"],

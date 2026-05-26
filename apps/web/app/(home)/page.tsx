@@ -42,7 +42,7 @@ function SectionRow({
       </span>
       <div className={styles.rowBody}>
         <span className={styles.itemLabel}>{title}</span>
-        <p className={styles.rowText}>{body}</p>
+        {body}
       </div>
     </li>
   );
