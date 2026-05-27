@@ -15,11 +15,7 @@
   padding: var(--ms-space-md);
   border-radius: var(--ms-radius-sm);
   border: var(--ms-border-width) solid var(--ms-color-border);
-  background: color-mix(
-    in oklab,
-    var(--ms-color-surface) 55%,
-    transparent
-  );
+  background: var(--ms-color-surface);
   transition:
     border-color 150ms ease,
     background 150ms ease;
@@ -28,16 +24,8 @@
 
 .card:hover,
 .card:focus-within {
-  border-color: color-mix(
-    in oklab,
-    var(--ms-color-ink) 22%,
-    var(--ms-color-border)
-  );
-  background: color-mix(
-    in oklab,
-    var(--ms-color-surface-emphasis) 35%,
-    transparent
-  );
+  border-color: var(--ms-color-border);
+  background: var(--ms-color-surface-emphasis);
 }
 
 .headerRow {
@@ -61,7 +49,8 @@
   font-size: var(--ms-text-md);
   font-weight: var(--ms-font-weight-semibold);
   color: var(--ms-color-text-emphasis);
-  line-height: var(--ms-leading-snug);
+  line-height: var(--ms-leading-ui);
+  letter-spacing: var(--ms-tracking-tight);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -71,20 +60,20 @@
 .branchChip {
   justify-self: end;
   max-width: 6.5rem;
-  opacity: 0.88;
+  opacity: var(--ms-opacity-subtle);
 }
 
 .metaRow {
   display: flex;
   align-items: center;
-  min-height: 1.25rem;
+  min-height: calc(var(--ms-text-xs) * var(--ms-leading-snug));
 }
 
 .body {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 3.25rem;
+  min-height: calc(var(--ms-space-2xl) + var(--ms-space-xs));
 }
 
 .pipelineSummary {
@@ -125,12 +114,11 @@
   color: var(--ms-color-accent-alt);
   text-decoration: none;
   white-space: nowrap;
-  padding: 0.38rem 0.8rem;
+  padding: var(--ms-space-xs) var(--ms-space-sm);
   border-radius: var(--ms-radius-xs);
-  border: var(--ms-border-width) solid
-    color-mix(in oklab, var(--ms-color-accent-alt) 38%, transparent);
-  background: color-mix(in oklab, var(--ms-color-accent-alt) 9%, transparent);
-  outline-offset: 2px;
+  border: var(--ms-border-width) solid var(--ms-color-border);
+  background: var(--ms-color-surface);
+  outline-offset: var(--ms-space-2xs);
   transition:
     color 140ms ease,
     background 140ms ease,
@@ -140,16 +128,16 @@
 
 .viewDetailsLink:hover {
   color: var(--ms-color-text-emphasis);
-  background: color-mix(in oklab, var(--ms-color-accent-alt) 16%, transparent);
-  border-color: color-mix(in oklab, var(--ms-color-accent-alt) 52%, transparent);
+  background: var(--ms-color-surface-emphasis);
+  border-color: var(--ms-color-accent-alt);
 }
 
 .viewDetailsLink:active {
-  transform: translateY(0.5px);
+  transform: translateY(calc(var(--ms-border-width) * 0.5));
 }
 
 .viewDetailsLink:focus-visible {
-  outline: 2px solid var(--ms-color-focus-ring);
+  outline: calc(var(--ms-border-width) * 2) solid var(--ms-color-focus-ring);
 }
 
 .noAction {

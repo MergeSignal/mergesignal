@@ -76,6 +76,23 @@ describe("productMessaging", () => {
     expect(productMessaging.hero.h1).not.toContain("Dependabot");
     expect(productMessaging.hero.lead).not.toContain("Dependabot");
   });
+
+  it("describes dashboard posture and exposure without scoring jargon", () => {
+    const d = productMessaging.dashboardPrCard;
+    const text = [
+      d.intro,
+      d.posture,
+      d.exposure,
+      d.exposureCategoriesLead,
+      ...d.exposureCategories,
+      d.cardBody,
+    ].join(" ");
+    expect(text).toContain("merge recommendation");
+    expect(text).toContain("runtime-relevant");
+    expect(text).not.toMatch(/risk index|total score|0-100|formula|weight/i);
+    expect(d.exposureCategories).toHaveLength(5);
+    expect(d.exposureCategories).toContain("Elevated exposure");
+  });
 });
 
 function collectMarketingStrings(): string[] {
@@ -92,5 +109,14 @@ function collectMarketingStrings(): string[] {
   for (const body of homepageSectionRowBodies()) {
     out.push(body);
   }
+  const d = productMessaging.dashboardPrCard;
+  out.push(
+    d.intro,
+    d.posture,
+    d.exposure,
+    d.exposureCategoriesLead,
+    d.cardBody,
+    ...d.exposureCategories,
+  );
   return out;
 }

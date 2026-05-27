@@ -203,6 +203,20 @@ export default function GettingStartedPage() {
         </div>
 
         <div className={gsStyles.stepBlock}>
+          <h3>Repository dashboard</h3>
+          <p>{productMessaging.dashboardPrCard.intro}</p>
+          <p>
+            {productMessaging.dashboardPrCard.posture}{" "}
+            {productMessaging.dashboardPrCard.exposure}
+          </p>
+          <p>
+            {productMessaging.dashboardPrCard.exposureCategoriesLead}{" "}
+            {productMessaging.dashboardPrCard.exposureCategories.join(", ")}.
+          </p>
+          <p>{productMessaging.dashboardPrCard.cardBody}</p>
+        </div>
+
+        <div className={gsStyles.stepBlock}>
           <h3>No scan data yet?</h3>
           <p>
             Repositories that have not been scanned show an empty overview with

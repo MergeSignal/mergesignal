@@ -1,3 +1,6 @@
+import { CARD_EXPOSURE_CATEGORY_LABELS } from "./formatCardExposureDisplay.js";
+import { MERGE_POSTURE_LABEL } from "./riskVocabulary.js";
+
 /**
  * Canonical marketing / category copy. Operational scan strings stay in scanSurfaceCopy.
  */
@@ -83,6 +86,19 @@ export const productMessaging = {
         },
       ],
     },
+  },
+
+  /** Repository dashboard PR cards — reviewer-oriented semantics (not engine/scoring docs). */
+  dashboardPrCard: {
+    intro:
+      "The repository dashboard is a runtime-aware review surface for open upgrade pull requests: triage by merge recommendation, then read operational context on each card.",
+    posture: `Posture indicates the merge recommendation (${MERGE_POSTURE_LABEL.safe}, ${MERGE_POSTURE_LABEL.needs_review}, ${MERGE_POSTURE_LABEL.risky}).`,
+    exposure:
+      "Exposure indicates how broadly the upgrade touches runtime-relevant application areas.",
+    exposureCategoriesLead: "On each scanned card, exposure reads as one of:",
+    exposureCategories: CARD_EXPOSURE_CATEGORY_LABELS,
+    cardBody:
+      "Below the verdict, cards surface affected areas, finding context, and a short rationale line when it adds operational detail for this pull request.",
   },
 } as const;
 

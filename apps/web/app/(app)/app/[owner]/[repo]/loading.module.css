@@ -8,24 +8,29 @@
 
 .bar {
   border-radius: var(--ms-radius-xs);
-  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 50%, transparent);
+  background: var(--ms-color-surface-emphasis);
   animation: pulse 1.4s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.4; }
-  50%       { opacity: 0.9; }
+  0%,
+  100% {
+    opacity: var(--ms-opacity-pulse-low);
+  }
+  50% {
+    opacity: var(--ms-opacity-pulse-high);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bar {
     animation: none;
-    opacity: 0.65;
+    opacity: var(--ms-opacity-medium);
   }
 }
 
 .titleBar {
-  height: 2rem;
+  height: calc(var(--ms-text-2xl) * var(--ms-leading-snug));
   width: 40%;
   margin-bottom: var(--ms-space-xs);
 }
@@ -34,19 +39,19 @@
   display: flex;
   align-items: center;
   gap: var(--ms-space-sm);
-  height: 3rem;
+  height: calc(var(--ms-space-2xl) + var(--ms-space-xs));
   padding: 0 var(--ms-space-md);
   border-radius: var(--ms-radius-xs);
-  background: color-mix(in oklab, var(--ms-color-surface-emphasis) 25%, transparent);
+  background: var(--ms-color-surface-emphasis);
 }
 
 .stripStat {
-  height: 1.25rem;
+  height: calc(var(--ms-text-xs) * var(--ms-leading-snug));
   width: 5rem;
 }
 
 .stripBadge {
-  height: 1.5rem;
+  height: calc(var(--ms-text-md) * var(--ms-leading-snug));
   width: 4.5rem;
   border-radius: var(--ms-radius-full);
 }
@@ -66,9 +71,9 @@
 .prCard {
   border-radius: var(--ms-radius-sm);
   border: var(--ms-border-width) solid var(--ms-color-border);
-  background: color-mix(in oklab, var(--ms-color-surface) 40%, transparent);
+  background: var(--ms-color-surface);
   padding: var(--ms-space-md);
-  min-height: 9.5rem;
+  min-height: calc(var(--ms-space-2xl) * 2 + var(--ms-space-xs) + var(--ms-space-2xs));
 }
 
 .prCardInner {
@@ -79,7 +84,7 @@
 }
 
 .prMeta {
-  height: 1rem;
+  height: var(--ms-text-base);
   width: 85%;
 }
 
@@ -88,20 +93,31 @@
   flex-direction: column;
   gap: var(--ms-space-xs);
   flex: 1;
-  min-height: 3.25rem;
+  min-height: calc(var(--ms-space-2xl) + var(--ms-space-xs) + var(--ms-space-2xs));
   padding-inline-start: var(--ms-space-sm);
-  border-inline-start: 2px solid
-    color-mix(in oklab, var(--ms-color-border) 80%, transparent);
+  border-inline-start: var(--ms-border-width) solid var(--ms-color-border);
+}
+
+.outcomeRowSkeleton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ms-space-sm);
 }
 
 .outcomeBar {
-  height: 1.35rem;
-  width: 4.25rem;
+  height: calc(var(--ms-text-xs) * var(--ms-leading-ui));
+  width: 3.75rem;
   border-radius: var(--ms-radius-full);
 }
 
+.scoreBar {
+  height: calc(var(--ms-text-xs) * var(--ms-leading-snug));
+  width: calc(var(--ms-text-xs) * var(--ms-leading-subhead));
+}
+
 .whyBar {
-  height: 0.875rem;
+  height: calc(var(--ms-text-xs) * var(--ms-leading-snug));
   width: 72%;
 }
 
@@ -114,12 +130,12 @@
 }
 
 .actionBar {
-  height: 1.75rem;
+  height: calc(var(--ms-text-md) * var(--ms-leading-snug) + var(--ms-space-xs));
   width: 5.5rem;
   border-radius: var(--ms-radius-xs);
 }
 
 .timestampBar {
-  height: 0.75rem;
+  height: calc(var(--ms-text-xs) * var(--ms-leading-snug));
   width: 4.5rem;
 }

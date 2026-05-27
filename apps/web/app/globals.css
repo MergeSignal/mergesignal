@@ -85,6 +85,33 @@
   /* --- Hairline border (do not use rem for border width) --- */
   --ms-border-width: 1px;
 
+  /* --- Opacity (UI states) --- */
+  --ms-opacity-full: 1;
+  --ms-opacity-strong: 0.94;
+  --ms-opacity-soft: 0.9;
+  --ms-opacity-subtle: 0.88;
+  --ms-opacity-medium: 0.65;
+  --ms-opacity-muted: 0.5;
+  --ms-opacity-pulse-low: 0.4;
+  --ms-opacity-pulse-high: 0.9;
+
+  /* --- Posture accent strip (dashboard PR cards) --- */
+  --ms-color-posture-strip-safe: color-mix(
+    in oklab,
+    var(--ms-color-success) 48%,
+    var(--ms-color-border)
+  );
+  --ms-color-posture-strip-review: color-mix(
+    in oklab,
+    var(--ms-color-warning) 58%,
+    var(--ms-color-border)
+  );
+  --ms-color-posture-strip-risky: color-mix(
+    in oklab,
+    var(--ms-color-danger) 68%,
+    var(--ms-color-border)
+  );
+
   /* --- External palette (OrgDashboard chips / score gradient) --- */
   --ms-color-emerald-500: #10b981;
   --ms-color-amber-500: #f59e0b;

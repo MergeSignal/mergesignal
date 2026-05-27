@@ -7,6 +7,7 @@ export * from "./cardSummaryCopy.js";
 export * from "./truncateCardSummary.js";
 export * from "./formatCardAreaLabels.js";
 export * from "./formatCardEvidenceCounts.js";
+export * from "./formatCardExposureDisplay.js";
 export * from "./deriveCardDisplaySummary.js";
 export * from "./scanCardSummary.js";
 export * from "./scanResultSchema.js";

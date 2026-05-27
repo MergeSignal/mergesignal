@@ -2,6 +2,7 @@ import type { MergePosture, ScanCardSummary } from "@mergesignal/shared";
 import {
   ariaLabelForCardSummary,
   cardPostureDisplayLabel,
+  deriveCardExposureDisplay,
   formatCardEvidenceCounts,
   isPipelinePlaceholderCopy,
   joinCardAreaLabels,
@@ -33,8 +34,8 @@ function displaySummaryLine(summary: ScanCardSummary): string | null {
   return summary.summaryLine;
 }
 
-/** Secondary context — areas/counts when not already the primary "why" line. */
-function contextLine(
+/** Operational evidence — areas/counts when not already the primary why line. */
+function evidenceLine(
   summary: ScanCardSummary,
   whyLine: string | null,
 ): string | null {
@@ -62,18 +63,20 @@ export function MSRiskSummary({
 }: MSRiskSummaryProps) {
   const tone = postureTone(summary.mergePosture);
   const whyLine = displaySummaryLine(summary);
-  const context = contextLine(summary, whyLine);
+  const evidence = evidenceLine(summary, whyLine);
+  const hasEvidence = Boolean(evidence);
   const isQuietOutcome =
-    tone === "safe" && !whyLine && !context && !staleSubline;
+    tone === "safe" && !whyLine && !evidence && !staleSubline;
   const postureLabel = summary.mergePosture
     ? MERGE_POSTURE_LABEL[summary.mergePosture]
     : summary.headline;
+  const exposure = deriveCardExposureDisplay(summary.riskIndex);
 
   const ariaLabel = ariaLabelForCardSummary(
     postureLabel,
     summary.riskIndex,
     stale && staleSubline ? `${whyLine ?? ""} ${staleSubline}`.trim() : whyLine,
-    context,
+    evidence,
   );
 
   return (
@@ -82,6 +85,7 @@ export function MSRiskSummary({
         styles.outcomeFlow,
         styles[tone],
         isQuietOutcome ? styles.quietOutcome : "",
+        hasEvidence ? styles.hasEvidence : "",
         stale ? styles.stale : "",
       ]
         .filter(Boolean)
@@ -94,29 +98,51 @@ export function MSRiskSummary({
           <MSBadge
             variant="posture"
             tone={tone}
-            className={tone === "risky" ? styles.riskyBadge : undefined}
+            className={styles.postureBadge}
           >
             {cardPostureDisplayLabel(summary.mergePosture)}
           </MSBadge>
+          {exposure && (
+            <span className={styles.exposureMeta}>
+              <span className={styles.exposureCategory}>{exposure.label}</span>
+            </span>
+          )}
         </div>
       )}
 
-      {whyLine && (
-        <p
-          className={[
-            styles.whyLine,
-            tone === "review" ? styles.whyReview : "",
-            tone === "risky" ? styles.whyRisky : "",
-            tone === "safe" ? styles.whySafe : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          {whyLine}
-        </p>
-      )}
+      {(evidence || whyLine) && (
+        <div className={styles.artifactCore}>
+          {evidence && (
+            <p
+              className={[
+                styles.evidenceLine,
+                tone === "review" ? styles.evidenceReview : "",
+                tone === "risky" ? styles.evidenceRisky : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {evidence}
+            </p>
+          )}
 
-      {context && <p className={styles.contextLine}>{context}</p>}
+          {whyLine && (
+            <p
+              className={[
+                styles.whyLine,
+                hasEvidence ? styles.whySubordinate : "",
+                tone === "review" && !hasEvidence ? styles.whyReview : "",
+                tone === "risky" && !hasEvidence ? styles.whyRisky : "",
+                tone === "safe" ? styles.whySafe : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {whyLine}
+            </p>
+          )}
+        </div>
+      )}
 
       {stale && staleSubline && (
         <p className={styles.staleNote}>{staleSubline}</p>
