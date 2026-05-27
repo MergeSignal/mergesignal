@@ -100,7 +100,7 @@ describe("deriveScanCardSummary", () => {
     expect(summary.summaryLine).toBe("Auth boundary change");
   });
 
-  it("uses safe copy when posture is safe and no findings", () => {
+  it("omits summary for quiet safe cards with no findings", () => {
     const r = {
       ...baseResult,
       totalScore: 12,
@@ -111,7 +111,7 @@ describe("deriveScanCardSummary", () => {
       },
     } satisfies ScanResult;
     const summary = deriveScanCardSummary(r, "done");
-    expect(summary.summaryLine).toBe("No merge blockers detected");
+    expect(summary.summaryLine).toBeNull();
   });
 
   it("caps top affected areas at 2", () => {
@@ -234,6 +234,17 @@ describe("deriveScanCardSummaryFromDenormalized", () => {
     );
     expect(summary.mergePosture).toBe("risky");
     expect(summary.summaryLine).not.toBe("Waiting for results…");
+  });
+
+  it("does not inject raw generic summaryText on quiet safe cards", () => {
+    const summary = deriveScanCardSummaryFromDenormalized(
+      "safe",
+      12,
+      "No high-confidence merge risks from this PR dependency change",
+      "done",
+    );
+    expect(summary.mergePosture).toBe("safe");
+    expect(summary.summaryLine).toBeNull();
   });
 });
 

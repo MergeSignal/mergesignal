@@ -1,3 +1,4 @@
+import { deriveCardDisplaySummary } from "./deriveCardDisplaySummary.js";
 import { deriveScanSummaryText } from "./deriveScanSummaryText.js";
 import {
   mergePostureFromDecision,
@@ -36,7 +37,6 @@ export type ScanCardSummary = {
   topAffectedAreas: string[];
 };
 
-const SAFE_SUMMARY = "No merge blockers detected";
 const STALE_SUBLINE = "Based on earlier commit";
 export const SCAN_CARD_SCANNING_SUMMARY = "Waiting for results…";
 
@@ -150,24 +150,26 @@ export function aggregateFindingCounts(
   return counts;
 }
 
-function hasActionableFindings(counts: FindingCountSummary): boolean {
-  return counts.critical + counts.high + counts.medium + counts.low > 0;
-}
-
-function deriveSafeSummaryLine(
-  posture: MergePosture,
-  counts: FindingCountSummary,
-  fallback: string | null,
+function resolveCardSummaryLine(
+  posture: MergePosture | null,
+  findingCounts: FindingCountSummary,
+  rawSummary: string | null,
+  topAffectedAreas: string[],
 ): string | null {
-  if (posture === "safe" && !hasActionableFindings(counts)) {
-    return SAFE_SUMMARY;
-  }
-  return fallback;
+  if (!posture) return rawSummary;
+  return deriveCardDisplaySummary({
+    mergePosture: posture,
+    rawSummary,
+    findingCounts,
+    topAffectedAreas,
+  });
 }
 
 /**
  * Server-side card summary for PR dashboard list views.
  * Pipeline lifecycle copy is included when `pipelineStatus !== "done"`.
+ *
+ * Quiet safe cards intentionally omit summaryLine (posture-only) — see deriveCardDisplaySummary.
  */
 export function deriveScanCardSummary(
   result: ScanResult | null | undefined,
@@ -220,9 +222,13 @@ export function deriveScanCardSummary(
     ? MERGE_POSTURE_LABEL[posture]
     : scanSurfaceCopy.checkRun.mergePostureUnavailable;
 
-  const summaryLine = posture
-    ? deriveSafeSummaryLine(posture, findingCounts, summaryFromText)
-    : summaryFromText;
+  const topAffectedAreas = selectTopAffectedAreas(result, { max: 2 });
+  const summaryLine = resolveCardSummaryLine(
+    posture,
+    findingCounts,
+    summaryFromText,
+    topAffectedAreas,
+  );
 
   return {
     mergePosture: posture,
@@ -231,7 +237,7 @@ export function deriveScanCardSummary(
     headline,
     summaryLine,
     findingCounts,
-    topAffectedAreas: selectTopAffectedAreas(result, { max: 2 }),
+    topAffectedAreas,
   };
 }
 
@@ -272,16 +278,19 @@ export function deriveScanCardSummaryFromDenormalized(
     ? null
     : (summaryText?.trim() ?? null);
 
-  if (sanitized && !summary.summaryLine) {
-    return { ...summary, summaryLine: sanitized };
-  }
-  if (
-    sanitized &&
-    posture &&
-    summary.summaryLine === SAFE_SUMMARY &&
-    sanitized !== SAFE_SUMMARY
-  ) {
-    return { ...summary, summaryLine: sanitized };
+  if (sanitized && posture) {
+    const displayLine = resolveCardSummaryLine(
+      posture,
+      summary.findingCounts ?? {
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      },
+      sanitized,
+      summary.topAffectedAreas,
+    );
+    return { ...summary, summaryLine: displayLine };
   }
   return summary;
 }

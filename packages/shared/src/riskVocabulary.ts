@@ -26,6 +26,18 @@ export const MERGE_POSTURE_LABEL: Record<MergePosture, string> = {
 };
 
 /**
+ * Dashboard card badge labels. Defaults to full canonical names for triage clarity.
+ * Wire values remain `safe | needs_review | risky`.
+ */
+export const CARD_POSTURE_DISPLAY_LABEL: Record<MergePosture, string> = {
+  ...MERGE_POSTURE_LABEL,
+};
+
+export function cardPostureDisplayLabel(posture: MergePosture): string {
+  return CARD_POSTURE_DISPLAY_LABEL[posture];
+}
+
+/**
  * Sorting weights: higher number = listed first (riskiest first).
  * Use as: arr.sort((a, b) => MERGE_POSTURE_SORT_ORDER[b] - MERGE_POSTURE_SORT_ORDER[a])
  */
@@ -71,15 +83,17 @@ export function ariaLabelForPosture(
   return label;
 }
 
-/** Accessible label for unified PR card risk block. */
+/** Accessible label for unified PR card findings block. */
 export function ariaLabelForCardSummary(
-  headline: string,
+  postureLabel: string,
   riskIndex: number | null | undefined,
   summaryLine: string | null | undefined,
+  evidenceLine?: string | null,
 ): string {
-  const parts = [headline];
+  const parts = [postureLabel];
   if (riskIndex != null) parts.push(`risk index ${Math.round(riskIndex)}`);
   if (summaryLine?.trim()) parts.push(summaryLine.trim());
+  if (evidenceLine?.trim()) parts.push(evidenceLine.trim());
   return parts.join(". ");
 }
 

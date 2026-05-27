@@ -1,11 +1,10 @@
-import type {
-  FindingCountSummary,
-  MergePosture,
-  ScanCardSummary,
-} from "@mergesignal/shared";
+import type { MergePosture, ScanCardSummary } from "@mergesignal/shared";
 import {
   ariaLabelForCardSummary,
+  cardPostureDisplayLabel,
+  formatCardEvidenceCounts,
   isPipelinePlaceholderCopy,
+  joinCardAreaLabels,
   MERGE_POSTURE_LABEL,
 } from "@mergesignal/shared";
 import { MSBadge } from "../MSBadge/MSBadge";
@@ -26,18 +25,6 @@ function postureTone(
   return "neutral";
 }
 
-function postureIcon(posture: MergePosture | null): string | null {
-  if (posture === "safe") return "✓";
-  if (posture === "needs_review") return "⚠";
-  if (posture === "risky") return "✕";
-  return null;
-}
-
-function postureEyebrow(posture: MergePosture | null): string | null {
-  if (!posture) return null;
-  return `Merge risk · ${MERGE_POSTURE_LABEL[posture]}`;
-}
-
 function displaySummaryLine(summary: ScanCardSummary): string | null {
   if (!summary.summaryLine) return null;
   if (summary.mergePosture && isPipelinePlaceholderCopy(summary.summaryLine)) {
@@ -46,24 +33,26 @@ function displaySummaryLine(summary: ScanCardSummary): string | null {
   return summary.summaryLine;
 }
 
-function findingCountChips(counts: FindingCountSummary | null) {
-  if (!counts) return null;
-  const chips: React.ReactNode[] = [];
-  if (counts.critical > 0) {
-    chips.push(
-      <MSBadge key="critical" variant="count" tone="danger">
-        {counts.critical} critical
-      </MSBadge>,
-    );
+/** Secondary context — areas/counts when not already the primary "why" line. */
+function contextLine(
+  summary: ScanCardSummary,
+  whyLine: string | null,
+): string | null {
+  const areas = joinCardAreaLabels(summary.topAffectedAreas);
+  const counts = formatCardEvidenceCounts(
+    summary.findingCounts,
+    summary.mergePosture,
+  );
+
+  if (whyLine && areas && whyLine.includes(areas)) {
+    return counts;
   }
-  if (counts.high > 0) {
-    chips.push(
-      <MSBadge key="high" variant="count" tone="danger">
-        {counts.high} high
-      </MSBadge>,
-    );
+  if (whyLine && areas && areas !== whyLine) {
+    return counts ? `${areas} · ${counts}` : areas;
   }
-  return chips.length > 0 ? chips : null;
+  if (!whyLine && areas) return counts ? `${areas} · ${counts}` : areas;
+  if (counts) return counts;
+  return null;
 }
 
 export function MSRiskSummary({
@@ -72,62 +61,65 @@ export function MSRiskSummary({
   staleSubline,
 }: MSRiskSummaryProps) {
   const tone = postureTone(summary.mergePosture);
-  const icon = postureIcon(summary.mergePosture);
-  const eyebrow = postureEyebrow(summary.mergePosture);
-  const summaryLine = displaySummaryLine(summary);
-  const countChips = findingCountChips(summary.findingCounts);
+  const whyLine = displaySummaryLine(summary);
+  const context = contextLine(summary, whyLine);
+  const isQuietOutcome =
+    tone === "safe" && !whyLine && !context && !staleSubline;
+  const postureLabel = summary.mergePosture
+    ? MERGE_POSTURE_LABEL[summary.mergePosture]
+    : summary.headline;
+
   const ariaLabel = ariaLabelForCardSummary(
-    summary.headline,
+    postureLabel,
     summary.riskIndex,
-    stale && staleSubline
-      ? `${summaryLine ?? ""} ${staleSubline}`.trim()
-      : summaryLine,
+    stale && staleSubline ? `${whyLine ?? ""} ${staleSubline}`.trim() : whyLine,
+    context,
   );
 
   return (
     <div
-      className={[styles.riskBlock, styles[tone], stale ? styles.stale : ""]
+      className={[
+        styles.outcomeFlow,
+        styles[tone],
+        isQuietOutcome ? styles.quietOutcome : "",
+        stale ? styles.stale : "",
+      ]
         .filter(Boolean)
         .join(" ")}
       data-posture={tone}
       aria-label={ariaLabel}
     >
-      {eyebrow && (
-        <span className={styles.eyebrow} aria-hidden="true">
-          {eyebrow}
-        </span>
-      )}
-      <div className={styles.riskHeader}>
-        <span className={styles.headlineWrap}>
-          {icon && (
-            <span className={styles.postureIcon} aria-hidden="true">
-              {icon}
-            </span>
-          )}
-          <span className={styles.headline}>{summary.headline}</span>
-        </span>
-        {summary.riskIndex != null && (
-          <span
-            className={[
-              styles.riskIndex,
-              styles[`index_${summary.riskIndexBand ?? "low"}`],
-            ].join(" ")}
+      {summary.mergePosture && (
+        <div className={styles.outcomeRow}>
+          <MSBadge
+            variant="posture"
+            tone={tone}
+            className={tone === "risky" ? styles.riskyBadge : undefined}
           >
-            Index {Math.round(summary.riskIndex)}
-          </span>
-        )}
-      </div>
+            {cardPostureDisplayLabel(summary.mergePosture)}
+          </MSBadge>
+        </div>
+      )}
 
-      {summaryLine && <p className={styles.summaryLine}>{summaryLine}</p>}
+      {whyLine && (
+        <p
+          className={[
+            styles.whyLine,
+            tone === "review" ? styles.whyReview : "",
+            tone === "risky" ? styles.whyRisky : "",
+            tone === "safe" ? styles.whySafe : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {whyLine}
+        </p>
+      )}
+
+      {context && <p className={styles.contextLine}>{context}</p>}
 
       {stale && staleSubline && (
-        <p className={styles.staleSubline}>{staleSubline}</p>
-      )}
-
-      {countChips && (
-        <div className={styles.countRow} aria-hidden="true">
-          {countChips}
-        </div>
+        <p className={styles.staleNote}>{staleSubline}</p>
       )}
     </div>
   );

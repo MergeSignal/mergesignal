@@ -17,9 +17,9 @@ export default function RepoOverviewLoading() {
           <div key={i} className={styles.prCard}>
             <div className={styles.prCardInner}>
               <div className={`${styles.bar} ${styles.prMeta}`} />
-              <div className={styles.riskBlock}>
-                <div className={`${styles.bar} ${styles.riskHeadline}`} />
-                <div className={`${styles.bar} ${styles.summaryLine}`} />
+              <div className={styles.outcomeFlow}>
+                <div className={`${styles.bar} ${styles.outcomeBar}`} />
+                <div className={`${styles.bar} ${styles.whyBar}`} />
               </div>
               <div className={styles.footerRow}>
                 <div className={`${styles.bar} ${styles.actionBar}`} />

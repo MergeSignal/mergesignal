@@ -11,22 +11,6 @@ import { MSScanStateIndicator } from "../../shared/MSScanStateIndicator/MSScanSt
 import { MSTooltip } from "../../shared/MSTooltip/MSTooltip";
 import styles from "./PRHealthCard.module.css";
 
-function postureDataAttr(
-  row: PRHealthRow,
-): "safe" | "review" | "risky" | "neutral" | "pending" {
-  if (
-    row.presentationState === "scanning" ||
-    row.presentationState === "not_scanned" ||
-    row.presentationState === "analysis_failed"
-  ) {
-    return "pending";
-  }
-  if (row.posture === "risky") return "risky";
-  if (row.posture === "needs_review") return "review";
-  if (row.posture === "safe") return "safe";
-  return "neutral";
-}
-
 function timestampLabel(presentationState: PRHealthRow["presentationState"]) {
   if (presentationState === "scanning") return "Started";
   if (presentationState === "ready" || presentationState === "stale") {
@@ -52,7 +36,6 @@ export function PRHealthCard({ row }: { row: PRHealthRow }) {
     <li className={styles.listItem}>
       <article
         className={styles.card}
-        data-posture={postureDataAttr(row)}
         aria-labelledby={`pr-title-${pr.number}`}
       >
         <header className={styles.headerRow}>

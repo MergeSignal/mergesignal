@@ -66,16 +66,15 @@
 .prCard {
   border-radius: var(--ms-radius-sm);
   border: var(--ms-border-width) solid var(--ms-color-border);
-  border-inline-start-width: 3px;
   background: color-mix(in oklab, var(--ms-color-surface) 40%, transparent);
   padding: var(--ms-space-md);
-  min-height: 10rem;
+  min-height: 9.5rem;
 }
 
 .prCardInner {
   display: flex;
   flex-direction: column;
-  gap: var(--ms-space-sm);
+  gap: var(--ms-space-md);
   height: 100%;
 }
 
@@ -84,21 +83,26 @@
   width: 85%;
 }
 
-.riskBlock {
+.outcomeFlow {
   display: flex;
   flex-direction: column;
-  gap: var(--ms-space-2xs);
+  gap: var(--ms-space-xs);
   flex: 1;
+  min-height: 3.25rem;
+  padding-inline-start: var(--ms-space-sm);
+  border-inline-start: 2px solid
+    color-mix(in oklab, var(--ms-color-border) 80%, transparent);
 }
 
-.riskHeadline {
-  height: 1.25rem;
-  width: 45%;
+.outcomeBar {
+  height: 1.35rem;
+  width: 4.25rem;
+  border-radius: var(--ms-radius-full);
 }
 
-.summaryLine {
+.whyBar {
   height: 0.875rem;
-  width: 80%;
+  width: 72%;
 }
 
 .footerRow {
@@ -112,6 +116,7 @@
 .actionBar {
   height: 1.75rem;
   width: 5.5rem;
+  border-radius: var(--ms-radius-xs);
 }
 
 .timestampBar {

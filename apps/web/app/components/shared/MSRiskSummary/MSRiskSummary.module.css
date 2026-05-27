@@ -1,153 +1,74 @@
-.riskBlock {
+/* Decision flow: outcome → why → context (accent strip, no section chrome) */
+
+.outcomeFlow {
   display: flex;
   flex-direction: column;
   gap: var(--ms-space-xs);
   flex: 1;
-  min-height: 4rem;
-  padding: var(--ms-space-sm) var(--ms-space-md);
-  border-radius: var(--ms-radius-sm);
-  border: var(--ms-border-width) solid color-mix(in oklab, var(--ms-color-border) 55%, transparent);
-  background: var(
-    --posture-panel,
-    color-mix(in oklab, var(--ms-color-surface-emphasis) 35%, transparent)
+  min-height: 3.5rem;
+  padding: var(--ms-space-2xs) 0 var(--ms-space-2xs) var(--ms-space-sm);
+  border-inline-start: 2px solid var(--ms-color-border);
+  min-width: 0;
+}
+
+.outcomeFlow.safe {
+  border-inline-start-color: color-mix(
+    in oklab,
+    var(--ms-color-success) 48%,
+    var(--ms-color-border)
   );
 }
 
-.riskBlock.safe {
-  border-color: color-mix(in oklab, var(--ms-color-emerald-500) 55%, transparent);
-  background: color-mix(in oklab, var(--ms-color-emerald-500) 26%, var(--ms-color-canvas));
+.outcomeFlow.review {
+  border-inline-start-color: color-mix(
+    in oklab,
+    var(--ms-color-warning) 58%,
+    var(--ms-color-border)
+  );
 }
 
-.riskBlock.review {
-  border-color: color-mix(in oklab, var(--ms-color-amber-500) 55%, transparent);
-  background: color-mix(in oklab, var(--ms-color-amber-500) 26%, var(--ms-color-canvas));
+.outcomeFlow.risky {
+  gap: var(--ms-space-2xs);
+  min-height: 4rem;
+  padding-bottom: var(--ms-space-xs);
+  border-inline-start-width: 3px;
+  border-inline-start-color: color-mix(
+    in oklab,
+    var(--ms-color-danger) 68%,
+    var(--ms-color-border)
+  );
 }
 
-.riskBlock.risky {
-  border-color: color-mix(in oklab, var(--ms-color-red-500) 58%, transparent);
-  background: color-mix(in oklab, var(--ms-color-red-500) 28%, var(--ms-color-canvas));
+.outcomeFlow.neutral {
+  border-inline-start-color: var(--ms-color-border);
+}
+
+.quietOutcome {
+  justify-content: center;
+  min-height: 3.25rem;
+  gap: 0;
 }
 
 .stale {
   opacity: 0.94;
 }
 
-.eyebrow {
-  font-size: var(--ms-text-xs);
-  font-weight: var(--ms-font-weight-semibold);
-  letter-spacing: var(--ms-tracking-wider);
-  text-transform: uppercase;
-  line-height: 1;
-}
-
-.safe .eyebrow {
-  color: var(--ms-color-emerald-500);
-}
-
-.review .eyebrow {
-  color: var(--ms-color-amber-500);
-}
-
-.risky .eyebrow {
-  color: var(--ms-color-red-500);
-}
-
-.riskHeader {
+.outcomeRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--ms-space-sm);
+  min-height: 1.5rem;
 }
 
-.headlineWrap {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ms-space-xs);
-  min-width: 0;
-}
-
-.postureIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.65rem;
-  height: 1.65rem;
-  border-radius: var(--ms-radius-full);
-  font-size: var(--ms-text-sm);
-  font-weight: var(--ms-font-weight-bold);
-  flex-shrink: 0;
-  border: var(--ms-border-width) solid transparent;
-}
-
-.safe .postureIcon {
-  color: var(--ms-color-emerald-500);
-  background: color-mix(in oklab, var(--ms-color-emerald-500) 28%, transparent);
-  border-color: color-mix(in oklab, var(--ms-color-emerald-500) 50%, transparent);
-}
-
-.review .postureIcon {
-  color: var(--ms-color-amber-500);
-  background: color-mix(in oklab, var(--ms-color-amber-500) 28%, transparent);
-  border-color: color-mix(in oklab, var(--ms-color-amber-500) 50%, transparent);
-}
-
-.risky .postureIcon {
-  color: var(--ms-color-red-500);
-  background: color-mix(in oklab, var(--ms-color-red-500) 28%, transparent);
-  border-color: color-mix(in oklab, var(--ms-color-red-500) 50%, transparent);
-}
-
-.headline {
-  font-size: var(--ms-text-2xl);
+.riskyBadge {
   font-weight: var(--ms-font-weight-semibold);
-  letter-spacing: var(--ms-tracking-tight);
-  line-height: var(--ms-leading-snug);
+  padding: 0.3rem 0.72rem;
 }
 
-.safe .headline {
-  color: var(--ms-color-emerald-500);
-}
-
-.review .headline {
-  color: var(--ms-color-amber-500);
-}
-
-.risky .headline {
-  color: var(--ms-color-red-500);
-}
-
-.neutral .headline {
-  color: var(--ms-color-text-emphasis);
-}
-
-.riskIndex {
-  font-size: var(--ms-text-md);
-  font-weight: var(--ms-font-weight-bold);
-  color: var(--ms-color-text-muted);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-  padding: 0.15rem 0.45rem;
-  border-radius: var(--ms-radius-xs);
-  background: color-mix(in oklab, var(--ms-color-black) 18%, transparent);
-}
-
-.index_low {
-  color: var(--ms-color-emerald-500);
-}
-
-.index_medium {
-  color: var(--ms-color-amber-500);
-}
-
-.index_high {
-  color: var(--ms-color-red-500);
-}
-
-.summaryLine {
+.whyLine {
   margin: 0;
   font-size: var(--ms-text-md);
-  color: var(--ms-color-text-muted);
   line-height: var(--ms-leading-snug);
+  color: var(--ms-color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -155,30 +76,62 @@
   -webkit-box-orient: vertical;
 }
 
-.staleSubline {
-  margin: 0;
-  font-size: var(--ms-text-xs);
-  color: var(--ms-color-amber-500);
+.whyReview,
+.whyRisky {
+  color: var(--ms-color-text-emphasis);
 }
 
-.countRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ms-space-2xs);
+.whyRisky {
+  font-weight: var(--ms-font-weight-semibold);
+  letter-spacing: var(--ms-tracking-tight);
+  line-height: 1.45;
+}
+
+.whySafe {
+  color: color-mix(
+    in oklab,
+    var(--ms-color-text-emphasis) 55%,
+    var(--ms-color-text-muted)
+  );
+  font-size: var(--ms-text-sm);
+}
+
+.contextLine {
+  margin: 0;
+  font-size: var(--ms-text-xs);
+  color: var(--ms-color-text-muted);
+  line-height: var(--ms-leading-snug);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.risky .contextLine {
+  color: color-mix(
+    in oklab,
+    var(--ms-color-text-muted) 82%,
+    var(--ms-color-text-emphasis)
+  );
+}
+
+.staleNote {
+  margin: 0;
+  font-size: var(--ms-text-xs);
+  color: color-mix(
+    in oklab,
+    var(--ms-color-warning) 85%,
+    var(--ms-color-text-muted)
+  );
 }
 
 @media (max-width: 600px) {
-  .summaryLine {
+  .whyLine {
     -webkit-line-clamp: 3;
-  }
-
-  .headline {
-    font-size: var(--ms-text-xl);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .riskBlock {
+  .outcomeFlow {
     transition: none;
   }
 }

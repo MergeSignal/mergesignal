@@ -1,7 +1,4 @@
-/* ===========================================================================
- * PRHealthCard — dashboard-quality PR preview card
- * Posture accents use -500 palette for contrast on dark canvas.
- * =========================================================================== */
+/* PRHealthCard — neutral chrome; posture accents live on findings panel only */
 
 .listItem {
   display: flex;
@@ -10,106 +7,37 @@
 }
 
 .card {
-  --posture-accent: var(--ms-color-border);
-  --posture-surface: color-mix(
-    in oklab,
-    var(--ms-color-surface) 60%,
-    transparent
-  );
-  --posture-panel: color-mix(
-    in oklab,
-    var(--ms-color-surface-emphasis) 40%,
-    transparent
-  );
-
   display: flex;
   flex-direction: column;
-  gap: var(--ms-space-sm);
+  gap: var(--ms-space-md);
   width: 100%;
   min-height: 100%;
   padding: var(--ms-space-md);
   border-radius: var(--ms-radius-sm);
   border: var(--ms-border-width) solid var(--ms-color-border);
-  border-inline-start: 5px solid var(--posture-accent);
-  background: var(--posture-surface);
-  box-shadow: inset 0 0 0 1px
-    color-mix(in oklab, var(--posture-accent) 22%, transparent);
+  background: color-mix(
+    in oklab,
+    var(--ms-color-surface) 55%,
+    transparent
+  );
   transition:
     border-color 150ms ease,
-    background 150ms ease,
-    box-shadow 150ms ease;
+    background 150ms ease;
   min-width: 0;
-  position: relative;
-  overflow: hidden;
-}
-
-.card::before {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  top: 0;
-  height: 3px;
-  background: var(--posture-accent);
-  opacity: 0.85;
-  pointer-events: none;
-}
-
-.card[data-posture="safe"] {
-  --posture-accent: var(--ms-color-emerald-500);
-  --posture-surface: color-mix(
-    in oklab,
-    var(--ms-color-emerald-500) 22%,
-    var(--ms-color-canvas)
-  );
-  --posture-panel: color-mix(in oklab, var(--ms-color-emerald-500) 28%, transparent);
-}
-
-.card[data-posture="review"] {
-  --posture-accent: var(--ms-color-amber-500);
-  --posture-surface: color-mix(
-    in oklab,
-    var(--ms-color-amber-500) 22%,
-    var(--ms-color-canvas)
-  );
-  --posture-panel: color-mix(in oklab, var(--ms-color-amber-500) 28%, transparent);
-}
-
-.card[data-posture="risky"] {
-  --posture-accent: var(--ms-color-red-500);
-  --posture-surface: color-mix(
-    in oklab,
-    var(--ms-color-red-500) 24%,
-    var(--ms-color-canvas)
-  );
-  --posture-panel: color-mix(in oklab, var(--ms-color-red-500) 30%, transparent);
-}
-
-.card[data-posture="neutral"],
-.card[data-posture="pending"] {
-  --posture-accent: var(--ms-color-border);
-  --posture-surface: color-mix(
-    in oklab,
-    var(--ms-color-surface) 60%,
-    transparent
-  );
-  --posture-panel: color-mix(
-    in oklab,
-    var(--ms-color-surface-emphasis) 40%,
-    transparent
-  );
-}
-
-.card[data-posture="safe"]::before,
-.card[data-posture="review"]::before,
-.card[data-posture="risky"]::before {
-  opacity: 1;
 }
 
 .card:hover,
 .card:focus-within {
-  box-shadow:
-    inset 0 0 0 1px color-mix(in oklab, var(--posture-accent) 38%, transparent),
-    0 0 0 1px color-mix(in oklab, var(--posture-accent) 18%, transparent);
+  border-color: color-mix(
+    in oklab,
+    var(--ms-color-ink) 22%,
+    var(--ms-color-border)
+  );
+  background: color-mix(
+    in oklab,
+    var(--ms-color-surface-emphasis) 35%,
+    transparent
+  );
 }
 
 .headerRow {
@@ -118,7 +46,6 @@
   align-items: center;
   gap: var(--ms-space-xs) var(--ms-space-sm);
   min-width: 0;
-  padding-top: var(--ms-space-2xs);
 }
 
 .prNumber {
@@ -143,7 +70,8 @@
 
 .branchChip {
   justify-self: end;
-  max-width: 7rem;
+  max-width: 6.5rem;
+  opacity: 0.88;
 }
 
 .metaRow {
@@ -156,7 +84,7 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 4.5rem;
+  min-height: 3.25rem;
 }
 
 .pipelineSummary {
@@ -180,8 +108,7 @@
   gap: var(--ms-space-sm);
   margin-top: auto;
   padding-top: var(--ms-space-xs);
-  border-top: var(--ms-border-width) solid
-    color-mix(in oklab, var(--posture-accent) 20%, var(--ms-color-border));
+  border-top: var(--ms-border-width) solid var(--ms-color-border);
 }
 
 .footerActions {
@@ -191,23 +118,34 @@
 }
 
 .viewDetailsLink {
+  display: inline-flex;
+  align-items: center;
   font-size: var(--ms-text-xs);
   font-weight: var(--ms-font-weight-semibold);
   color: var(--ms-color-accent-alt);
   text-decoration: none;
-  padding: 0.35rem 0.75rem;
+  white-space: nowrap;
+  padding: 0.38rem 0.8rem;
   border-radius: var(--ms-radius-xs);
   border: var(--ms-border-width) solid
-    color-mix(in oklab, var(--ms-color-accent-alt) 40%, transparent);
-  background: color-mix(in oklab, var(--ms-color-accent-alt) 8%, transparent);
-  white-space: nowrap;
-  transition: background 120ms ease, border-color 120ms ease;
+    color-mix(in oklab, var(--ms-color-accent-alt) 38%, transparent);
+  background: color-mix(in oklab, var(--ms-color-accent-alt) 9%, transparent);
   outline-offset: 2px;
+  transition:
+    color 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
 }
 
 .viewDetailsLink:hover {
-  background: color-mix(in oklab, var(--ms-color-accent-alt) 15%, transparent);
-  border-color: color-mix(in oklab, var(--ms-color-accent-alt) 60%, transparent);
+  color: var(--ms-color-text-emphasis);
+  background: color-mix(in oklab, var(--ms-color-accent-alt) 16%, transparent);
+  border-color: color-mix(in oklab, var(--ms-color-accent-alt) 52%, transparent);
+}
+
+.viewDetailsLink:active {
+  transform: translateY(0.5px);
 }
 
 .viewDetailsLink:focus-visible {
