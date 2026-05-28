@@ -17,6 +17,8 @@ function makeCardSummary(
     summaryLine: null,
     findingCounts: null,
     topAffectedAreas: [],
+    operationalObservations: [],
+    supportingLine: null,
     ...overrides,
   };
 }

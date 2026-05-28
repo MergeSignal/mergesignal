@@ -1,5 +1,5 @@
-import { deriveCardDisplaySummary } from "./deriveCardDisplaySummary.js";
-import { deriveScanSummaryText } from "./deriveScanSummaryText.js";
+import { deriveCardOperationalObservations } from "./deriveCardOperationalObservations.js";
+import type { CatalogPhrase } from "./cardObservationCatalog.js";
 import {
   mergePostureFromDecision,
   MERGE_POSTURE_LABEL,
@@ -32,9 +32,15 @@ export type ScanCardSummary = {
   riskIndex: number | null;
   riskIndexBand: RiskIndexBand | null;
   headline: string;
+  /** @deprecated Use operationalObservations */
   summaryLine: string | null;
   findingCounts: FindingCountSummary | null;
+  /** @deprecated Use operationalObservations */
   topAffectedAreas: string[];
+  /** Catalog-mapped topology observations (0–3). */
+  operationalObservations: CatalogPhrase[];
+  /** Optional quiet subline when exactly one observation is shown. */
+  supportingLine: string | null;
 };
 
 const STALE_SUBLINE = "Based on earlier commit";
@@ -150,26 +156,11 @@ export function aggregateFindingCounts(
   return counts;
 }
 
-function resolveCardSummaryLine(
-  posture: MergePosture | null,
-  findingCounts: FindingCountSummary,
-  rawSummary: string | null,
-  topAffectedAreas: string[],
-): string | null {
-  if (!posture) return rawSummary;
-  return deriveCardDisplaySummary({
-    mergePosture: posture,
-    rawSummary,
-    findingCounts,
-    topAffectedAreas,
-  });
-}
-
 /**
  * Server-side card summary for PR dashboard list views.
  * Pipeline lifecycle copy is included when `pipelineStatus !== "done"`.
  *
- * Quiet safe cards intentionally omit summaryLine (posture-only) — see deriveCardDisplaySummary.
+ * Quiet safe cards with no mappable signals show posture + exposure only.
  */
 export function deriveScanCardSummary(
   result: ScanResult | null | undefined,
@@ -184,6 +175,8 @@ export function deriveScanCardSummary(
       summaryLine: SCAN_CARD_SCANNING_SUMMARY,
       findingCounts: null,
       topAffectedAreas: [],
+      operationalObservations: [],
+      supportingLine: null,
     };
   }
 
@@ -196,6 +189,8 @@ export function deriveScanCardSummary(
       summaryLine: null,
       findingCounts: null,
       topAffectedAreas: [],
+      operationalObservations: [],
+      supportingLine: null,
     };
   }
 
@@ -208,6 +203,8 @@ export function deriveScanCardSummary(
       summaryLine: null,
       findingCounts: null,
       topAffectedAreas: [],
+      operationalObservations: [],
+      supportingLine: null,
     };
   }
 
@@ -217,27 +214,28 @@ export function deriveScanCardSummary(
     typeof result.totalScore === "number" ? result.totalScore : null;
   const riskIndexBand = deriveRiskIndexBand(riskIndex);
   const findingCounts = aggregateFindingCounts(result.findings);
-  const summaryFromText = deriveScanSummaryText(result);
   const headline = posture
     ? MERGE_POSTURE_LABEL[posture]
     : scanSurfaceCopy.checkRun.mergePostureUnavailable;
 
   const topAffectedAreas = selectTopAffectedAreas(result, { max: 2 });
-  const summaryLine = resolveCardSummaryLine(
-    posture,
-    findingCounts,
-    summaryFromText,
-    topAffectedAreas,
-  );
+  const { operationalObservations, supportingLine } =
+    deriveCardOperationalObservations(result, {
+      mergePosture: posture,
+      hasFullResult: true,
+      max: 3,
+    });
 
   return {
     mergePosture: posture,
     riskIndex,
     riskIndexBand,
     headline,
-    summaryLine,
+    summaryLine: null,
     findingCounts,
     topAffectedAreas,
+    operationalObservations,
+    supportingLine,
   };
 }
 
@@ -274,24 +272,6 @@ export function deriveScanCardSummaryFromDenormalized(
   };
 
   const summary = deriveScanCardSummary(minimalResult, "done");
-  const sanitized = isPipelinePlaceholderCopy(summaryText)
-    ? null
-    : (summaryText?.trim() ?? null);
-
-  if (sanitized && posture) {
-    const displayLine = resolveCardSummaryLine(
-      posture,
-      summary.findingCounts ?? {
-        critical: 0,
-        high: 0,
-        medium: 0,
-        low: 0,
-      },
-      sanitized,
-      summary.topAffectedAreas,
-    );
-    return { ...summary, summaryLine: displayLine };
-  }
   return summary;
 }
 

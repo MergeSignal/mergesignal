@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { isCatalogPhrase } from "./cardObservationCatalog.js";
 import {
   aggregateFindingCounts,
   deriveRiskIndexBand,
@@ -91,16 +92,29 @@ describe("deriveScanCardSummary", () => {
         confidence: "high" as const,
         reasoning: ["Auth boundary change"],
       },
+      explain: {
+        reasons: [
+          {
+            id: "upgrade.1",
+            layer: "upgradeImpact",
+            title: "Large upgrade blast radius",
+            scoreImpact: 20,
+          },
+        ],
+      },
     } satisfies ScanResult;
     const summary = deriveScanCardSummary(r, "done");
     expect(summary.mergePosture).toBe("risky");
     expect(summary.headline).toBe("Risky");
     expect(summary.riskIndex).toBe(72);
     expect(summary.riskIndexBand).toBe("high");
-    expect(summary.summaryLine).toBe("Auth boundary change");
+    expect(summary.summaryLine).toBeNull();
+    expect(summary.operationalObservations).toContain(
+      "Large upgrade blast radius",
+    );
   });
 
-  it("omits summary for quiet safe cards with no findings", () => {
+  it("keeps quiet safe cards posture-only without observations", () => {
     const r = {
       ...baseResult,
       totalScore: 12,
@@ -112,9 +126,10 @@ describe("deriveScanCardSummary", () => {
     } satisfies ScanResult;
     const summary = deriveScanCardSummary(r, "done");
     expect(summary.summaryLine).toBeNull();
+    expect(summary.operationalObservations).toEqual([]);
   });
 
-  it("caps top affected areas at 2", () => {
+  it("surfaces catalog observations from explain signals", () => {
     const r = {
       ...baseResult,
       decision: {
@@ -124,14 +139,28 @@ describe("deriveScanCardSummary", () => {
       },
       explain: {
         reasons: [
-          { id: "1", layer: "security", title: "A", scoreImpact: -10 },
-          { id: "2", layer: "security", title: "B", scoreImpact: -9 },
+          {
+            id: "1",
+            layer: "ecosystem",
+            title: "graph.transitive volume",
+            scoreImpact: 18,
+          },
+          {
+            id: "2",
+            layer: "ecosystem",
+            title: "graph.duplicates",
+            scoreImpact: 12,
+          },
           { id: "3", layer: "security", title: "C", scoreImpact: -8 },
         ],
       },
     } satisfies ScanResult;
     const summary = deriveScanCardSummary(r, "done");
     expect(summary.topAffectedAreas).toHaveLength(2);
+    expect(summary.operationalObservations.length).toBeGreaterThan(0);
+    for (const phrase of summary.operationalObservations) {
+      expect(isCatalogPhrase(phrase)).toBe(true);
+    }
   });
 
   it("exports stale subline constant", () => {
@@ -185,6 +214,8 @@ describe("isPipelineCardSummary", () => {
         summaryLine: "Waiting for results…",
         findingCounts: null,
         topAffectedAreas: [],
+        operationalObservations: [],
+        supportingLine: null,
       }),
     ).toBe(true);
   });
@@ -199,6 +230,8 @@ describe("isPipelineCardSummary", () => {
         summaryLine: "Waiting for results…",
         findingCounts: null,
         topAffectedAreas: [],
+        operationalObservations: [],
+        supportingLine: null,
       }),
     ).toBe(true);
   });
@@ -212,7 +245,7 @@ describe("isPipelinePlaceholderCopy", () => {
 });
 
 describe("deriveScanCardSummaryFromDenormalized", () => {
-  it("builds risky summary from denormalized columns", () => {
+  it("builds risky summary from denormalized columns without generic narration", () => {
     const summary = deriveScanCardSummaryFromDenormalized(
       "risky",
       72,
@@ -222,7 +255,8 @@ describe("deriveScanCardSummaryFromDenormalized", () => {
     expect(summary.mergePosture).toBe("risky");
     expect(summary.headline).toBe("Risky");
     expect(summary.riskIndex).toBe(72);
-    expect(summary.summaryLine).toBe("Auth boundary change");
+    expect(summary.summaryLine).toBeNull();
+    expect(summary.operationalObservations).toEqual([]);
   });
 
   it("does not inject pipeline placeholder summaryText", () => {

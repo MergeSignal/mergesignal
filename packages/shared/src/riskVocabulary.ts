@@ -89,14 +89,16 @@ export function ariaLabelForPosture(
 export function ariaLabelForCardSummary(
   postureLabel: string,
   riskIndex: number | null | undefined,
-  summaryLine: string | null | undefined,
-  evidenceLine?: string | null,
+  observations: string[] | null | undefined,
+  supportingLine?: string | null,
 ): string {
   const parts = [postureLabel];
   const exposure = exposureAriaFragment(riskIndex);
   if (exposure) parts.push(exposure);
-  if (summaryLine?.trim()) parts.push(summaryLine.trim());
-  if (evidenceLine?.trim()) parts.push(evidenceLine.trim());
+  for (const obs of observations ?? []) {
+    if (obs?.trim()) parts.push(obs.trim());
+  }
+  if (supportingLine?.trim()) parts.push(supportingLine.trim());
   return parts.join(". ");
 }
 
