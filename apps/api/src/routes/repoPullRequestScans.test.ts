@@ -134,13 +134,33 @@ describe("repoPullRequestScansRoutes", () => {
     expect(body.aggregates.byDecision.safe).toBe(1);
   });
 
-  it("extracts summaryText from decision reasoning", async () => {
+  it("maps explain signals to operationalObservations instead of generic reasoning", async () => {
     vi.mocked(db.query).mockResolvedValue({
       rows: [
         makeRow({
           result: {
+            totalScore: 72,
+            layerScores: {
+              security: 1,
+              maintainability: 2,
+              ecosystem: 3,
+              upgradeImpact: 4,
+            },
+            findings: [],
+            generatedAt: "2026-01-01T00:00:00.000Z",
             decision: {
+              recommendation: "risky",
               reasoning: ["High-risk transitive dependency detected"],
+            },
+            explain: {
+              reasons: [
+                {
+                  id: "graph.transitive.1",
+                  layer: "ecosystem",
+                  title: "graph.transitive volume",
+                  scoreImpact: 18,
+                },
+              ],
             },
           },
         }),
@@ -153,11 +173,10 @@ describe("repoPullRequestScansRoutes", () => {
       url: "/repo/acme/frontend/pull-request-scans",
     });
     const body = res.json();
-    expect(body.byPrNumber["42"].cardSummary.summaryLine).toBe(
-      "High-risk transitive dependency detected",
-    );
-    expect(body.byPrNumber["42"].summaryText).toBe(
-      "High-risk transitive dependency detected",
+    expect(body.byPrNumber["42"].cardSummary.summaryLine).toBeNull();
+    expect(body.byPrNumber["42"].summaryText).toBeNull();
+    expect(body.byPrNumber["42"].cardSummary.operationalObservations).toContain(
+      "High transitive dependency volume",
     );
   });
 
