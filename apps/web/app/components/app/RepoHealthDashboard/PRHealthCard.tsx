@@ -9,6 +9,7 @@ import { MSChip } from "../../shared/MSChip/MSChip";
 import { MSRiskSummary } from "../../shared/MSRiskSummary/MSRiskSummary";
 import { MSScanStateIndicator } from "../../shared/MSScanStateIndicator/MSScanStateIndicator";
 import { MSTooltip } from "../../shared/MSTooltip/MSTooltip";
+import { MSTruncatedWithTooltip } from "../../shared/MSTruncatedWithTooltip/MSTruncatedWithTooltip";
 import styles from "./PRHealthCard.module.css";
 
 function timestampLabel(presentationState: PRHealthRow["presentationState"]) {
@@ -40,16 +41,13 @@ export function PRHealthCard({ row }: { row: PRHealthRow }) {
       >
         <header className={styles.headerRow}>
           <span className={styles.prNumber}>#{pr.number}</span>
-          <MSTooltip
-            label={pr.title}
-            position="bottom"
-            disabled={pr.title.length < 48}
-            events={{ hover: true, focus: true, touch: false }}
+          <MSTruncatedWithTooltip
+            id={`pr-title-${pr.number}`}
+            className={styles.prTitle}
+            tooltipProps={{ position: "bottom" }}
           >
-            <span id={`pr-title-${pr.number}`} className={styles.prTitle}>
-              {pr.title}
-            </span>
-          </MSTooltip>
+            {pr.title}
+          </MSTruncatedWithTooltip>
           <MSChip label={pr.baseRef} className={styles.branchChip} />
         </header>
 
