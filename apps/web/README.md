@@ -1,42 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/create-next-app).
+# MergeSignal web app
 
-## Getting Started
+Next.js application for the MergeSignal dashboard, marketing pages, and getting-started docs.
 
-First, run the development server:
+## Local development
+
+From the repository root:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+docker compose up -d          # Postgres, Redis, worker (stub engine)
+pnpm -C apps/api migrate
+pnpm -C apps/api dev          # API on http://localhost:4000
+pnpm -C apps/web dev          # Web on http://localhost:3000
 ```
 
-Deployed app: [https://mergesignal-web.fly.dev/](https://mergesignal-web.fly.dev/). Local dev: [http://localhost:3000](http://localhost:3000).
+Copy `apps/web/.env.local` from `apps/web/.env.example`. Set `NEXT_PUBLIC_API_BASE_URL=http://localhost:4000` for local stacks. See [docs/self-host/local-development.md](../../docs/self-host/local-development.md) for full setup.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Sign-in uses Auth.js v5. Set `AUTH_DEBUG=true` in development for verbose logging.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load Inter, a custom Google Font.
+## Deployment
 
-## Learn More
+Production deploys to Fly.io via [`.github/workflows/fly-deploy.yml`](../../.github/workflows/fly-deploy.yml). See [docs/self-host/fly.md](../../docs/self-host/fly.md).
 
-To learn more about Next.js, take a look at the following resources:
+## More
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## Authentication
-
-Sign-in uses Auth.js v5 via the signin wrapper route with a relative redirectTo query param. OAuth callback path is unchanged under api auth callback.
-
-Set AUTH_DEBUG=true in development for verbose Auth.js logging.
+- [Repository README](../../README.md)
+- [CONTRIBUTING.md](../../CONTRIBUTING.md)

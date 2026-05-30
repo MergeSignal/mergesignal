@@ -27,7 +27,7 @@ services:
         - engine_repo_token
     container_name: mergesignal-worker
     # Local dev only: uses OSS stub (not the production engine image).
-    # Production worker image requires private engine at Docker build time — see DEPLOYMENT.md.
+    # Production worker image requires private engine at Docker build time — see docs/self-host/fly.md.
     environment:
       DATABASE_URL: postgresql://mergesignal:mergesignal@db:5432/mergesignal
       REDIS_URL: redis://redis:6379

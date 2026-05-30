@@ -8,7 +8,7 @@
 # when the org enforces 2FA (otherwise publish fails with npm error EOTP).
 #
 # After the first successful publish, optionally configure npm trusted publishing
-# (publish-shared.yml) and switch to OIDC — see RELEASING.md.
+# (publish-shared.yml) and switch to OIDC — see docs/engineering/releasing.md.
 
 name: Publish @mergesignal/shared
 
@@ -107,7 +107,7 @@ jobs:
         if: failure()
         run: |
           if grep -q EOTP /tmp/npm-publish.log 2>/dev/null; then
-            echo "::error::npm EOTP: recreate NPM_TOKEN with Bypass 2FA enabled (org enforces 2FA). See RELEASING.md."
+            echo "::error::npm EOTP: recreate NPM_TOKEN with Bypass 2FA enabled (org enforces 2FA). See docs/engineering/releasing.md."
           elif grep -q ENEEDAUTH /tmp/npm-publish.log 2>/dev/null; then
             echo "::error::npm auth failed: check NPM_TOKEN or configure trusted publishing after first release."
           fi

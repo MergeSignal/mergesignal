@@ -31,16 +31,21 @@ The following proprietary analysis capabilities are **not** available in this op
 
 `analyze` and `simulateUpgrade` return **deterministic mock `ScanResult` data** (tagged with `methodologyVersion: "engine-stub/v2"`) so local development and CI work without the proprietary engine.
 
-In **production**, the BullMQ worker must load the real engine via `MERGESIGNAL_ENGINE_IMPL` on `@mergesignal/engine` (see worker image env). The stub is not used on production paths unless `MERGESIGNAL_ALLOW_STUB=1` is set explicitly for demo stacks.
+In **production**, the worker must load the real engine. The stub is not used on production paths unless `MERGESIGNAL_ALLOW_STUB=1` is set explicitly for demo stacks.
+
+## Getting real analysis
+
+| Path                         | How                                                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **GitHub Actions (trusted)** | `scan_profile: trusted` + `engine_repo_token` — [action README](../../.github/actions/merge-signal-scan/README.md) |
+| **Self-hosted full stack**   | Deploy worker with proprietary engine — [docs/self-host/overview.md](../../docs/self-host/overview.md)             |
+| **Hosted preview**           | MergeSignal-operated deployment with real engine                                                                   |
 
 ## Architecture
 
-The actual analysis engine is located in the private `mergesignal-engine` repository and is used by:
+The proprietary analysis engine is used by the worker in production deployments. This stub allows the public API and web UI to compile and run demo scans without access to proprietary implementation details.
 
-- The BullMQ worker that processes scan jobs
-- Internal analysis tools and services
-
-This stub package allows the public API and web UI to reference the types without having access to the proprietary implementation.
+See [docs/architecture.md](../../docs/architecture.md) for high-level components.
 
 ## License
 

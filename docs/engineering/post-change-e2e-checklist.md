@@ -11,4 +11,4 @@ Run after merging dogfood workflow / docs updates. Record outcomes in the PR des
 7. **Engine traceability** — after worker deploy, confirm `scans.engine_release_version` is populated and distinct from `methodology_version` (see [production-engine-verification.md](./production-engine-verification.md)).
 8. **Worker startup logs** — confirm `worker_startup_complete` precedes queue consumption and includes `engineReleaseVersion`.
 
-**Rollback:** revert the merge commit and restore previous GitHub required-check configuration if merges were blocked. For production worker incidents, prefer immutable image rollback (`fly deploy --image <prior-ref>`) — see DEPLOYMENT.md.
+**Rollback:** revert the merge commit and restore previous GitHub required-check configuration if merges were blocked. For production worker incidents, prefer immutable image rollback — see [fly-worker-engine.md](./fly-worker-engine.md).

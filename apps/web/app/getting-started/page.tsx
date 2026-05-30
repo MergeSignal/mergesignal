@@ -5,7 +5,7 @@ import gsStyles from "./getting-started.module.css";
 
 const REPO_BLOB = "https://github.com/MergeSignal/mergesignal/blob/main";
 const README = `${REPO_BLOB}/README.md`;
-const RELEASING = `${REPO_BLOB}/RELEASING.md`;
+const ACTION_README = `${REPO_BLOB}/.github/actions/merge-signal-scan/README.md`;
 const WORKFLOW_EXAMPLE = `${REPO_BLOB}/docs/examples/mergesignal-scan-with-pull-request.yml`;
 
 const INSTALL_SNIPPET = `git clone https://github.com/MergeSignal/mergesignal.git
@@ -115,8 +115,9 @@ export default function GettingStartedPage() {
           />
           <p>
             This example uses <code>@main</code> so you always use the latest
-            action from the default branch. Optional version pins are described
-            in <a href={RELEASING}>RELEASING.md</a>.
+            action from the default branch. To pin a fixed version, use{" "}
+            <code>@vX.Y.Z</code> on the action ref — see the{" "}
+            <a href={ACTION_README}>action README</a> for versioning details.
           </p>
           <p>
             <strong>Optional - fail the check above a threshold:</strong> add{" "}
@@ -376,21 +377,22 @@ export default function GettingStartedPage() {
         <h3 id="troubleshooting-heading">Having trouble?</h3>
         <ul className={gsStyles.compactHelpList}>
           <li>
-            <strong>Node.js</strong> ≥ 20.19 and <strong>pnpm</strong> 9.x - see
-            the <a href={README}>README</a> prerequisites.
+            <strong>Node.js</strong> ≥ 20.19 and <strong>pnpm</strong> 9.x — see{" "}
+            <a href={`${REPO_BLOB}/CONTRIBUTING.md`}>CONTRIBUTING.md</a>.
           </li>
           <li>
             You need a lockfile at the project root you scan (for example{" "}
             <code>pnpm-lock.yaml</code> or <code>package-lock.json</code>).
           </li>
           <li>
-            CLI options and common fixes:{" "}
-            <a href={README}>README - Install from GitHub</a> and{" "}
-            <strong>Troubleshooting</strong> there.
+            CLI quick start and options: <a href={README}>README</a>.
           </li>
           <li>
-            Local API, web, and Docker: <a href={README}>README</a> and{" "}
-            <a href={`${REPO_BLOB}/DEPLOYMENT.md`}>DEPLOYMENT.md</a>.
+            Local API, web, and Docker:{" "}
+            <a href={`${REPO_BLOB}/docs/self-host/local-development.md`}>
+              local development guide
+            </a>{" "}
+            and <a href={`${REPO_BLOB}/DEPLOYMENT.md`}>DEPLOYMENT.md</a>.
           </li>
           <li>
             <strong>GitHub App</strong> “Resource not accessible by integration”

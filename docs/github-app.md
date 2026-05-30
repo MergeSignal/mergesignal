@@ -1,16 +1,23 @@
-# GitHub App setup (MergeSignal)
+# GitHub App (MergeSignal)
 
-**User-facing documentation for the GitHub App lives on the website** (same paths on your deployment). For example, if you use the public Fly web app: **https://mergesignal-web.fly.dev/getting-started#github-app**
+The MergeSignal **GitHub App** connects your repositories to MergeSignal for automated scans on lockfile changes, repo dashboards, and optional GitHub-native features (Check Runs, PR comments).
 
-This file remains in the repository for discoverability and deep links from older references. For local development of the API and web app (Docker, env files, migrations), see the [README](./README.md) (“Web app and API locally”) and [DEPLOYMENT.md](./DEPLOYMENT.md).
+## When to choose the GitHub App
 
-## Permissions checklist (summary)
+| Approach           | Best for                                                                           |
+| ------------------ | ---------------------------------------------------------------------------------- |
+| **CLI**            | Local pre-PR scans; no server setup                                                |
+| **GitHub Actions** | CI workflow summaries on every qualifying PR; no MergeSignal server                |
+| **GitHub App**     | Persistent scans, repo dashboard, Check Runs, and PR integration via webhook + API |
 
-Match scopes to what you want on GitHub; the full **Setup** list is on [Getting started → GitHub App](https://mergesignal-web.fly.dev/getting-started#github-app) (replace the host when self-hosted).
+Use the App when you want MergeSignal to **watch repositories continuously** and surface results in the MergeSignal web dashboard and on GitHub — not just in a single CI job.
 
-- **Contents**: Read-only (read lockfiles).
-- **Pull requests**: Read-only for webhook scans; Read & write only if MergeSignal should write on the PR (for example comments).
-- **Checks**: Read & write when scan status should appear on the PR **Checks** tab (GitHub Check Runs); omit or read-only if you only use MergeSignal’s UI/API.
-- **Issues**: Read & write only when enabled features require it.
+## Full setup
 
-After you **change** permissions on the App, each org or account installation must complete **Review request** under **Configure** for the installed app; otherwise new API calls stay on the old scopes (for example the Checks API can return “Resource not accessible by integration”).
+Detailed installation, permissions, and configuration: **[Getting started → GitHub App](https://mergesignal-web.fly.dev/getting-started#github-app)** on the web app (replace the host when self-hosting).
+
+Permission scopes and the **Review request** step after permission changes are documented on that page.
+
+## Self-hosting
+
+If you run your own MergeSignal stack, point the App webhook and OAuth settings at your deployment. See [DEPLOYMENT.md](../DEPLOYMENT.md) and [docs/self-host/fly.md](./self-host/fly.md).
