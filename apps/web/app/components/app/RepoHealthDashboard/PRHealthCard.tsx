@@ -1,14 +1,10 @@
 import Link from "next/link";
 import { staleScanSubline } from "@mergesignal/shared";
 import type { PRHealthRow } from "../../../../lib/repo-health-view-model";
-import {
-  formatAbsoluteTime,
-  formatRelativeTime,
-} from "../../../../lib/formatRelativeTime";
+import { formatRelativeTime } from "../../../../lib/formatRelativeTime";
 import { MSChip } from "../../shared/MSChip/MSChip";
 import { MSRiskSummary } from "../../shared/MSRiskSummary/MSRiskSummary";
 import { MSScanStateIndicator } from "../../shared/MSScanStateIndicator/MSScanStateIndicator";
-import { MSTooltip } from "../../shared/MSTooltip/MSTooltip";
 import { MSTruncatedWithTooltip } from "../../shared/MSTruncatedWithTooltip/MSTruncatedWithTooltip";
 import styles from "./PRHealthCard.module.css";
 
@@ -97,16 +93,10 @@ export function PRHealthCard({ row }: { row: PRHealthRow }) {
               </span>
             )}
           </div>
-          <MSTooltip
-            label={formatAbsoluteTime(timestampIso)}
-            position="bottom"
-            events={{ hover: true, focus: true, touch: false }}
-          >
-            <time dateTime={timestampIso} className={styles.updatedAt}>
-              {timestampLabel(presentationState)}{" "}
-              {formatRelativeTime(timestampIso)}
-            </time>
-          </MSTooltip>
+          <time dateTime={timestampIso} className={styles.updatedAt}>
+            {timestampLabel(presentationState)}{" "}
+            {formatRelativeTime(timestampIso)}
+          </time>
         </footer>
       </article>
     </li>
