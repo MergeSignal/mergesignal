@@ -366,8 +366,11 @@ export default function GettingStartedPage() {
         </p>
         <p>
           For a <strong>local full stack</strong> (Docker, databases,
-          migrations), use the repository’s contributor-oriented sections-
-          <strong>not</strong> this product doc page.
+          migrations), see the{" "}
+          <a href={`${REPO_BLOB}/docs/self-host/local-development.md`}>
+            local development guide
+          </a>{" "}
+          in the repository — not this product doc page.
         </p>
       </section>
 
@@ -377,8 +380,8 @@ export default function GettingStartedPage() {
         <h3 id="troubleshooting-heading">Having trouble?</h3>
         <ul className={gsStyles.compactHelpList}>
           <li>
-            <strong>Node.js</strong> ≥ 20.19 and <strong>pnpm</strong> 9.x — see{" "}
-            <a href={`${REPO_BLOB}/CONTRIBUTING.md`}>CONTRIBUTING.md</a>.
+            <strong>Node.js</strong> ≥ 20.19 and <strong>pnpm</strong> 9.x — see
+            the <a href={README}>README</a> and repository <code>.nvmrc</code>.
           </li>
           <li>
             You need a lockfile at the project root you scan (for example{" "}

@@ -66,7 +66,7 @@ For persistent scans, repo dashboards, and GitHub-native integration (Check Runs
 
 Detailed setup, dashboard walkthrough, troubleshooting, and best practices: **[mergesignal-web.fly.dev/getting-started](https://mergesignal-web.fly.dev/getting-started)** (replace the host when self-hosting).
 
-Contributors: [CONTRIBUTING.md](./CONTRIBUTING.md).
+Support and feedback: [SUPPORT.md](./SUPPORT.md).
 
 ## Self-hosting
 

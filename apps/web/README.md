@@ -25,4 +25,4 @@ Production deploys to Fly.io via [`.github/workflows/fly-deploy.yml`](../../.git
 ## More
 
 - [Repository README](../../README.md)
-- [CONTRIBUTING.md](../../CONTRIBUTING.md)
+- [Support and feedback](../../SUPPORT.md)

@@ -45,6 +45,6 @@ Deploy and run MergeSignal yourself.
 | [Post-change e2e](./engineering/post-change-e2e-checklist.md)                     | Dogfood verification           |
 | [ScanResult debug](./engineering/scanresult-debug.md)                             | Reading stored scan results    |
 
-## Contributing
+## Support and feedback
 
-[CONTRIBUTING.md](../CONTRIBUTING.md) — development setup and PR process.
+[SUPPORT.md](../SUPPORT.md) — bug reports, feature requests, documentation and tooling suggestions, and questions. Product direction is maintainer-driven.
