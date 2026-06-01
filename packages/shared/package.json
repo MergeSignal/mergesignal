@@ -1,6 +1,6 @@
 {
   "name": "@mergesignal/shared",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "MergeSignal shared scan contract, presentation policy, and trusted validation",
   "type": "module",
   "main": "./dist/index.js",

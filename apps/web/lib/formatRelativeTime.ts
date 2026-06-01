@@ -14,8 +14,10 @@ export function formatRelativeTime(iso: string, now = Date.now()): string {
   return `${months}mo ago`;
 }
 
+const METADATA_TIME_LOCALE = "en-US";
+
 export function formatAbsoluteTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
+  return new Date(iso).toLocaleString(METADATA_TIME_LOCALE, {
     dateStyle: "medium",
     timeStyle: "short",
   });

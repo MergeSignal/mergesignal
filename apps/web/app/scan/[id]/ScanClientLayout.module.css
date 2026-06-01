@@ -1,4 +1,4 @@
-.grid {
+.pageStack {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--ms-space-layout-min), 1fr));
   gap: var(--ms-space-sm);

@@ -80,3 +80,41 @@ export async function fetchOpenPullRequestsForRepo(
 
   return { kind: "success", prs, hasMore };
 }
+
+type FetchPRTitleResult =
+  | { kind: "success"; title: string }
+  | { kind: "not_found" }
+  | { kind: "unauthorized" }
+  | { kind: "error"; status: number };
+
+/** Fetch a single PR title by number (open or closed). */
+export async function fetchPullRequestTitle(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  prNumber: number,
+): Promise<FetchPRTitleResult> {
+  const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls/${prNumber}`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: {
+        ...GITHUB_HEADERS,
+        Authorization: `Bearer ${accessToken}`,
+      },
+      cache: "no-store",
+    });
+  } catch {
+    return { kind: "error", status: 503 };
+  }
+
+  if (res.status === 401) return { kind: "unauthorized" };
+  if (res.status === 404) return { kind: "not_found" };
+  if (!res.ok) return { kind: "error", status: res.status };
+
+  const raw = (await res.json()) as { title?: string };
+  const title = String(raw.title ?? "").trim();
+  if (!title) return { kind: "not_found" };
+  return { kind: "success", title };
+}

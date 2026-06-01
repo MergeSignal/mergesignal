@@ -78,3 +78,21 @@ export function exposureAriaFragment(
   if (!display) return null;
   return display.label;
 }
+
+/** Detail-page reach chip labels (not "exposure" jargon). */
+export const DETAIL_REACH_CHIP_LABEL: Record<CardExposureCategory, string> = {
+  minimal: "Focused reach",
+  limited: "Limited reach",
+  moderate: "Moderate reach",
+  elevated: "Wide reach",
+  broad: "Wide reach",
+};
+
+/** Reach chip for scan detail page — maps score band to reviewer-facing scope label. */
+export function deriveDetailReachChip(
+  score: number | null | undefined,
+): string | null {
+  const display = deriveCardExposureDisplay(score);
+  if (!display) return null;
+  return DETAIL_REACH_CHIP_LABEL[display.category];
+}

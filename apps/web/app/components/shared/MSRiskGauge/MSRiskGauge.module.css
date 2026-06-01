@@ -1,0 +1,47 @@
+.gauge {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-xs);
+  min-width: 7rem;
+}
+
+.scoreValue {
+  font-size: var(--ms-text-3xl);
+  font-weight: var(--ms-font-weight-bold);
+  letter-spacing: var(--ms-tracking-tight);
+  line-height: var(--ms-leading-none);
+  color: var(--ms-color-text-emphasis);
+}
+
+.band_moderate .scoreValue {
+  color: color-mix(in oklab, var(--ms-color-amber-500) 75%, var(--ms-color-text-emphasis));
+}
+
+.band_high .scoreValue {
+  color: color-mix(in oklab, var(--ms-color-red-500) 80%, var(--ms-color-text-emphasis));
+}
+
+.scoreBar {
+  height: var(--ms-space-xs);
+  background: color-mix(in oklab, var(--ms-color-border) 50%, transparent);
+  border-radius: var(--ms-radius-2xs);
+  overflow: hidden;
+}
+
+.scoreBarFill {
+  height: 100%;
+  border-radius: var(--ms-radius-2xs);
+  background: linear-gradient(
+    90deg,
+    var(--ms-color-emerald-500),
+    var(--ms-color-amber-500),
+    var(--ms-color-red-500)
+  );
+  transition: width 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scoreBarFill {
+    transition: none;
+  }
+}

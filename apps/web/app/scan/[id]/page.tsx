@@ -1,8 +1,11 @@
+import { Suspense } from "react";
 import ScanClient from "./ScanClient";
 import { SiteChrome } from "../../components/shared/layout/SiteChrome/SiteChrome";
 import { repoOwnerFromRepoId } from "../../../lib/access";
 import { ApiError, serverApiGet } from "../../../lib/api";
+import { fetchPullRequestTitle } from "../../../lib/github-open-pull-requests";
 import { requireOrgAccess } from "../../../lib/org-guard";
+import { auth } from "../../../auth";
 
 type ApiScan = {
   id: string;
@@ -11,7 +14,38 @@ type ApiScan = {
   result?: unknown;
   error?: string | null;
   methodology_version?: string | null;
+  github_pr_number?: number | null;
+  github_head_sha?: string | null;
+  github_base_ref?: string | null;
 };
+
+function parseRepoId(repoId: string): { owner: string; repo: string } {
+  const [owner = "", repo = ""] = repoId.split("/", 2);
+  return { owner, repo };
+}
+
+async function resolvePageTitle(scan: ApiScan): Promise<string> {
+  if (scan.github_pr_number == null) return "Scan";
+
+  const { owner, repo } = parseRepoId(scan.repo_id);
+  if (!owner || !repo) return `Pull request #${scan.github_pr_number}`;
+
+  const session = await auth();
+  const accessToken = session?.accessToken ?? null;
+  if (accessToken) {
+    const pr = await fetchPullRequestTitle(
+      accessToken,
+      owner,
+      repo,
+      scan.github_pr_number,
+    );
+    if (pr.kind === "success") {
+      return `${pr.title} #${scan.github_pr_number}`;
+    }
+  }
+
+  return `Pull request #${scan.github_pr_number}`;
+}
 
 export default async function Page({
   params,
@@ -38,18 +72,27 @@ export default async function Page({
     redirectTo: "/scan/" + encodeURIComponent(id),
   });
 
+  const allowDebug = process.env.MS_ALLOW_SCAN_DEBUG === "1";
+  const title = await resolvePageTitle(scan);
+
   return (
-    <SiteChrome title="Scan" subtitle={scan.repo_id} owner={owner}>
-      <ScanClient
-        id={id}
-        initialRow={{
-          id: scan.id,
-          status: scan.status,
-          result: scan.result as never,
-          error: scan.error ?? null,
-          methodologyVersion: scan.methodology_version ?? null,
-        }}
-      />
+    <SiteChrome title={title} owner={owner}>
+      <Suspense fallback={null}>
+        <ScanClient
+          id={id}
+          allowDebug={allowDebug}
+          initialRow={{
+            id: scan.id,
+            status: scan.status,
+            result: scan.result as never,
+            error: scan.error ?? null,
+            methodologyVersion: scan.methodology_version ?? null,
+            repoId: scan.repo_id,
+            githubPrNumber: scan.github_pr_number ?? null,
+            githubHeadSha: scan.github_head_sha ?? null,
+          }}
+        />
+      </Suspense>
     </SiteChrome>
   );
 }
