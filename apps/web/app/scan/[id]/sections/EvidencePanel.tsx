@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { FindingSeverity, ScanDetailViewModel } from "@mergesignal/shared";
 import {
-  ACT3_MAX_VISIBLE_FINDINGS,
+  ACT3_EVIDENCE_COLLAPSE_THRESHOLD,
   scanSurfaceCopy,
 } from "@mergesignal/shared";
 import {
@@ -35,12 +35,12 @@ export function EvidencePanel({ evidence }: Props) {
     <MSCard
       title={copy.proofHeading}
       padding={true}
-      className={styles.evidencePanel}
+      className={styles.scanSectionCard}
     >
       <div className={styles.evidenceGrid}>
         {evidence.attentionAreas.length > 0 ? (
           <div className={styles.evidenceSection}>
-            <h3 className={styles.evidenceSubheading}>Issues found</h3>
+            <h3 className={styles.sectionSubheading}>Issues found</h3>
             {evidence.attentionAreas.map((area) => (
               <div key={area.problemLabel} className={styles.attentionArea}>
                 <p className={styles.problemLabel}>{area.problemLabel}</p>
@@ -75,11 +75,11 @@ export function EvidencePanel({ evidence }: Props) {
 
         {evidence.findings.length > 0 ? (
           <div className={styles.evidenceSection}>
-            <h3 className={styles.evidenceSubheading}>Detailed findings</h3>
+            <h3 className={styles.sectionSubheading}>Detailed findings</h3>
             <ul className={styles.findingsList}>
               {(showAllFindings
                 ? evidence.findings
-                : evidence.findings.slice(0, ACT3_MAX_VISIBLE_FINDINGS)
+                : evidence.findings.slice(0, ACT3_EVIDENCE_COLLAPSE_THRESHOLD)
               ).map((f) => (
                 <li key={f.id} className={styles.findingRow}>
                   <MSBadge

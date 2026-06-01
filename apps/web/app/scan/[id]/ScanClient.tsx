@@ -21,7 +21,6 @@ import { SignalSummaryPanel } from "./sections/SignalSummaryPanel";
 import { ScanBreadcrumb } from "./sections/ScanBreadcrumb";
 import { ScanDebugPanel } from "./sections/ScanDebugPanel";
 import { ScanMetadataFooter } from "./sections/ScanMetadataFooter";
-import { VerdictStrip } from "./sections/VerdictStrip";
 
 export type ScanRow = {
   id: string;
@@ -190,10 +189,11 @@ export default function ScanClient({
 
       {viewModel ? (
         <>
-          <VerdictStrip verdict={viewModel.verdict} />
-          {viewModel.signalSummary ? (
-            <SignalSummaryPanel signalSummary={viewModel.signalSummary} />
-          ) : null}
+          <SignalSummaryPanel
+            verdict={viewModel.verdict}
+            signalSummary={viewModel.signalSummary}
+            followUpBridgeNote={viewModel.followUpBridgeNote}
+          />
           <RecommendedActionsPanel
             recommendedActions={viewModel.recommendedActions}
           />

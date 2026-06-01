@@ -45,3 +45,14 @@
     transition: none;
   }
 }
+
+@media (max-width: 640px) {
+  .gauge {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .scoreValue {
+    font-size: var(--ms-text-2xl);
+  }
+}

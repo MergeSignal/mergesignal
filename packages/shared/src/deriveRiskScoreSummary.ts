@@ -1,5 +1,4 @@
 import { layerRiskBandLabel } from "./actionsStepSummary.js";
-import { mergePostureFromDecision } from "./riskVocabulary.js";
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
 import type { ScanResult, ScoreLayer } from "./types.js";
 
@@ -46,7 +45,6 @@ export type ScanDetailSignalSummary = {
   overallLabel: string;
   gauge: RiskScoreGaugeModel;
   layers: ScanDetailSignalLayer[];
-  postureMismatchNote?: string;
 };
 
 /** @deprecated Use ScanDetailSignalSummary */
@@ -75,9 +73,6 @@ export function overallSignalBandLabel(
   if (band === "moderate") return copy.moderate;
   return copy.low;
 }
-
-/** @deprecated Use overallSignalBandLabel */
-export const overallRiskBandLabel = overallSignalBandLabel;
 
 function layerBandToSignal(band: string): {
   level: ScanDetailLayerConcernLevel;
@@ -138,21 +133,11 @@ export function deriveSignalSummary(
     };
   });
 
-  const posture = mergePostureFromDecision(result.decision?.recommendation);
-  const postureMismatchNote =
-    posture === "safe" && (overallBand === "moderate" || overallBand === "high")
-      ? scanSurfaceCopy.scanDetail.signalSummary.postureMismatchNote
-      : undefined;
-
   return {
     score,
     overallBand,
     overallLabel,
     gauge,
     layers,
-    postureMismatchNote,
   };
 }
-
-/** @deprecated Use deriveSignalSummary */
-export const deriveRiskScoreSummary = deriveSignalSummary;

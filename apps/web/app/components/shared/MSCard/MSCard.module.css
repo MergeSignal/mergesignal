@@ -30,6 +30,14 @@
   letter-spacing: var(--ms-tracking-label);
   opacity: 0.9;
   font-weight: var(--ms-font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .title {
+    font-size: var(--ms-text-2xs);
+    letter-spacing: var(--ms-tracking-wide);
+  }
 }
 
 .title + * {

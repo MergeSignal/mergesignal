@@ -41,7 +41,6 @@ describe("deriveSignalSummary", () => {
     expect(summary?.overallBand).toBe("moderate");
     expect(summary?.overallLabel).toBe("Moderate");
     expect(summary?.gauge.fillPercent).toBe(71);
-    expect(summary?.postureMismatchNote).toBeTruthy();
   });
 
   it("returns null when totalScore is missing", () => {

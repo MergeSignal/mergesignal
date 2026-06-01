@@ -34,7 +34,7 @@ export function RecommendedActionsPanel({ recommendedActions }: Props) {
 
   return (
     <MSCard
-      className={styles.recommendationCenter}
+      className={styles.scanSectionCard}
       title={recommendedActions.heading}
       padding={true}
       data-prominence="recommendations"
@@ -84,24 +84,30 @@ export function RecommendedActionsPanel({ recommendedActions }: Props) {
           key={selected.id}
         >
           {recommendedActions.scanContext ? (
-            <p className={styles.recommendationScanContext}>
+            <p
+              className={[styles.sectionBody, styles.recommendationScanContext]
+                .filter(Boolean)
+                .join(" ")}
+            >
               {recommendedActions.scanContext}
             </p>
           ) : null}
 
           <div className={styles.detailBlock}>
-            <h3 className={styles.detailHeading}>{detailCopy.whyLabel}</h3>
-            <p className={styles.detailBody}>{selected.detail.why}</p>
+            <h3 className={styles.sectionSubheading}>{detailCopy.whyLabel}</h3>
+            <p className={styles.sectionBody}>{selected.detail.why}</p>
           </div>
 
           <div className={styles.detailBlock}>
-            <h3 className={styles.detailHeading}>{detailCopy.whyNowLabel}</h3>
-            <p className={styles.detailBodyPrimary}>{selected.detail.whyNow}</p>
+            <h3 className={styles.sectionSubheading}>
+              {detailCopy.whyNowLabel}
+            </h3>
+            <p className={styles.sectionLead}>{selected.detail.whyNow}</p>
           </div>
 
           {selected.detail.signals.length > 0 ? (
             <div className={styles.detailBlock}>
-              <h3 className={styles.detailHeading}>
+              <h3 className={styles.sectionSubheading}>
                 {detailCopy.signalsLabel}
               </h3>
               <ul className={styles.signalList}>
@@ -114,7 +120,7 @@ export function RecommendedActionsPanel({ recommendedActions }: Props) {
 
           {selected.detail.affectedPackages ? (
             <div className={styles.detailBlock}>
-              <h3 className={styles.detailHeading}>
+              <h3 className={styles.sectionSubheading}>
                 {detailCopy.affectedPackagesLabel}
               </h3>
               <div className={styles.packageChipRow}>
@@ -133,10 +139,10 @@ export function RecommendedActionsPanel({ recommendedActions }: Props) {
           ) : null}
 
           <div className={styles.detailBlock}>
-            <h3 className={styles.detailHeading}>
+            <h3 className={styles.sectionSubheading}>
               {detailCopy.expectedBenefitLabel}
             </h3>
-            <p className={styles.detailBenefit}>
+            <p className={styles.sectionLead}>
               {selected.detail.expectedBenefit}
             </p>
           </div>

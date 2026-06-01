@@ -46,8 +46,6 @@ export const ACT2_MAX_THEME_CHARS = 80;
 export const VERDICT_LINE_MAX_CHARS = 120;
 export const TIER1_MAX_VISIBLE_IMPACTS = 3;
 export const ACT3_EVIDENCE_COLLAPSE_THRESHOLD = 10;
-export const ACT3_MAX_VISIBLE_FINDINGS = ACT3_EVIDENCE_COLLAPSE_THRESHOLD;
-export const ACT3_MAX_PACKAGES_PER_AREA = ACT3_EVIDENCE_COLLAPSE_THRESHOLD;
 
 const ACT2_FORBIDDEN =
   /CVE-\d|@\d|\d+\.\d+\.\d+|[a-z0-9@./+-]+\/[a-z0-9@./+-]+/i;
@@ -126,6 +124,7 @@ export type ScanDetailTopology = {
 export type ScanDetailViewModel = {
   verdict: ScanDetailVerdict;
   signalSummary: ScanDetailSignalSummary | null;
+  followUpBridgeNote: string | null;
   recommendedActions: ScanDetailRecommendationCenter;
   operationalImpact: ScanDetailOperationalImpact;
   because: { themes: string[]; confidenceCaveat?: string } | null;
@@ -154,6 +153,17 @@ export type DeriveScanDetailOptions = {
   prNumber?: number | null;
   repoContext?: ScanDetailViewModel["repoContext"];
 };
+
+/** Bridge copy from Signal summary to Recommended actions. */
+export function deriveFollowUpBridgeNote(actionCount: number): string | null {
+  if (actionCount <= 0) return null;
+  const copy = scanSurfaceCopy.scanDetail.signalSummary;
+  if (actionCount === 1) return copy.followUpImprovementIdentified;
+  return copy.followUpImprovementsIdentified.replace(
+    "{count}",
+    String(actionCount),
+  );
+}
 
 /** Act 2 theme sanitizer — strips package/CVE/version content. */
 export function sanitizeAct2Theme(raw: string): string | null {
@@ -378,8 +388,11 @@ function buildAttentionAreas(result: ScanResult): ScanDetailAttentionArea[] {
       problemLabel: phraseForFamily("vulnerable_transitive"),
       problemDescription:
         "Packages with known security advisories in the dependency tree.",
-      packages: packages.slice(0, ACT3_MAX_PACKAGES_PER_AREA),
-      overflowCount: Math.max(0, packages.length - ACT3_MAX_PACKAGES_PER_AREA),
+      packages: packages.slice(0, ACT3_EVIDENCE_COLLAPSE_THRESHOLD),
+      overflowCount: Math.max(
+        0,
+        packages.length - ACT3_EVIDENCE_COLLAPSE_THRESHOLD,
+      ),
     });
   }
 
@@ -389,8 +402,11 @@ function buildAttentionAreas(result: ScanResult): ScanDetailAttentionArea[] {
     areas.push({
       problemLabel: phraseForFamily("transitive_hotspots"),
       problemDescription: "Packages many dependency paths converge on.",
-      packages: packages.slice(0, ACT3_MAX_PACKAGES_PER_AREA),
-      overflowCount: Math.max(0, packages.length - ACT3_MAX_PACKAGES_PER_AREA),
+      packages: packages.slice(0, ACT3_EVIDENCE_COLLAPSE_THRESHOLD),
+      overflowCount: Math.max(
+        0,
+        packages.length - ACT3_EVIDENCE_COLLAPSE_THRESHOLD,
+      ),
     });
   }
 
@@ -408,8 +424,11 @@ function buildAttentionAreas(result: ScanResult): ScanDetailAttentionArea[] {
     areas.push({
       problemLabel: phraseForFamily("duplicate_versions"),
       problemDescription: "Multiple resolved versions of the same dependency.",
-      packages: packages.slice(0, ACT3_MAX_PACKAGES_PER_AREA),
-      overflowCount: Math.max(0, packages.length - ACT3_MAX_PACKAGES_PER_AREA),
+      packages: packages.slice(0, ACT3_EVIDENCE_COLLAPSE_THRESHOLD),
+      overflowCount: Math.max(
+        0,
+        packages.length - ACT3_EVIDENCE_COLLAPSE_THRESHOLD,
+      ),
     });
   }
 
@@ -418,7 +437,7 @@ function buildAttentionAreas(result: ScanResult): ScanDetailAttentionArea[] {
     : [];
   if (changed.length >= 8) {
     const packages = changed
-      .slice(0, ACT3_MAX_PACKAGES_PER_AREA)
+      .slice(0, ACT3_EVIDENCE_COLLAPSE_THRESHOLD)
       .map((name) => ({
         name,
         direct: true,
@@ -427,7 +446,10 @@ function buildAttentionAreas(result: ScanResult): ScanDetailAttentionArea[] {
       problemLabel: phraseForFamily("blast_radius"),
       problemDescription: "Many packages changed in this upgrade.",
       packages,
-      overflowCount: Math.max(0, changed.length - ACT3_MAX_PACKAGES_PER_AREA),
+      overflowCount: Math.max(
+        0,
+        changed.length - ACT3_EVIDENCE_COLLAPSE_THRESHOLD,
+      ),
     });
   }
 
@@ -577,7 +599,7 @@ export function deriveScanDetailViewModel(
         findings,
         findingsOverflowCount: Math.max(
           0,
-          allFindings.length - ACT3_MAX_VISIBLE_FINDINGS,
+          allFindings.length - ACT3_EVIDENCE_COLLAPSE_THRESHOLD,
         ),
         topology,
       }
@@ -591,6 +613,9 @@ export function deriveScanDetailViewModel(
       prLabel: options.prNumber != null ? `#${options.prNumber}` : undefined,
     },
     signalSummary,
+    followUpBridgeNote: deriveFollowUpBridgeNote(
+      recommendedActions.items.length,
+    ),
     recommendedActions,
     operationalImpact,
     because,

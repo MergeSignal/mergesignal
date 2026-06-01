@@ -4,6 +4,7 @@ import {
   ACT2_MAX_THEMES,
   deriveAct2Themes,
   deriveOperationalImpact,
+  deriveFollowUpBridgeNote,
   deriveScanDetailViewModel,
   deriveVerdictLine,
   sanitizeAct2Theme,
@@ -599,6 +600,22 @@ describe("scenario matrix", () => {
     expect(vm?.signalSummary?.overallBand).toBe("moderate");
     expect(vm?.signalSummary?.score).toBe(71);
     expect(vm?.signalSummary?.overallLabel).toBe("Moderate");
+  });
+
+  it("derives follow-up bridge note from recommended action count", () => {
+    expect(deriveFollowUpBridgeNote(0)).toBeNull();
+    expect(deriveFollowUpBridgeNote(1)).toBe(
+      "1 follow-up improvement was identified",
+    );
+    expect(deriveFollowUpBridgeNote(3)).toBe(
+      "3 follow-up improvements were identified",
+    );
+
+    const vm = deriveScanDetailViewModel(minimalResult(), {
+      scanId: "bridge",
+      status: "done",
+    });
+    expect(vm?.followUpBridgeNote).toMatch(/follow-up improvement/);
   });
 });
 

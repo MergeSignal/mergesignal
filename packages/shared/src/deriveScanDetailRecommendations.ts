@@ -1097,5 +1097,3 @@ export function guidanceLabelsForDedupe(
 ): Set<string> {
   return new Set(whatToDo.items.map((i) => normalizeKey(i.label)));
 }
-
-export const WHAT_TO_DO_MAX_ITEMS = RECOMMENDATION_MAX_ITEMS;

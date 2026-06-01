@@ -20,11 +20,38 @@
 
 .titlebar {
   margin-bottom: var(--ms-space-md);
+  min-width: 0;
 }
 
-.title {
-  font-size:      var(--ms-text-3xl);
+.titlebar h1.title {
+  font-family: var(--ms-type-h1-font-family);
+  font-size: var(--ms-font-size-page-title);
+  font-weight: var(--ms-type-h1-font-weight);
+  line-height: var(--ms-leading-snug);
   letter-spacing: var(--ms-tracking-tight);
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .titlebar h1.title {
+    font-size: var(--ms-font-size-page-title-narrow);
+    line-height: var(--ms-leading-subhead);
+  }
+
+  .titlebar {
+    margin-bottom: var(--ms-space-sm);
+  }
+
+  .main {
+    padding-inline: var(--ms-space-sm);
+  }
+}
+
+@media (max-width: 380px) {
+  .titlebar h1.title {
+    font-size: var(--ms-font-size-page-title-compact);
+  }
 }
 
 .subtitle {

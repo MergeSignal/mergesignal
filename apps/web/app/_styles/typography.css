@@ -116,6 +116,23 @@
   /* In-panel heading (preview / doc sidebar panels) */
   --ms-font-size-panel-h2: clamp(1.15rem, 2vw, 1.3rem);
 
+  /* App chrome page title (SiteChrome titlebar — smaller than marketing h1) */
+  --ms-font-size-page-title: clamp(
+    var(--ms-text-base),
+    0.6rem + 1.8vw,
+    var(--ms-text-2xl)
+  );
+
+  /* Narrow viewports — page title scales down further */
+  --ms-font-size-page-title-narrow: clamp(
+    var(--ms-text-xs),
+    0.45rem + 3.2vw,
+    var(--ms-text-lg)
+  );
+
+  /* Extra-small phones — fixed size for long PR titles */
+  --ms-font-size-page-title-compact: var(--ms-text-xs);
+
   /* ═══════════════════════════════════════════════════════════════════
    * VII. Composite type tokens  (--ms-type-{role}-{property})
    *

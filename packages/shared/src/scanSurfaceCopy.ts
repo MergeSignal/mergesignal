@@ -307,8 +307,9 @@ export const scanSurfaceCopy = {
       scoreCaption: "Dependency signal score",
       layersHeading: "Layer signals",
       gaugeAriaLabel: "Dependency signal score {score} — {band}",
-      postureMismatchNote:
-        "Merge posture is Safe, but elevated dependency signals were detected.",
+      followUpImprovementIdentified: "1 follow-up improvement was identified",
+      followUpImprovementsIdentified:
+        "{count} follow-up improvements were identified",
       bandLabel: {
         low: "Low",
         moderate: "Moderate",

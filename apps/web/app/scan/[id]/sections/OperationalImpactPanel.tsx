@@ -16,7 +16,7 @@ type Props = {
 function OperationalImpactFallback({ message }: { message: string }) {
   return (
     <div className={styles.impactFallback}>
-      <p className={styles.impactMessage}>{message}</p>
+      <p className={styles.sectionBody}>{message}</p>
     </div>
   );
 }
@@ -45,7 +45,7 @@ function OperationalImpactRich({
       <div className={styles.impactGrid}>
         {displayItems.map((item, idx) => (
           <article key={idx} className={styles.impactCard}>
-            <p className={styles.impactMessage}>{item.message}</p>
+            <p className={styles.sectionLead}>{item.message}</p>
             {item.where ? (
               <p className={styles.impactRow}>
                 <span className={styles.impactLabel}>{copy.whereLabel}</span>
@@ -109,7 +109,7 @@ export function OperationalImpactPanel({ operationalImpact }: Props) {
 
   return (
     <MSCard
-      className={styles.signatureBlock}
+      className={styles.scanSectionCard}
       title={copy.operationalImpactHeading}
       padding={true}
       data-prominence="signature"
