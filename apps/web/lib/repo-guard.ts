@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Session } from "next-auth";
 import { cache } from "react";
 import { redirect, notFound } from "next/navigation";
 import { auth } from "../auth";
@@ -87,7 +88,7 @@ const _checkGitHubAccess = cache(
 
 /** GitHub repo ACL check for route handlers that return HTTP status codes. */
 export async function checkRepoAccessForSession(
-  session: NonNullable<Awaited<ReturnType<typeof auth>>>,
+  session: Session,
   owner: string,
   repo: string,
 ): Promise<RepoAccessResult> {
