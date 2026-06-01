@@ -1,10 +1,9 @@
 import { Suspense } from "react";
 import ScanClient from "./ScanClient";
 import { SiteChrome } from "../../components/shared/layout/SiteChrome/SiteChrome";
-import { repoOwnerFromRepoId } from "../../../lib/access";
 import { ApiError, serverApiGet } from "../../../lib/api";
 import { fetchPullRequestTitle } from "../../../lib/github-open-pull-requests";
-import { requireOrgAccess } from "../../../lib/org-guard";
+import { requireRepoAccess } from "../../../lib/repo-guard";
 import { auth } from "../../../auth";
 
 type ApiScan = {
@@ -67,8 +66,8 @@ export default async function Page({
     );
   }
 
-  const owner = repoOwnerFromRepoId(scan.repo_id);
-  await requireOrgAccess(owner, {
+  const { owner, repo } = parseRepoId(scan.repo_id);
+  await requireRepoAccess(owner, repo, {
     redirectTo: "/scan/" + encodeURIComponent(id),
   });
 

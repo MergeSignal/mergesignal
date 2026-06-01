@@ -15,29 +15,25 @@ vi.mock("../../../../../lib/server-api", () => ({
   serverApiFetch: vi.fn(),
 }));
 
+vi.mock("../../../../../lib/repo-guard", () => ({
+  checkRepoAccessForSession: vi.fn(),
+}));
+
 import { serverApiFetch } from "../../../../../lib/server-api";
+import { checkRepoAccessForSession } from "../../../../../lib/repo-guard";
 
 describe("scan events route", () => {
-  const prevLinked = process.env.MERGESIGNAL_LINKED_GITHUB_OWNER;
-
-  beforeEach(() => {
-    process.env.MERGESIGNAL_LINKED_GITHUB_OWNER = "acme-corp";
-  });
-
-  afterEach(() => {
-    if (prevLinked === undefined)
-      delete process.env.MERGESIGNAL_LINKED_GITHUB_OWNER;
-    else process.env.MERGESIGNAL_LINKED_GITHUB_OWNER = prevLinked;
-  });
   const authMock = vi.mocked(getServerSession) as unknown as {
     mockResolvedValue: (value: Session | null) => void;
     mockReset: () => void;
   };
   const fetchMock = vi.mocked(serverApiFetch);
+  const accessMock = vi.mocked(checkRepoAccessForSession);
 
   beforeEach(() => {
     fetchMock.mockReset();
     authMock.mockReset();
+    accessMock.mockReset();
   });
 
   afterEach(() => {
@@ -54,24 +50,28 @@ describe("scan events route", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns 403 when org is not allowed", async () => {
-    authMock.mockResolvedValue({
+  it("returns 403 when repo access is denied", async () => {
+    const session = {
       user: { name: "Alice" },
       githubLogin: "alice",
       githubOrgs: ["acme-corp"],
       accessToken: "fake-token",
       expires: "2099-01-01",
-    } as Session);
+    } as Session;
+
+    authMock.mockResolvedValue(session);
 
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ repo_id: "other-org/repo" }), {
         status: 200,
       }),
     );
+    accessMock.mockResolvedValueOnce("forbidden");
 
     const res = await GET(new Request("http://localhost/x"), {
       params: Promise.resolve({ id: "x" }),
     });
     expect(res.status).toBe(403);
+    expect(accessMock).toHaveBeenCalledWith(session, "other-org", "repo");
   });
 });

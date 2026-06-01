@@ -1,11 +1,12 @@
 import { auth } from "../../../../../auth";
-import {
-  getLinkedOwnerMismatch,
-  repoOwnerFromRepoId,
-  userCanAccessGithubOwner,
-} from "../../../../../lib/access";
 import { isDevAuthBypass } from "../../../../../lib/dev-auth";
+import { checkRepoAccessForSession } from "../../../../../lib/repo-guard";
 import { serverApiFetch } from "../../../../../lib/server-api";
+
+function parseRepoId(repoId: string): { owner: string; repo: string } {
+  const [owner = "", repo = ""] = repoId.split("/", 2);
+  return { owner, repo };
+}
 
 export async function GET(
   _req: Request,
@@ -38,14 +39,16 @@ export async function GET(
   }
 
   const scan = (await scanRes.json()) as { repo_id: string };
-  const owner = repoOwnerFromRepoId(scan.repo_id);
-
-  const linkedErr = getLinkedOwnerMismatch(owner);
-  if (linkedErr) {
-    return new Response(linkedErr.message, { status: linkedErr.status });
+  const { owner, repo } = parseRepoId(scan.repo_id);
+  if (!owner || !repo) {
+    return new Response("Invalid scan repo", { status: 400 });
   }
 
-  if (!userCanAccessGithubOwner(session, owner)) {
+  const access = await checkRepoAccessForSession(session, owner, repo);
+  if (access === "reauth") {
+    return new Response("Unauthorized", { status: 401 });
+  }
+  if (access === "forbidden") {
     return new Response("Forbidden", { status: 403 });
   }
 

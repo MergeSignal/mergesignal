@@ -38,7 +38,7 @@ function evictIfNeeded(): void {
   if (firstKey !== undefined) processCache.delete(firstKey);
 }
 
-type AccessResult = "ok" | "reauth" | "forbidden";
+export type RepoAccessResult = "ok" | "reauth" | "forbidden";
 
 /**
  * Inner check wrapped with React cache() for per-request memoization.
@@ -51,7 +51,7 @@ const _checkGitHubAccess = cache(
     owner: string,
     repo: string,
     accessToken: string,
-  ): Promise<AccessResult> => {
+  ): Promise<RepoAccessResult> => {
     const key = `${userId}:${owner}:${repo}`;
     const now = Date.now();
 
@@ -85,6 +85,19 @@ const _checkGitHubAccess = cache(
   },
 );
 
+/** GitHub repo ACL check for route handlers that return HTTP status codes. */
+export async function checkRepoAccessForSession(
+  session: NonNullable<Awaited<ReturnType<typeof auth>>>,
+  owner: string,
+  repo: string,
+): Promise<RepoAccessResult> {
+  const accessToken = session.accessToken;
+  if (!accessToken) return "reauth";
+
+  const userId = session.userId ?? session.githubLogin ?? "unknown";
+  return _checkGitHubAccess(userId, owner, repo, accessToken);
+}
+
 /**
  * Assert that the authenticated user has read access to owner/repo via GitHub.
  *
@@ -112,15 +125,7 @@ export async function requireRepoAccess(
     redirect(signInUrl);
   }
 
-  const accessToken = session.accessToken;
-  if (!accessToken) {
-    redirect(signInUrl);
-  }
-
-  // Fall back to githubLogin for sessions created before userId was added
-  const userId = session.userId ?? session.githubLogin ?? "unknown";
-
-  const result = await _checkGitHubAccess(userId, owner, repo, accessToken);
+  const result = await checkRepoAccessForSession(session, owner, repo);
 
   if (result === "reauth") {
     redirect(signInUrl);
