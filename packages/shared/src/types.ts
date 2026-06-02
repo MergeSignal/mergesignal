@@ -66,6 +66,36 @@ export type CodeAnalysisMetrics = {
   filesAnalyzed: number;
 };
 
+/** In-memory corpus passed as the second argument to engine `analyze()`. */
+export type CodeAnalysisInput = {
+  fileContents: Map<string, string>;
+  changedPackages: string[];
+};
+
+export type AnalysisContextWarningCode =
+  | "lockfile_diff_skipped"
+  | "lockfile_diff_failed"
+  | "lockfile_diff_empty"
+  | "base_lockfile_missing"
+  | "code_fetch_skipped"
+  | "code_fetch_failed"
+  | "code_fetch_auth_failure"
+  | "code_fetch_timeout"
+  | "code_fetch_rate_limit"
+  | "code_corpus_empty";
+
+export type AnalysisContextWarning = {
+  code: AnalysisContextWarningCode;
+  message: string;
+  details?: Record<string, unknown>;
+};
+
+/** Worker-authored diagnostics merged onto persisted ScanResult when corpus unavailable. */
+export type AnalysisPreparation = {
+  codeIntelligenceAvailable: boolean;
+  warnings: AnalysisContextWarning[];
+};
+
 /** Subset of PR identity passed into analysis (no installation tokens). */
 export type ScanRequestGithubContext = {
   owner: string;
@@ -310,6 +340,10 @@ export type ScanResult = {
   reportPresentation?: ReportPresentation;
   /** Echo of `ScanRequest.changedPackages` when non-empty (e.g. lockfile diff); for Check Run / UI copy. */
   changedPackages?: string[];
+  /** Optional repository intelligence block when code corpus was analyzed. */
+  repoIntelligence?: Record<string, unknown>;
+  /** Worker merge: preparation diagnostics (code corpus availability). */
+  analysisPreparation?: AnalysisPreparation;
 };
 
 /** Provenance the analysis engine must set on fresh output (historical DB rows may omit methodology). */

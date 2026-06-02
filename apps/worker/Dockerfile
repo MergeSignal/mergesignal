@@ -10,6 +10,7 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/engine/package.json ./packages/engine/
+COPY packages/scan-prep/package.json ./packages/scan-prep/
 COPY packages/engine-stub/package.json ./packages/engine-stub/
 COPY packages/engine-test-fixture/package.json ./packages/engine-test-fixture/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
@@ -20,12 +21,14 @@ RUN pnpm install --frozen-lockfile --filter @mergesignal/worker...
 COPY apps/worker ./apps/worker
 COPY packages/shared ./packages/shared
 COPY packages/engine ./packages/engine
+COPY packages/scan-prep ./packages/scan-prep
 COPY packages/engine-stub ./packages/engine-stub
 COPY packages/engine-test-fixture ./packages/engine-test-fixture
 COPY packages/typescript-config ./packages/typescript-config
 COPY packages/eslint-config ./packages/eslint-config
 
 RUN pnpm --filter @mergesignal/shared build
+RUN pnpm --filter @mergesignal/scan-prep build
 RUN pnpm --filter @mergesignal/engine-stub build
 RUN pnpm --filter @mergesignal/engine build
 RUN pnpm --filter @mergesignal/engine-test-fixture build
@@ -80,6 +83,7 @@ RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/engine/package.json ./packages/engine/
+COPY packages/scan-prep/package.json ./packages/scan-prep/
 COPY packages/engine-stub/package.json ./packages/engine-stub/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
@@ -89,6 +93,7 @@ RUN pnpm install --frozen-lockfile --prod --filter @mergesignal/worker...
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
 COPY --from=builder /app/packages/shared ./packages/shared
 COPY --from=builder /app/packages/engine/dist ./packages/engine/dist
+COPY --from=builder /app/packages/scan-prep/dist ./packages/scan-prep/dist
 COPY --from=builder /app/packages/engine-stub/dist ./packages/engine-stub/dist
 
 COPY --from=engine-builder /engine-out/dist /app/engine/dist

@@ -1,4 +1,5 @@
 import type {
+  CodeAnalysisInput,
   ScanRequest,
   ScanResult,
   UpgradeSimulationRequest,
@@ -7,7 +8,10 @@ import type {
 import { scanSurfaceCopy } from "@mergesignal/shared";
 
 export type EngineImpl = {
-  analyze: (req: ScanRequest) => Promise<ScanResult>;
+  analyze: (
+    req: ScanRequest,
+    codeAnalysis?: CodeAnalysisInput,
+  ) => Promise<ScanResult>;
   simulateUpgrade: (
     req: UpgradeSimulationRequest,
   ) => Promise<UpgradeSimulationResult>;
@@ -119,9 +123,12 @@ export function __resetEngineLoaderCacheForTests(): void {
   cached = null;
 }
 
-export async function analyze(req: ScanRequest): Promise<ScanResult> {
+export async function analyze(
+  req: ScanRequest,
+  codeAnalysis?: CodeAnalysisInput,
+): Promise<ScanResult> {
   const impl = await getImpl();
-  return impl.analyze(req);
+  return impl.analyze(req, codeAnalysis);
 }
 
 export async function simulateUpgrade(

@@ -1,4 +1,5 @@
 import type {
+  CodeAnalysisInput,
   ScanRequest,
   ScanResult,
   UpgradeSimulationRequest,
@@ -29,8 +30,23 @@ const minimalScan = (repoId: string): ScanResult => ({
   signals: [],
 });
 
-export async function analyze(req: ScanRequest): Promise<ScanResult> {
-  return minimalScan(req.repoId);
+export async function analyze(
+  req: ScanRequest,
+  codeAnalysis?: CodeAnalysisInput,
+): Promise<ScanResult> {
+  const base = minimalScan(req.repoId);
+  if (codeAnalysis && codeAnalysis.fileContents.size > 0) {
+    return {
+      ...base,
+      changedPackages: req.changedPackages ?? codeAnalysis.changedPackages,
+      repoIntelligence: { packages: {} },
+      codeAnalysisMetrics: {
+        fromCache: false,
+        filesAnalyzed: codeAnalysis.fileContents.size,
+      },
+    };
+  }
+  return base;
 }
 
 export async function simulateUpgrade(

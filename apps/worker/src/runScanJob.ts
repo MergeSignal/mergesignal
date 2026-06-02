@@ -5,12 +5,16 @@ import {
   getEngineLoadInfo,
   requiresStrictEngineScanValidation,
 } from "@mergesignal/engine";
-import type { ScanQueueJob, ScanResult } from "@mergesignal/shared";
+import { prepareScanContext } from "@mergesignal/scan-prep";
+import type {
+  AnalysisPreparation,
+  ScanQueueJob,
+  ScanResult,
+} from "@mergesignal/shared";
 import {
   parseScanResultOrThrow,
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
-import { scanQueueJobToScanRequest } from "./jobToScanRequest.js";
 import { withPgRetries } from "./pgRetry.js";
 import { captureWorkerException } from "./sentry.js";
 
@@ -28,6 +32,18 @@ function logScanEvent(
 function truncateErrorMessage(raw: string, max = 8000): string {
   if (raw.length <= max) return raw;
   return raw.slice(0, max - 20) + "…(truncated)";
+}
+
+function mergeAnalysisPreparation(
+  result: ScanResult,
+  warnings: AnalysisPreparation["warnings"],
+  codeIntelligenceAvailable: boolean,
+): ScanResult {
+  const analysisPreparation: AnalysisPreparation = {
+    codeIntelligenceAvailable,
+    warnings,
+  };
+  return { ...result, analysisPreparation };
 }
 
 async function markRunning(
@@ -198,6 +214,32 @@ export async function executeScanJob(
       }, hbMs);
     }
 
+    const prepared = await prepareScanContext(job.data);
+    const engineInfo = getEngineLoadInfo();
+
+    for (const w of prepared.warnings) {
+      logScanEvent("warn", "scan_context_warning", {
+        scanId,
+        repoId,
+        jobId,
+        pr,
+        code: w.code,
+        message: w.message,
+        details: w.details,
+      });
+    }
+
+    logScanEvent("info", "scan_context_prepared", {
+      scanId,
+      repoId,
+      jobId,
+      pr,
+      ...prepared.preparationSummary,
+      engineReleaseVersion:
+        engineInfo?.releaseVersion ?? engineInfo?.releaseRef ?? null,
+      methodologyVersion: engineInfo?.methodologyVersion ?? null,
+    });
+
     let rawResult: unknown;
     const engineStarted = Date.now();
     logScanEvent("info", "engine_execution_start", {
@@ -205,9 +247,10 @@ export async function executeScanJob(
       repoId,
       jobId,
       pr,
+      codeAnalysisEnabled: prepared.preparationSummary.codeAnalysisEnabled,
     });
     try {
-      rawResult = await analyze(scanQueueJobToScanRequest(job.data));
+      rawResult = await analyze(prepared.scanRequest, prepared.codeAnalysis);
     } catch (e: unknown) {
       captureWorkerException(e);
       const msg = e instanceof Error ? e.message : String(e);
@@ -245,8 +288,6 @@ export async function executeScanJob(
 
     let validated: ScanResult;
     try {
-      // Strict provenance only for fresh engine output when stub is disallowed
-      // (mirrors engine loader). Never use this path for JSON loaded from DB.
       validated = requiresStrictEngineScanValidation()
         ? validateTrustedEngineScanResult(rawResult)
         : parseScanResultOrThrow(rawResult);
@@ -264,12 +305,20 @@ export async function executeScanJob(
       return;
     }
 
+    const codeIntelligenceAvailable =
+      prepared.preparationSummary.codeAnalysisEnabled &&
+      Boolean(prepared.codeAnalysis?.fileContents.size);
+    const resultToStore = mergeAnalysisPreparation(
+      validated,
+      prepared.warnings,
+      codeIntelligenceAvailable,
+    );
+
     try {
-      const engineInfo = getEngineLoadInfo();
       const n = await persistSuccess(
         pool,
         scanId,
-        validated,
+        resultToStore,
         engineInfo?.releaseVersion ?? engineInfo?.releaseRef ?? null,
         engineInfo?.releaseGitSha ?? null,
       );
@@ -292,6 +341,8 @@ export async function executeScanJob(
           methodologyVersion: validated.methodologyVersion,
           totalScore: validated.totalScore,
           decision: validated.decision?.recommendation ?? null,
+          codeIntelligenceAvailable,
+          warningCodes: prepared.preparationSummary.warningCodes,
         });
       }
     } catch (e: unknown) {

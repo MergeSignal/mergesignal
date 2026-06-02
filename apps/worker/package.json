@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@mergesignal/engine": "workspace:^",
+    "@mergesignal/scan-prep": "workspace:^",
     "@mergesignal/shared": "workspace:^",
     "@sentry/node": "^8.55.1",
     "bullmq": "^5.70.1",

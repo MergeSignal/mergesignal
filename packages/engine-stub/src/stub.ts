@@ -1,4 +1,5 @@
 import type {
+  CodeAnalysisInput,
   ScanRequest,
   ScanResult,
   UpgradeSimulationRequest,
@@ -55,11 +56,26 @@ function buildMockResult(): ScanResult {
  * The actual analysis engine is proprietary and located in a private repository.
  * This returns mock data for demonstration purposes.
  */
-export async function analyze(_req: ScanRequest): Promise<ScanResult> {
+export async function analyze(
+  req: ScanRequest,
+  codeAnalysis?: CodeAnalysisInput,
+): Promise<ScanResult> {
   console.warn(
     "⚠️  Using stub engine - analysis results are mocked for demonstration only",
   );
-  return buildMockResult();
+  const base = buildMockResult();
+  if (codeAnalysis && codeAnalysis.fileContents.size > 0) {
+    return {
+      ...base,
+      changedPackages: req.changedPackages ?? codeAnalysis.changedPackages,
+      repoIntelligence: { packages: {} },
+      codeAnalysisMetrics: {
+        fromCache: false,
+        filesAnalyzed: codeAnalysis.fileContents.size,
+      },
+    };
+  }
+  return base;
 }
 
 /**

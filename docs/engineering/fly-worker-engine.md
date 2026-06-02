@@ -41,6 +41,7 @@ GitHub Actions (fly-deploy) ──build-secret──► Docker engine-builder st
 ## Required Fly runtime secrets (worker)
 
 - `DATABASE_URL`, `REDIS_URL` (must match API)
+- `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY` (GitHub App — source corpus fetch for PR scans via `@mergesignal/scan-prep`)
 
 Engine paths are baked in the image (`MERGESIGNAL_ENGINE_IMPL`, `MERGESIGNAL_ENGINE_MANIFEST`). **Do not** set `MERGESIGNAL_ALLOW_STUB` on production worker.
 

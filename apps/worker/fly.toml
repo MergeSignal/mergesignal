@@ -3,6 +3,7 @@
 #
 # Required Fly secrets (must match mergesignal-api):
 #   DATABASE_URL, REDIS_URL
+#   GITHUB_APP_ID, GITHUB_PRIVATE_KEY (source corpus fetch for PR scans)
 #
 # Engine is baked into the image at build time (see apps/worker/Dockerfile).
 # Production deploy requires GitHub vars/secrets:

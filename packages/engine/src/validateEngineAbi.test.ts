@@ -27,6 +27,7 @@ describe("validateEngineAbi", () => {
     expect(result.ok).toBe(true);
     expect(result.methodologyVersion).toBe("engine-test-fixture/v1");
     expect(result.probeDurationMs).toBeGreaterThanOrEqual(0);
+    expect(result.supportsCodeAnalysisArgument).toBe(true);
   });
 
   it("uses minimal ABI probe inputs", () => {

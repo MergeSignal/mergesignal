@@ -6,6 +6,10 @@ import {
   isStubMethodologyVersion,
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
+import {
+  ABI_PROBE_CODE_ANALYSIS,
+  ABI_PROBE_SCAN_REQUEST_WITH_PACKAGES,
+} from "./abiProbe.js";
 import { defaultEngineStartupTimeoutMs, withTimeout } from "./withTimeout.js";
 
 /** Minimal scan input for startup ABI validation — must stay lightweight (no I/O). */
@@ -32,6 +36,7 @@ export type EngineAbiValidationResult = {
   ok: true;
   methodologyVersion: string;
   probeDurationMs: number;
+  supportsCodeAnalysisArgument: boolean;
 };
 
 export type ValidateEngineAbiOptions = {
@@ -55,10 +60,19 @@ async function validateEngineAbiInner(
     );
   }
 
-  const analyze = analyzeFn as (req: ScanRequest) => Promise<unknown>;
+  const analyze = analyzeFn as (
+    req: ScanRequest,
+    codeAnalysis?: unknown,
+  ) => Promise<unknown>;
   const simulateUpgrade = simulateUpgradeFn as (
     req: UpgradeSimulationRequest,
   ) => Promise<unknown>;
+
+  if (analyze.length < 2) {
+    throw new Error(
+      "Engine analyze() must accept a second codeAnalysis argument (orchestration contract)",
+    );
+  }
 
   const rawScan = await analyze(ABI_PROBE_SCAN_REQUEST);
   const validated = validateTrustedEngineScanResult(rawScan);
@@ -66,6 +80,21 @@ async function validateEngineAbiInner(
   if (isStubMethodologyVersion(validated.methodologyVersion)) {
     throw new Error(
       "Engine ABI validation rejected stub methodology in production engine",
+    );
+  }
+
+  const rawWithCorpus = await analyze(
+    ABI_PROBE_SCAN_REQUEST_WITH_PACKAGES,
+    ABI_PROBE_CODE_ANALYSIS,
+  );
+  const withCorpus = validateTrustedEngineScanResult(rawWithCorpus);
+  const supportsCodeAnalysisArgument = detectCorpusConsumed(
+    validated,
+    withCorpus,
+  );
+  if (!supportsCodeAnalysisArgument) {
+    throw new Error(
+      "Engine ABI Probe B failed: analyze(req, codeAnalysis) did not produce corpus-aware output (repoIntelligence, codeAnalysisMetrics, or changedPackages echo required)",
     );
   }
 
@@ -87,7 +116,33 @@ async function validateEngineAbiInner(
     ok: true,
     methodologyVersion: validated.methodologyVersion!,
     probeDurationMs: Date.now() - started,
+    supportsCodeAnalysisArgument: true,
   };
+}
+
+function detectCorpusConsumed(
+  baseline: {
+    changedPackages?: string[];
+    codeAnalysisMetrics?: unknown;
+    repoIntelligence?: unknown;
+  },
+  withCorpus: {
+    changedPackages?: string[];
+    codeAnalysisMetrics?: { filesAnalyzed?: number };
+    repoIntelligence?: unknown;
+  },
+): boolean {
+  if (withCorpus.repoIntelligence !== undefined) return true;
+  const files = withCorpus.codeAnalysisMetrics?.filesAnalyzed ?? 0;
+  if (files > 0) return true;
+  const pkgs = withCorpus.changedPackages ?? [];
+  if (
+    pkgs.length > 0 &&
+    JSON.stringify(pkgs) !== JSON.stringify(baseline.changedPackages ?? [])
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /**

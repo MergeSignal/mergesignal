@@ -1,0 +1,10 @@
+{
+  "changedPackages": ["react"],
+  "lockfilePackageDelta": {
+    "added": [],
+    "removed": [],
+    "updated": ["react"]
+  },
+  "warningCodes": ["code_fetch_skipped"],
+  "codeAnalysisEnabled": false
+}
