@@ -37,7 +37,19 @@ if test -d /app/engine/packages; then
   fail "runtime image contains full engine repo layout"
 fi
 
-if grep -rE 'ghp_|github_pat_' /app 2>/dev/null | grep -q .; then
+# Exclude node_modules: Octokit READMEs ship example ghp_* placeholders (not real secrets).
+token_scan_paths=""
+for root in /app/apps /app/packages /app/engine/dist /app/engine/package.json /app/engine/engine-manifest.json; do
+  if [ -e "$root" ]; then
+    token_scan_paths="${token_scan_paths} ${root}"
+  fi
+done
+if [ -n "$token_scan_paths" ] && find $token_scan_paths \
+  -type f ! -path '*/node_modules/*' ! -path '*/.pnpm/*' \
+  -exec grep -lE 'ghp_|github_pat_' {} + 2>/dev/null | grep -q .; then
+  find $token_scan_paths \
+    -type f ! -path '*/node_modules/*' ! -path '*/.pnpm/*' \
+    -exec grep -lE 'ghp_|github_pat_' {} + 2>/dev/null | head -20 >&2
   fail "runtime image may contain GitHub tokens"
 fi
 
