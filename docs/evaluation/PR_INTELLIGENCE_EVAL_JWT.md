@@ -31,3 +31,5 @@ Themes that **should** be in scope (exact wording varies by engine version):
 
 1. Close the PR; **do not** merge to `main` without upgrading jsonwebtoken and removing eval modules.
 2. Follow-up: bump to **jsonwebtoken@^9.0.0**, delete `evalServiceJwt.ts`, and revert auth/server hooks if the JWT path is not productized.
+
+<!-- CI retrigger -->
