@@ -2,7 +2,7 @@ import type { RepoSource } from "@mergesignal/shared";
 
 import { logDebug, logInfo } from "./log.js";
 
-export interface CachedFiles {
+interface CachedFiles {
   files: Map<string, string>;
   fetchedAt: Date;
   metrics: {
