@@ -85,13 +85,15 @@ jobs:
       - name: Verify version not already on registry
         run: |
           set -euo pipefail
-          if npm view "@mergesignal/shared@${{ steps.version.outputs.version }}" version 2>/dev/null; then
-            echo "Version ${{ steps.version.outputs.version }} is already published." >&2
+          VERSION="${{ steps.version.outputs.version }}"
+          if npm view "@mergesignal/shared@${VERSION}" version 2>/dev/null; then
+            echo "::error::@mergesignal/shared@${VERSION} is already on npm. Published versions are immutable — bump packages/shared/package.json and push a new shared-v* tag (see docs/engineering/releasing.md)." >&2
             exit 1
           fi
-          echo "Version ${{ steps.version.outputs.version }} is not published yet."
+          echo "Version ${VERSION} is not published yet."
 
       - name: Publish to npm
+        id: publish
         working-directory: packages/shared
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -104,11 +106,19 @@ jobs:
           exit "${PIPESTATUS[0]}"
 
       - name: Publish failure hint
-        if: failure()
+        if: failure() && steps.publish.outcome == 'failure'
         run: |
-          if grep -q EOTP /tmp/npm-publish.log 2>/dev/null; then
-            echo "::error::npm EOTP: recreate NPM_TOKEN with Bypass 2FA enabled (org enforces 2FA). See docs/engineering/releasing.md."
-          elif grep -q ENEEDAUTH /tmp/npm-publish.log 2>/dev/null; then
-            echo "::error::npm auth failed: check NPM_TOKEN or configure trusted publishing after first release."
+          set -euo pipefail
+          if [ ! -f /tmp/npm-publish.log ]; then
+            echo "::error::npm publish failed before a publish log was written; see the Publish to npm step."
+            exit 1
+          fi
+          if grep -q EOTP /tmp/npm-publish.log; then
+            echo "::error::npm EOTP: recreate NPM_TOKEN with Bypass 2FA enabled (org enforces 2FA), or configure npm trusted publishing for this workflow. See docs/engineering/releasing.md."
+          elif grep -q ENEEDAUTH /tmp/npm-publish.log; then
+            echo "::error::npm auth failed: check NPM_TOKEN or configure trusted publishing (publish-shared.yml) on the @mergesignal/shared package."
+          else
+            echo "::error::npm publish failed; see the Publish to npm step log above."
+            tail -30 /tmp/npm-publish.log >&2 || true
           fi
           exit 1
