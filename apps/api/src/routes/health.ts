@@ -27,11 +27,10 @@ export async function healthRoutes(app: FastifyInstance) {
       );
     }
 
-    // Redis connectivity check (via BullMQ queue)
+    // Redis connectivity check (via BullMQ queue — avoids IRedisClient.ping, removed in bullmq 5.78+)
     const redisStart = Date.now();
     try {
-      const client = await scanQueue.client;
-      await client.ping();
+      await scanQueue.getJobCounts();
       checks.redis = { ok: true, latencyMs: Date.now() - redisStart };
     } catch (err: unknown) {
       checks.redis = {
