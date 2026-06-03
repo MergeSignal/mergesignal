@@ -58,14 +58,15 @@ export function SignalSummaryPanel({
 }: Props) {
   const [layersOpen, setLayersOpen] = useState(false);
   const tone = postureTone(verdict.posture);
-  const copy = scanSurfaceCopy.scanDetail;
+  const detailCopy = scanSurfaceCopy.scanDetail;
+  const signalCopy = scanSurfaceCopy.scanDetail.signalSummary;
   const upgradeParts = upgradeContextParts(narrativeContext);
   const showUpgradeContext = upgradeParts.length > 0;
 
   return (
     <MSCard
       className={styles.scanSectionCard}
-      title={copy.signalSummaryHeading}
+      title={detailCopy.signalSummaryHeading}
       padding={true}
       data-prominence="signal"
     >
@@ -92,7 +93,7 @@ export function SignalSummaryPanel({
       {showUpgradeContext ? (
         <div className={styles.upgradeContextBlock}>
           <h3 className={styles.sectionSubheading}>
-            {copy.upgradeContextHeading}
+            {detailCopy.upgradeContextHeading}
           </h3>
           <p className={styles.sectionBody}>{upgradeParts.join(" · ")}</p>
           {narrativeContext.structuralOnlyDisclaimer ? (
@@ -102,7 +103,7 @@ export function SignalSummaryPanel({
           ) : null}
           {!narrativeContext.codeIntelligenceAvailable ? (
             <p className={styles.sectionMeta}>
-              {copy.codeIntelligenceUnavailable}
+              {detailCopy.codeIntelligenceUnavailable}
             </p>
           ) : null}
         </div>
@@ -110,7 +111,9 @@ export function SignalSummaryPanel({
 
       {becauseThemes.length > 0 || confidenceCaveat ? (
         <div className={styles.whyVerdictBlock}>
-          <h3 className={styles.sectionSubheading}>{copy.whyVerdictHeading}</h3>
+          <h3 className={styles.sectionSubheading}>
+            {detailCopy.whyVerdictHeading}
+          </h3>
           {becauseThemes.length > 0 ? (
             <ul className={styles.whyVerdictList}>
               {becauseThemes.map((theme) => (
@@ -134,7 +137,7 @@ export function SignalSummaryPanel({
                 score={signalSummary.score}
               />
               <div className={styles.signalSummaryBandBlock}>
-                <p className={styles.sectionMeta}>{copy.scoreCaption}</p>
+                <p className={styles.sectionMeta}>{signalCopy.scoreCaption}</p>
                 <p
                   className={[
                     styles.signalSummaryBand,
@@ -154,7 +157,7 @@ export function SignalSummaryPanel({
               }
             >
               <summary className={styles.sectionSubheading}>
-                {copy.layersHeading}
+                {signalCopy.layersHeading}
               </summary>
               <ul className={styles.signalLayerList}>
                 {signalSummary.layers.map((layer) => (
