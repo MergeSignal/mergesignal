@@ -87,6 +87,7 @@ export default async function RepoOverviewPage({
         owner={owner}
         repo={repo}
         viewModel={viewModel}
+        quotaStatus={prScanIndex.quotaStatus}
         prsFetchError={prsFetchError}
         scansFetchError={scansFetchError}
       />

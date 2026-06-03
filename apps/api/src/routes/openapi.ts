@@ -408,6 +408,30 @@ function getOpenApiSpec() {
                     type: "object",
                     properties: {
                       repoId: { type: "string", example: "acme/frontend" },
+                      quotaStatus: {
+                        type: "object",
+                        description:
+                          "Owner-level GitHub scan quota (rolling window).",
+                        properties: {
+                          source: { type: "string", enum: ["github"] },
+                          state: { type: "string", enum: ["ok", "exceeded"] },
+                          limit: { type: "integer" },
+                          used: { type: "integer" },
+                          windowHours: { type: "integer", example: 24 },
+                          resetsAt: {
+                            type: "string",
+                            format: "date-time",
+                            nullable: true,
+                          },
+                        },
+                        required: [
+                          "source",
+                          "state",
+                          "limit",
+                          "used",
+                          "windowHours",
+                        ],
+                      },
                       byPrNumber: {
                         type: "object",
                         additionalProperties: {

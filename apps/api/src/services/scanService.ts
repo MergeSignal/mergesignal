@@ -7,6 +7,7 @@ import type {
   ScanQueueGithubContext,
 } from "@mergesignal/shared";
 import { getLimitsForOwner, getOwnerFromRepoId } from "./tier.js";
+import { assertScanQuotaAvailable } from "./scanQuota.js";
 
 export async function createScanAndEnqueue({
   scanId,
@@ -38,29 +39,8 @@ export async function createScanAndEnqueue({
     throw Object.assign(new Error("lockfile too large"), { statusCode: 413 });
   }
 
-  const scansPerDay = limits.scansPerOwnerPerDay;
-  const githubScansPerDay = limits.githubScansPerOwnerPerDay;
   const isGithub = Boolean(github) || source === "github";
-  const limit = isGithub ? githubScansPerDay : scansPerDay;
-
-  if (limit >= 0) {
-    const { rows } = isGithub
-      ? await db.query(
-          "SELECT COUNT(*)::int AS c FROM scans WHERE split_part(repo_id,'/',1)=$1 AND source='github' AND created_at > NOW() - INTERVAL '24 hours'",
-          [owner],
-        )
-      : await db.query(
-          "SELECT COUNT(*)::int AS c FROM scans WHERE split_part(repo_id,'/',1)=$1 AND created_at > NOW() - INTERVAL '24 hours'",
-          [owner],
-        );
-    const c = Number(rows?.[0]?.c ?? 0);
-    if (c >= limit) {
-      throw Object.assign(new Error("scan quota exceeded"), {
-        statusCode: 429,
-        expose: true,
-      });
-    }
-  }
+  await assertScanQuotaAvailable(owner, isGithub ? "github" : "manual");
 
   const client = await db.connect();
   try {

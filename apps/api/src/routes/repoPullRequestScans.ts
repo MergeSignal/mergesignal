@@ -8,6 +8,7 @@ import {
 } from "@mergesignal/shared";
 import { db } from "../db.js";
 import { sendProblem } from "../problem.js";
+import { getOwnerGithubQuotaStatus } from "../services/scanQuota.js";
 
 type PrScanIndexEntry = {
   scanId: string;
@@ -66,19 +67,20 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
       });
     }
 
-    const { rows } = await db.query<{
-      scan_id: string;
-      status: string;
-      decision: string | null;
-      total_score: number | null;
-      github_pr_number: number;
-      github_head_sha: string | null;
-      github_base_ref: string | null;
-      created_at: Date;
-      result_generated_at: Date | null;
-      result: Record<string, unknown> | null;
-    }>(
-      `SELECT DISTINCT ON (github_pr_number)
+    const [scanRowsResult, quotaStatus] = await Promise.all([
+      db.query<{
+        scan_id: string;
+        status: string;
+        decision: string | null;
+        total_score: number | null;
+        github_pr_number: number;
+        github_head_sha: string | null;
+        github_base_ref: string | null;
+        created_at: Date;
+        result_generated_at: Date | null;
+        result: Record<string, unknown> | null;
+      }>(
+        `SELECT DISTINCT ON (github_pr_number)
          id AS scan_id,
          status,
          decision,
@@ -101,8 +103,12 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
            ELSE 4
          END,
          created_at DESC`,
-      [repoId],
-    );
+        [repoId],
+      ),
+      getOwnerGithubQuotaStatus(owner),
+    ]);
+
+    const { rows } = scanRowsResult;
 
     const byPrNumber: Record<string, PrScanIndexEntry> = {};
     const aggregates: PrScanAggregates = {
@@ -156,6 +162,6 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
       };
     }
 
-    return reply.send({ repoId, byPrNumber, aggregates });
+    return reply.send({ repoId, quotaStatus, byPrNumber, aggregates });
   });
 }

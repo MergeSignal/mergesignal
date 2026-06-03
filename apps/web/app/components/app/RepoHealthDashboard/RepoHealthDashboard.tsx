@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { MERGE_POSTURE_LABEL } from "@mergesignal/shared";
-import type { RepoPullHealthViewModel } from "../../../../lib/repo-health-view-model";
+import type {
+  PrScanQuotaStatus,
+  RepoPullHealthViewModel,
+} from "../../../../lib/repo-health-view-model";
 import { MSBadge } from "../../shared/MSBadge/MSBadge";
+import { MSBanner } from "../../shared/MSBanner/MSBanner";
 import { PRHealthCard } from "./PRHealthCard";
 import { RepoHealthScanPoller } from "./RepoHealthScanPoller";
 import styles from "./RepoHealthDashboard.module.css";
@@ -11,6 +15,7 @@ type Props = {
   owner: string;
   repo: string;
   viewModel: RepoPullHealthViewModel;
+  quotaStatus?: PrScanQuotaStatus;
   prsFetchError?: string | null;
   scansFetchError?: string | null;
 };
@@ -75,6 +80,7 @@ export function RepoHealthDashboard({
   owner,
   repo,
   viewModel,
+  quotaStatus,
   prsFetchError,
   scansFetchError,
 }: Props) {
@@ -82,10 +88,21 @@ export function RepoHealthDashboard({
   const hasInProgressScans = viewModel.rows.some(
     (r) => r.presentationState === "scanning",
   );
+  const quotaExceeded = quotaStatus?.state === "exceeded";
+  const shouldPoll = hasInProgressScans || quotaExceeded;
 
   return (
     <div className={styles.dashboard}>
-      {hasInProgressScans && <RepoHealthScanPoller active />}
+      {shouldPoll && <RepoHealthScanPoller active />}
+      {quotaExceeded ? (
+        <MSBanner
+          tone="warning"
+          dismissible
+          className={styles.quotaBanner}
+          title="Daily scan limit reached"
+          description="New pull requests are paused until the quota window resets. Existing scan results are still available below."
+        />
+      ) : null}
       <SummaryStrip
         totalPRs={viewModel.totalPRs}
         coveredPRs={viewModel.coveredPRs}

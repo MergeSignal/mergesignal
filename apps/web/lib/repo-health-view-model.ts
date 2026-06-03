@@ -39,10 +39,21 @@ export type PrScanAggregates = {
   byDecision: { safe: number; needs_review: number; risky: number };
 };
 
+/** Owner-level GitHub scan quota snapshot from pull-request-scans API. */
+export type PrScanQuotaStatus = {
+  source: "github";
+  state: "ok" | "exceeded";
+  limit: number;
+  used: number;
+  windowHours: number;
+  resetsAt?: string;
+};
+
 export type PrScanIndexResponse = {
   repoId: string;
   byPrNumber: Record<string, PrScanEntry>;
   aggregates: PrScanAggregates;
+  quotaStatus?: PrScanQuotaStatus;
 };
 
 /** @deprecated Use ScanCardPresentationState */

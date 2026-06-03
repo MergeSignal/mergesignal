@@ -7,6 +7,10 @@ vi.mock("../db.js", () => ({
   queries: {},
 }));
 
+vi.mock("../services/scanQuota.js", () => ({
+  getOwnerGithubQuotaStatus: vi.fn(),
+}));
+
 vi.mock("../problem.js", () => ({
   sendProblem: vi.fn(
     (
@@ -18,6 +22,15 @@ vi.mock("../problem.js", () => ({
 }));
 
 import { db } from "../db.js";
+import { getOwnerGithubQuotaStatus } from "../services/scanQuota.js";
+
+const defaultQuotaOk = {
+  source: "github" as const,
+  state: "ok" as const,
+  limit: 15,
+  used: 0,
+  windowHours: 24,
+};
 
 function makeRow(
   overrides: Partial<{
@@ -57,6 +70,7 @@ describe("repoPullRequestScansRoutes", () => {
     await repoPullRequestScansRoutes(app);
     await app.ready();
     vi.clearAllMocks();
+    vi.mocked(getOwnerGithubQuotaStatus).mockResolvedValue(defaultQuotaOk);
   });
 
   afterEach(async () => {
@@ -84,6 +98,54 @@ describe("repoPullRequestScansRoutes", () => {
     expect(body.repoId).toBe("acme/frontend");
     expect(body.byPrNumber).toEqual({});
     expect(body.aggregates.totalCovered).toBe(0);
+    expect(body.quotaStatus).toEqual(defaultQuotaOk);
+  });
+
+  it("returns quotaStatus state ok when usage is below limit", async () => {
+    vi.mocked(getOwnerGithubQuotaStatus).mockResolvedValue({
+      source: "github",
+      state: "ok",
+      limit: 20,
+      used: 10,
+      windowHours: 24,
+    });
+    vi.mocked(db.query).mockResolvedValue({ rows: [], rowCount: 0 } as never);
+    const res = await app.inject({
+      method: "GET",
+      url: "/repo/acme/frontend/pull-request-scans",
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().quotaStatus).toMatchObject({
+      state: "ok",
+      limit: 20,
+      used: 10,
+    });
+  });
+
+  it("returns quotaStatus state exceeded with HTTP 200", async () => {
+    vi.mocked(getOwnerGithubQuotaStatus).mockResolvedValue({
+      source: "github",
+      state: "exceeded",
+      limit: 15,
+      used: 15,
+      windowHours: 24,
+    });
+    vi.mocked(db.query).mockResolvedValue({ rows: [], rowCount: 0 } as never);
+    const res = await app.inject({
+      method: "GET",
+      url: "/repo/acme/frontend/pull-request-scans",
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().quotaStatus.state).toBe("exceeded");
+  });
+
+  it("loads quota for path owner", async () => {
+    vi.mocked(db.query).mockResolvedValue({ rows: [], rowCount: 0 } as never);
+    await app.inject({
+      method: "GET",
+      url: "/repo/acme/frontend/pull-request-scans",
+    });
+    expect(getOwnerGithubQuotaStatus).toHaveBeenCalledWith("acme");
   });
 
   it("returns one entry per PR with correct shape", async () => {
