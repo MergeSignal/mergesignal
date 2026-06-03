@@ -118,7 +118,7 @@ function collectWhyBullets(result: ScanResult, max: number): string[] {
     for (const r of reasoning) {
       const s = humanizeEngineSurfaceText(String(r).trim());
       if (s && !out.includes(s)) out.push(s);
-      if (out.length >= max) return out;
+      if (out.length >= max) return out.slice(0, max);
     }
   }
   const reasons = result.explain?.reasons;

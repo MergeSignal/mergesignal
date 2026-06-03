@@ -13,6 +13,18 @@ import {
 } from "./scanCardSummary.js";
 import type { ScanResult } from "./types.js";
 
+const pipelinePresentationDefaults = {
+  narrativeMode: "denormalized" as const,
+  codeIntelligenceAvailable: false,
+  changedPackagesDisplay: null,
+  runtimeSurfaceLabel: null,
+  reachabilityLabel: null,
+  blastRadiusLabel: null,
+  affectedAreas: [] as string[],
+  primaryInsight: null,
+  structuralOnlyDisclaimer: null,
+};
+
 const baseResult = {
   totalScore: 10,
   layerScores: {
@@ -216,6 +228,7 @@ describe("isPipelineCardSummary", () => {
         topAffectedAreas: [],
         operationalObservations: [],
         supportingLine: null,
+        ...pipelinePresentationDefaults,
       }),
     ).toBe(true);
   });
@@ -232,6 +245,7 @@ describe("isPipelineCardSummary", () => {
         topAffectedAreas: [],
         operationalObservations: [],
         supportingLine: null,
+        ...pipelinePresentationDefaults,
       }),
     ).toBe(true);
   });

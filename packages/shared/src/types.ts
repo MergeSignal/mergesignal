@@ -341,7 +341,8 @@ export type ScanResult = {
   /** Echo of `ScanRequest.changedPackages` when non-empty (e.g. lockfile diff); for Check Run / UI copy. */
   changedPackages?: string[];
   /** Optional repository intelligence block when code corpus was analyzed. */
-  repoIntelligence?: Record<string, unknown>;
+  repoIntelligence?: import("./repoIntelligenceSchema.js").RepoIntelligence &
+    Record<string, unknown>;
   /** Worker merge: preparation diagnostics (code corpus availability). */
   analysisPreparation?: AnalysisPreparation;
 };

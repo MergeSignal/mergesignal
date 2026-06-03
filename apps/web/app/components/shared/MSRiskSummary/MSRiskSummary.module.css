@@ -80,6 +80,30 @@
   color: var(--ms-color-text-muted);
 }
 
+.upgradeContext {
+  margin: 0;
+  font-size: var(--ms-text-xs);
+  font-weight: var(--ms-font-weight-semibold);
+  letter-spacing: var(--ms-tracking-snug);
+  color: var(--ms-color-text-emphasis);
+  line-height: var(--ms-leading-snug);
+}
+
+.contextMeta {
+  margin: 0;
+  font-size: var(--ms-text-xs);
+  line-height: var(--ms-leading-subhead);
+  color: var(--ms-color-text-muted);
+}
+
+.structuralDisclaimer {
+  margin: 0;
+  font-size: var(--ms-text-xs);
+  font-style: italic;
+  color: var(--ms-color-text-muted);
+  line-height: var(--ms-leading-snug);
+}
+
 /* Operational center — evidence leads when present */
 .artifactCore {
   display: flex;

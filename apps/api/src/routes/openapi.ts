@@ -456,8 +456,62 @@ function getOpenApiSpec() {
                                   items: { type: "string" },
                                   maxItems: 2,
                                 },
+                                operationalObservations: {
+                                  type: "array",
+                                  items: { type: "string" },
+                                },
+                                supportingLine: {
+                                  type: "string",
+                                  nullable: true,
+                                },
+                                narrativeMode: {
+                                  type: "string",
+                                  enum: [
+                                    "pr_intelligence",
+                                    "insights",
+                                    "graph_fallback",
+                                    "denormalized",
+                                  ],
+                                },
+                                codeIntelligenceAvailable: {
+                                  type: "boolean",
+                                },
+                                changedPackagesDisplay: {
+                                  type: "string",
+                                  nullable: true,
+                                },
+                                runtimeSurfaceLabel: {
+                                  type: "string",
+                                  nullable: true,
+                                },
+                                reachabilityLabel: {
+                                  type: "string",
+                                  nullable: true,
+                                },
+                                blastRadiusLabel: {
+                                  type: "string",
+                                  nullable: true,
+                                },
+                                affectedAreas: {
+                                  type: "array",
+                                  items: { type: "string" },
+                                },
+                                primaryInsight: {
+                                  type: "string",
+                                  nullable: true,
+                                },
+                                structuralOnlyDisclaimer: {
+                                  type: "string",
+                                  nullable: true,
+                                },
                               },
-                              required: ["headline", "topAffectedAreas"],
+                              required: [
+                                "headline",
+                                "topAffectedAreas",
+                                "narrativeMode",
+                                "codeIntelligenceAvailable",
+                                "affectedAreas",
+                              ],
                             },
                             scannedAt: {
                               type: "string",
