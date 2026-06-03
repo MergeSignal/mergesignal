@@ -1,4 +1,5 @@
 import {
+  isCatalogPhrase,
   phraseForFamily,
   type CatalogPhrase,
 } from "./cardObservationCatalog.js";
@@ -155,9 +156,10 @@ function normalizeCardSummary(summary: ScanCardSummary): ScanCardSummary {
     topAffectedAreas: summary.topAffectedAreas.map((a) =>
       normalizeGeneratedText(a),
     ),
-    operationalObservations: summary.operationalObservations.map((p) =>
-      normalizeGeneratedText(p),
-    ),
+    operationalObservations: summary.operationalObservations.map((p) => {
+      const normalized = normalizeGeneratedText(p);
+      return isCatalogPhrase(normalized) ? normalized : p;
+    }),
   };
 }
 

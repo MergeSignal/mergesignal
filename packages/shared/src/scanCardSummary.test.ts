@@ -23,6 +23,10 @@ const pipelinePresentationDefaults = {
   affectedAreas: [] as string[],
   primaryInsight: null,
   structuralOnlyDisclaimer: null,
+  usageSummary: null,
+  verificationLine: null,
+  blastRadiusDetail: null,
+  frameworksSummary: null,
 };
 
 const baseResult = {
