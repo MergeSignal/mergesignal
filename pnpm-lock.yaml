@@ -23,8 +23,8 @@ importers:
         specifier: ^2.8.11
         version: 2.8.11
       typescript:
-        specifier: 5.9.2
-        version: 5.9.2
+        specifier: 5.9.3
+        version: 5.9.3
 
   apps/api:
     dependencies:
