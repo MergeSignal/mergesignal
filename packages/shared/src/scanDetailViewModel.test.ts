@@ -12,6 +12,7 @@ import {
   tier1PassesRecallTest,
   type ScanDetailViewModel,
 } from "./scanDetailViewModel.js";
+import { fixtureRepoIntelligenceFastify } from "./fixtures/repoIntelligenceFixtures.js";
 import type { ScanResult } from "./types.js";
 
 const baseResult = {
@@ -81,7 +82,7 @@ describe("reach vocabulary on fixtures", () => {
     );
     expect(vm?.verdict.scopeChip).toBe("Wide reach");
     expect(vm?.verdict.verdictLine).toBe(
-      "No merge blockers · wide upgrade footprint",
+      "No merge blockers - wide upgrade footprint",
     );
   });
 
@@ -165,6 +166,37 @@ describe("deriveVerdictLine", () => {
 });
 
 describe("Tier 1 success criterion", () => {
+  it("surfaces package usage paths in narrative context and evidence when corpus available", () => {
+    const vm = deriveScanDetailViewModel(
+      {
+        ...baseResult,
+        changedPackages: ["fastify"],
+        analysisPreparation: { codeIntelligenceAvailable: true, warnings: [] },
+        repoIntelligence: fixtureRepoIntelligenceFastify,
+        insights: [
+          {
+            type: "usage_risk",
+            priority: "high",
+            confidence: "confirmed",
+            scope: "changed",
+            message: "Fastify middleware ordering may shift",
+            context: "",
+            remediation: "Run auth integration tests",
+          },
+        ],
+      },
+      { scanId: "corpus", status: "done" },
+    );
+    expect(vm?.narrativeContext.usageHighlights.length).toBeGreaterThan(0);
+    expect(vm?.narrativeContext.usageContextLine).toMatch(/Used in/);
+    expect(vm?.narrativeContext.blastRadiusFactors.length).toBeGreaterThan(0);
+    const hotspotArea = vm?.evidence?.attentionAreas.find((a) =>
+      a.problemLabel.includes("hotspot"),
+    );
+    expect(hotspotArea?.packages[0]?.name).toBe("fastify");
+    expect(tier1PassesRecallTest(vm!.operationalImpact)).toBe(true);
+  });
+
   it("insight-rich scan passes recall test", () => {
     const vm = deriveScanDetailViewModel(
       {

@@ -9,6 +9,7 @@
  * - `## Recommended actions` + time heuristics → default “what to do” + `<details> More actions`
  * - `<details> Risk breakdown` + layer table + graph one-liner → score + graph `<details>` blocks
  */
+import { collectWhyBulletsFromResult } from "./collectNarrativeWhyBullets.js";
 import { deriveScanSummaryText } from "./deriveScanSummaryText.js";
 import { formatInsight } from "./formatInsight.js";
 import { mergePostureLabel } from "./riskVocabulary.js";
@@ -675,30 +676,7 @@ function buildTrustedTitleLines(
 }
 
 function collectWhyBullets(result: ScanResult, max: number): string[] {
-  const out: string[] = [];
-  const reasoning = result.decision?.reasoning;
-  if (Array.isArray(reasoning)) {
-    for (const r of reasoning) {
-      const s = humanizeEngineSurfaceText(String(r).trim());
-      if (s && !out.includes(s)) out.push(s);
-      if (out.length >= max)
-        return dedupeDriverDisplayPhrases(out).slice(0, max);
-    }
-  }
-  const reasons = result.explain?.reasons;
-  if (Array.isArray(reasons) && out.length < max) {
-    for (const r of reasons) {
-      const title = String(r?.title ?? r?.id ?? "").trim();
-      const readable = humanizeEngineSurfaceText(title);
-      if (readable && !out.includes(readable)) out.push(readable);
-      if (out.length >= max) break;
-    }
-  }
-  if (out.length === 0) {
-    const one = deriveScanSummaryText(result);
-    if (one) out.push(one);
-  }
-  return dedupeDriverDisplayPhrases(out).slice(0, max);
+  return dedupeDriverDisplayPhrases(collectWhyBulletsFromResult(result, max));
 }
 
 function buildWhatToDoItems(result: ScanResult): {

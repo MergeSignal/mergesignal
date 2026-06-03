@@ -3,6 +3,7 @@ import { deriveScanNarrative } from "./deriveScanNarrative.js";
 import {
   fixtureRepoIntelligenceEmpty,
   fixtureRepoIntelligenceFastify,
+  fixtureRepoIntelligenceMultiPackage,
   fixtureRepoIntelligenceTypescript,
 } from "./fixtures/repoIntelligenceFixtures.js";
 import type { ScanResult } from "./types.js";
@@ -110,6 +111,69 @@ describe("deriveScanNarrative", () => {
     expect(facts.runtimeSurface?.kind).toBe("build");
     expect(facts.reachability?.kind).toBe("build_only");
     expect(facts.blastRadius?.level).toBe("narrow");
+  });
+
+  it("extracts packageUsage for all changed packages with blast factors and frameworks", () => {
+    const result = {
+      ...baseResult,
+      changedPackages: ["lodash", "axios"],
+      analysisPreparation: { codeIntelligenceAvailable: true, warnings: [] },
+      repoIntelligence: fixtureRepoIntelligenceMultiPackage,
+    } satisfies ScanResult;
+
+    const facts = deriveScanNarrative(result);
+    expect(facts.packageUsage).toHaveLength(2);
+    expect(facts.packageUsage.map((u) => u.packageName)).toEqual([
+      "lodash",
+      "axios",
+    ]);
+    expect(facts.packageUsage[0]?.paths).toContain("apps/billing/export.ts");
+    expect(facts.blastRadius?.factors).toEqual([
+      "multiple_runtime_consumers",
+      "shared_middleware",
+    ]);
+    expect(facts.frameworks).toEqual(["express", "react"]);
+    expect(facts.reachability?.evidence.frameworks).toEqual([
+      "express",
+      "react",
+    ]);
+  });
+
+  it("merges graph hotspots without duplicating code hotspots", () => {
+    const result = {
+      ...baseResult,
+      changedPackages: ["fastify"],
+      analysisPreparation: { codeIntelligenceAvailable: true, warnings: [] },
+      repoIntelligence: fixtureRepoIntelligenceFastify,
+      graphInsights: {
+        maxDepth: 3,
+        nodes: 10,
+        edges: 12,
+        hotspots: [
+          {
+            kind: "hotspot",
+            packageName: "fastify",
+            direct: true,
+            depth: 2,
+          },
+          {
+            kind: "hotspot",
+            packageName: "transitive-only-pkg",
+            direct: false,
+            depth: 4,
+          },
+        ],
+      },
+    } satisfies ScanResult;
+
+    const facts = deriveScanNarrative(result);
+    expect(facts.hotspots.map((h) => h.packageName)).toContain("fastify");
+    expect(facts.hotspots.map((h) => h.packageName)).toContain(
+      "transitive-only-pkg",
+    );
+    expect(
+      facts.hotspots.filter((h) => h.packageName === "fastify"),
+    ).toHaveLength(1);
   });
 
   it("treats empty packages-only repoIntelligence as absent", () => {

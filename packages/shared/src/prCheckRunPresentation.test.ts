@@ -52,7 +52,7 @@ describe("buildPrCheckRunTitle", () => {
 
   it("appends baseline suffix when requested", () => {
     expect(buildPrCheckRunTitle({ baselineOnly: true })).toBe(
-      "PR dependency change – baseline scan only",
+      "PR dependency change - baseline scan only",
     );
   });
 });
@@ -315,7 +315,7 @@ describe("buildPrCheckRunSummaryMarkdown", () => {
       baseline: false,
     });
     if (md.includes("Layer scores")) {
-      expect(md).toMatch(/Maintainability.*\/100 —/);
+      expect(md).toMatch(/Maintainability.*\/100 -/);
       expect(md).not.toMatch(/\| Security \| 0 \|/);
     }
   });

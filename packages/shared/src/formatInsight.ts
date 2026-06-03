@@ -14,7 +14,7 @@ export type FormattedInsight = {
 const DECISION_TITLES: Record<PRDecisionRecommendation, string> = {
   safe: "No significant dependency risks detected",
   needs_review: "Elevated dependency merge risk",
-  risky: "Merge blocked — critical dependency risk",
+  risky: "Merge blocked - critical dependency risk",
 };
 
 // Title rendered once per PR comment, not per insight
@@ -61,14 +61,4 @@ function renderInsightAsMarkdown(f: FormattedInsight): string {
   ].join("\n");
 }
 
-// Renders a full PR comment: one bold title + all insights separated by dividers
-export function renderInsightsAsMarkdown(
-  insights: PRInsight[],
-  decision: PRDecision,
-): string {
-  const title = `**${decisionTitle(decision.recommendation)}**`;
-  const blocks = insights.map((insight) =>
-    renderInsightAsMarkdown(formatInsight(insight)),
-  );
-  return [title, "", ...blocks].join("\n\n---\n\n").trimEnd();
-}
+export { renderInsightsAsMarkdown } from "./presentGitHubPrComment.js";

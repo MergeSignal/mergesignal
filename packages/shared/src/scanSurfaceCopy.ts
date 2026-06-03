@@ -1,5 +1,5 @@
 /**
- * Single source for short scan pipeline / Actions copy (not i18n — keep flat and small).
+ * Single source for short scan pipeline / Actions copy (not i18n - keep flat and small).
  * Risk / merge posture labels stay in riskVocabulary / MERGE_POSTURE_LABEL.
  */
 
@@ -17,7 +17,7 @@ export const scanSurfaceCopy = {
       "Analysis could not be completed. Check the workflow logs for details.",
     demoSummaryTitle: "MergeSignal (demo output)",
     demoSummaryBanner:
-      "Sample analysis only — not production MergeSignal results. Do not use for merge decisions.",
+      "Sample analysis only - not production MergeSignal results. Do not use for merge decisions.",
     trustedSummaryMethodologyLine: "Methodology",
     /** Dogfood workflow: secret missing on same-repo runs (annotation + logs). */
     trustedWorkflowSecretMissing:
@@ -51,7 +51,7 @@ export const scanSurfaceCopy = {
     /** Step summary when trusted scan cannot start (canonical repo, token missing). */
     trustedWorkflowCredentialHintBody:
       "The engine checkout token was not available to this workflow run. Add it under this repository's Actions secrets, or grant this repository access to an organization secret. Secrets that exist only on a GitHub Environment are not available here unless this job declares that environment.",
-    /** Trusted step summary H1 product line (before posture · risk index). */
+    /** Trusted step summary H1 product line (before posture  |  risk index). */
     trustedStepSummaryTitlePrefix: "MergeSignal dependency review",
     /** GitHub Actions step summary: risk index direction (shared with web/CLI where imported). */
     riskIndexDirectionShort: "0 = lowest merge risk, 100 = highest merge risk",
@@ -60,15 +60,15 @@ export const scanSurfaceCopy = {
     mergePostureUnavailableDetail:
       "This scan did not include a merge posture verdict; use the risk index as a coarse signal only.",
     /** `<summary>` lines for collapsible sections (keep short for GitHub UI). */
-    scoreBreakdownDetailsSummary: "Layer scores — this scan",
+    scoreBreakdownDetailsSummary: "Layer scores - this scan",
     dependencyGraphDetailsSummary: "Graph context",
     moreActionsDetailsSummary: "More guidance",
     moreInsightsDetailsSummary: "More insights",
     /** Inside dependency graph `<details>`. */
     supportingGraphContextNote:
-      "Supporting context — not a merge verdict by itself.",
+      "Supporting context - not a merge verdict by itself.",
     layerScoreGlossary:
-      "*Higher column scores = more risk in that dimension (0 best → 100 worst).*",
+      "*Higher column scores = more risk in that dimension (0 best ??? 100 worst).*",
     /** After layer table: scan-specific drivers from explain/contributions. */
     layerDriversHeading: "Signals behind elevated scores",
     /** When surfacing recommendation rationale first (trusted default fold). */
@@ -78,7 +78,7 @@ export const scanSurfaceCopy = {
     /** Development profile: no recommendations or actionable insights. */
     devNoImmediateActions: "No immediate actions required",
   },
-  /** GitHub App Check Run (PR) — calm, concise; not Actions step summary. */
+  /** GitHub App Check Run (PR) - calm, concise; not Actions step summary. */
   checkRun: {
     titleBase: "PR dependency change",
     titleBaselineSuffix: "baseline scan only",
@@ -96,9 +96,9 @@ export const scanSurfaceCopy = {
   },
   product: {
     /** Single line for UI/CLI/Actions parity (risk index semantics). */
-    riskIndexDirectionShort: "0 is best · 100 is worst",
+    riskIndexDirectionShort: "0 is best | 100 is worst",
   },
-  /** Scan detail page (`/scan/[id]`) — show-don't-teach reviewer copy. */
+  /** Scan detail page (`/scan/[id]`) - show-don't-teach reviewer copy. */
   scanDetail: {
     recommendedActionsHeading: "Recommended actions",
     signalSummaryHeading: "Signal summary",
@@ -112,7 +112,7 @@ export const scanSurfaceCopy = {
     proofHeading: "Proof",
     nextStepsHeading: "Recommended next steps",
     topologySummary: "Dependency topology",
-    topologyCollapsedHint: "Supporting detail — graph paths and depth",
+    topologyCollapsedHint: "Supporting detail - graph paths and depth",
     whereLabel: "Where",
     verifyLabel: "Verify",
     moreImpactsSummary: "More impacts",
@@ -125,18 +125,18 @@ export const scanSurfaceCopy = {
       wide: "Wide reach",
     },
     verdictLine: {
-      safeNoBlockersNarrow: "No merge blockers · narrow footprint",
+      safeNoBlockersNarrow: "No merge blockers - narrow footprint",
       safeNoBlockersModerate:
-        "No merge blockers · moderate dependency footprint",
-      safeNoBlockersWide: "No merge blockers · wide upgrade footprint",
-      reviewBeforeMergeNarrow: "Review before merge · narrow footprint",
+        "No merge blockers - moderate dependency footprint",
+      safeNoBlockersWide: "No merge blockers - wide upgrade footprint",
+      reviewBeforeMergeNarrow: "Review before merge - narrow footprint",
       reviewBeforeMergeModerate:
-        "Review before merge · moderate dependency footprint",
-      reviewBeforeMergeWide: "Review before merge · wide dependency footprint",
-      riskyResolveNarrow: "Resolve blockers before merge · focused footprint",
+        "Review before merge - moderate dependency footprint",
+      reviewBeforeMergeWide: "Review before merge - wide dependency footprint",
+      riskyResolveNarrow: "Resolve blockers before merge - focused footprint",
       riskyResolveModerate:
-        "Resolve blockers before merge · moderate dependency footprint",
-      riskyResolveWide: "Resolve blockers before merge · wide transitive tree",
+        "Resolve blockers before merge - moderate dependency footprint",
+      riskyResolveWide: "Resolve blockers before merge - wide transitive tree",
     },
     tier1Fallback: {
       /** Graph-only / lightweight PR baseline (pattern F3). */
@@ -153,10 +153,10 @@ export const scanSurfaceCopy = {
     },
     confidenceCaveat: {
       medium: "Based on partial dependency signal",
-      low: "Limited signal — treat this as directional",
+      low: "Limited signal - treat this as directional",
     },
     codeAnalysisTimeout:
-      "Code analysis timed out — runtime impact may be incomplete",
+      "Code analysis timed out - runtime impact may be incomplete",
     scanPipelineNote: "This page updates automatically.",
     recommendationDetail: {
       selectPrompt: "Select a recommendation to understand it",
@@ -235,7 +235,7 @@ export const scanSurfaceCopy = {
         whyNow: "Monitoring catches regressions that appear only after merge.",
         expectedBenefit:
           "Earlier detection of dependency regressions in production.",
-        signals: ["No immediate blockers — monitor after merge"],
+        signals: ["No immediate blockers - monitor after merge"],
       },
       mergeAfterVerification: {
         why: "Wide upgrade footprints warrant a quick sanity check before merge.",
@@ -309,7 +309,7 @@ export const scanSurfaceCopy = {
     signalSummary: {
       scoreCaption: "Dependency signal score",
       layersHeading: "Layer signals",
-      gaugeAriaLabel: "Dependency signal score {score} — {band}",
+      gaugeAriaLabel: "Dependency signal score {score} - {band}",
       followUpImprovementIdentified: "1 follow-up improvement was identified",
       followUpImprovementsIdentified:
         "{count} follow-up improvements were identified",
@@ -325,7 +325,7 @@ export const scanSurfaceCopy = {
       },
     },
   },
-  /** PR narrative presentation — channel-specific copy built from ScanNarrativeFacts. */
+  /** PR narrative presentation - channel-specific copy built from ScanNarrativeFacts. */
   narrativeCard: {
     structuralOnlyDisclaimer: "Structural dependency analysis only",
     runtimeSurface: {
@@ -346,8 +346,8 @@ export const scanSurfaceCopy = {
       moderate: "Moderate",
       wide: "Wide",
     },
-    areasSeparator: " · ",
-    contextSeparator: " · ",
+    areasSeparator: " | ",
+    contextSeparator: " | ",
   },
   cli: {
     stderrAnalysisIncomplete: "Analysis could not be completed.",

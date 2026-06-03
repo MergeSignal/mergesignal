@@ -110,7 +110,7 @@ describe("renderInsightsAsMarkdown", () => {
       remediation: "fix text",
     });
     const output = renderInsightsAsMarkdown([insight], decision);
-    expect(output).toContain("Elevated dependency merge risk");
+    expect(output).toContain("Needs review");
     expect(output).toContain("msg text");
     expect(output).toContain("ctx text");
     expect(output).toContain("fix text");

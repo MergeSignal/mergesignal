@@ -51,10 +51,18 @@ export type ScanCardSummary = {
   affectedAreas: string[];
   primaryInsight: string | null;
   structuralOnlyDisclaimer: string | null;
+  /** One-line usage hint from packageUsage paths or areas. */
+  usageSummary: string | null;
+  /** Single verification prompt from changed-scope guidance or usage. */
+  verificationLine: string | null;
+  /** Optional blast factor subline when factors exist. */
+  blastRadiusDetail: string | null;
+  /** Short framework list (max 2 on card). */
+  frameworksSummary: string | null;
 };
 
 const STALE_SUBLINE = "Based on earlier commit";
-export const SCAN_CARD_SCANNING_SUMMARY = "Waiting for results…";
+export const SCAN_CARD_SCANNING_SUMMARY = "Waiting for results...";
 
 export type PipelineCompletionEvidence = {
   scannedAt?: string | null;

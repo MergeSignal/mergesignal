@@ -11,7 +11,21 @@ import {
   type CatalogPhrase,
 } from "./cardObservationCatalog.js";
 import { deriveScanNarrative } from "./deriveScanNarrative.js";
-import { presentScanCardSummary } from "./presentScanCardSummary.js";
+import { formatCardAreaLabels } from "./formatCardAreaLabels.js";
+import {
+  composeContextLineFromFacts,
+  formatChangedPackagesShort,
+  formatUsageSummaryLine,
+  labelBlastRadiusLevel,
+  labelReachabilityKind,
+  labelRuntimeSurface,
+  summarizeBlastRadius,
+} from "./narrativePresentation.js";
+import {
+  normalizeGeneratedText,
+  normalizeGeneratedTextNullable,
+} from "./normalizeGeneratedText.js";
+import type { ScanNarrativeFacts } from "./scanNarrativeFacts.js";
 import { deriveCardOperationalObservations } from "./deriveCardOperationalObservations.js";
 import {
   deriveScanDetailRecommendations,
@@ -132,6 +146,12 @@ export type ScanDetailNarrativeContext = {
   blastRadiusLabel: string | null;
   affectedAreas: string[];
   structuralOnlyDisclaimer: string | null;
+  usageHighlights: string[];
+  frameworks: string[];
+  blastRadiusFactors: string[];
+  hotspotNames: string[];
+  usageContextLine: string | null;
+  upgradeContextLine: string | null;
 };
 
 export type ScanDetailViewModel = {
@@ -392,6 +412,97 @@ function graphInsightToPackage(
   };
 }
 
+function usageWhereFromFacts(facts: ScanNarrativeFacts): string | undefined {
+  const primary = facts.changedPackages.primary;
+  const row =
+    facts.packageUsage.find((u) => u.packageName === primary) ??
+    facts.packageUsage[0];
+  if (!row) return undefined;
+  const paths = [...row.paths, ...row.criticalPaths, ...row.files].filter(
+    Boolean,
+  );
+  if (paths.length === 0 && row.areas.length > 0) {
+    return row.areas.slice(0, 3).join(", ");
+  }
+  if (paths.length === 0) return undefined;
+  const sample = paths.slice(0, 3).join(", ");
+  if (paths.length > 3) {
+    return `${sample} (+${paths.length - 3} more)`;
+  }
+  return sample;
+}
+
+function buildAttentionAreasFromFacts(
+  facts: ScanNarrativeFacts,
+): ScanDetailAttentionArea[] {
+  const areas: ScanDetailAttentionArea[] = [];
+
+  if (facts.hotspots.length > 0) {
+    const packages = facts.hotspots.map((h) => ({
+      name: h.packageName,
+      direct: true,
+      evidence: h.paths[0],
+    }));
+    areas.push({
+      problemLabel: "Dependency hotspots",
+      problemDescription:
+        "Packages where paths converge or corpus analysis flagged critical usage.",
+      packages: packages.slice(0, ACT3_EVIDENCE_COLLAPSE_THRESHOLD),
+      overflowCount: Math.max(
+        0,
+        packages.length - ACT3_EVIDENCE_COLLAPSE_THRESHOLD,
+      ),
+    });
+  }
+
+  const blast = facts.blastRadius;
+  if (
+    blast &&
+    (blast.level === "wide" || (blast.changedPackageCount ?? 0) >= 8)
+  ) {
+    const names = facts.changedPackages.all;
+    if (names.length > 0) {
+      const packages = names
+        .slice(0, ACT3_EVIDENCE_COLLAPSE_THRESHOLD)
+        .map((name) => ({ name, direct: true }));
+      areas.push({
+        problemLabel: phraseForFamily("blast_radius"),
+        problemDescription:
+          blast.factors.length > 0
+            ? `Wide blast radius: ${blast.factors.slice(0, 3).join(", ").replace(/_/g, " ")}`
+            : "Many packages changed in this upgrade.",
+        packages,
+        overflowCount: Math.max(
+          0,
+          names.length - ACT3_EVIDENCE_COLLAPSE_THRESHOLD,
+        ),
+      });
+    }
+  }
+
+  return areas;
+}
+
+function mergeAttentionAreas(
+  fromFacts: ScanDetailAttentionArea[],
+  fromGraph: ScanDetailAttentionArea[],
+): ScanDetailAttentionArea[] {
+  if (fromFacts.length === 0) return fromGraph;
+  const factPackageNames = new Set(
+    fromFacts.flatMap((a) => a.packages.map((p) => p.name)),
+  );
+
+  const filteredGraph = fromGraph.filter((area) => {
+    if (area.problemLabel !== phraseForFamily("transitive_hotspots")) {
+      return true;
+    }
+    const onlyDupes = area.packages.every((p) => factPackageNames.has(p.name));
+    return !onlyDupes;
+  });
+
+  return [...fromFacts, ...filteredGraph];
+}
+
 function buildAttentionAreas(result: ScanResult): ScanDetailAttentionArea[] {
   const areas: ScanDetailAttentionArea[] = [];
   const gi = result.graphInsights;
@@ -522,7 +633,9 @@ function buildTopology(result: ScanResult): ScanDetailTopology | null {
     : [];
 
   return {
-    summaryLine: `${nodes} packages · ${edges} edges · max depth ${maxDepth}`,
+    summaryLine: normalizeGeneratedText(
+      `${nodes} packages | ${edges} edges | max depth ${maxDepth}`,
+    ),
     deepest,
   };
 }
@@ -562,41 +675,90 @@ function deriveConfidenceCaveat(result: ScanResult): string | undefined {
   return undefined;
 }
 
-function narrativeContextFromFacts(
-  facts: import("./scanNarrativeFacts.js").ScanNarrativeFacts,
+export function presentScanDetailNarrativeContext(
+  facts: ScanNarrativeFacts,
 ): ScanDetailNarrativeContext {
-  const card = presentScanCardSummary(facts);
+  const affectedAreas: string[] = [];
+  for (const area of facts.affectedAreas) {
+    const formatted = formatCardAreaLabels([area.label], 1);
+    if (formatted[0]) affectedAreas.push(formatted[0]);
+    if (affectedAreas.length >= 4) break;
+  }
+
+  const usageHighlights: string[] = [];
+  for (const row of facts.packageUsage.slice(0, 4)) {
+    const paths = [...row.paths, ...row.criticalPaths, ...row.files];
+    if (paths[0]) usageHighlights.push(paths[0]);
+  }
+
+  const blast = summarizeBlastRadius(facts, 5);
+
   return {
-    mode: card.narrativeMode,
-    codeIntelligenceAvailable: card.codeIntelligenceAvailable,
-    changedPackagesDisplay: card.changedPackagesDisplay,
-    runtimeSurfaceLabel: card.runtimeSurfaceLabel,
-    reachabilityLabel: card.reachabilityLabel,
-    blastRadiusLabel: card.blastRadiusLabel,
-    affectedAreas: card.affectedAreas,
-    structuralOnlyDisclaimer: card.structuralOnlyDisclaimer,
+    mode: facts.availability.mode,
+    codeIntelligenceAvailable: facts.availability.codeIntelligenceAvailable,
+    changedPackagesDisplay: formatChangedPackagesShort(facts, 4),
+    runtimeSurfaceLabel: labelRuntimeSurface(facts),
+    reachabilityLabel: labelReachabilityKind(facts),
+    blastRadiusLabel: labelBlastRadiusLevel(facts),
+    affectedAreas,
+    structuralOnlyDisclaimer:
+      facts.availability.mode === "graph_fallback" &&
+      !facts.availability.tiersPresent.tier1
+        ? scanSurfaceCopy.narrativeCard.structuralOnlyDisclaimer
+        : null,
+    usageHighlights: usageHighlights.slice(0, 5),
+    frameworks: facts.frameworks.slice(0, 5),
+    blastRadiusFactors: blast.factors.map((f) => f.replace(/_/g, " ")),
+    hotspotNames: facts.hotspots.map((h) => h.packageName).slice(0, 8),
+    usageContextLine: normalizeGeneratedTextNullable(
+      formatUsageSummaryLine(facts, 2),
+    ),
+    upgradeContextLine: normalizeGeneratedTextNullable(
+      composeContextLineFromFacts(facts, {
+        includePathSample: true,
+        maxAreas: 4,
+      }),
+    ),
   };
 }
 
+function narrativeContextFromFacts(
+  facts: ScanNarrativeFacts,
+): ScanDetailNarrativeContext {
+  return presentScanDetailNarrativeContext(facts);
+}
+
 function guidanceToImpactItem(
-  g: import("./scanNarrativeFacts.js").ScanNarrativeFacts["reviewerGuidance"][number],
+  g: ScanNarrativeFacts["reviewerGuidance"][number],
   verifyLabels: Set<string>,
+  facts?: ScanNarrativeFacts,
 ): ScanDetailOperationalImpactItem {
   const verify =
     g.remediation &&
     !verifyLabels.has(g.remediation.toLowerCase().replace(/\s+/g, " ").trim())
       ? g.remediation
       : undefined;
+
+  let where = g.context?.trim() || undefined;
+  if (
+    !where &&
+    facts &&
+    (facts.availability.mode === "pr_intelligence" ||
+      facts.availability.tiersPresent.tier1)
+  ) {
+    where = usageWhereFromFacts(facts);
+  }
+
   return {
-    message: g.message,
-    where: g.context,
-    verify,
+    message: normalizeGeneratedText(g.message),
+    where: where ? normalizeGeneratedText(where) : undefined,
+    verify: verify ? normalizeGeneratedText(verify) : undefined,
     affectedFiles: g.affectedFiles,
   };
 }
 
 function deriveOperationalImpactFromFacts(
-  facts: import("./scanNarrativeFacts.js").ScanNarrativeFacts,
+  facts: ScanNarrativeFacts,
   result: ScanResult,
   verifyLabels: Set<string>,
 ): ScanDetailOperationalImpact {
@@ -610,7 +772,7 @@ function deriveOperationalImpactFromFacts(
   ) {
     const items = changedGuidance
       .slice(0, 6)
-      .map((g) => guidanceToImpactItem(g, verifyLabels));
+      .map((g) => guidanceToImpactItem(g, verifyLabels, facts));
     if (items.length > 0) {
       return { status: "rich", items };
     }
@@ -627,46 +789,65 @@ function deriveOperationalImpactFromFacts(
       status: "rich",
       items: changedGuidance
         .slice(0, 6)
-        .map((g) => guidanceToImpactItem(g, verifyLabels)),
+        .map((g) => guidanceToImpactItem(g, verifyLabels, facts)),
     };
   }
 
   return deriveOperationalImpact(result, verifyLabels);
 }
 
-function deriveBecauseThemesFromFacts(
-  facts: import("./scanNarrativeFacts.js").ScanNarrativeFacts,
-): string[] {
+function themeCandidateFromLabel(label: string): string | null {
+  const trimmed = label.trim();
+  if (!trimmed) return null;
+  return sanitizeAct2Theme(trimmed) ?? trimmed.slice(0, ACT2_MAX_THEME_CHARS);
+}
+
+function deriveBecauseThemesFromFacts(facts: ScanNarrativeFacts): string[] {
   const themes: string[] = [];
   const seen = new Set<string>();
+  const prIntelligence =
+    facts.availability.mode === "pr_intelligence" ||
+    facts.availability.tiersPresent.tier1;
 
-  for (const g of facts.reviewerGuidance.slice(0, ACT2_MAX_THEMES + 2)) {
-    const sanitized = sanitizeAct2Theme(g.message);
-    if (!sanitized) continue;
-    const key = sanitized.toLowerCase();
-    if (seen.has(key)) continue;
+  const pushTheme = (raw: string | null) => {
+    if (!raw) return;
+    const normalized = normalizeGeneratedText(raw);
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) return;
     seen.add(key);
-    themes.push(sanitized);
-    if (themes.length >= ACT2_MAX_THEMES) break;
+    themes.push(normalized);
+  };
+
+  if (prIntelligence) {
+    for (const area of facts.affectedAreas) {
+      pushTheme(themeCandidateFromLabel(area.label));
+      if (themes.length >= ACT2_MAX_THEMES) return themes;
+    }
+    for (const factor of facts.blastRadius?.factors ?? []) {
+      pushTheme(themeCandidateFromLabel(factor.replace(/_/g, " ")));
+      if (themes.length >= ACT2_MAX_THEMES) return themes;
+    }
+    const reachLabel = labelReachabilityKind(facts);
+    if (reachLabel) pushTheme(reachLabel);
   }
 
-  if (themes.length < ACT2_MAX_THEMES) {
+  for (const g of facts.reviewerGuidance.slice(0, ACT2_MAX_THEMES + 2)) {
+    pushTheme(sanitizeAct2Theme(g.message));
+    if (themes.length >= ACT2_MAX_THEMES) return themes;
+  }
+
+  if (themes.length < ACT2_MAX_THEMES && !prIntelligence) {
     for (const ctx of facts.repositoryContext) {
-      const sanitized = sanitizeAct2Theme(phraseForFamily(ctx.family));
-      if (!sanitized) continue;
-      const key = sanitized.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      themes.push(sanitized);
+      pushTheme(sanitizeAct2Theme(phraseForFamily(ctx.family)));
       if (themes.length >= ACT2_MAX_THEMES) break;
     }
   }
 
-  return themes;
+  return themes.slice(0, ACT2_MAX_THEMES);
 }
 
 function deriveVerdictLineFromFacts(
-  facts: import("./scanNarrativeFacts.js").ScanNarrativeFacts,
+  facts: ScanNarrativeFacts,
   result: ScanResult,
 ): string {
   const topGuidance = facts.reviewerGuidance.find(
@@ -687,7 +868,7 @@ function deriveVerdictLineFromFacts(
 
 /** Scan detail presentation from shared narrative facts. */
 export function presentScanDetailViewModel(
-  facts: import("./scanNarrativeFacts.js").ScanNarrativeFacts,
+  facts: ScanNarrativeFacts,
   result: ScanResult,
   options: DeriveScanDetailOptions,
 ): ScanDetailViewModel {
@@ -710,7 +891,15 @@ export function presentScanDetailViewModel(
   const because =
     themes.length > 0 || confidenceCaveat ? { themes, confidenceCaveat } : null;
 
-  const attentionAreas = buildAttentionAreas(result);
+  const factsAttention =
+    facts.availability.mode === "pr_intelligence" ||
+    facts.availability.tiersPresent.tier1
+      ? buildAttentionAreasFromFacts(facts)
+      : [];
+  const attentionAreas = mergeAttentionAreas(
+    factsAttention,
+    buildAttentionAreas(result),
+  );
   const allFindings = annotateFindingsWithCoverage(
     buildFindingRows(result),
     recommendedActions,

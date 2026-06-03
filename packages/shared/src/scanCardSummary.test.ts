@@ -82,7 +82,7 @@ describe("deriveScanCardSummary", () => {
   it("returns scanning copy for queued/running", () => {
     const queued = deriveScanCardSummary(null, "queued");
     expect(queued.headline).toBe("Scan in progress");
-    expect(queued.summaryLine).toBe("Waiting for results…");
+    expect(queued.summaryLine).toBe("Waiting for results...");
     expect(queued.mergePosture).toBeNull();
 
     const running = deriveScanCardSummary(null, "running");
@@ -223,7 +223,7 @@ describe("isPipelineCardSummary", () => {
         riskIndex: null,
         riskIndexBand: null,
         headline: "Scan in progress",
-        summaryLine: "Waiting for results…",
+        summaryLine: "Waiting for results...",
         findingCounts: null,
         topAffectedAreas: [],
         operationalObservations: [],
@@ -240,7 +240,7 @@ describe("isPipelineCardSummary", () => {
         riskIndex: 72,
         riskIndexBand: "high",
         headline: "Risky",
-        summaryLine: "Waiting for results…",
+        summaryLine: "Waiting for results...",
         findingCounts: null,
         topAffectedAreas: [],
         operationalObservations: [],
@@ -253,7 +253,7 @@ describe("isPipelineCardSummary", () => {
 
 describe("isPipelinePlaceholderCopy", () => {
   it("identifies waiting copy", () => {
-    expect(isPipelinePlaceholderCopy("Waiting for results…")).toBe(true);
+    expect(isPipelinePlaceholderCopy("Waiting for results...")).toBe(true);
     expect(isPipelinePlaceholderCopy("Auth change")).toBe(false);
   });
 });
@@ -277,11 +277,11 @@ describe("deriveScanCardSummaryFromDenormalized", () => {
     const summary = deriveScanCardSummaryFromDenormalized(
       "risky",
       72,
-      "Waiting for results…",
+      "Waiting for results...",
       "done",
     );
     expect(summary.mergePosture).toBe("risky");
-    expect(summary.summaryLine).not.toBe("Waiting for results…");
+    expect(summary.summaryLine).not.toBe("Waiting for results...");
   });
 
   it("does not inject raw generic summaryText on quiet safe cards", () => {
@@ -302,11 +302,11 @@ describe("resolvePrScanCardSummary", () => {
       pipelineStatus: "running",
       decision: "risky",
       totalScore: 80,
-      summaryText: "Waiting for results…",
+      summaryText: "Waiting for results...",
       result: null,
     });
     expect(summary.mergePosture).toBe("risky");
     expect(summary.headline).toBe("Risky");
-    expect(summary.summaryLine).not.toBe("Waiting for results…");
+    expect(summary.summaryLine).not.toBe("Waiting for results...");
   });
 });

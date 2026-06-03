@@ -2,8 +2,12 @@
  * GitHub Check Run markdown — policy → sections → dumb renderer.
  * Thin projection of ScanResult for PR decision support (not a presentation framework).
  */
-import { deriveScanSummaryText } from "./deriveScanSummaryText.js";
+import { collectWhyBullets } from "./collectNarrativeWhyBullets.js";
+import { deriveScanNarrative } from "./deriveScanNarrative.js";
 import { formatInsight } from "./formatInsight.js";
+import { normalizeGeneratedText } from "./normalizeGeneratedText.js";
+import { selectReviewerGuidance } from "./narrativePresentation.js";
+import type { ScanNarrativeFacts } from "./scanNarrativeFacts.js";
 import {
   humanizeEngineSurfaceText,
   layerDriverSummary,
@@ -106,40 +110,27 @@ export function buildPrCheckRunTitle(
 ): string {
   const base = scanSurfaceCopy.checkRun.titleBase;
   if (opts.baselineOnly) {
-    return `${base} – ${scanSurfaceCopy.checkRun.titleBaselineSuffix}`;
+    return `${base} - ${scanSurfaceCopy.checkRun.titleBaselineSuffix}`;
   }
   return base;
 }
 
-function collectWhyBullets(result: ScanResult, max: number): string[] {
-  const out: string[] = [];
-  const reasoning = result.decision?.reasoning;
-  if (Array.isArray(reasoning)) {
-    for (const r of reasoning) {
-      const s = humanizeEngineSurfaceText(String(r).trim());
-      if (s && !out.includes(s)) out.push(s);
-      if (out.length >= max) return out.slice(0, max);
-    }
-  }
-  const reasons = result.explain?.reasons;
-  if (Array.isArray(reasons) && out.length < max) {
-    for (const r of reasons) {
-      const title = String(r?.title ?? r?.id ?? "").trim();
-      const readable = humanizeEngineSurfaceText(title);
-      if (readable && !out.includes(readable)) out.push(readable);
-      if (out.length >= max) break;
-    }
-  }
-  if (out.length === 0) {
-    const one = deriveScanSummaryText(result);
-    if (one) out.push(one);
-  }
-  return out.slice(0, max);
-}
-
 /** Strong drivers for optional repo-context line (full mode only). */
-export function hasStrongRepoGraphDrivers(result: ScanResult): boolean {
-  const phrases = collectWhyBullets(result, CHECK_RUN_MAX_REPO_DRIVER_PHRASES);
+export function hasStrongRepoGraphDrivers(
+  result: ScanResult,
+  facts?: ScanNarrativeFacts,
+): boolean {
+  if (
+    facts?.availability.mode === "pr_intelligence" ||
+    facts?.availability.tiersPresent.tier1
+  ) {
+    return false;
+  }
+  const phrases = collectWhyBullets(
+    facts ?? deriveScanNarrative(result),
+    result,
+    CHECK_RUN_MAX_REPO_DRIVER_PHRASES,
+  );
   return phrases.some((p) => p.trim().length >= 12);
 }
 
@@ -160,7 +151,9 @@ function insightToBullet(insight: PRInsight): string {
   );
   const action = f.action.trim();
   if (action && action.length < 120) {
-    return `${msg} — ${truncateWithEllipsis(action, 100)}`;
+    return normalizeGeneratedText(
+      `${msg} - ${truncateWithEllipsis(action, 100)}`,
+    );
   }
   return msg;
 }
@@ -170,7 +163,7 @@ function recommendationToBullet(rec: Recommendation): string {
   const rat = String(rec.rationale ?? "").trim();
   const pkgs =
     Array.isArray(rec.packages) && rec.packages.length > 0
-      ? ` (${rec.packages.slice(0, 3).join(", ")}${rec.packages.length > 3 ? ", …" : ""})`
+      ? ` (${rec.packages.slice(0, 3).join(", ")}${rec.packages.length > 3 ? ", ..." : ""})`
       : "";
   if (rat && (!title || rat.length > title.length)) {
     return truncateWithEllipsis(rat, CHECK_RUN_ACTION_BULLET_MAX_CHARS) + pkgs;
@@ -188,6 +181,46 @@ function findingToBullet(f: Finding): string {
       CHECK_RUN_ACTION_BULLET_MAX_CHARS,
     ) + pkg
   );
+}
+
+function guidanceToActionBullet(
+  g: ScanNarrativeFacts["reviewerGuidance"][number],
+): string {
+  const msg = truncateWithEllipsis(
+    g.message.trim(),
+    CHECK_RUN_ACTION_BULLET_MAX_CHARS,
+  );
+  const action = g.remediation?.trim();
+  if (action && action.length < 120) {
+    return normalizeGeneratedText(
+      `${msg} - ${truncateWithEllipsis(action, 100)}`,
+    );
+  }
+  return normalizeGeneratedText(msg);
+}
+
+function buildActionBulletsFromFacts(
+  facts: ScanNarrativeFacts,
+  result: ScanResult,
+  max: number,
+): string[] {
+  const prIntel =
+    facts.availability.mode === "pr_intelligence" ||
+    facts.availability.tiersPresent.tier1;
+
+  if (!prIntel) {
+    return buildActionBullets(result, max);
+  }
+
+  const out: string[] = [];
+  for (const g of selectReviewerGuidance(facts, { scope: "changed", max })) {
+    out.push(guidanceToActionBullet(g));
+    if (out.length >= max) return out.slice(0, max);
+  }
+  if (out.length >= max) return out.slice(0, max);
+
+  const legacy = buildActionBullets(result, max - out.length);
+  return [...out, ...legacy].slice(0, max);
 }
 
 function buildActionBullets(result: ScanResult, max: number): string[] {
@@ -242,9 +275,12 @@ function layerScoreRows(result: ScanResult): Array<{
 export function deriveCheckRunPolicy(
   result: ScanResult,
   ctx: Pick<PrCheckRunSummaryContext, "baseline">,
+  facts?: ScanNarrativeFacts,
 ): CheckRunPolicy {
+  const resolvedFacts = facts ?? deriveScanNarrative(result);
   const baseline = ctx.baseline;
-  const actionBullets = buildActionBullets(
+  const actionBullets = buildActionBulletsFromFacts(
+    resolvedFacts,
     result,
     CHECK_RUN_MAX_ACTION_BULLETS,
   );
@@ -252,7 +288,7 @@ export function deriveCheckRunPolicy(
 
   const showRepoGraphContext =
     !baseline &&
-    hasStrongRepoGraphDrivers(result) &&
+    hasStrongRepoGraphDrivers(result, resolvedFacts) &&
     typeof result.totalScore === "number" &&
     Number.isFinite(result.totalScore);
 
@@ -293,17 +329,23 @@ export function buildPrCheckRunSections(
   policy: CheckRunPolicy,
   result: ScanResult,
   ctx: PrCheckRunSummaryContext,
+  facts?: ScanNarrativeFacts,
 ): CheckRunSection[] {
+  const resolvedFacts = facts ?? deriveScanNarrative(result);
   const sections: Partial<Record<SectionKind, CheckRunSection>> = {};
 
   sections.lead = buildLeadSection(result, policy);
 
-  const why = collectWhyBullets(result, policy.maxWhyBullets);
+  const why = collectWhyBullets(resolvedFacts, result, policy.maxWhyBullets);
   if (why.length > 0) {
     sections.why = { kind: "why", bullets: why };
   }
 
-  const actions = buildActionBullets(result, policy.maxActionBullets);
+  const actions = buildActionBulletsFromFacts(
+    resolvedFacts,
+    result,
+    policy.maxActionBullets,
+  );
   if (actions.length > 0) {
     sections.actions = { kind: "actions", bullets: actions };
   }
@@ -321,7 +363,11 @@ export function buildPrCheckRunSections(
     sections.repoContext = {
       kind: "repoContext",
       score,
-      driverPhrases: collectWhyBullets(result, policy.maxRepoDriverPhrases),
+      driverPhrases: collectWhyBullets(
+        resolvedFacts,
+        result,
+        policy.maxRepoDriverPhrases,
+      ),
     };
   }
 
@@ -383,9 +429,11 @@ export function renderCheckRunMarkdown(sections: CheckRunSection[]): string {
         break;
       }
       case "repoContext": {
-        const drivers = section.driverPhrases.join(" · ");
+        const drivers = section.driverPhrases.join(" | ");
         parts.push(
-          `${scanSurfaceCopy.checkRun.repoContextLabel} ${section.score}/100 — ${drivers}`,
+          normalizeGeneratedText(
+            `${scanSurfaceCopy.checkRun.repoContextLabel} ${section.score}/100 - ${drivers}`,
+          ),
         );
         parts.push("");
         break;
@@ -397,7 +445,11 @@ export function renderCheckRunMarkdown(sections: CheckRunSection[]): string {
         );
         parts.push("");
         for (const row of section.rows) {
-          parts.push(`- **${row.label}** ${row.score}/100 — ${row.driver}`);
+          parts.push(
+            normalizeGeneratedText(
+              `- **${row.label}** ${row.score}/100 - ${row.driver}`,
+            ),
+          );
         }
         parts.push("");
         parts.push("</details>");
@@ -417,9 +469,9 @@ export function renderCheckRunMarkdown(sections: CheckRunSection[]): string {
     }
   }
 
-  let md = parts.join("\n").trimEnd();
+  let md = normalizeGeneratedText(parts.join("\n").trimEnd());
   if (md.length > CHECK_RUN_SOFT_MAX_CHARS) {
-    md = md.slice(0, CHECK_RUN_SOFT_MAX_CHARS - 1) + "…";
+    md = md.slice(0, CHECK_RUN_SOFT_MAX_CHARS - 1) + "...";
   }
   return md;
 }
@@ -427,8 +479,13 @@ export function renderCheckRunMarkdown(sections: CheckRunSection[]): string {
 export function buildPrCheckRunSummaryMarkdown(
   ctx: PrCheckRunSummaryContext,
 ): string {
-  const policy = deriveCheckRunPolicy(ctx.result, { baseline: ctx.baseline });
-  const sections = buildPrCheckRunSections(policy, ctx.result, ctx);
+  const facts = deriveScanNarrative(ctx.result);
+  const policy = deriveCheckRunPolicy(
+    ctx.result,
+    { baseline: ctx.baseline },
+    facts,
+  );
+  const sections = buildPrCheckRunSections(policy, ctx.result, ctx, facts);
   return renderCheckRunMarkdown(sections);
 }
 

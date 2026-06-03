@@ -10,8 +10,12 @@ import {
 } from "./repoIntelligenceSchema.js";
 import {
   EMPTY_SCAN_NARRATIVE_FACTS,
+  NARRATIVE_FACT_MAX_AREAS,
+  NARRATIVE_FACT_MAX_HOTSPOTS,
+  NARRATIVE_FACT_MAX_PATHS,
   type BlastRadiusLevel,
   type NarrativeAvailabilityMode,
+  type NarrativePackageUsage,
   type ReachabilityKind,
   type ReviewerGuidanceKind,
   type ReviewerGuidanceScope,
@@ -21,6 +25,7 @@ import {
 import { mergePostureFromDecision } from "./riskVocabulary.js";
 import { selectTopAffectedAreas } from "./selectTopAffectedAreas.js";
 import type {
+  DependencyGraphInsight,
   Finding,
   PRInsight,
   Recommendation,
@@ -46,11 +51,152 @@ function blastLevelFromChangedCount(count: number): BlastRadiusLevel {
   return "narrow";
 }
 
+function uniqueStrings(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of values) {
+    const t = v.trim();
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+  }
+  return out;
+}
+
+function usageEntryPackageName(entry: {
+  packageName?: string;
+  package?: string;
+}): string | null {
+  const name = (entry.packageName ?? entry.package ?? "").trim();
+  return name || null;
+}
+
+function collectPackageUsageForChanged(
+  ri: RepoIntelligence,
+  changed: ScanNarrativeFacts["changedPackages"],
+): NarrativePackageUsage[] {
+  const byPackage = new Map<string, NarrativePackageUsage>();
+
+  const ensure = (packageName: string): NarrativePackageUsage => {
+    let row = byPackage.get(packageName);
+    if (!row) {
+      row = {
+        packageName,
+        paths: [],
+        criticalPaths: [],
+        files: [],
+        areas: [],
+      };
+      byPackage.set(packageName, row);
+    }
+    return row;
+  };
+
+  const mergeEntry = (
+    entry: {
+      packageName?: string;
+      package?: string;
+      paths?: string[];
+      criticalPaths?: string[];
+      files?: string[];
+      areas?: string[];
+    },
+    packageNameOverride?: string,
+  ) => {
+    const name = packageNameOverride ?? usageEntryPackageName(entry);
+    if (!name || !changed.all.includes(name)) return;
+    const row = ensure(name);
+    row.paths = uniqueStrings([...row.paths, ...(entry.paths ?? [])]);
+    row.criticalPaths = uniqueStrings([
+      ...row.criticalPaths,
+      ...(entry.criticalPaths ?? []),
+    ]);
+    row.files = uniqueStrings([...row.files, ...(entry.files ?? [])]);
+    row.areas = uniqueStrings([...row.areas, ...(entry.areas ?? [])]);
+  };
+
+  for (const name of changed.all) {
+    const pkgIntel = ri.packages?.[name];
+    if (pkgIntel?.usage) mergeEntry(pkgIntel.usage, name);
+    if (pkgIntel?.packageUsage) mergeEntry(pkgIntel.packageUsage, name);
+    if (pkgIntel?.areas?.length) {
+      const row = ensure(name);
+      row.areas = uniqueStrings([...row.areas, ...pkgIntel.areas]);
+    }
+  }
+
+  if (Array.isArray(ri.packageUsage)) {
+    for (const entry of ri.packageUsage) {
+      mergeEntry(entry);
+    }
+  }
+
+  return changed.all
+    .map((name) => byPackage.get(name))
+    .filter((row): row is NarrativePackageUsage => row != null);
+}
+
+function allUsagePaths(usage: NarrativePackageUsage[]): string[] {
+  const paths: string[] = [];
+  for (const row of usage) {
+    paths.push(...row.paths, ...row.criticalPaths, ...row.files);
+  }
+  return uniqueStrings(paths).slice(0, NARRATIVE_FACT_MAX_PATHS);
+}
+
+function collectFrameworks(ri: RepoIntelligence): string[] {
+  return uniqueStrings(ri.frameworks ?? []);
+}
+
+function collectCodeHotspots(
+  ri: RepoIntelligence,
+  primary: string | null,
+): ScanNarrativeFacts["hotspots"] {
+  const hotspots: ScanNarrativeFacts["hotspots"] = [];
+  const pkgIntel =
+    primary && ri.packages?.[primary] ? ri.packages[primary] : undefined;
+  const riHotspots = ri.hotspots ?? pkgIntel?.hotspots ?? [];
+  for (const h of riHotspots) {
+    const name = (h.packageName ?? primary ?? "").trim();
+    if (!name) continue;
+    hotspots.push({
+      packageName: name,
+      source: h.source === "graph" ? "graph" : "code",
+      depth: h.depth,
+      paths: uniqueStrings(h.paths ?? []),
+    });
+  }
+  return hotspots;
+}
+
+function mergeGraphHotspots(
+  codeHotspots: ScanNarrativeFacts["hotspots"],
+  graphHotspots: DependencyGraphInsight[] | undefined,
+): ScanNarrativeFacts["hotspots"] {
+  const byName = new Map<string, ScanNarrativeFacts["hotspots"][number]>();
+  for (const h of codeHotspots) {
+    byName.set(h.packageName, h);
+  }
+  for (const g of graphHotspots ?? []) {
+    const name = g.packageName?.trim();
+    if (!name || byName.has(name)) continue;
+    byName.set(name, {
+      packageName: name,
+      source: "graph",
+      depth: g.depth,
+      paths: [],
+    });
+  }
+  return [...byName.values()].slice(0, NARRATIVE_FACT_MAX_HOTSPOTS);
+}
+
 function extractTier1FromRepoIntelligence(
   ri: RepoIntelligence,
   changed: ScanNarrativeFacts["changedPackages"],
 ): Pick<
   ScanNarrativeFacts,
+  | "packageUsage"
+  | "frameworks"
   | "runtimeSurface"
   | "reachability"
   | "blastRadius"
@@ -61,6 +207,10 @@ function extractTier1FromRepoIntelligence(
   const pkgIntel =
     primary && ri.packages?.[primary] ? ri.packages[primary] : undefined;
 
+  const packageUsage = collectPackageUsageForChanged(ri, changed);
+  const frameworks = collectFrameworks(ri);
+  const paths = allUsagePaths(packageUsage);
+
   const runtimeRaw = pkgIntel?.runtimeSurface ?? ri.runtimeSurface ?? undefined;
   const reachRaw = pkgIntel?.reachability ?? ri.reachability ?? undefined;
 
@@ -68,28 +218,13 @@ function extractTier1FromRepoIntelligence(
     readSurfaceFromLoose(runtimeRaw) ?? (primary ? "unknown" : null);
   const reachKind = readReachabilityFromLoose(reachRaw);
 
-  const usageEntry =
-    pkgIntel?.usage ??
-    pkgIntel?.packageUsage ??
-    ri.packageUsage?.find(
-      (u) =>
-        (u.packageName ?? u.package) === primary ||
-        changed.all.includes(u.packageName ?? u.package ?? ""),
-    );
-
-  const paths = [
-    ...(usageEntry?.paths ?? []),
-    ...(usageEntry?.criticalPaths ?? []),
-    ...(usageEntry?.files ?? []),
-  ].filter(Boolean);
-
   const runtimeSurface =
     runtimeKind != null
       ? {
           kind: runtimeKind,
           evidence: {
             packages: primary ? [primary] : changed.all.slice(0, 3),
-            paths: paths.length > 0 ? paths.slice(0, 8) : undefined,
+            paths,
           },
         }
       : null;
@@ -98,8 +233,8 @@ function extractTier1FromRepoIntelligence(
     ? {
         kind: reachKind,
         evidence: {
-          paths: paths.length > 0 ? paths.slice(0, 8) : undefined,
-          frameworks: ri.frameworks?.length ? ri.frameworks : undefined,
+          paths,
+          frameworks,
         },
       }
     : null;
@@ -116,49 +251,43 @@ function extractTier1FromRepoIntelligence(
         level: blastLevel,
         changedPackageCount:
           blastFromRi?.changedPackageCount ?? changed.all.length,
-        factors: blastFromRi?.factors,
+        factors: uniqueStrings(blastFromRi?.factors ?? []),
       }
     : null;
 
   const areasRaw = ri.applicationAreas ?? ri.affectedAreas ?? [];
-  const usageAreas = usageEntry?.areas ?? pkgIntel?.areas ?? [];
   const affectedAreas: ScanNarrativeFacts["affectedAreas"] = [];
 
   for (const area of areasRaw) {
     affectedAreas.push({ id: area.id, label: area.label });
   }
-  for (const label of usageAreas) {
-    const id = label.toLowerCase().replace(/\s+/g, "_");
-    if (!affectedAreas.some((a) => a.id === id)) {
-      affectedAreas.push({ id, label });
+  for (const row of packageUsage) {
+    for (const label of row.areas) {
+      const id = label.toLowerCase().replace(/\s+/g, "_");
+      if (!affectedAreas.some((a) => a.id === id)) {
+        affectedAreas.push({ id, label });
+      }
     }
   }
 
-  const hotspots: ScanNarrativeFacts["hotspots"] = [];
-  const riHotspots = ri.hotspots ?? pkgIntel?.hotspots ?? [];
-  for (const h of riHotspots) {
-    const name = h.packageName ?? primary;
-    if (!name) continue;
-    hotspots.push({
-      packageName: name,
-      source: h.source === "graph" ? "graph" : "code",
-      depth: h.depth,
-      paths: h.paths,
-    });
-  }
+  const codeHotspots = collectCodeHotspots(ri, primary);
 
   return {
+    packageUsage,
+    frameworks,
     runtimeSurface,
     reachability,
     blastRadius,
-    affectedAreas: affectedAreas.slice(0, 6),
-    hotspots: hotspots.slice(0, 8),
+    affectedAreas: affectedAreas.slice(0, NARRATIVE_FACT_MAX_AREAS),
+    hotspots: codeHotspots.slice(0, NARRATIVE_FACT_MAX_HOTSPOTS),
   };
 }
 
 function hasMeaningfulTier1(
   tier1: Pick<
     ScanNarrativeFacts,
+    | "packageUsage"
+    | "frameworks"
     | "runtimeSurface"
     | "reachability"
     | "blastRadius"
@@ -167,6 +296,8 @@ function hasMeaningfulTier1(
   >,
 ): boolean {
   return (
+    tier1.packageUsage.length > 0 ||
+    tier1.frameworks.length > 0 ||
     tier1.runtimeSurface != null ||
     tier1.reachability != null ||
     tier1.blastRadius != null ||
@@ -270,6 +401,37 @@ function resolveAvailabilityMode(
   return "graph_fallback";
 }
 
+function emptyTier1Blocks(): Pick<
+  ScanNarrativeFacts,
+  | "packageUsage"
+  | "frameworks"
+  | "runtimeSurface"
+  | "reachability"
+  | "blastRadius"
+  | "affectedAreas"
+  | "hotspots"
+> {
+  return {
+    packageUsage: [],
+    frameworks: [],
+    runtimeSurface: null,
+    reachability: null,
+    blastRadius: null,
+    affectedAreas: [],
+    hotspots: [],
+  };
+}
+
+function blastRadiusFromChangedCount(
+  count: number,
+): ScanNarrativeFacts["blastRadius"] {
+  return {
+    level: blastLevelFromChangedCount(count),
+    changedPackageCount: count,
+    factors: [],
+  };
+}
+
 /**
  * Consumer-agnostic scan intelligence — structured facts only (no UI copy).
  */
@@ -294,35 +456,21 @@ export function deriveScanNarrative(
   const parsedRi = parseRepoIntelligence(result.repoIntelligence);
   const corpusGate = codeIntelligenceAvailable && parsedRi != null;
 
-  let tier1Blocks: Pick<
-    ScanNarrativeFacts,
-    | "runtimeSurface"
-    | "reachability"
-    | "blastRadius"
-    | "affectedAreas"
-    | "hotspots"
-  > = {
-    runtimeSurface: null,
-    reachability: null,
-    blastRadius: null,
-    affectedAreas: [],
-    hotspots: [],
-  };
+  let tier1Blocks = emptyTier1Blocks();
 
   if (corpusGate && parsedRi) {
     tier1Blocks = extractTier1FromRepoIntelligence(parsedRi, changedPackages);
   } else if (changedPackages.all.length > 0) {
     tier1Blocks = {
-      runtimeSurface: null,
-      reachability: null,
-      blastRadius: {
-        level: blastLevelFromChangedCount(changedPackages.all.length),
-        changedPackageCount: changedPackages.all.length,
-      },
-      affectedAreas: [],
-      hotspots: [],
+      ...emptyTier1Blocks(),
+      blastRadius: blastRadiusFromChangedCount(changedPackages.all.length),
     };
   }
+
+  tier1Blocks.hotspots = mergeGraphHotspots(
+    tier1Blocks.hotspots,
+    result.graphInsights?.hotspots,
+  );
 
   const tier1 = corpusGate && hasMeaningfulTier1(tier1Blocks);
   const reviewerGuidance = collectReviewerGuidance(result);
@@ -349,10 +497,9 @@ export function deriveScanNarrative(
   };
 
   if (!tier1 && mode === "graph_fallback" && changedPackages.all.length > 0) {
-    tier1Blocks.blastRadius = {
-      level: blastLevelFromChangedCount(changedPackages.all.length),
-      changedPackageCount: changedPackages.all.length,
-    };
+    tier1Blocks.blastRadius = blastRadiusFromChangedCount(
+      changedPackages.all.length,
+    );
   }
 
   let affectedAreas = tier1Blocks.affectedAreas;
@@ -374,6 +521,8 @@ export function deriveScanNarrative(
       },
     },
     changedPackages,
+    packageUsage: tier1Blocks.packageUsage,
+    frameworks: tier1Blocks.frameworks,
     runtimeSurface: tier1Blocks.runtimeSurface,
     reachability: tier1Blocks.reachability,
     blastRadius: tier1Blocks.blastRadius,

@@ -5,6 +5,7 @@ import {
 import {
   aggregateFindingCounts,
   deriveRiskIndexBand,
+  SCAN_CARD_SCANNING_SUMMARY,
   type FindingCountSummary,
   type ScanCardSummary,
   type ScanPipelineStatus,
@@ -15,6 +16,22 @@ import {
   type CardExposureDisplay,
 } from "./formatCardExposureDisplay.js";
 import { formatCardAreaLabels } from "./formatCardAreaLabels.js";
+import {
+  composeContextLineFromFacts,
+  composeVerificationPrompt,
+  formatBlastRadiusDetailLine,
+  formatChangedPackagesShort,
+  formatFrameworksSummary,
+  formatUsageSummaryLine,
+  labelBlastRadiusLevel,
+  labelReachabilityKind,
+  labelRuntimeSurface,
+  selectReviewerGuidance,
+} from "./narrativePresentation.js";
+import {
+  normalizeGeneratedText,
+  normalizeGeneratedTextNullable,
+} from "./normalizeGeneratedText.js";
 import { MERGE_POSTURE_LABEL, type MergePosture } from "./riskVocabulary.js";
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
 import type { ScanResult } from "./types.js";
@@ -23,33 +40,6 @@ export type PresentScanCardSummaryOptions = {
   pipelineStatus?: ScanPipelineStatus;
   findings?: ScanResult["findings"];
 };
-
-function formatChangedPackagesDisplay(
-  facts: ScanNarrativeFacts,
-): string | null {
-  const { primary, others } = facts.changedPackages;
-  if (!primary) return null;
-  if (others.length === 0) return primary;
-  return `${primary} +${others.length}`;
-}
-
-function labelRuntimeSurface(facts: ScanNarrativeFacts): string | null {
-  const rs = facts.runtimeSurface;
-  if (!rs) return null;
-  return scanSurfaceCopy.narrativeCard.runtimeSurface[rs.kind];
-}
-
-function labelReachability(facts: ScanNarrativeFacts): string | null {
-  const r = facts.reachability;
-  if (!r) return null;
-  return scanSurfaceCopy.narrativeCard.reachability[r.kind];
-}
-
-function labelBlastRadius(facts: ScanNarrativeFacts): string | null {
-  const br = facts.blastRadius;
-  if (!br) return null;
-  return scanSurfaceCopy.narrativeCard.blastRadius[br.level];
-}
 
 function formatAffectedAreaLabels(facts: ScanNarrativeFacts): string[] {
   const ordered: string[] = [];
@@ -89,7 +79,10 @@ function selectSecondaryLines(
   return lines;
 }
 
-function repositoryContextPhrases(facts: ScanNarrativeFacts): CatalogPhrase[] {
+function repositoryContextPhrases(
+  facts: ScanNarrativeFacts,
+  max: number,
+): CatalogPhrase[] {
   const phrases: CatalogPhrase[] = [];
   const seen = new Set<string>();
   for (const ctx of facts.repositoryContext) {
@@ -97,32 +90,17 @@ function repositoryContextPhrases(facts: ScanNarrativeFacts): CatalogPhrase[] {
     if (seen.has(phrase)) continue;
     seen.add(phrase);
     phrases.push(phrase);
-    if (phrases.length >= 3) break;
+    if (phrases.length >= max) break;
   }
   return phrases;
-}
-
-function composeContextLine(facts: ScanNarrativeFacts): string | null {
-  const parts: string[] = [];
-  const runtime = labelRuntimeSurface(facts);
-  const reach = labelReachability(facts);
-  const blast = labelBlastRadius(facts);
-  if (runtime) parts.push(runtime);
-  if (reach) parts.push(reach);
-  if (blast) parts.push(blast);
-  const areas = formatAffectedAreaLabels(facts);
-  if (areas.length > 0) {
-    parts.push(areas.join(scanSurfaceCopy.narrativeCard.areasSeparator));
-  }
-  if (parts.length === 0) return null;
-  return parts.join(scanSurfaceCopy.narrativeCard.contextSeparator);
 }
 
 function buildLegacyObservations(
   facts: ScanNarrativeFacts,
   primaryInsight: string | null,
+  repoPhraseCap: number,
 ): { operationalObservations: CatalogPhrase[]; supportingLine: string | null } {
-  const repoPhrases = repositoryContextPhrases(facts);
+  const repoPhrases = repositoryContextPhrases(facts, repoPhraseCap);
   const secondary = selectSecondaryLines(facts, primaryInsight);
 
   if (primaryInsight) {
@@ -140,8 +118,46 @@ function buildLegacyObservations(
   }
 
   return {
-    operationalObservations: repoPhrases.slice(0, 3),
+    operationalObservations: repoPhrases.slice(0, repoPhraseCap),
     supportingLine: repoPhrases.length === 1 ? (secondary[0] ?? null) : null,
+  };
+}
+
+function normalizeCardSummary(summary: ScanCardSummary): ScanCardSummary {
+  return {
+    ...summary,
+    headline: normalizeGeneratedText(summary.headline),
+    summaryLine: normalizeGeneratedTextNullable(summary.summaryLine),
+    supportingLine: normalizeGeneratedTextNullable(summary.supportingLine),
+    changedPackagesDisplay: normalizeGeneratedTextNullable(
+      summary.changedPackagesDisplay,
+    ),
+    runtimeSurfaceLabel: normalizeGeneratedTextNullable(
+      summary.runtimeSurfaceLabel,
+    ),
+    reachabilityLabel: normalizeGeneratedTextNullable(
+      summary.reachabilityLabel,
+    ),
+    blastRadiusLabel: normalizeGeneratedTextNullable(summary.blastRadiusLabel),
+    primaryInsight: normalizeGeneratedTextNullable(summary.primaryInsight),
+    structuralOnlyDisclaimer: normalizeGeneratedTextNullable(
+      summary.structuralOnlyDisclaimer,
+    ),
+    usageSummary: normalizeGeneratedTextNullable(summary.usageSummary),
+    verificationLine: normalizeGeneratedTextNullable(summary.verificationLine),
+    blastRadiusDetail: normalizeGeneratedTextNullable(
+      summary.blastRadiusDetail,
+    ),
+    frameworksSummary: normalizeGeneratedTextNullable(
+      summary.frameworksSummary,
+    ),
+    affectedAreas: summary.affectedAreas.map((a) => normalizeGeneratedText(a)),
+    topAffectedAreas: summary.topAffectedAreas.map((a) =>
+      normalizeGeneratedText(a),
+    ),
+    operationalObservations: summary.operationalObservations.map((p) =>
+      normalizeGeneratedText(p),
+    ),
   };
 }
 
@@ -163,25 +179,29 @@ export function presentScanCardSummary(
     affectedAreas: [] as string[],
     primaryInsight: null as string | null,
     structuralOnlyDisclaimer: null as string | null,
+    usageSummary: null as string | null,
+    verificationLine: null as string | null,
+    blastRadiusDetail: null as string | null,
+    frameworksSummary: null as string | null,
   };
 
   if (pipelineStatus === "queued" || pipelineStatus === "running") {
-    return {
+    return normalizeCardSummary({
       mergePosture: null,
       riskIndex: null,
       riskIndexBand: null,
       headline: scanSurfaceCopy.pipeline.scanRunning,
-      summaryLine: "Waiting for results…",
+      summaryLine: SCAN_CARD_SCANNING_SUMMARY,
       findingCounts: null,
       topAffectedAreas: [],
       operationalObservations: [],
       supportingLine: null,
       ...emptyPresentationFields,
-    };
+    });
   }
 
   if (pipelineStatus === "failed") {
-    return {
+    return normalizeCardSummary({
       mergePosture: null,
       riskIndex: null,
       riskIndexBand: null,
@@ -192,7 +212,7 @@ export function presentScanCardSummary(
       operationalObservations: [],
       supportingLine: null,
       ...emptyPresentationFields,
-    };
+    });
   }
 
   const posture = facts.mergePosture;
@@ -206,12 +226,19 @@ export function presentScanCardSummary(
     ? aggregateFindingCounts(options.findings)
     : null;
 
-  const changedPackagesDisplay = formatChangedPackagesDisplay(facts);
+  const prIntelligence =
+    facts.availability.mode === "pr_intelligence" ||
+    facts.availability.tiersPresent.tier1;
+
+  const changedPackagesDisplay = formatChangedPackagesShort(facts, 2);
   const runtimeSurfaceLabel = labelRuntimeSurface(facts);
-  const reachabilityLabel = labelReachability(facts);
-  const blastRadiusLabel = labelBlastRadius(facts);
+  const reachabilityLabel = labelReachabilityKind(facts);
+  const blastRadiusLabel = labelBlastRadiusLevel(facts);
   const affectedAreas = formatAffectedAreaLabels(facts);
-  const contextLine = composeContextLine(facts);
+  const contextLine = composeContextLineFromFacts(facts, {
+    includePathSample: prIntelligence,
+    maxAreas: 2,
+  });
 
   const structuralOnlyDisclaimer =
     facts.availability.mode === "graph_fallback" &&
@@ -224,12 +251,25 @@ export function presentScanCardSummary(
     insightMessage ??
     (facts.availability.mode !== "graph_fallback" ? contextLine : null);
 
+  const usageSummary = prIntelligence ? formatUsageSummaryLine(facts, 1) : null;
+  const verificationLine = prIntelligence
+    ? composeVerificationPrompt(facts)
+    : null;
+  const blastRadiusDetail = prIntelligence
+    ? formatBlastRadiusDetailLine(facts, 1)
+    : null;
+  const frameworksSummary = prIntelligence
+    ? formatFrameworksSummary(facts, 2)
+    : null;
+
+  const repoPhraseCap = prIntelligence ? 0 : 3;
   const { operationalObservations, supportingLine } = buildLegacyObservations(
     facts,
     primaryInsight,
+    repoPhraseCap,
   );
 
-  return {
+  return normalizeCardSummary({
     mergePosture: posture,
     riskIndex,
     riskIndexBand,
@@ -248,7 +288,11 @@ export function presentScanCardSummary(
     affectedAreas,
     primaryInsight,
     structuralOnlyDisclaimer,
-  };
+    usageSummary,
+    verificationLine,
+    blastRadiusDetail,
+    frameworksSummary,
+  });
 }
 
 export type { CardExposureDisplay, MergePosture };

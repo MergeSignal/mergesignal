@@ -39,6 +39,9 @@ function layerSignalTone(
 }
 
 function upgradeContextParts(ctx: ScanDetailNarrativeContext): string[] {
+  if (ctx.upgradeContextLine?.trim()) {
+    return [ctx.upgradeContextLine];
+  }
   const parts: string[] = [];
   if (ctx.changedPackagesDisplay) parts.push(ctx.changedPackagesDisplay);
   if (ctx.runtimeSurfaceLabel) parts.push(ctx.runtimeSurfaceLabel);
@@ -46,6 +49,20 @@ function upgradeContextParts(ctx: ScanDetailNarrativeContext): string[] {
   if (ctx.blastRadiusLabel) parts.push(ctx.blastRadiusLabel);
   if (ctx.affectedAreas.length > 0) parts.push(ctx.affectedAreas.join(" · "));
   return parts;
+}
+
+function usageInCodebaseLines(ctx: ScanDetailNarrativeContext): string[] {
+  const lines: string[] = [];
+  if (ctx.usageContextLine) lines.push(ctx.usageContextLine);
+  if (ctx.frameworks.length > 0) {
+    lines.push(`Frameworks: ${ctx.frameworks.slice(0, 3).join(", ")}`);
+  }
+  if (ctx.blastRadiusFactors.length > 0) {
+    lines.push(
+      `Blast radius drivers: ${ctx.blastRadiusFactors.slice(0, 3).join(", ")}`,
+    );
+  }
+  return lines;
 }
 
 export function SignalSummaryPanel({
@@ -61,7 +78,9 @@ export function SignalSummaryPanel({
   const detailCopy = scanSurfaceCopy.scanDetail;
   const signalCopy = scanSurfaceCopy.scanDetail.signalSummary;
   const upgradeParts = upgradeContextParts(narrativeContext);
+  const usageLines = usageInCodebaseLines(narrativeContext);
   const showUpgradeContext = upgradeParts.length > 0;
+  const showUsageBlock = usageLines.length > 0;
 
   return (
     <MSCard
@@ -96,6 +115,16 @@ export function SignalSummaryPanel({
             {detailCopy.upgradeContextHeading}
           </h3>
           <p className={styles.sectionBody}>{upgradeParts.join(" · ")}</p>
+          {showUsageBlock ? (
+            <>
+              <h3 className={styles.sectionSubheading}>Usage in codebase</h3>
+              {usageLines.map((line) => (
+                <p key={line} className={styles.sectionBody}>
+                  {line}
+                </p>
+              ))}
+            </>
+          ) : null}
           {narrativeContext.structuralOnlyDisclaimer ? (
             <p className={styles.sectionMeta}>
               {narrativeContext.structuralOnlyDisclaimer}

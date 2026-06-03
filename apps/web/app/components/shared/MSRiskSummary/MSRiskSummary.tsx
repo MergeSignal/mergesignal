@@ -73,9 +73,17 @@ export function MSRiskSummary({
         ? summary.supportingLine
         : null;
 
+  const intelligenceSublines = [
+    summary.usageSummary,
+    summary.blastRadiusDetail,
+    summary.frameworksSummary,
+    summary.verificationLine,
+  ].filter((s): s is string => Boolean(s?.trim()));
+
   const hasBody =
     Boolean(summary.changedPackagesDisplay) ||
     Boolean(contextLine) ||
+    intelligenceSublines.length > 0 ||
     Boolean(primaryInsight) ||
     Boolean(summary.structuralOnlyDisclaimer) ||
     repoObservations.length > 0 ||
@@ -92,6 +100,7 @@ export function MSRiskSummary({
   const ariaObservations = [
     summary.changedPackagesDisplay,
     contextLine,
+    ...intelligenceSublines,
     primaryInsight,
     ...secondaryObservations,
     primaryRepoObservation,
@@ -130,6 +139,12 @@ export function MSRiskSummary({
           )}
 
           {contextLine && <p className={styles.contextMeta}>{contextLine}</p>}
+
+          {intelligenceSublines.map((line) => (
+            <p key={line} className={styles.whySubordinate}>
+              {line}
+            </p>
+          ))}
 
           {summary.structuralOnlyDisclaimer && (
             <p className={styles.structuralDisclaimer}>

@@ -65,7 +65,7 @@ export function mergePostureFromDecision(
 /** Returns the display label for a decision, or a fallback string. */
 export function mergePostureLabel(
   decision: string | null | undefined,
-  fallback = "—",
+  fallback = "-",
 ): string {
   const posture = mergePostureFromDecision(decision);
   return posture ? MERGE_POSTURE_LABEL[posture] : fallback;

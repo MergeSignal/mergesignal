@@ -49,3 +49,50 @@ export const fixtureRepoIntelligenceTypescript: RepoIntelligence = {
 export const fixtureRepoIntelligenceEmpty: RepoIntelligence = {
   packages: {},
 };
+
+/** Multi-package PR with distinct usage per package. */
+export const fixtureRepoIntelligenceMultiPackage: RepoIntelligence = {
+  packages: {
+    lodash: {
+      runtimeSurface: "runtime",
+      reachability: "on_runtime_paths",
+      usage: {
+        packageName: "lodash",
+        paths: ["apps/billing/export.ts"],
+        areas: ["Billing"],
+      },
+    },
+    axios: {
+      runtimeSurface: "runtime",
+      reachability: "on_runtime_paths",
+      usage: {
+        packageName: "axios",
+        paths: ["apps/api/client.ts"],
+        areas: ["API"],
+      },
+    },
+  },
+  packageUsage: [
+    {
+      packageName: "lodash",
+      paths: ["apps/billing/export.ts"],
+    },
+    {
+      packageName: "axios",
+      paths: ["apps/api/client.ts"],
+    },
+  ],
+  blastRadius: {
+    level: "moderate",
+    factors: ["multiple_runtime_consumers", "shared_middleware"],
+    changedPackageCount: 2,
+  },
+  frameworks: ["express", "react"],
+  hotspots: [
+    {
+      packageName: "lodash",
+      source: "code",
+      paths: ["apps/billing/export.ts"],
+    },
+  ],
+};
