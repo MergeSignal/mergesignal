@@ -28,6 +28,10 @@ function makeCardSummary(
     affectedAreas: [],
     primaryInsight: null,
     structuralOnlyDisclaimer: null,
+    usageSummary: null,
+    verificationLine: null,
+    blastRadiusDetail: null,
+    frameworksSummary: null,
     ...overrides,
   };
 }
