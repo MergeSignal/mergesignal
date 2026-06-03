@@ -1,5 +1,4 @@
 import {
-  isPipelineCardSummary,
   isPipelinePlaceholderCopy,
   mergePostureFromDecision,
   MERGE_POSTURE_SORT_ORDER,
@@ -127,25 +126,29 @@ function derivePresentationState(
 function cardSummaryForRow(scan: PrScanEntry | null): ScanCardSummary | null {
   if (!scan) return null;
 
-  if (scan.cardSummary && !isPipelineCardSummary(scan.cardSummary)) {
-    return scan.cardSummary;
+  const effectivePipeline = pipelineForScan(scan);
+  const stored = scan.cardSummary;
+  const trustStoredSummary =
+    stored != null &&
+    stored.mergePosture != null &&
+    !isPipelinePlaceholderCopy(stored.summaryLine);
+
+  if (trustStoredSummary) {
+    return stored;
   }
 
   const legacySummaryText = isPipelinePlaceholderCopy(scan.summaryText)
     ? null
     : scan.summaryText;
 
-  const derived = resolvePrScanCardSummary({
-    pipelineStatus: scan.pipelineStatus ?? scan.status,
-    decision: scan.decision ?? scan.cardSummary?.mergePosture ?? null,
-    totalScore: scan.totalScore ?? scan.cardSummary?.riskIndex ?? null,
-    summaryText: legacySummaryText ?? scan.cardSummary?.summaryLine ?? null,
+  return resolvePrScanCardSummary({
+    pipelineStatus: effectivePipeline,
+    decision: scan.decision ?? stored?.mergePosture ?? null,
+    totalScore: scan.totalScore ?? stored?.riskIndex ?? null,
+    summaryText: legacySummaryText ?? stored?.summaryLine ?? null,
     result: null,
     scannedAt: scan.scannedAt ?? scan.resultGeneratedAt ?? null,
   });
-
-  if (!isPipelineCardSummary(derived)) return derived;
-  return derived;
 }
 
 function timestampForRow(
