@@ -3,6 +3,7 @@ import { deriveScanNarrative } from "./deriveScanNarrative.js";
 import {
   fixtureRepoIntelligenceEmpty,
   fixtureRepoIntelligenceFastify,
+  fixtureRepoIntelligenceTypescript,
 } from "./fixtures/repoIntelligenceFixtures.js";
 import type { ScanResult } from "./types.js";
 
@@ -94,6 +95,21 @@ describe("deriveScanNarrative", () => {
     expect(facts.availability.mode).toBe("graph_fallback");
     expect(facts.repositoryContext.length).toBeGreaterThan(0);
     expect(facts.repositoryContext[0]?.family).toBe("transitive_volume");
+  });
+
+  it("populates build-only runtime surface from repoIntelligence", () => {
+    const result = {
+      ...baseResult,
+      changedPackages: ["typescript"],
+      analysisPreparation: { codeIntelligenceAvailable: true, warnings: [] },
+      repoIntelligence: fixtureRepoIntelligenceTypescript,
+    } satisfies ScanResult;
+
+    const facts = deriveScanNarrative(result);
+    expect(facts.availability.mode).toBe("pr_intelligence");
+    expect(facts.runtimeSurface?.kind).toBe("build");
+    expect(facts.reachability?.kind).toBe("build_only");
+    expect(facts.blastRadius?.level).toBe("narrow");
   });
 
   it("treats empty packages-only repoIntelligence as absent", () => {
