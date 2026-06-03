@@ -193,6 +193,9 @@ export default function ScanClient({
             verdict={viewModel.verdict}
             signalSummary={viewModel.signalSummary}
             followUpBridgeNote={viewModel.followUpBridgeNote}
+            narrativeContext={viewModel.narrativeContext}
+            becauseThemes={viewModel.because?.themes}
+            confidenceCaveat={viewModel.because?.confidenceCaveat}
           />
           <RecommendedActionsPanel
             recommendedActions={viewModel.recommendedActions}

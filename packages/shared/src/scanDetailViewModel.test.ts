@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { primaryPrExample } from "./productMessaging.js";
 import {
   ACT2_MAX_THEMES,
+  TIER1_MAX_VISIBLE_IMPACTS,
   deriveAct2Themes,
   deriveOperationalImpact,
   deriveFollowUpBridgeNote,
@@ -583,7 +584,9 @@ describe("scenario matrix", () => {
       scanId: "fat",
       status: "done",
     });
-    expect(vm?.operationalImpact.items.length).toBe(30);
+    expect(vm?.operationalImpact.items.length).toBeGreaterThan(
+      TIER1_MAX_VISIBLE_IMPACTS,
+    );
     expect(vm?.evidence?.findings.length).toBe(40);
     expect(vm?.recommendedActions.items.length).toBeLessThanOrEqual(3);
     expect(

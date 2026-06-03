@@ -10,6 +10,8 @@ import {
   phraseForFamily,
   type CatalogPhrase,
 } from "./cardObservationCatalog.js";
+import { deriveScanNarrative } from "./deriveScanNarrative.js";
+import { presentScanCardSummary } from "./presentScanCardSummary.js";
 import { deriveCardOperationalObservations } from "./deriveCardOperationalObservations.js";
 import {
   deriveScanDetailRecommendations,
@@ -121,6 +123,17 @@ export type ScanDetailTopology = {
   }>;
 };
 
+export type ScanDetailNarrativeContext = {
+  mode: import("./scanNarrativeFacts.js").NarrativeAvailabilityMode;
+  codeIntelligenceAvailable: boolean;
+  changedPackagesDisplay: string | null;
+  runtimeSurfaceLabel: string | null;
+  reachabilityLabel: string | null;
+  blastRadiusLabel: string | null;
+  affectedAreas: string[];
+  structuralOnlyDisclaimer: string | null;
+};
+
 export type ScanDetailViewModel = {
   verdict: ScanDetailVerdict;
   signalSummary: ScanDetailSignalSummary | null;
@@ -137,12 +150,14 @@ export type ScanDetailViewModel = {
   repoContext:
     | { status: "hidden" }
     | { status: "loaded"; comparisonLine: string };
+  narrativeContext: ScanDetailNarrativeContext;
   metadata: {
     scanId: string;
     generatedAt?: string;
     methodologyVersion?: string | null;
     changedPackagesSummary?: string;
     codeAnalysisTimedOut?: boolean;
+    codeIntelligenceAvailable?: boolean;
   };
 };
 
@@ -547,63 +562,163 @@ function deriveConfidenceCaveat(result: ScanResult): string | undefined {
   return undefined;
 }
 
-function changedPackagesSummary(
-  changed: string[] | undefined,
-): string | undefined {
-  if (!changed?.length) return undefined;
-  if (changed.length === 1) return changed[0]!;
-  return `${changed[0]} +${changed.length - 1} changed`;
+function narrativeContextFromFacts(
+  facts: import("./scanNarrativeFacts.js").ScanNarrativeFacts,
+): ScanDetailNarrativeContext {
+  const card = presentScanCardSummary(facts);
+  return {
+    mode: card.narrativeMode,
+    codeIntelligenceAvailable: card.codeIntelligenceAvailable,
+    changedPackagesDisplay: card.changedPackagesDisplay,
+    runtimeSurfaceLabel: card.runtimeSurfaceLabel,
+    reachabilityLabel: card.reachabilityLabel,
+    blastRadiusLabel: card.blastRadiusLabel,
+    affectedAreas: card.affectedAreas,
+    structuralOnlyDisclaimer: card.structuralOnlyDisclaimer,
+  };
 }
 
-export function deriveScanDetailViewModel(
-  result: ScanResult | null | undefined,
-  options: DeriveScanDetailOptions,
-): ScanDetailViewModel | null {
-  if (!result || options.status !== "done") return null;
+function guidanceToImpactItem(
+  g: import("./scanNarrativeFacts.js").ScanNarrativeFacts["reviewerGuidance"][number],
+  verifyLabels: Set<string>,
+): ScanDetailOperationalImpactItem {
+  const verify =
+    g.remediation &&
+    !verifyLabels.has(g.remediation.toLowerCase().replace(/\s+/g, " ").trim())
+      ? g.remediation
+      : undefined;
+  return {
+    message: g.message,
+    where: g.context,
+    verify,
+    affectedFiles: g.affectedFiles,
+  };
+}
 
+function deriveOperationalImpactFromFacts(
+  facts: import("./scanNarrativeFacts.js").ScanNarrativeFacts,
+  result: ScanResult,
+  verifyLabels: Set<string>,
+): ScanDetailOperationalImpact {
+  const changedGuidance = facts.reviewerGuidance.filter(
+    (g) => g.scope === "changed" || g.kind === "insight",
+  );
+
+  if (
+    facts.availability.mode === "pr_intelligence" ||
+    (facts.availability.tiersPresent.tier1 && changedGuidance.length > 0)
+  ) {
+    const items = changedGuidance
+      .slice(0, 6)
+      .map((g) => guidanceToImpactItem(g, verifyLabels));
+    if (items.length > 0) {
+      return { status: "rich", items };
+    }
+  }
+
+  if (changedGuidance.length > 0) {
+    const insightCount = Array.isArray(result.insights)
+      ? result.insights.length
+      : 0;
+    if (insightCount > TIER1_MAX_VISIBLE_IMPACTS) {
+      return deriveOperationalImpact(result, verifyLabels);
+    }
+    return {
+      status: "rich",
+      items: changedGuidance
+        .slice(0, 6)
+        .map((g) => guidanceToImpactItem(g, verifyLabels)),
+    };
+  }
+
+  return deriveOperationalImpact(result, verifyLabels);
+}
+
+function deriveBecauseThemesFromFacts(
+  facts: import("./scanNarrativeFacts.js").ScanNarrativeFacts,
+): string[] {
+  const themes: string[] = [];
+  const seen = new Set<string>();
+
+  for (const g of facts.reviewerGuidance.slice(0, ACT2_MAX_THEMES + 2)) {
+    const sanitized = sanitizeAct2Theme(g.message);
+    if (!sanitized) continue;
+    const key = sanitized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    themes.push(sanitized);
+    if (themes.length >= ACT2_MAX_THEMES) break;
+  }
+
+  if (themes.length < ACT2_MAX_THEMES) {
+    for (const ctx of facts.repositoryContext) {
+      const sanitized = sanitizeAct2Theme(phraseForFamily(ctx.family));
+      if (!sanitized) continue;
+      const key = sanitized.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      themes.push(sanitized);
+      if (themes.length >= ACT2_MAX_THEMES) break;
+    }
+  }
+
+  return themes;
+}
+
+function deriveVerdictLineFromFacts(
+  facts: import("./scanNarrativeFacts.js").ScanNarrativeFacts,
+  result: ScanResult,
+): string {
+  const topGuidance = facts.reviewerGuidance.find(
+    (g) => (g.scope === "changed" || g.kind === "insight") && g.message.trim(),
+  );
+  if (topGuidance) {
+    return truncateWithEllipsis(
+      topGuidance.message.trim(),
+      VERDICT_LINE_MAX_CHARS,
+    );
+  }
   const posture = mergePostureFromDecision(result.decision?.recommendation);
-  const scopeChip = deriveDetailReachChip(result.totalScore);
-  const verdictLine = truncateWithEllipsis(
+  return truncateWithEllipsis(
     deriveVerdictLine(posture, result.totalScore),
     VERDICT_LINE_MAX_CHARS,
   );
+}
+
+/** Scan detail presentation from shared narrative facts. */
+export function presentScanDetailViewModel(
+  facts: import("./scanNarrativeFacts.js").ScanNarrativeFacts,
+  result: ScanResult,
+  options: DeriveScanDetailOptions,
+): ScanDetailViewModel {
+  const posture = mergePostureFromDecision(result.decision?.recommendation);
+  const scopeChip = deriveDetailReachChip(result.totalScore);
+  const verdictLine = deriveVerdictLineFromFacts(facts, result);
+  const narrativeContext = narrativeContextFromFacts(facts);
 
   const recommendedActions = deriveScanDetailRecommendations(result);
   const signalSummary = deriveSignalSummary(result);
   const verifyLabels = recommendationTitlesForDedupe(recommendedActions);
-  const operationalImpact = deriveOperationalImpact(result, verifyLabels);
-  const themes = deriveAct2Themes(result);
+  const operationalImpact = deriveOperationalImpactFromFacts(
+    facts,
+    result,
+    verifyLabels,
+  );
+
+  const themes = deriveBecauseThemesFromFacts(facts);
   const confidenceCaveat = deriveConfidenceCaveat(result);
   const because =
-    themes.length > 0 || confidenceCaveat
-      ? {
-          themes,
-          confidenceCaveat,
-        }
-      : null;
+    themes.length > 0 || confidenceCaveat ? { themes, confidenceCaveat } : null;
 
   const attentionAreas = buildAttentionAreas(result);
   const allFindings = annotateFindingsWithCoverage(
     buildFindingRows(result),
     recommendedActions,
   );
-  const findings = allFindings;
   const topology = buildTopology(result);
 
   const hasEvidence =
-    attentionAreas.length > 0 || allFindings.length > 0 || topology !== null;
-
-  const evidence = hasEvidence
-    ? {
-        attentionAreas,
-        findings,
-        findingsOverflowCount: Math.max(
-          0,
-          allFindings.length - ACT3_EVIDENCE_COLLAPSE_THRESHOLD,
-        ),
-        topology,
-      }
-    : null;
+    attentionAreas.length > 0 || allFindings.length > 0 || topology != null;
 
   return {
     verdict: {
@@ -619,16 +734,40 @@ export function deriveScanDetailViewModel(
     recommendedActions,
     operationalImpact,
     because,
-    evidence,
+    evidence: hasEvidence
+      ? {
+          attentionAreas,
+          findings: allFindings,
+          findingsOverflowCount: Math.max(
+            0,
+            allFindings.length - ACT3_EVIDENCE_COLLAPSE_THRESHOLD,
+          ),
+          topology,
+        }
+      : null,
     repoContext: options.repoContext ?? { status: "hidden" },
+    narrativeContext,
     metadata: {
       scanId: options.scanId,
       generatedAt: result.generatedAt,
       methodologyVersion: options.methodologyVersion,
-      changedPackagesSummary: changedPackagesSummary(result.changedPackages),
+      changedPackagesSummary:
+        narrativeContext.changedPackagesDisplay ??
+        facts.changedPackages.primary ??
+        undefined,
       codeAnalysisTimedOut: result.codeAnalysisMetrics?.timedOut === true,
+      codeIntelligenceAvailable: facts.availability.codeIntelligenceAvailable,
     },
   };
+}
+
+export function deriveScanDetailViewModel(
+  result: ScanResult | null | undefined,
+  options: DeriveScanDetailOptions,
+): ScanDetailViewModel | null {
+  if (!result || options.status !== "done") return null;
+  const facts = deriveScanNarrative(result);
+  return presentScanDetailViewModel(facts, result, options);
 }
 
 /** Tier 1 recall test helper — true when message describes application-level impact. */

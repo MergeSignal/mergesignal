@@ -62,6 +62,19 @@
   align-self: flex-start;
 }
 
+.upgradeContextBlock,
+.whyVerdictBlock {
+  margin-top: var(--ms-space-md);
+}
+
+.whyVerdictList {
+  margin: 0;
+  padding-inline-start: var(--ms-space-lg);
+  font-size: var(--ms-text-sm);
+  line-height: var(--ms-leading-relaxed);
+  color: var(--ms-color-text-muted);
+}
+
 .signalSummaryDivider {
   margin: var(--ms-space-md) 0;
   border-top: var(--ms-border-width) solid var(--ms-color-border);

@@ -1,12 +1,13 @@
-import { deriveCardOperationalObservations } from "./deriveCardOperationalObservations.js";
 import type { CatalogPhrase } from "./cardObservationCatalog.js";
+import { deriveScanNarrative } from "./deriveScanNarrative.js";
+import { presentScanCardSummary } from "./presentScanCardSummary.js";
+import type { NarrativeAvailabilityMode } from "./scanNarrativeFacts.js";
 import {
   mergePostureFromDecision,
   MERGE_POSTURE_LABEL,
   type MergePosture,
 } from "./riskVocabulary.js";
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
-import { selectTopAffectedAreas } from "./selectTopAffectedAreas.js";
 import type { Finding, ScanResult } from "./types.js";
 
 export type ScanPipelineStatus = "queued" | "running" | "done" | "failed";
@@ -35,12 +36,21 @@ export type ScanCardSummary = {
   /** @deprecated Use operationalObservations */
   summaryLine: string | null;
   findingCounts: FindingCountSummary | null;
-  /** @deprecated Use operationalObservations */
+  /** @deprecated Use affectedAreas */
   topAffectedAreas: string[];
-  /** Catalog-mapped topology observations (0–3). */
+  /** Catalog-mapped topology observations (0–3). Tier 3 repo context — legacy wire field. */
   operationalObservations: CatalogPhrase[];
   /** Optional quiet subline when exactly one observation is shown. */
   supportingLine: string | null;
+  narrativeMode: NarrativeAvailabilityMode;
+  codeIntelligenceAvailable: boolean;
+  changedPackagesDisplay: string | null;
+  runtimeSurfaceLabel: string | null;
+  reachabilityLabel: string | null;
+  blastRadiusLabel: string | null;
+  affectedAreas: string[];
+  primaryInsight: string | null;
+  structuralOnlyDisclaimer: string | null;
 };
 
 const STALE_SUBLINE = "Based on earlier commit";
@@ -122,7 +132,8 @@ export function isPipelineCardSummary(summary: ScanCardSummary): boolean {
     summary.riskIndex === null &&
     (summary.headline === scanSurfaceCopy.pipeline.scanRunning ||
       summary.headline === scanSurfaceCopy.pipeline.analysisIncomplete ||
-      summary.headline === scanSurfaceCopy.pipeline.scanUnavailable)
+      summary.headline === scanSurfaceCopy.pipeline.scanUnavailable) &&
+    summary.narrativeMode === "denormalized"
   );
 }
 
@@ -167,76 +178,29 @@ export function deriveScanCardSummary(
   pipelineStatus: ScanPipelineStatus,
 ): ScanCardSummary {
   if (pipelineStatus === "queued" || pipelineStatus === "running") {
-    return {
-      mergePosture: null,
-      riskIndex: null,
-      riskIndexBand: null,
-      headline: scanSurfaceCopy.pipeline.scanRunning,
-      summaryLine: SCAN_CARD_SCANNING_SUMMARY,
-      findingCounts: null,
-      topAffectedAreas: [],
-      operationalObservations: [],
-      supportingLine: null,
-    };
+    return presentScanCardSummary(deriveScanNarrative(null), {
+      pipelineStatus,
+    });
   }
 
   if (pipelineStatus === "failed") {
-    return {
-      mergePosture: null,
-      riskIndex: null,
-      riskIndexBand: null,
-      headline: scanSurfaceCopy.pipeline.analysisIncomplete,
-      summaryLine: null,
-      findingCounts: null,
-      topAffectedAreas: [],
-      operationalObservations: [],
-      supportingLine: null,
-    };
+    return presentScanCardSummary(deriveScanNarrative(null), {
+      pipelineStatus: "failed",
+    });
   }
 
   if (!result) {
     return {
-      mergePosture: null,
-      riskIndex: null,
-      riskIndexBand: null,
+      ...presentScanCardSummary(deriveScanNarrative(null), { pipelineStatus }),
       headline: scanSurfaceCopy.pipeline.scanUnavailable,
-      summaryLine: null,
-      findingCounts: null,
-      topAffectedAreas: [],
-      operationalObservations: [],
-      supportingLine: null,
     };
   }
 
-  const posture =
-    mergePostureFromDecision(result.decision?.recommendation) ?? null;
-  const riskIndex =
-    typeof result.totalScore === "number" ? result.totalScore : null;
-  const riskIndexBand = deriveRiskIndexBand(riskIndex);
-  const findingCounts = aggregateFindingCounts(result.findings);
-  const headline = posture
-    ? MERGE_POSTURE_LABEL[posture]
-    : scanSurfaceCopy.checkRun.mergePostureUnavailable;
-
-  const topAffectedAreas = selectTopAffectedAreas(result, { max: 2 });
-  const { operationalObservations, supportingLine } =
-    deriveCardOperationalObservations(result, {
-      mergePosture: posture,
-      hasFullResult: true,
-      max: 3,
-    });
-
-  return {
-    mergePosture: posture,
-    riskIndex,
-    riskIndexBand,
-    headline,
-    summaryLine: null,
-    findingCounts,
-    topAffectedAreas,
-    operationalObservations,
-    supportingLine,
-  };
+  const facts = deriveScanNarrative(result);
+  return presentScanCardSummary(facts, {
+    pipelineStatus,
+    findings: result.findings,
+  });
 }
 
 /** Subline appended when scan results are stale (head SHA mismatch). */

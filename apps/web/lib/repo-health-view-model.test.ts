@@ -19,6 +19,15 @@ function makeCardSummary(
     topAffectedAreas: [],
     operationalObservations: [],
     supportingLine: null,
+    narrativeMode: "graph_fallback",
+    codeIntelligenceAvailable: false,
+    changedPackagesDisplay: null,
+    runtimeSurfaceLabel: null,
+    reachabilityLabel: null,
+    blastRadiusLabel: null,
+    affectedAreas: [],
+    primaryInsight: null,
+    structuralOnlyDisclaimer: null,
     ...overrides,
   };
 }
