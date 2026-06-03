@@ -98,7 +98,7 @@ export const productMessaging = {
     exposureCategoriesLead: "On each scanned card, exposure reads as one of:",
     exposureCategories: CARD_EXPOSURE_CATEGORY_LABELS,
     cardBody:
-      "Below the verdict, scanned cards lead with the changed package, runtime surface, reachability, blast radius, and affected areas when code intelligence is available; repository-wide graph signals appear only as supporting context.",
+      "Below the verdict, scanned cards surface up to three compact operational observations (transitive volume, blast radius, duplicate versions, and related topology signals) when the engine finds mappable structure.",
   },
 } as const;
 

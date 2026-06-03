@@ -18,9 +18,6 @@ export function ScanMetadataFooter({ metadata }: Props) {
   if (metadata.codeAnalysisTimedOut) {
     parts.push(scanSurfaceCopy.scanDetail.codeAnalysisTimeout);
   }
-  if (metadata.codeIntelligenceAvailable === false) {
-    parts.push(scanSurfaceCopy.scanDetail.codeIntelligenceUnavailable);
-  }
 
   return (
     <footer className={styles.metadataFooter}>

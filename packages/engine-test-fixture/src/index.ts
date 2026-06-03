@@ -39,15 +39,7 @@ export async function analyze(
     return {
       ...base,
       changedPackages: req.changedPackages ?? codeAnalysis.changedPackages,
-      repoIntelligence: {
-        packages: {
-          [(req.changedPackages ?? [])[0] ?? "app"]: {
-            runtimeSurface: "runtime",
-            reachability: "on_runtime_paths",
-          },
-        },
-        blastRadius: { level: "moderate", changedPackageCount: 1 },
-      },
+      repoIntelligence: { packages: {} },
       codeAnalysisMetrics: {
         fromCache: false,
         filesAnalyzed: codeAnalysis.fileContents.size,

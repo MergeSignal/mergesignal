@@ -102,9 +102,6 @@ export const scanSurfaceCopy = {
   scanDetail: {
     recommendedActionsHeading: "Recommended actions",
     signalSummaryHeading: "Signal summary",
-    upgradeContextHeading: "Upgrade context",
-    codeIntelligenceUnavailable:
-      "Application usage was not analyzed for this scan",
     /** @deprecated Use signalSummaryHeading */
     riskSummaryHeading: "Signal summary",
     operationalImpactHeading: "What this upgrade may affect",
@@ -324,30 +321,6 @@ export const scanSurfaceCopy = {
         high: "Elevated",
       },
     },
-  },
-  /** PR narrative presentation — channel-specific copy built from ScanNarrativeFacts. */
-  narrativeCard: {
-    structuralOnlyDisclaimer: "Structural dependency analysis only",
-    runtimeSurface: {
-      runtime: "Runtime",
-      build: "Build-only",
-      test: "Test-only",
-      unknown: "Unknown surface",
-    },
-    reachability: {
-      on_runtime_paths: "On runtime paths",
-      build_only: "Build-only",
-      test_only: "Test-only",
-      unreachable: "Not on runtime paths",
-      unknown: "Reachability unknown",
-    },
-    blastRadius: {
-      narrow: "Narrow",
-      moderate: "Moderate",
-      wide: "Wide",
-    },
-    areasSeparator: " · ",
-    contextSeparator: " · ",
   },
   cli: {
     stderrAnalysisIncomplete: "Analysis could not be completed.",

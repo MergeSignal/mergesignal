@@ -1,8 +1,4 @@
-"use client";
-
-import { useState } from "react";
 import type {
-  ScanDetailNarrativeContext,
   ScanDetailSignalSummary,
   ScanDetailVerdict,
 } from "@mergesignal/shared";
@@ -16,9 +12,6 @@ type Props = {
   verdict: ScanDetailVerdict;
   signalSummary: ScanDetailSignalSummary | null;
   followUpBridgeNote: string | null;
-  narrativeContext: ScanDetailNarrativeContext;
-  becauseThemes?: string[];
-  confidenceCaveat?: string;
 };
 
 function postureTone(
@@ -38,34 +31,18 @@ function layerSignalTone(
   return "neutral";
 }
 
-function upgradeContextParts(ctx: ScanDetailNarrativeContext): string[] {
-  const parts: string[] = [];
-  if (ctx.changedPackagesDisplay) parts.push(ctx.changedPackagesDisplay);
-  if (ctx.runtimeSurfaceLabel) parts.push(ctx.runtimeSurfaceLabel);
-  if (ctx.reachabilityLabel) parts.push(ctx.reachabilityLabel);
-  if (ctx.blastRadiusLabel) parts.push(ctx.blastRadiusLabel);
-  if (ctx.affectedAreas.length > 0) parts.push(ctx.affectedAreas.join(" · "));
-  return parts;
-}
-
 export function SignalSummaryPanel({
   verdict,
   signalSummary,
   followUpBridgeNote,
-  narrativeContext,
-  becauseThemes = [],
-  confidenceCaveat,
 }: Props) {
-  const [layersOpen, setLayersOpen] = useState(false);
   const tone = postureTone(verdict.posture);
-  const copy = scanSurfaceCopy.scanDetail;
-  const upgradeParts = upgradeContextParts(narrativeContext);
-  const showUpgradeContext = upgradeParts.length > 0;
+  const copy = scanSurfaceCopy.scanDetail.signalSummary;
 
   return (
     <MSCard
       className={styles.scanSectionCard}
-      title={copy.signalSummaryHeading}
+      title={scanSurfaceCopy.scanDetail.signalSummaryHeading}
       padding={true}
       data-prominence="signal"
     >
@@ -83,46 +60,8 @@ export function SignalSummaryPanel({
             {cardPostureDisplayLabel(verdict.posture)}
           </MSBadge>
         ) : null}
-        {verdict.scopeChip ? (
-          <span className={styles.sectionMeta}>{verdict.scopeChip}</span>
-        ) : null}
         <p className={styles.sectionLead}>{verdict.verdictLine}</p>
       </div>
-
-      {showUpgradeContext ? (
-        <div className={styles.upgradeContextBlock}>
-          <h3 className={styles.sectionSubheading}>
-            {copy.upgradeContextHeading}
-          </h3>
-          <p className={styles.sectionBody}>{upgradeParts.join(" · ")}</p>
-          {narrativeContext.structuralOnlyDisclaimer ? (
-            <p className={styles.sectionMeta}>
-              {narrativeContext.structuralOnlyDisclaimer}
-            </p>
-          ) : null}
-          {!narrativeContext.codeIntelligenceAvailable ? (
-            <p className={styles.sectionMeta}>
-              {copy.codeIntelligenceUnavailable}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {becauseThemes.length > 0 || confidenceCaveat ? (
-        <div className={styles.whyVerdictBlock}>
-          <h3 className={styles.sectionSubheading}>{copy.whyVerdictHeading}</h3>
-          {becauseThemes.length > 0 ? (
-            <ul className={styles.whyVerdictList}>
-              {becauseThemes.map((theme) => (
-                <li key={theme}>{theme}</li>
-              ))}
-            </ul>
-          ) : null}
-          {confidenceCaveat ? (
-            <p className={styles.sectionMeta}>{confidenceCaveat}</p>
-          ) : null}
-        </div>
-      ) : null}
 
       {signalSummary ? (
         <>
@@ -146,16 +85,8 @@ export function SignalSummaryPanel({
               </div>
             </div>
 
-            <details
-              className={styles.signalSummaryLayers}
-              open={layersOpen}
-              onToggle={(e) =>
-                setLayersOpen((e.target as HTMLDetailsElement).open)
-              }
-            >
-              <summary className={styles.sectionSubheading}>
-                {copy.layersHeading}
-              </summary>
+            <div className={styles.signalSummaryLayers}>
+              <h3 className={styles.sectionSubheading}>{copy.layersHeading}</h3>
               <ul className={styles.signalLayerList}>
                 {signalSummary.layers.map((layer) => (
                   <li key={layer.layer} className={styles.signalLayerRow}>
@@ -172,7 +103,7 @@ export function SignalSummaryPanel({
                   </li>
                 ))}
               </ul>
-            </details>
+            </div>
           </div>
         </>
       ) : null}
