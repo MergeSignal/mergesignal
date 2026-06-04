@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isCatalogPhrase } from "./cardObservationCatalog.js";
+import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
 import {
   aggregateFindingCounts,
   deriveRiskIndexBand,
@@ -11,23 +11,8 @@ import {
   resolvePrScanCardSummary,
   staleScanSubline,
 } from "./scanCardSummary.js";
+import type { ScanCardPresentation } from "./presentation/dto/scanCardPresentation.js";
 import type { ScanResult } from "./types.js";
-
-const pipelinePresentationDefaults = {
-  narrativeMode: "denormalized" as const,
-  codeIntelligenceAvailable: false,
-  changedPackagesDisplay: null,
-  runtimeSurfaceLabel: null,
-  reachabilityLabel: null,
-  blastRadiusLabel: null,
-  affectedAreas: [] as string[],
-  primaryInsight: null,
-  structuralOnlyDisclaimer: null,
-  usageSummary: null,
-  verificationLine: null,
-  blastRadiusDetail: null,
-  frameworksSummary: null,
-};
 
 const baseResult = {
   totalScore: 10,
@@ -40,6 +25,25 @@ const baseResult = {
   findings: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
 } satisfies ScanResult;
+
+function pipelineCard(
+  overrides: Partial<ScanCardPresentation> = {},
+): ScanCardPresentation {
+  return {
+    pipeline: {
+      status: "queued",
+      headline: scanSurfaceCopy.pipeline.scanRunning,
+      subheadline: scanSurfaceCopy.pipeline.scanIncomplete,
+    },
+    headline: scanSurfaceCopy.pipeline.scanRunning,
+    changedPackages: [],
+    keyPoints: [],
+    affectedAreas: [],
+    verificationActions: [],
+    evidence: [],
+    ...overrides,
+  };
+}
 
 describe("deriveRiskIndexBand", () => {
   it("maps score thresholds", () => {
@@ -85,21 +89,22 @@ describe("aggregateFindingCounts", () => {
 describe("deriveScanCardSummary", () => {
   it("returns scanning copy for queued/running", () => {
     const queued = deriveScanCardSummary(null, "queued");
-    expect(queued.headline).toBe("Scan in progress");
-    expect(queued.summaryLine).toBe("Waiting for results...");
-    expect(queued.mergePosture).toBeNull();
+    expect(queued.headline).toBe(scanSurfaceCopy.pipeline.scanRunning);
+    expect(queued.pipeline?.status).toBe("queued");
+    expect(queued.status).toBeUndefined();
 
     const running = deriveScanCardSummary(null, "running");
-    expect(running.headline).toBe("Scan in progress");
+    expect(running.headline).toBe(scanSurfaceCopy.pipeline.scanRunning);
+    expect(running.pipeline?.status).toBe("running");
   });
 
   it("returns failed copy", () => {
     const failed = deriveScanCardSummary(null, "failed");
-    expect(failed.headline).toBe("Analysis could not be completed");
-    expect(failed.mergePosture).toBeNull();
+    expect(failed.headline).toBe(scanSurfaceCopy.pipeline.analysisIncomplete);
+    expect(failed.pipeline?.status).toBe("failed");
   });
 
-  it("derives posture headline and risk index for done scans", () => {
+  it("derives posture and risk index for done scans", () => {
     const r = {
       ...baseResult,
       totalScore: 72,
@@ -120,17 +125,14 @@ describe("deriveScanCardSummary", () => {
       },
     } satisfies ScanResult;
     const summary = deriveScanCardSummary(r, "done");
-    expect(summary.mergePosture).toBe("risky");
-    expect(summary.headline).toBe("Risky");
-    expect(summary.riskIndex).toBe(72);
-    expect(summary.riskIndexBand).toBe("high");
-    expect(summary.summaryLine).toBeNull();
-    expect(summary.operationalObservations).toContain(
-      "Large upgrade blast radius",
+    expect(summary.status).toBe("risky");
+    expect(summary.headline).toBe(
+      scanSurfaceCopy.presentation.limitedContextHeadline,
     );
+    expect(summary.riskIndex).toBe(72);
   });
 
-  it("keeps quiet safe cards posture-only without observations", () => {
+  it("keeps quiet safe cards minimal without extra key points beyond defaults", () => {
     const r = {
       ...baseResult,
       totalScore: 12,
@@ -141,11 +143,11 @@ describe("deriveScanCardSummary", () => {
       },
     } satisfies ScanResult;
     const summary = deriveScanCardSummary(r, "done");
-    expect(summary.summaryLine).toBeNull();
-    expect(summary.operationalObservations).toEqual([]);
+    expect(summary.status).toBe("safe");
+    expect(summary.keyPoints.length).toBeGreaterThan(0);
   });
 
-  it("surfaces catalog observations from explain signals", () => {
+  it("surfaces catalog key points from explain signals", () => {
     const r = {
       ...baseResult,
       decision: {
@@ -172,11 +174,7 @@ describe("deriveScanCardSummary", () => {
       },
     } satisfies ScanResult;
     const summary = deriveScanCardSummary(r, "done");
-    expect(summary.topAffectedAreas).toHaveLength(2);
-    expect(summary.operationalObservations.length).toBeGreaterThan(0);
-    for (const phrase of summary.operationalObservations) {
-      expect(isCatalogPhrase(phrase)).toBe(true);
-    }
+    expect(summary.keyPoints.length).toBeGreaterThan(0);
   });
 
   it("exports stale subline constant", () => {
@@ -222,35 +220,28 @@ describe("resolvePipelineStatus", () => {
 describe("isPipelineCardSummary", () => {
   it("detects scanning placeholder summaries", () => {
     expect(
-      isPipelineCardSummary({
-        mergePosture: null,
-        riskIndex: null,
-        riskIndexBand: null,
-        headline: "Scan in progress",
-        summaryLine: "Waiting for results...",
-        findingCounts: null,
-        topAffectedAreas: [],
-        operationalObservations: [],
-        supportingLine: null,
-        ...pipelinePresentationDefaults,
-      }),
+      isPipelineCardSummary(
+        pipelineCard({
+          pipeline: {
+            status: "queued",
+            headline: scanSurfaceCopy.pipeline.scanRunning,
+            subheadline: scanSurfaceCopy.pipeline.scanIncomplete,
+          },
+        }),
+      ),
     ).toBe(true);
   });
 
-  it("detects hybrid completed posture with pipeline summary line", () => {
+  it("detects failed pipeline summaries", () => {
     expect(
-      isPipelineCardSummary({
-        mergePosture: "risky",
-        riskIndex: 72,
-        riskIndexBand: "high",
-        headline: "Risky",
-        summaryLine: "Waiting for results...",
-        findingCounts: null,
-        topAffectedAreas: [],
-        operationalObservations: [],
-        supportingLine: null,
-        ...pipelinePresentationDefaults,
-      }),
+      isPipelineCardSummary(
+        pipelineCard({
+          pipeline: {
+            status: "failed",
+            headline: scanSurfaceCopy.pipeline.analysisIncomplete,
+          },
+        }),
+      ),
     ).toBe(true);
   });
 });
@@ -263,18 +254,16 @@ describe("isPipelinePlaceholderCopy", () => {
 });
 
 describe("deriveScanCardSummaryFromDenormalized", () => {
-  it("builds risky summary from denormalized columns without generic narration", () => {
+  it("builds risky summary from denormalized columns", () => {
     const summary = deriveScanCardSummaryFromDenormalized(
       "risky",
       72,
       "Auth boundary change",
       "done",
     );
-    expect(summary.mergePosture).toBe("risky");
-    expect(summary.headline).toBe("Risky");
+    expect(summary.status).toBe("risky");
     expect(summary.riskIndex).toBe(72);
-    expect(summary.summaryLine).toBeNull();
-    expect(summary.operationalObservations).toEqual([]);
+    expect(summary.pipeline).toBeUndefined();
   });
 
   it("does not inject pipeline placeholder summaryText", () => {
@@ -284,8 +273,8 @@ describe("deriveScanCardSummaryFromDenormalized", () => {
       "Waiting for results...",
       "done",
     );
-    expect(summary.mergePosture).toBe("risky");
-    expect(summary.summaryLine).not.toBe("Waiting for results...");
+    expect(summary.status).toBe("risky");
+    expect(summary.pipeline).toBeUndefined();
   });
 
   it("does not inject raw generic summaryText on quiet safe cards", () => {
@@ -295,8 +284,8 @@ describe("deriveScanCardSummaryFromDenormalized", () => {
       "No high-confidence merge risks from this PR dependency change",
       "done",
     );
-    expect(summary.mergePosture).toBe("safe");
-    expect(summary.summaryLine).toBeNull();
+    expect(summary.status).toBe("safe");
+    expect(summary.pipeline).toBeUndefined();
   });
 });
 
@@ -309,8 +298,7 @@ describe("resolvePrScanCardSummary", () => {
       summaryText: "Waiting for results...",
       result: null,
     });
-    expect(summary.mergePosture).toBe("risky");
-    expect(summary.headline).toBe("Risky");
-    expect(summary.summaryLine).not.toBe("Waiting for results...");
+    expect(summary.status).toBe("risky");
+    expect(summary.pipeline).toBeUndefined();
   });
 });

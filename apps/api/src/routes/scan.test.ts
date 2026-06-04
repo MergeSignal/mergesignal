@@ -332,8 +332,71 @@ describe("scan routes", () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(JSON.parse(response.body)).toEqual(mockScan);
+      const body = JSON.parse(response.body);
+      expect(body).toMatchObject({
+        id: "scan_123",
+        repoId: "owner/repo",
+        status: "done",
+        error: null,
+        detailPresentation: null,
+      });
+      expect(body.result).toBeUndefined();
       expect(queries.scans.findById).toHaveBeenCalledWith("scan_123");
+    });
+
+    it("includes raw result when include=rawResult", async () => {
+      const now = new Date().toISOString();
+      const rawResult = {
+        totalScore: 10,
+        layerScores: {
+          security: 1,
+          maintainability: 2,
+          ecosystem: 3,
+          upgradeImpact: 4,
+        },
+        findings: [],
+        generatedAt: now,
+      };
+      const mockScan = {
+        id: "scan_123",
+        repo_id: "owner/repo",
+        status: "done" as const,
+        source: "github_pr",
+        attempt: 1,
+        worker_id: null,
+        started_at: null,
+        finished_at: null,
+        heartbeat_at: null,
+        total_score: 72,
+        layer_security: null,
+        layer_maintainability: null,
+        layer_ecosystem: null,
+        layer_upgrade_impact: null,
+        methodology_version: "v1",
+        engine_release_version: null,
+        result_generated_at: new Date(now),
+        result: rawResult,
+        decision: "risky",
+        error: null,
+        created_at: now,
+        updated_at: now,
+        github_pr_number: null,
+        github_head_sha: null,
+        github_base_ref: null,
+      };
+      vi.mocked(queries.scans.findById).mockResolvedValue(
+        mockScan as unknown as Scan,
+      );
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/scan/scan_123?include=rawResult",
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.result).toEqual(rawResult);
+      expect(body.detailPresentation).toBeTruthy();
     });
 
     it("should return 404 when scan not found", async () => {

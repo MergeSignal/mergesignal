@@ -17,11 +17,13 @@ export * from "./repoIntelligenceMappers.js";
 export * from "./repoIntelligenceValidation.js";
 export * from "./deriveScanNarrative.js";
 export * from "./extractRepositoryContextFacts.js";
-export * from "./presentScanCardSummary.js";
 export * from "./narrativePresentation.js";
 export * from "./normalizeGeneratedText.js";
 export * from "./collectNarrativeWhyBullets.js";
-export * from "./presentGitHubPrComment.js";
+export {
+  presentGitHubPrCommentMarkdownFromResult,
+  renderInsightsAsMarkdown,
+} from "./presentGitHubPrComment.js";
 export * from "./scanCardSummary.js";
 export * from "./deriveScanDetailRecommendations.js";
 export * from "./deriveRiskScoreSummary.js";
@@ -32,3 +34,4 @@ export * from "./trustedScanGuards.js";
 export * from "./actionsStepSummary.js";
 export * from "./prCheckRunPresentation.js";
 export * from "./productMessaging.js";
+export * from "./presentation/index.js";

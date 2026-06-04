@@ -2,11 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import type { ScanResult } from "@mergesignal/shared";
-import {
-  deriveScanDetailViewModel,
-  scanSurfaceCopy,
-} from "@mergesignal/shared";
+import type { ScanDetailsPresentation } from "@mergesignal/shared";
+import { scanSurfaceCopy } from "@mergesignal/shared";
+import { detailPresentationToViewModel } from "../../../lib/scan-details-adapter";
 import layoutStyles from "./ScanClientLayout.module.css";
 import detailStyles from "./ScanDetail.module.css";
 import {
@@ -25,13 +23,14 @@ import { ScanMetadataFooter } from "./sections/ScanMetadataFooter";
 export type ScanRow = {
   id: string;
   status: "queued" | "running" | "done" | "failed";
-  result?: ScanResult;
+  detailPresentation?: ScanDetailsPresentation | null;
   error?: string | null;
   methodologyVersion?: string | null;
   repoId?: string;
   githubPrNumber?: number | null;
   githubHeadSha?: string | null;
   isStale?: boolean;
+  rawResult?: unknown;
 };
 
 function normalizeScanRow(
@@ -43,11 +42,16 @@ function normalizeScanRow(
     | null
     | undefined;
   return {
-    id: String(raw.id ?? ""),
+    id: String(raw.id ?? raw.id ?? ""),
     status: raw.status as ScanRow["status"],
-    result: raw.result as ScanResult | undefined,
+    detailPresentation: (raw.detailPresentation ?? raw.detail_presentation) as
+      | ScanDetailsPresentation
+      | null
+      | undefined,
     error: (raw.error as string | null | undefined) ?? null,
     methodologyVersion: methodology ?? null,
+    repoId: (raw.repoId ?? raw.repo_id) as string | undefined,
+    rawResult: raw.result,
     ...extras,
   };
 }
@@ -91,7 +95,7 @@ export default function ScanClient({
           unknown
         >;
         const next = normalizeScanRow(parsed, {
-          repoId: data?.repoId,
+          repoId: (parsed.repoId as string | undefined) ?? data?.repoId,
           githubPrNumber: data?.githubPrNumber,
           githubHeadSha: data?.githubHeadSha,
           isStale: data?.isStale,
@@ -121,15 +125,32 @@ export default function ScanClient({
     data?.isStale,
   ]);
 
+  useEffect(() => {
+    if (!showDebug || data?.status !== "done" || data.rawResult) return;
+
+    let cancelled = false;
+    void fetch(`/api/scan/${encodeURIComponent(id)}?include=rawResult`)
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return res.json() as Promise<{ result?: unknown }>;
+      })
+      .then((payload) => {
+        if (cancelled || !payload?.result) return;
+        setData((prev) =>
+          prev ? { ...prev, rawResult: payload.result } : prev,
+        );
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showDebug, data?.status, data?.rawResult, id]);
+
   const viewModel = useMemo(() => {
-    if (!data || data.status !== "done" || !data.result) return null;
-    return deriveScanDetailViewModel(data.result, {
-      scanId: data.id,
-      status: data.status,
-      methodologyVersion: data.methodologyVersion,
-      prNumber: data.githubPrNumber,
-    });
-  }, [data]);
+    if (!data?.detailPresentation) return null;
+    return detailPresentationToViewModel(data.detailPresentation);
+  }, [data?.detailPresentation]);
 
   const { owner, repo } = parseRepoParts(data?.repoId);
 
@@ -216,7 +237,11 @@ export default function ScanClient({
         </MSCard>
       ) : null}
 
-      {showDebug ? <ScanDebugPanel data={data} /> : null}
+      {showDebug ? (
+        <ScanDebugPanel
+          data={data.rawResult ?? { message: "Use ?include=rawResult on API" }}
+        />
+      ) : null}
     </div>
   );
 }

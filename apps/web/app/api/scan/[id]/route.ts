@@ -9,23 +9,21 @@ function parseRepoId(repoId: string): { owner: string; repo: string } {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
   const { id } = await ctx.params;
+  const include = new URL(req.url).searchParams.get("include");
+  const query = include ? `?include=${encodeURIComponent(include)}` : "";
 
   if (isDevAuthBypass()) {
     const upstream = await serverApiFetch(
-      `/scan/${encodeURIComponent(id)}/events`,
+      `/scan/${encodeURIComponent(id)}${query}`,
     );
-    if (!upstream.ok) {
-      return new Response(await upstream.text(), { status: upstream.status });
-    }
-    const headers = new Headers();
-    headers.set("Content-Type", "text/event-stream; charset=utf-8");
-    headers.set("Cache-Control", "no-cache, no-transform");
-    headers.set("Connection", "keep-alive");
-    return new Response(upstream.body, { status: 200, headers });
+    return new Response(await upstream.text(), {
+      status: upstream.status,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   const session = await auth();
@@ -54,16 +52,10 @@ export async function GET(
   }
 
   const upstream = await serverApiFetch(
-    `/scan/${encodeURIComponent(id)}/events`,
+    `/scan/${encodeURIComponent(id)}${query}`,
   );
-  if (!upstream.ok) {
-    return new Response(await upstream.text(), { status: upstream.status });
-  }
-
-  const headers = new Headers();
-  headers.set("Content-Type", "text/event-stream; charset=utf-8");
-  headers.set("Cache-Control", "no-cache, no-transform");
-  headers.set("Connection", "keep-alive");
-
-  return new Response(upstream.body, { status: 200, headers });
+  return new Response(await upstream.text(), {
+    status: upstream.status,
+    headers: { "Content-Type": "application/json" },
+  });
 }

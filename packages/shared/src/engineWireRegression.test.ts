@@ -45,8 +45,8 @@ describe("engine wire regression (canonical fixtures)", () => {
     expect(facts.packageUsage[0]?.packageName).toBe("fastify");
 
     const card = deriveScanCardSummary(result, "done");
-    expect(card.usageSummary).toBeTruthy();
-    expect(card.verificationLine).toBeTruthy();
+    expect(card.keyPoints.length).toBeGreaterThan(0);
+    expect(card.verificationActions.length).toBeGreaterThan(0);
   });
 
   it("multi-package fixture: both packages in packageUsage", () => {

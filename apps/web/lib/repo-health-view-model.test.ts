@@ -4,34 +4,21 @@ import {
   type PrScanIndexResponse,
 } from "./repo-health-view-model";
 import type { GithubOpenPR } from "./github-open-pull-requests";
-import type { ScanCardSummary } from "@mergesignal/shared";
+import type { ScanCardPresentation } from "@mergesignal/shared";
+import { scanSurfaceCopy } from "@mergesignal/shared";
 
-function makeCardSummary(
-  overrides: Partial<ScanCardSummary> = {},
-): ScanCardSummary {
+function makeCardPresentation(
+  overrides: Partial<ScanCardPresentation> = {},
+): ScanCardPresentation {
   return {
-    mergePosture: null,
-    riskIndex: null,
-    riskIndexBand: null,
-    headline: "Risky",
-    summaryLine: null,
-    findingCounts: null,
-    topAffectedAreas: [],
-    operationalObservations: [],
-    supportingLine: null,
-    narrativeMode: "graph_fallback",
-    codeIntelligenceAvailable: false,
-    changedPackagesDisplay: null,
-    runtimeSurfaceLabel: null,
-    reachabilityLabel: null,
-    blastRadiusLabel: null,
+    status: "risky",
+    headline: "Risky dependency upgrade",
+    changedPackages: [],
+    keyPoints: [],
     affectedAreas: [],
-    primaryInsight: null,
-    structuralOnlyDisclaimer: null,
-    usageSummary: null,
-    verificationLine: null,
-    blastRadiusDetail: null,
-    frameworksSummary: null,
+    verificationActions: [],
+    evidence: [],
+    riskIndex: 72,
     ...overrides,
   };
 }
@@ -60,6 +47,7 @@ function makeIndex(
     score?: number | null;
     headSha?: string;
     scannedAt?: string;
+    cardPresentation?: ScanCardPresentation;
   }>,
 ): PrScanIndexResponse {
   const byPrNumber: PrScanIndexResponse["byPrNumber"] = {};
@@ -69,51 +57,46 @@ function makeIndex(
       "done") as PrScanIndexResponse["byPrNumber"][string]["pipelineStatus"];
     const isActivePipeline =
       pipelineStatus === "queued" || pipelineStatus === "running";
-    const totalScore = e.score ?? (isActivePipeline ? null : 50);
-    const mergePosture =
-      e.decision === "safe" ||
-      e.decision === "needs_review" ||
-      e.decision === "risky"
-        ? e.decision
-        : null;
-    const cardSummary = isActivePipeline
-      ? makeCardSummary({
-          mergePosture: null,
-          riskIndex: null,
-          riskIndexBand: null,
-          headline: "Scan in progress",
-          summaryLine: "Waiting for results…",
-        })
-      : makeCardSummary({
-          mergePosture,
-          riskIndex: totalScore,
-          riskIndexBand:
-            totalScore != null && totalScore > 60
-              ? "high"
-              : totalScore != null && totalScore > 30
-                ? "medium"
-                : "low",
-          headline: mergePosture === "safe" ? "Safe" : "Risky",
-        });
+    const cardPresentation =
+      e.cardPresentation ??
+      (isActivePipeline
+        ? makeCardPresentation({
+            pipeline: {
+              status: pipelineStatus as "queued" | "running",
+              headline: scanSurfaceCopy.pipeline.scanRunning,
+              subheadline: scanSurfaceCopy.pipeline.scanIncomplete,
+            },
+            headline: scanSurfaceCopy.pipeline.scanRunning,
+            status: undefined,
+            riskIndex: null,
+          })
+        : makeCardPresentation({
+            status:
+              e.decision === "safe" ||
+              e.decision === "needs_review" ||
+              e.decision === "risky"
+                ? e.decision
+                : "risky",
+            headline:
+              e.decision === "safe"
+                ? "Safe upgrade"
+                : e.decision === "needs_review"
+                  ? "Needs review"
+                  : "Risky upgrade",
+            riskIndex: e.score ?? 50,
+          }));
+
     byPrNumber[String(e.prNumber)] = {
       scanId: `scan-${e.prNumber}`,
       pipelineStatus,
-      cardSummary,
-      status: pipelineStatus,
-      decision: e.decision ?? null,
-      totalScore,
+      cardPresentation,
+      createdAt: new Date(2026, 0, 1).toISOString(),
       githubPrNumber: e.prNumber,
       githubHeadSha: e.headSha ?? `sha${e.prNumber}`,
       githubBaseRef: "main",
-      createdAt: new Date(2026, 0, 1).toISOString(),
       scannedAt: isActivePipeline
         ? null
         : (e.scannedAt ?? new Date(2026, 0, 1, 1).toISOString()),
-      resultGeneratedAt: isActivePipeline
-        ? null
-        : (e.scannedAt ?? new Date(2026, 0, 1, 1).toISOString()),
-      summaryText: null,
-      topAffectedAreas: [],
     };
   }
   return {
@@ -138,7 +121,7 @@ describe("buildRepoPullHealthViewModel", () => {
     expect(vm.rows[0]!.presentationState).toBe("not_scanned");
     expect(vm.rows[0]!.scanState).toBe("not_scanned");
     expect(vm.rows[0]!.posture).toBeNull();
-    expect(vm.rows[0]!.cardSummary).toBeNull();
+    expect(vm.rows[0]!.cardPresentation).toBeNull();
   });
 
   it("marks PR as stale when headSha differs", () => {
@@ -225,95 +208,32 @@ describe("buildRepoPullHealthViewModel", () => {
     expect(vm.rows[0]!.timestampIso).toBe(scannedAt);
   });
 
-  it("promotes running scans with completion evidence to ready summary", () => {
+  it("uses API cardPresentation when pipeline is done", () => {
     const scannedAt = "2026-02-01T12:00:00.000Z";
     const vm = buildRepoPullHealthViewModel(
       [makePR(1)],
       makeIndex([
         {
           prNumber: 1,
-          pipelineStatus: "running",
+          pipelineStatus: "done",
           decision: "risky",
           score: 72,
           scannedAt,
-        },
-      ]),
-      false,
-    );
-    expect(vm.rows[0]!.presentationState).toBe("ready");
-    expect(vm.rows[0]!.cardSummary?.headline).toBe("Risky");
-    expect(vm.rows[0]!.cardSummary?.summaryLine).not.toBe(
-      "Waiting for results…",
-    );
-  });
-
-  it("rebuilds pipeline placeholder cardSummary for ready scans", () => {
-    const index: PrScanIndexResponse = {
-      repoId: "acme/repo",
-      byPrNumber: {
-        "1": {
-          scanId: "scan-1",
-          pipelineStatus: "done",
-          cardSummary: makeCardSummary({
-            mergePosture: null,
-            riskIndex: null,
-            riskIndexBand: null,
-            headline: "Scan in progress",
-            summaryLine: "Waiting for results…",
+          cardPresentation: makeCardPresentation({
+            status: "risky",
+            headline: "Risky upgrade",
+            riskIndex: 72,
           }),
-          status: "done",
-          decision: "risky",
-          totalScore: 80,
-          githubPrNumber: 1,
-          githubHeadSha: "sha1",
-          githubBaseRef: "main",
-          createdAt: new Date(2026, 0, 1).toISOString(),
-          scannedAt: new Date(2026, 0, 1, 1).toISOString(),
-          resultGeneratedAt: new Date(2026, 0, 1, 1).toISOString(),
-          summaryText: "Waiting for results…",
-          topAffectedAreas: [],
-        },
-      },
-      aggregates: {
-        totalCovered: 1,
-        byDecision: { safe: 0, needs_review: 0, risky: 1 },
-      },
-    };
-
-    const vm = buildRepoPullHealthViewModel([makePR(1)], index, false);
-    expect(vm.rows[0]!.presentationState).toBe("ready");
-    expect(vm.rows[0]!.cardSummary?.headline).toBe("Risky");
-    expect(vm.rows[0]!.cardSummary?.summaryLine).not.toBe(
-      "Waiting for results…",
-    );
-  });
-
-  it("resolves ready scan when status running but decision exists without scannedAt", () => {
-    const vm = buildRepoPullHealthViewModel(
-      [makePR(1)],
-      makeIndex([
-        {
-          prNumber: 1,
-          pipelineStatus: "running",
-          decision: "needs_review",
-          score: 55,
         },
       ]),
       false,
     );
     expect(vm.rows[0]!.presentationState).toBe("ready");
-    expect(vm.rows[0]!.cardSummary?.headline).toBe("Needs review");
-    expect(vm.rows[0]!.cardSummary?.summaryLine).not.toBe(
-      "Waiting for results…",
-    );
+    expect(vm.rows[0]!.cardPresentation?.headline).toBe("Risky upgrade");
+    expect(vm.rows[0]!.cardPresentation?.pipeline).toBeUndefined();
   });
 
-  it("propagates hasMore", () => {
-    const vm = buildRepoPullHealthViewModel([makePR(1)], makeIndex([]), true);
-    expect(vm.hasMore).toBe(true);
-  });
-
-  it("trusts API cardSummary when denormalized fields are null", () => {
+  it("trusts API cardPresentation posture when denormalized fields are absent", () => {
     const vm = buildRepoPullHealthViewModel(
       [makePR(1)],
       {
@@ -322,24 +242,18 @@ describe("buildRepoPullHealthViewModel", () => {
           "1": {
             scanId: "scan-1",
             pipelineStatus: "done",
-            cardSummary: makeCardSummary({
-              mergePosture: "needs_review",
-              riskIndex: 48,
-              riskIndexBand: "medium",
+            cardPresentation: makeCardPresentation({
+              status: "needs_review",
               headline: "Needs review",
-              summaryLine: "Dependency upgrade needs review",
+              riskIndex: 48,
+              keyPoints: ["Dependency upgrade needs review"],
+              affectedAreas: ["Auth flow"],
             }),
-            status: "done",
-            decision: null,
-            totalScore: null,
+            createdAt: new Date(2026, 0, 1).toISOString(),
             githubPrNumber: 1,
             githubHeadSha: "sha1",
             githubBaseRef: "main",
-            createdAt: new Date(2026, 0, 1).toISOString(),
             scannedAt: new Date(2026, 0, 1, 1).toISOString(),
-            resultGeneratedAt: new Date(2026, 0, 1, 1).toISOString(),
-            summaryText: null,
-            topAffectedAreas: ["Auth flow"],
           },
         },
         aggregates: {
@@ -352,28 +266,36 @@ describe("buildRepoPullHealthViewModel", () => {
 
     expect(vm.rows[0]!.presentationState).toBe("ready");
     expect(vm.rows[0]!.posture).toBe("needs_review");
-    expect(vm.rows[0]!.cardSummary?.headline).toBe("Needs review");
-    expect(vm.rows[0]!.cardSummary?.summaryLine).toBe(
+    expect(vm.rows[0]!.cardPresentation?.headline).toBe("Needs review");
+    expect(vm.rows[0]!.cardPresentation?.keyPoints).toContain(
       "Dependency upgrade needs review",
     );
   });
 
-  it("promotes running wire status to ready when scannedAt exists", () => {
-    const scannedAt = "2026-02-01T12:00:00.000Z";
+  it("propagates hasMore", () => {
+    const vm = buildRepoPullHealthViewModel([makePR(1)], makeIndex([]), true);
+    expect(vm.hasMore).toBe(true);
+  });
+
+  it("marks running wire status as scanning even when card has posture", () => {
     const vm = buildRepoPullHealthViewModel(
       [makePR(1)],
       makeIndex([
         {
           prNumber: 1,
           pipelineStatus: "running",
-          decision: "safe",
-          score: 12,
-          scannedAt,
+          cardPresentation: makeCardPresentation({
+            pipeline: {
+              status: "running",
+              headline: scanSurfaceCopy.pipeline.scanRunning,
+            },
+            headline: scanSurfaceCopy.pipeline.scanRunning,
+            status: undefined,
+          }),
         },
       ]),
       false,
     );
-    expect(vm.rows[0]!.presentationState).toBe("ready");
-    expect(vm.rows[0]!.posture).toBe("safe");
+    expect(vm.rows[0]!.presentationState).toBe("scanning");
   });
 });

@@ -3,13 +3,11 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { analyze } from "@mergesignal/engine";
-import type {
-  LayerScores,
-  ScanLockfileInput,
-  ScanResult,
-  ScoreLayer,
-} from "@mergesignal/shared";
+import type { ScanLockfileInput, ScanResult } from "@mergesignal/shared";
 import {
+  buildScanPresentationBundle,
+  presentCliScanSummary,
+  renderCliScanSummaryText,
   scanSurfaceCopy,
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
@@ -188,111 +186,26 @@ function printSummary(opts: {
   result: ScanResult;
   outPath: string | null;
 }) {
-  const { result } = opts;
-  const score =
-    typeof result.totalScore === "number" && Number.isFinite(result.totalScore)
-      ? result.totalScore
-      : null;
-  const conf = result.confidence ? String(result.confidence) : "n/a";
-  const method = result.methodologyVersion
-    ? String(result.methodologyVersion)
-    : "n/a";
+  const bundle = buildScanPresentationBundle({
+    result: opts.result,
+    pipelineStatus: "done",
+    decision: opts.result.decision?.recommendation,
+    totalScore: opts.result.totalScore,
+  });
 
-  const layers: Partial<LayerScores> = result.layerScores ?? {};
-  const findings = Array.isArray(result.findings) ? result.findings : [];
-  const recs = Array.isArray(result.recommendations)
-    ? result.recommendations
-    : [];
-  const reasons = result.explain?.reasons ?? [];
-  const graphInsights = result.graphInsights;
-  const deepest = Array.isArray(graphInsights?.deepest)
-    ? graphInsights.deepest
-    : [];
-
-  const lockfileLine = opts.lockfile
-    ? `${opts.lockfile.path} (${opts.lockfile.manager})`
-    : "none";
-
-  const lines: string[] = [];
-  lines.push("");
-  lines.push(`MergeSignal • ${opts.repoId}`);
-  lines.push(`Lockfile: ${lockfileLine}`);
-  lines.push(`Method: ${method} • Confidence: ${conf}`);
-  lines.push("");
-  lines.push(
-    `Total score: ${score === null ? "n/a" : score} (${scanSurfaceCopy.product.riskIndexDirectionShort})`,
-  );
-  lines.push(`Layers: ${formatLayers(layers)}`);
-  lines.push(`Findings: ${findings.length} • Recommendations: ${recs.length}`);
-
-  if (reasons.length) {
-    lines.push("");
-    lines.push("Why this is risky:");
-    for (const r of reasons.slice(0, 6)) {
-      const title = String(r.title ?? r.id ?? "Reason");
-      const rawImpact = (r as { scoreImpact?: unknown }).scoreImpact;
-      const impact =
-        typeof rawImpact === "number" && Number.isFinite(rawImpact)
-          ? rawImpact
-          : null;
-      lines.push(`- ${title}${impact === null ? "" : ` (+${impact})`}`);
+  if (bundle) {
+    const text = renderCliScanSummaryText(
+      presentCliScanSummary(bundle, { repoLabel: opts.repoId }),
+    );
+    console.log(text);
+    if (opts.outPath) {
+      console.log(`\nWrote JSON to ${opts.outPath}`);
     }
+    return;
   }
 
-  if (deepest.length) {
-    lines.push("");
-    lines.push("Dependency graph intelligence:");
-    for (const d of deepest.slice(0, 3)) {
-      const name = String(d?.packageName ?? "package");
-      const depth =
-        typeof d?.depth === "number" && Number.isFinite(d.depth)
-          ? d.depth
-          : null;
-      const direct = Boolean(d?.direct);
-      const via = Array.isArray(d?.via) ? d.via.join(" → ") : "";
-      lines.push(
-        `- ${name} is ${direct ? "direct" : "transitive"} at depth ${depth === null ? "n/a" : depth}${via ? ` via ${via}` : ""}`,
-      );
-    }
-  }
-
-  if (recs.length) {
-    lines.push("");
-    lines.push("Top recommendations:");
-    for (const r of recs.slice(0, 5)) {
-      const title = String(r.title ?? "Untitled");
-      const rawPrio = (r as { priorityScore?: unknown }).priorityScore;
-      const prio =
-        typeof rawPrio === "number" && Number.isFinite(rawPrio)
-          ? rawPrio
-          : null;
-      lines.push(`- ${title}${prio === null ? "" : ` (${prio})`}`);
-    }
-  }
-
-  if (opts.outPath) {
-    lines.push("");
-    lines.push(`Wrote JSON: ${opts.outPath}`);
-  }
-
-  lines.push("");
-  process.stdout.write(`${lines.join("\n")}\n`);
-}
-
-function formatLayers(layers: Partial<LayerScores>) {
-  const order: ScoreLayer[] = [
-    "security",
-    "maintainability",
-    "ecosystem",
-    "upgradeImpact",
-  ];
-  const bits = order.map((k) => `${k}=${toShortNumber(layers[k])}`);
-  return bits.join(" • ");
-}
-
-function toShortNumber(v: unknown) {
-  if (typeof v === "number" && Number.isFinite(v)) return String(Math.round(v));
-  return "n/a";
+  console.error(scanSurfaceCopy.cli.stderrAnalysisIncomplete);
+  process.exitCode = 1;
 }
 
 function parseArgs(argv: string[]): ArgMap {

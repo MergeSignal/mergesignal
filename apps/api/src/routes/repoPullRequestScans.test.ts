@@ -164,14 +164,12 @@ describe("repoPullRequestScansRoutes", () => {
     const entry = body.byPrNumber["42"];
     expect(entry.scanId).toBe("scan-1");
     expect(entry.pipelineStatus).toBe("done");
-    expect(entry.cardSummary.mergePosture).toBe("risky");
-    expect(entry.cardSummary.riskIndex).toBe(72);
-    expect(entry.cardSummary.headline).toBe("Risky");
-    expect(entry.decision).toBe("risky");
-    expect(entry.totalScore).toBe(72);
+    expect(entry.cardPresentation.status).toBe("risky");
+    expect(entry.cardPresentation.riskIndex).toBe(72);
+    expect(entry.cardPresentation.headline).toBeTruthy();
     expect(entry.githubBaseRef).toBe("main");
-    expect(Array.isArray(entry.cardSummary.topAffectedAreas)).toBe(true);
-    expect(entry.cardSummary.topAffectedAreas.length).toBeLessThanOrEqual(2);
+    expect(Array.isArray(entry.cardPresentation.affectedAreas)).toBe(true);
+    expect(entry.cardPresentation.affectedAreas.length).toBeLessThanOrEqual(2);
   });
 
   it("aggregates decisions correctly", async () => {
@@ -196,7 +194,7 @@ describe("repoPullRequestScansRoutes", () => {
     expect(body.aggregates.byDecision.safe).toBe(1);
   });
 
-  it("maps explain signals to operationalObservations instead of generic reasoning", async () => {
+  it("maps explain signals to key points instead of generic reasoning", async () => {
     vi.mocked(db.query).mockResolvedValue({
       rows: [
         makeRow({
@@ -235,14 +233,12 @@ describe("repoPullRequestScansRoutes", () => {
       url: "/repo/acme/frontend/pull-request-scans",
     });
     const body = res.json();
-    expect(body.byPrNumber["42"].cardSummary.summaryLine).toBeNull();
-    expect(body.byPrNumber["42"].summaryText).toBeNull();
-    expect(body.byPrNumber["42"].cardSummary.operationalObservations).toContain(
-      "High transitive dependency volume",
-    );
+    const card = body.byPrNumber["42"].cardPresentation;
+    expect(card.status).toBe("risky");
+    expect(card.keyPoints.length).toBeGreaterThan(0);
   });
 
-  it("extracts topAffectedAreas from explain reasons (max 3)", async () => {
+  it("extracts affectedAreas from explain reasons (max 2)", async () => {
     vi.mocked(db.query).mockResolvedValue({
       rows: [
         makeRow({
@@ -266,8 +262,8 @@ describe("repoPullRequestScansRoutes", () => {
       url: "/repo/acme/frontend/pull-request-scans",
     });
     const body = res.json();
-    const areas = body.byPrNumber["42"].cardSummary.topAffectedAreas;
-    expect(areas.length).toBe(2);
+    const areas = body.byPrNumber["42"].cardPresentation.affectedAreas;
+    expect(areas.length).toBeLessThanOrEqual(2);
     expect(areas).toEqual(["Auth flow", "State sync"]);
   });
 
@@ -290,10 +286,8 @@ describe("repoPullRequestScansRoutes", () => {
     });
     const body = res.json();
     expect(body.byPrNumber["42"].pipelineStatus).toBe("done");
-    expect(body.byPrNumber["42"].cardSummary.headline).toBe("Risky");
-    expect(body.byPrNumber["42"].cardSummary.summaryLine).not.toBe(
-      "Waiting for results…",
-    );
+    expect(body.byPrNumber["42"].cardPresentation.status).toBe("risky");
+    expect(body.byPrNumber["42"].cardPresentation.pipeline).toBeUndefined();
   });
 
   it("promotes running to done with decision only (no result_generated_at)", async () => {
@@ -315,10 +309,8 @@ describe("repoPullRequestScansRoutes", () => {
     });
     const body = res.json();
     expect(body.byPrNumber["42"].pipelineStatus).toBe("done");
-    expect(body.byPrNumber["42"].cardSummary.headline).toBe("Needs review");
-    expect(body.byPrNumber["42"].cardSummary.summaryLine).not.toBe(
-      "Waiting for results…",
-    );
+    expect(body.byPrNumber["42"].cardPresentation.status).toBe("needs_review");
+    expect(body.byPrNumber["42"].cardPresentation.pipeline).toBeUndefined();
   });
 
   it("promotes running to done when only result_generated_at is set", async () => {

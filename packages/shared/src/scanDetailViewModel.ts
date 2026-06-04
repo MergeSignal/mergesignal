@@ -846,7 +846,7 @@ function deriveBecauseThemesFromFacts(facts: ScanNarrativeFacts): string[] {
   return themes.slice(0, ACT2_MAX_THEMES);
 }
 
-function deriveVerdictLineFromFacts(
+export function deriveVerdictLineFromFacts(
   facts: ScanNarrativeFacts,
   result: ScanResult,
 ): string {

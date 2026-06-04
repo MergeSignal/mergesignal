@@ -1,6 +1,55 @@
 import { FastifyInstance } from "fastify";
+import type { ScanResult } from "@mergesignal/shared";
 import { db } from "../db.js";
 import { problemJsonString } from "../problem.js";
+import { buildScanStatusEventPayload } from "../services/scanPresentationService.js";
+
+type ScanEventRow = {
+  id: string;
+  status: string;
+  result: ScanResult | null;
+  error: string | null;
+  updated_at: Date;
+  repo_id: string;
+  decision: string | null;
+  total_score: number | null;
+  methodology_version: string | null;
+  github_pr_number: number | null;
+  result_generated_at: Date | null;
+};
+
+function toEventPayload(row: ScanEventRow) {
+  const scannedAt = row.result_generated_at
+    ? new Date(row.result_generated_at).toISOString()
+    : null;
+
+  return buildScanStatusEventPayload({
+    id: row.id,
+    status: row.status,
+    error: row.error,
+    repoId: row.repo_id,
+    decision: row.decision,
+    totalScore: row.total_score,
+    result: row.result,
+    methodologyVersion: row.methodology_version,
+    githubPrNumber: row.github_pr_number,
+    scannedAt,
+  });
+}
+
+const SCAN_EVENT_COLUMNS = `
+  id,
+  status,
+  result,
+  error,
+  updated_at,
+  repo_id,
+  decision,
+  total_score,
+  methodology_version,
+  github_pr_number,
+  result_generated_at
+`;
 
 export async function scanEventsRoutes(app: FastifyInstance) {
   app.get("/scan/:id/events", async (req, reply) => {
@@ -92,8 +141,8 @@ export async function scanEventsRoutes(app: FastifyInstance) {
       reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
-    const first = await db.query(
-      "SELECT id, status, result, error, updated_at FROM scans WHERE id=$1",
+    const first = await db.query<ScanEventRow>(
+      `SELECT ${SCAN_EVENT_COLUMNS} FROM scans WHERE id=$1`,
       [id],
     );
     if (first.rows.length === 0) {
@@ -101,7 +150,7 @@ export async function scanEventsRoutes(app: FastifyInstance) {
       reply.raw.end();
       return;
     }
-    send("status", first.rows[0]);
+    send("status", toEventPayload(first.rows[0]));
 
     if (first.rows[0].status === "done" || first.rows[0].status === "failed") {
       reply.raw.end();
@@ -117,8 +166,8 @@ export async function scanEventsRoutes(app: FastifyInstance) {
 
     const interval = setInterval(async () => {
       try {
-        const { rows } = await db.query(
-          "SELECT id, status, result, error, updated_at FROM scans WHERE id=$1",
+        const { rows } = await db.query<ScanEventRow>(
+          `SELECT ${SCAN_EVENT_COLUMNS} FROM scans WHERE id=$1`,
           [id],
         );
         if (rows.length === 0) {
@@ -133,7 +182,7 @@ export async function scanEventsRoutes(app: FastifyInstance) {
         const updated = String(rows[0].updated_at);
         if (updated !== lastUpdated) {
           lastUpdated = updated;
-          send("status", rows[0]);
+          send("status", toEventPayload(rows[0]));
 
           if (rows[0].status === "done" || rows[0].status === "failed") {
             cleanup();

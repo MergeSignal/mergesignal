@@ -1,0 +1,44 @@
+import {
+  composeHeadline,
+  composeKeyPoints,
+  composeSubheadline,
+  composeSupportingContext,
+  composeVerificationActions,
+  evidenceContextFromProfile,
+} from "../compose/narrativeCompose.js";
+import type { CliScanPresentation } from "../dto/githubAndCliPresentation.js";
+import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
+
+export function presentCliScanSummary(
+  bundle: ScanPresentationBundle,
+  ctx: { repoLabel?: string } = {},
+): CliScanPresentation {
+  const { facts, profile, result } = bundle;
+  const layers = result.layerScores;
+  const layerLine = layers
+    ? `security=${layers.security} maintainability=${layers.maintainability} ecosystem=${layers.ecosystem} upgradeImpact=${layers.upgradeImpact}`
+    : "";
+
+  return {
+    header: {
+      repoLabel: ctx.repoLabel ?? "scan",
+      methodology: result.methodologyVersion ?? undefined,
+      confidence: profile.confidence,
+    },
+    status: profile.status,
+    density: profile.density,
+    confidence: profile.confidence,
+    evidenceContext: evidenceContextFromProfile(bundle),
+    headline: composeHeadline(bundle),
+    subheadline: composeSubheadline(bundle),
+    keyPoints: composeKeyPoints(bundle, 6),
+    verificationActions: composeVerificationActions(bundle, 5),
+    metrics: {
+      riskIndex: facts.riskIndex ?? result.totalScore ?? 0,
+      layerLine,
+      findingCount: result.findings?.length ?? 0,
+      recommendationCount: result.recommendations?.length ?? 0,
+    },
+    supportingContext: composeSupportingContext(bundle),
+  };
+}

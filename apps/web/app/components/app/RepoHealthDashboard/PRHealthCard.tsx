@@ -21,7 +21,7 @@ function showMetaRow(presentationState: PRHealthRow["presentationState"]) {
 }
 
 export function PRHealthCard({ row }: { row: PRHealthRow }) {
-  const { pr, scan, presentationState, cardSummary, timestampIso } = row;
+  const { pr, scan, presentationState, cardPresentation, timestampIso } = row;
   const showRiskBlock =
     presentationState === "ready" || presentationState === "stale";
   const showPipelineBody =
@@ -54,9 +54,9 @@ export function PRHealthCard({ row }: { row: PRHealthRow }) {
         )}
 
         <div className={styles.body}>
-          {showRiskBlock && cardSummary && (
+          {showRiskBlock && cardPresentation && (
             <MSRiskSummary
-              summary={cardSummary}
+              presentation={cardPresentation}
               stale={presentationState === "stale"}
               staleSubline={
                 presentationState === "stale" ? staleScanSubline() : undefined
@@ -64,11 +64,11 @@ export function PRHealthCard({ row }: { row: PRHealthRow }) {
             />
           )}
 
-          {showPipelineBody && cardSummary?.summaryLine && (
-            <p className={styles.pipelineSummary}>{cardSummary.summaryLine}</p>
+          {showPipelineBody && cardPresentation && (
+            <MSRiskSummary presentation={cardPresentation} />
           )}
 
-          {showPipelineBody && !cardSummary?.summaryLine && (
+          {showPipelineBody && !cardPresentation && (
             <p className={styles.pipelineSummaryMuted}>
               {presentationState === "not_scanned"
                 ? "No scan available for this pull request yet."

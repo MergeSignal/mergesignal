@@ -1,36 +1,24 @@
 import type { FastifyInstance } from "fastify";
 import {
   resolvePipelineStatus,
-  resolvePrScanCardSummary,
-  type ScanCardSummary,
+  type ScanCardPresentation,
   type ScanPipelineStatus,
   type ScanResult,
 } from "@mergesignal/shared";
 import { db } from "../db.js";
 import { sendProblem } from "../problem.js";
+import { buildScanCardForApi } from "../services/scanPresentationService.js";
 import { getOwnerGithubQuotaStatus } from "../services/scanQuota.js";
 
 type PrScanIndexEntry = {
   scanId: string;
   pipelineStatus: ScanPipelineStatus;
-  cardSummary: ScanCardSummary;
+  cardPresentation: ScanCardPresentation;
   createdAt: string;
   githubPrNumber: number;
   githubHeadSha: string | null;
   githubBaseRef: string | null;
   scannedAt: string | null;
-  /** @deprecated Use cardSummary fields */
-  status: string;
-  /** @deprecated Use cardSummary.mergePosture */
-  decision: string | null;
-  /** @deprecated Use cardSummary.riskIndex */
-  totalScore: number | null;
-  /** @deprecated Use cardSummary.summaryLine */
-  summaryText: string | null;
-  /** @deprecated Use cardSummary.topAffectedAreas */
-  topAffectedAreas: string[];
-  /** @deprecated Use scannedAt */
-  resultGeneratedAt: string | null;
 };
 
 type PrScanAggregates = {
@@ -135,11 +123,10 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
         aggregates.byDecision[d] += 1;
       }
 
-      const cardSummary = resolvePrScanCardSummary({
+      const cardPresentation = buildScanCardForApi({
         pipelineStatus: row.status,
         decision: row.decision,
         totalScore: row.total_score,
-        summaryText: null,
         result: asScanResult(row.result),
         scannedAt,
       });
@@ -147,18 +134,12 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
       byPrNumber[prKey] = {
         scanId: row.scan_id,
         pipelineStatus,
-        cardSummary,
+        cardPresentation,
         createdAt: new Date(row.created_at).toISOString(),
         githubPrNumber: row.github_pr_number,
         githubHeadSha: row.github_head_sha,
         githubBaseRef: row.github_base_ref,
         scannedAt,
-        status: pipelineStatus,
-        decision: row.decision,
-        totalScore: row.total_score,
-        summaryText: cardSummary.summaryLine,
-        topAffectedAreas: cardSummary.topAffectedAreas,
-        resultGeneratedAt: scannedAt,
       };
     }
 

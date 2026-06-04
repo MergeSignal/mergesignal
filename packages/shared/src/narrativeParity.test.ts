@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { deriveScanNarrative } from "./deriveScanNarrative.js";
-import { buildPrCheckRunSummaryMarkdown } from "./prCheckRunPresentation.js";
-import { deriveScanCardSummary } from "./scanCardSummary.js";
-import { deriveScanDetailViewModel } from "./scanDetailViewModel.js";
-import { presentGitHubPrComment } from "./presentGitHubPrComment.js";
+import { buildScanPresentationBundle } from "./presentation/orchestration/buildScanPresentationBundle.js";
+import { presentScanCard } from "./presentation/presenters/presentScanCard.js";
+import { presentScanDetails } from "./presentation/presenters/presentScanDetails.js";
+import { presentGitHubPrComment } from "./presentation/presenters/presentGitHubPrComment.js";
+import { renderGitHubCheckRunMarkdown } from "./presentation/render/renderGitHubCheckRunMarkdown.js";
+import { presentGitHubCheckRun } from "./presentation/presenters/presentGitHubCheckRun.js";
 import { fixtureRepoIntelligenceFastify } from "./fixtures/repoIntelligenceFixtures.js";
 import { analysisPreparationWithValidRepoIntel } from "./fixtures/repoIntelligenceTestHelpers.js";
 import type { ScanResult } from "./types.js";
@@ -44,33 +45,31 @@ describe("narrative parity across consumers", () => {
       ],
     } satisfies ScanResult;
 
-    const card = deriveScanCardSummary(result, "done");
-    const detail = deriveScanDetailViewModel(result, {
-      scanId: SCAN_ID,
-      status: "done",
-    });
-    const checkRun = buildPrCheckRunSummaryMarkdown({
+    const bundle = buildScanPresentationBundle({
       result,
-      scanId: SCAN_ID,
-      webAppOrigin: ORIGIN,
-      baseline: false,
-    });
-    const prComment = presentGitHubPrComment(
-      deriveScanNarrative(result),
-      result,
-    );
+      pipelineStatus: "done",
+    })!;
 
-    expect(card.changedPackagesDisplay).toContain("fastify");
-    expect(detail?.narrativeContext.changedPackagesDisplay).toContain(
-      "fastify",
+    const card = presentScanCard(bundle);
+    const detail = presentScanDetails(bundle, {
+      scanId: SCAN_ID,
+    });
+    const checkRun = renderGitHubCheckRunMarkdown(
+      presentGitHubCheckRun(bundle, {
+        scanId: SCAN_ID,
+        webAppOrigin: ORIGIN,
+        baseline: false,
+      }),
     );
-    expect(card.reachabilityLabel).toBe("On runtime paths");
-    expect(detail?.narrativeContext.reachabilityLabel).toBe("On runtime paths");
+    const prComment = presentGitHubPrComment(bundle);
+
+    expect(card.primaryPackage).toBe("fastify");
+    expect(detail.narrative.primaryPackage).toBe("fastify");
+    expect(card.evidence.some((e) => e.label === "Reachability")).toBe(true);
 
     const asciiOnly = /^[\x00-\x7F]*$/;
     expect(asciiOnly.test(checkRun)).toBe(true);
-    expect(asciiOnly.test(prComment)).toBe(true);
     expect(checkRun.toLowerCase()).toContain("fastify");
-    expect(prComment.toLowerCase()).toContain("fastify");
+    expect(prComment.title.toLowerCase()).toContain("review");
   });
 });

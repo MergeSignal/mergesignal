@@ -1,91 +1,27 @@
-import { deriveScanNarrative } from "./deriveScanNarrative.js";
-import {
-  composeVerificationPrompt,
-  formatChangedPackagesShort,
-  formatUsageSummaryLine,
-  selectReviewerGuidance,
-} from "./narrativePresentation.js";
-import { normalizeGeneratedText } from "./normalizeGeneratedText.js";
-import {
-  MERGE_POSTURE_LABEL,
-  mergePostureFromDecision,
-} from "./riskVocabulary.js";
-import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
-import type { ScanNarrativeFacts } from "./scanNarrativeFacts.js";
+import { buildScanPresentationBundle } from "./presentation/orchestration/buildScanPresentationBundle.js";
+import { presentGitHubPrComment as presentGitHubPrCommentFromBundle } from "./presentation/presenters/presentGitHubPrComment.js";
+import { renderGitHubPrCommentMarkdown } from "./presentation/render/renderGitHubPrCommentMarkdown.js";
 import type { PRDecision, PRInsight, ScanResult } from "./types.js";
 
-function renderGuidanceBlock(
-  message: string,
-  where: string,
-  action: string,
-): string {
-  return [
-    normalizeGeneratedText(message),
-    "",
-    "**Where it shows up**",
-    "",
-    normalizeGeneratedText(where),
-    "",
-    "**What to do**",
-    "",
-    normalizeGeneratedText(action),
-  ].join("\n");
-}
-
 /**
- * PR comment markdown from narrative facts (compressed dashboard story).
+ * PR comment markdown from a completed scan (via presentation bundle).
  */
-export function presentGitHubPrComment(
-  facts: ScanNarrativeFacts,
+export function presentGitHubPrCommentMarkdownFromResult(
   result: ScanResult,
 ): string {
-  const posture =
-    facts.mergePosture ??
-    mergePostureFromDecision(result.decision?.recommendation);
-  const title = posture
-    ? `**${MERGE_POSTURE_LABEL[posture]}**`
-    : `**${scanSurfaceCopy.checkRun.mergePostureUnavailable}**`;
-
-  const introLines: string[] = [];
-  const changed = formatChangedPackagesShort(facts, 3);
-  if (changed) introLines.push(`Changed: ${changed}`);
-  const usage = formatUsageSummaryLine(facts, 1);
-  if (usage) introLines.push(usage);
-  const verify = composeVerificationPrompt(facts);
-  if (verify) introLines.push(`Verify: ${verify}`);
-
-  const guidance = selectReviewerGuidance(facts, { scope: "changed", max: 3 });
-  if (guidance.length === 0) {
-    const fallback = selectReviewerGuidance(facts, { max: 3 });
-    guidance.push(...fallback.slice(0, 3 - guidance.length));
-  }
-
-  const blocks = guidance.map((g) => {
-    const where =
-      g.context?.trim() ||
-      facts.packageUsage
-        .flatMap((u) => u.paths.slice(0, 1))
-        .filter(Boolean)[0] ||
-      "See scan detail for affected paths.";
-    const action =
-      g.remediation?.trim() ||
-      composeVerificationPrompt(facts) ||
-      "Review before merge.";
-    return renderGuidanceBlock(g.message, where, action);
+  const bundle = buildScanPresentationBundle({
+    result,
+    pipelineStatus: "done",
+    decision: result.decision?.recommendation,
+    totalScore: result.totalScore,
   });
-
-  const parts = [title];
-  if (introLines.length > 0) {
-    parts.push("", introLines.join("\n"));
-  }
-  if (blocks.length > 0) {
-    parts.push("", ...blocks);
-  }
-
-  return parts.join("\n\n---\n\n").trimEnd();
+  if (!bundle) return "";
+  return renderGitHubPrCommentMarkdown(
+    presentGitHubPrCommentFromBundle(bundle),
+  );
 }
 
-/** Backward-compatible entry: derives facts then presents. */
+/** Backward-compatible entry: derives bundle then renders markdown. */
 export function renderInsightsAsMarkdown(
   insights: PRInsight[],
   decision: PRDecision,
@@ -103,6 +39,5 @@ export function renderInsightsAsMarkdown(
     insights,
     decision,
   };
-  const facts = deriveScanNarrative(result);
-  return presentGitHubPrComment(facts, result);
+  return presentGitHubPrCommentMarkdownFromResult(result);
 }

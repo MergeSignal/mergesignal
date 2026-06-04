@@ -106,6 +106,93 @@ function getOpenApiSpec() {
           },
           required: ["scanId", "status"],
         },
+        ScanCardPresentation: {
+          type: "object",
+          properties: {
+            pipeline: {
+              type: "object",
+              nullable: true,
+              properties: {
+                status: {
+                  type: "string",
+                  enum: ["queued", "running", "failed"],
+                },
+                headline: { type: "string" },
+                subheadline: { type: "string", nullable: true },
+              },
+            },
+            status: {
+              type: "string",
+              nullable: true,
+              enum: ["safe", "needs_review", "risky", null],
+            },
+            density: {
+              type: "string",
+              nullable: true,
+              enum: ["minimal", "rich", null],
+            },
+            confidence: {
+              type: "string",
+              nullable: true,
+              enum: ["high", "medium", "low", null],
+            },
+            headline: { type: "string" },
+            subheadline: { type: "string", nullable: true },
+            changedPackages: {
+              type: "array",
+              items: { type: "string" },
+            },
+            primaryPackage: { type: "string", nullable: true },
+            keyPoints: { type: "array", items: { type: "string" } },
+            affectedAreas: { type: "array", items: { type: "string" } },
+            verificationActions: {
+              type: "array",
+              items: { type: "string" },
+            },
+            evidence: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  label: { type: "string" },
+                  value: { type: "string" },
+                },
+                required: ["label", "value"],
+              },
+            },
+            supportingContext: {
+              type: "array",
+              nullable: true,
+              items: { type: "string" },
+            },
+            riskIndex: { type: "integer", nullable: true },
+            findingCounts: {
+              type: "object",
+              nullable: true,
+              properties: {
+                critical: { type: "integer" },
+                high: { type: "integer" },
+                medium: { type: "integer" },
+                low: { type: "integer" },
+              },
+            },
+            actionLabel: { type: "string", nullable: true },
+          },
+          required: [
+            "headline",
+            "changedPackages",
+            "keyPoints",
+            "affectedAreas",
+            "verificationActions",
+            "evidence",
+          ],
+        },
+        ScanDetailsPresentation: {
+          type: "object",
+          description:
+            "Structured scan detail presentation for UI and integrations",
+          additionalProperties: true,
+        },
         PackageHealth: {
           type: "object",
           properties: {
@@ -182,9 +269,20 @@ function getOpenApiSpec() {
               required: true,
               schema: { type: "string" },
             },
+            {
+              name: "include",
+              in: "query",
+              required: false,
+              schema: { type: "string", enum: ["rawResult"] },
+              description:
+                "Include raw engine ScanResult JSON when set to rawResult",
+            },
           ],
           responses: {
-            "200": { description: "Scan row (includes result when done)" },
+            "200": {
+              description:
+                "Scan row with detailPresentation; optional raw result when include=rawResult",
+            },
             "404": {
               description: "Not found",
               content: {
@@ -442,121 +540,13 @@ function getOpenApiSpec() {
                               type: "string",
                               enum: ["queued", "running", "done", "failed"],
                             },
-                            cardSummary: {
-                              type: "object",
-                              properties: {
-                                mergePosture: {
-                                  type: "string",
-                                  nullable: true,
-                                  enum: ["safe", "needs_review", "risky", null],
-                                },
-                                riskIndex: {
-                                  type: "integer",
-                                  nullable: true,
-                                  description: "Numeric risk index (0–100)",
-                                },
-                                riskIndexBand: {
-                                  type: "string",
-                                  nullable: true,
-                                  enum: ["low", "medium", "high", null],
-                                },
-                                headline: { type: "string" },
-                                summaryLine: {
-                                  type: "string",
-                                  nullable: true,
-                                },
-                                findingCounts: {
-                                  type: "object",
-                                  nullable: true,
-                                  properties: {
-                                    critical: { type: "integer" },
-                                    high: { type: "integer" },
-                                    medium: { type: "integer" },
-                                    low: { type: "integer" },
-                                  },
-                                },
-                                topAffectedAreas: {
-                                  type: "array",
-                                  items: { type: "string" },
-                                  maxItems: 2,
-                                },
-                                operationalObservations: {
-                                  type: "array",
-                                  items: { type: "string" },
-                                },
-                                supportingLine: {
-                                  type: "string",
-                                  nullable: true,
-                                },
-                                narrativeMode: {
-                                  type: "string",
-                                  enum: [
-                                    "pr_intelligence",
-                                    "insights",
-                                    "graph_fallback",
-                                    "denormalized",
-                                  ],
-                                },
-                                codeIntelligenceAvailable: {
-                                  type: "boolean",
-                                },
-                                changedPackagesDisplay: {
-                                  type: "string",
-                                  nullable: true,
-                                },
-                                runtimeSurfaceLabel: {
-                                  type: "string",
-                                  nullable: true,
-                                },
-                                reachabilityLabel: {
-                                  type: "string",
-                                  nullable: true,
-                                },
-                                blastRadiusLabel: {
-                                  type: "string",
-                                  nullable: true,
-                                },
-                                affectedAreas: {
-                                  type: "array",
-                                  items: { type: "string" },
-                                },
-                                primaryInsight: {
-                                  type: "string",
-                                  nullable: true,
-                                },
-                                structuralOnlyDisclaimer: {
-                                  type: "string",
-                                  nullable: true,
-                                },
-                              },
-                              required: [
-                                "headline",
-                                "topAffectedAreas",
-                                "narrativeMode",
-                                "codeIntelligenceAvailable",
-                                "affectedAreas",
-                              ],
+                            cardPresentation: {
+                              $ref: "#/components/schemas/ScanCardPresentation",
                             },
                             scannedAt: {
                               type: "string",
                               format: "date-time",
                               nullable: true,
-                            },
-                            status: {
-                              type: "string",
-                              enum: ["queued", "running", "done", "failed"],
-                              deprecated: true,
-                            },
-                            decision: {
-                              type: "string",
-                              nullable: true,
-                              enum: ["safe", "needs_review", "risky", null],
-                              deprecated: true,
-                            },
-                            totalScore: {
-                              type: "integer",
-                              nullable: true,
-                              deprecated: true,
                             },
                             githubPrNumber: { type: "integer" },
                             githubHeadSha: {
@@ -569,31 +559,13 @@ function getOpenApiSpec() {
                               description: "Target branch name",
                             },
                             createdAt: { type: "string", format: "date-time" },
-                            resultGeneratedAt: {
-                              type: "string",
-                              format: "date-time",
-                              nullable: true,
-                              deprecated: true,
-                            },
-                            summaryText: {
-                              type: "string",
-                              nullable: true,
-                              deprecated: true,
-                            },
-                            topAffectedAreas: {
-                              type: "array",
-                              items: { type: "string" },
-                              maxItems: 2,
-                              deprecated: true,
-                            },
                           },
                           required: [
                             "scanId",
                             "pipelineStatus",
-                            "cardSummary",
+                            "cardPresentation",
                             "githubPrNumber",
                             "createdAt",
-                            "topAffectedAreas",
                           ],
                         },
                       },

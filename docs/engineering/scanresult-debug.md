@@ -1,5 +1,20 @@
 # Reading a stored ScanResult (maintainers)
 
-- **API:** `GET /scan/:id` on the API returns the scan row, including `result` (JSON) when status is `done`. Use an org-scoped API key when your deployment requires it.
+Presentation DTOs are the default API and UI contract. Raw engine output is opt-in for debugging.
+
+## Default scan responses
+
+- **`GET /scan/:id`** returns `detailPresentation` (structured scan detail UI). Raw `ScanResult` is **not** included by default.
+- **`GET /repo/:owner/:repo/pull-request-scans`** returns `cardPresentation` per PR for dashboard cards.
+- **SSE `GET /scan/:id/events`** emits `detailPresentation` (and `cardPresentation`) on terminal status events — not raw `result`.
+
+## Raw ScanResult (debug / break-glass)
+
+- **API:** `GET /scan/:id?include=rawResult` adds `result` (JSON) when the scan is complete. Use an org-scoped API key when your deployment requires it.
+- **Web debug panel:** open a scan with `?debug=1` when `MS_ALLOW_SCAN_DEBUG=1` is set server-side. The panel fetches `?include=rawResult` client-side.
 - **Database:** `SELECT result FROM scans WHERE id = '<uuid>';` — break-glass / local debugging only; respect access controls in production.
 - **Runner JSON:** the **MergeSignal Dogfood** workflow still uploads `mergesignal-scan` artifacts on **`push` to `main`** and **`workflow_dispatch`** when you need a file produced entirely inside Actions.
+
+## Presentation orchestration
+
+All surfaces derive from `buildScanPresentationBundle()` in `@mergesignal/shared`. Presenters consume `{ facts, profile, result }` and must not re-run narrative derivation.

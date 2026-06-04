@@ -1,12 +1,8 @@
 import {
-  isPipelinePlaceholderCopy,
-  mergePostureFromDecision,
   MERGE_POSTURE_SORT_ORDER,
-  resolvePipelineStatus,
-  resolvePrScanCardSummary,
   type MergePosture,
+  type ScanCardPresentation,
   type ScanCardPresentationState,
-  type ScanCardSummary,
   type ScanPipelineStatus,
 } from "@mergesignal/shared";
 import type { GithubOpenPR } from "./github-open-pull-requests";
@@ -14,24 +10,12 @@ import type { GithubOpenPR } from "./github-open-pull-requests";
 export type PrScanEntry = {
   scanId: string;
   pipelineStatus: ScanPipelineStatus;
-  cardSummary: ScanCardSummary;
+  cardPresentation: ScanCardPresentation;
   createdAt: string;
   githubPrNumber: number;
   githubHeadSha: string | null;
   githubBaseRef: string | null;
   scannedAt: string | null;
-  /** @deprecated Use cardSummary */
-  status: string;
-  /** @deprecated Use cardSummary.mergePosture */
-  decision: string | null;
-  /** @deprecated Use cardSummary.riskIndex */
-  totalScore: number | null;
-  /** @deprecated Use cardSummary.summaryLine */
-  summaryText: string | null;
-  /** @deprecated Use cardSummary.topAffectedAreas */
-  topAffectedAreas: string[];
-  /** @deprecated Use scannedAt */
-  resultGeneratedAt: string | null;
 };
 
 export type PrScanAggregates = {
@@ -39,7 +23,6 @@ export type PrScanAggregates = {
   byDecision: { safe: number; needs_review: number; risky: number };
 };
 
-/** Owner-level GitHub scan quota snapshot from pull-request-scans API. */
 export type PrScanQuotaStatus = {
   source: "github";
   state: "ok" | "exceeded";
@@ -56,7 +39,6 @@ export type PrScanIndexResponse = {
   quotaStatus?: PrScanQuotaStatus;
 };
 
-/** @deprecated Use ScanCardPresentationState */
 export type ScanState =
   | "done"
   | "in_progress"
@@ -68,11 +50,10 @@ export type PRHealthRow = {
   pr: GithubOpenPR;
   scan: PrScanEntry | null;
   presentationState: ScanCardPresentationState;
-  /** @deprecated Use presentationState */
   scanState: ScanState;
   posture: MergePosture | null;
   isOutdated: boolean;
-  cardSummary: ScanCardSummary | null;
+  cardPresentation: ScanCardPresentation | null;
   timestampIso: string;
 };
 
@@ -84,20 +65,21 @@ export type RepoPullHealthViewModel = {
   hasMore: boolean;
 };
 
-function completionEvidenceForScan(scan: PrScanEntry) {
-  const scannedAt = scan.scannedAt ?? scan.resultGeneratedAt ?? null;
-  return {
-    decision: scan.decision ?? scan.cardSummary?.mergePosture ?? null,
-    totalScore: scan.totalScore ?? scan.cardSummary?.riskIndex ?? null,
-    hasResult: scan.cardSummary?.mergePosture != null,
-    scannedAt,
-  };
-}
+function derivePresentationState(
+  scan: PrScanEntry | null,
+  prHeadSha: string,
+): ScanCardPresentationState {
+  if (!scan) return "not_scanned";
 
-function pipelineForScan(scan: PrScanEntry): ScanPipelineStatus {
-  const wire = scan.pipelineStatus ?? scan.status;
-  if (wire === "done" || wire === "failed") return wire;
-  return resolvePipelineStatus(wire, completionEvidenceForScan(scan));
+  const pipeline = scan.pipelineStatus;
+  if (pipeline === "queued" || pipeline === "running") return "scanning";
+  if (pipeline === "failed") return "analysis_failed";
+  if (pipeline === "done") {
+    const isStale =
+      scan.githubHeadSha != null && scan.githubHeadSha !== prHeadSha;
+    return isStale ? "stale" : "ready";
+  }
+  return "analysis_failed";
 }
 
 function presentationToLegacyState(
@@ -117,51 +99,6 @@ function presentationToLegacyState(
   }
 }
 
-function derivePresentationState(
-  scan: PrScanEntry | null,
-  prHeadSha: string,
-): ScanCardPresentationState {
-  if (!scan) return "not_scanned";
-
-  const pipeline = pipelineForScan(scan);
-  if (pipeline === "queued" || pipeline === "running") return "scanning";
-  if (pipeline === "failed") return "analysis_failed";
-  if (pipeline === "done") {
-    const isStale =
-      scan.githubHeadSha != null && scan.githubHeadSha !== prHeadSha;
-    return isStale ? "stale" : "ready";
-  }
-  return "analysis_failed";
-}
-
-function cardSummaryForRow(scan: PrScanEntry | null): ScanCardSummary | null {
-  if (!scan) return null;
-
-  const effectivePipeline = pipelineForScan(scan);
-  const stored = scan.cardSummary;
-  const trustStoredSummary =
-    stored != null &&
-    stored.mergePosture != null &&
-    !isPipelinePlaceholderCopy(stored.summaryLine);
-
-  if (trustStoredSummary) {
-    return stored;
-  }
-
-  const legacySummaryText = isPipelinePlaceholderCopy(scan.summaryText)
-    ? null
-    : scan.summaryText;
-
-  return resolvePrScanCardSummary({
-    pipelineStatus: effectivePipeline,
-    decision: scan.decision ?? stored?.mergePosture ?? null,
-    totalScore: scan.totalScore ?? stored?.riskIndex ?? null,
-    summaryText: legacySummaryText ?? stored?.summaryLine ?? null,
-    result: null,
-    scannedAt: scan.scannedAt ?? scan.resultGeneratedAt ?? null,
-  });
-}
-
 function timestampForRow(
   pr: GithubOpenPR,
   scan: PrScanEntry | null,
@@ -179,10 +116,6 @@ function timestampForRow(
   return pr.updatedAt;
 }
 
-/**
- * Merge a list of GitHub open PRs with the latest scan entry per PR.
- * Sorting: riskiest posture first, then highest risk index, then most-recently updated.
- */
 export function buildRepoPullHealthViewModel(
   prs: GithubOpenPR[],
   index: PrScanIndexResponse,
@@ -194,10 +127,8 @@ export function buildRepoPullHealthViewModel(
     const scan = index.byPrNumber[String(pr.number)] ?? null;
     const presentationState = derivePresentationState(scan, pr.headSha);
     const scanState = presentationToLegacyState(presentationState);
-    const cardSummary = cardSummaryForRow(scan);
-    const posture =
-      cardSummary?.mergePosture ??
-      (scan ? mergePostureFromDecision(scan.decision) : null);
+    const cardPresentation = scan?.cardPresentation ?? null;
+    const posture = cardPresentation?.status ?? null;
     const isOutdated = presentationState === "stale";
     const timestampIso = timestampForRow(pr, scan, presentationState);
 
@@ -212,7 +143,7 @@ export function buildRepoPullHealthViewModel(
       scanState,
       posture,
       isOutdated,
-      cardSummary,
+      cardPresentation,
       timestampIso,
     };
   });
@@ -222,8 +153,8 @@ export function buildRepoPullHealthViewModel(
     const bOrder = b.posture ? MERGE_POSTURE_SORT_ORDER[b.posture] : -1;
     if (aOrder !== bOrder) return bOrder - aOrder;
 
-    const aScore = a.cardSummary?.riskIndex ?? a.scan?.totalScore ?? -1;
-    const bScore = b.cardSummary?.riskIndex ?? b.scan?.totalScore ?? -1;
+    const aScore = a.cardPresentation?.riskIndex ?? -1;
+    const bScore = b.cardPresentation?.riskIndex ?? -1;
     if (aScore !== bScore) return bScore - aScore;
 
     return (

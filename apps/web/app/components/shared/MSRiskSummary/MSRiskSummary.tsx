@@ -1,119 +1,60 @@
-import type { MergePosture, ScanCardSummary } from "@mergesignal/shared";
-import {
-  ariaLabelForCardSummary,
-  cardPostureDisplayLabel,
-  deriveCardExposureDisplay,
-  isPipelinePlaceholderCopy,
-  MERGE_POSTURE_LABEL,
-} from "@mergesignal/shared";
+import type { ScanCardPresentation } from "@mergesignal/shared";
+import { MERGE_POSTURE_LABEL } from "@mergesignal/shared";
 import { MSBadge } from "../MSBadge/MSBadge";
+import { deriveCardExposureDisplay } from "@mergesignal/shared";
 import styles from "./MSRiskSummary.module.css";
 
 export type MSRiskSummaryProps = {
-  summary: ScanCardSummary;
+  presentation: ScanCardPresentation;
   stale?: boolean;
   staleSubline?: string;
 };
 
 function postureTone(
-  posture: MergePosture | null,
+  status: ScanCardPresentation["status"],
 ): "safe" | "review" | "risky" | "neutral" {
-  if (posture === "risky") return "risky";
-  if (posture === "needs_review") return "review";
-  if (posture === "safe") return "safe";
+  if (status === "risky") return "risky";
+  if (status === "needs_review") return "review";
+  if (status === "safe") return "safe";
   return "neutral";
 }
 
-function displayPipelineSummary(summary: ScanCardSummary): string | null {
-  if (!summary.summaryLine) return null;
-  if (summary.mergePosture && isPipelinePlaceholderCopy(summary.summaryLine)) {
-    return null;
-  }
-  return summary.summaryLine;
-}
-
-function legacyObservations(summary: ScanCardSummary): string[] {
-  if (summary.operationalObservations?.length) {
-    return summary.operationalObservations;
-  }
-  return [];
-}
-
-function contextMetaLine(summary: ScanCardSummary): string | null {
-  const parts: string[] = [];
-  if (summary.runtimeSurfaceLabel) parts.push(summary.runtimeSurfaceLabel);
-  if (summary.reachabilityLabel) parts.push(summary.reachabilityLabel);
-  if (summary.blastRadiusLabel) parts.push(summary.blastRadiusLabel);
-  if (summary.affectedAreas.length > 0) {
-    parts.push(summary.affectedAreas.join(" · "));
-  }
-  if (parts.length === 0) return null;
-  return parts.join(" · ");
-}
-
 export function MSRiskSummary({
-  summary,
+  presentation,
   stale = false,
   staleSubline,
 }: MSRiskSummaryProps) {
-  const tone = postureTone(summary.mergePosture);
-  const pipelineSummary = displayPipelineSummary(summary);
-  const primaryInsight = summary.primaryInsight;
-  const contextLine = contextMetaLine(summary);
-  const repoObservations = legacyObservations(summary);
-  const secondaryObservations = primaryInsight
-    ? repoObservations
-    : repoObservations.slice(1);
-  const primaryRepoObservation =
-    primaryInsight && repoObservations[0] ? repoObservations[0] : null;
-  const supportingLine =
-    !primaryInsight && repoObservations.length === 1
-      ? summary.supportingLine
-      : primaryRepoObservation && repoObservations.length === 1
-        ? summary.supportingLine
-        : null;
+  if (presentation.pipeline) {
+    return (
+      <div className={styles.outcomeFlow}>
+        <p className={styles.whyLine}>{presentation.headline}</p>
+        {presentation.pipeline.subheadline && (
+          <p className={styles.whySubordinate}>
+            {presentation.pipeline.subheadline}
+          </p>
+        )}
+      </div>
+    );
+  }
 
-  const intelligenceSublines = [
-    summary.usageSummary,
-    summary.blastRadiusDetail,
-    summary.frameworksSummary,
-    summary.verificationLine,
-  ].filter((s): s is string => Boolean(s?.trim()));
-
+  const tone = postureTone(presentation.status);
   const hasBody =
-    Boolean(summary.changedPackagesDisplay) ||
-    Boolean(contextLine) ||
-    intelligenceSublines.length > 0 ||
-    Boolean(primaryInsight) ||
-    Boolean(summary.structuralOnlyDisclaimer) ||
-    repoObservations.length > 0 ||
-    Boolean(supportingLine) ||
-    Boolean(pipelineSummary);
+    presentation.keyPoints.length > 0 ||
+    presentation.affectedAreas.length > 0 ||
+    presentation.verificationActions.length > 0 ||
+    presentation.evidence.length > 0 ||
+    Boolean(presentation.subheadline);
 
-  const isQuietOutcome = tone === "safe" && !hasBody && !staleSubline;
+  const isQuietOutcome =
+    tone === "safe" &&
+    presentation.density === "minimal" &&
+    !hasBody &&
+    !staleSubline;
 
-  const postureLabel = summary.mergePosture
-    ? MERGE_POSTURE_LABEL[summary.mergePosture]
-    : summary.headline;
-  const exposure = deriveCardExposureDisplay(summary.riskIndex);
-
-  const ariaObservations = [
-    summary.changedPackagesDisplay,
-    contextLine,
-    ...intelligenceSublines,
-    primaryInsight,
-    ...secondaryObservations,
-    primaryRepoObservation,
-    supportingLine,
-    summary.structuralOnlyDisclaimer,
-  ].filter((s): s is string => Boolean(s?.trim()));
-
-  const ariaLabel = ariaLabelForCardSummary(
-    postureLabel,
-    summary.riskIndex,
-    ariaObservations,
-    null,
-  );
+  const postureLabel = presentation.status
+    ? MERGE_POSTURE_LABEL[presentation.status]
+    : presentation.headline;
+  const exposure = deriveCardExposureDisplay(presentation.riskIndex);
 
   return (
     <div
@@ -127,98 +68,60 @@ export function MSRiskSummary({
         .filter(Boolean)
         .join(" ")}
       data-posture={tone}
-      data-narrative-mode={summary.narrativeMode}
-      aria-label={ariaLabel}
+      data-density={presentation.density}
+      aria-label={`${postureLabel}. ${presentation.headline}`}
     >
+      <h3 className={styles.upgradeContext}>{presentation.headline}</h3>
+
+      {presentation.subheadline && (
+        <p className={styles.contextMeta}>{presentation.subheadline}</p>
+      )}
+
       {hasBody && (
         <div className={styles.artifactCore}>
-          {summary.changedPackagesDisplay && (
+          {presentation.primaryPackage && (
             <p className={styles.upgradeContext}>
-              {summary.changedPackagesDisplay}
+              {presentation.changedPackages.join(", ")}
             </p>
           )}
 
-          {contextLine && <p className={styles.contextMeta}>{contextLine}</p>}
-
-          {intelligenceSublines.map((line) => (
-            <p key={line} className={styles.whySubordinate}>
-              {line}
+          {presentation.keyPoints.map((point) => (
+            <p key={point} className={styles.evidenceLine}>
+              {point}
             </p>
           ))}
 
-          {summary.structuralOnlyDisclaimer && (
-            <p className={styles.structuralDisclaimer}>
-              {summary.structuralOnlyDisclaimer}
+          {presentation.affectedAreas.length > 0 && (
+            <p className={styles.contextMeta}>
+              {presentation.affectedAreas.join(" · ")}
             </p>
           )}
 
-          {primaryInsight && (
+          {presentation.verificationActions.map((action) => (
+            <p key={action} className={styles.whySubordinate}>
+              Verify: {action}
+            </p>
+          ))}
+
+          {presentation.evidence.map((row) => (
             <p
-              className={[
-                styles.evidenceLine,
-                tone === "review" ? styles.evidenceReview : "",
-                tone === "risky" ? styles.evidenceRisky : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
+              key={`${row.label}-${row.value}`}
+              className={styles.whySubordinate}
             >
-              {primaryInsight}
-            </p>
-          )}
-
-          {!primaryInsight &&
-            repoObservations[0] &&
-            (() => {
-              const observation = repoObservations[0]!;
-              return (
-                <p
-                  className={[
-                    styles.evidenceLine,
-                    tone === "review" ? styles.evidenceReview : "",
-                    tone === "risky" ? styles.evidenceRisky : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  {observation}
-                </p>
-              );
-            })()}
-
-          {secondaryObservations.map((observation) => (
-            <p key={observation} className={styles.whyLine}>
-              {observation}
+              {row.label}: {row.value}
             </p>
           ))}
-
-          {primaryRepoObservation && (
-            <p className={[styles.whyLine, styles.whySubordinate].join(" ")}>
-              {primaryRepoObservation}
-            </p>
-          )}
-
-          {supportingLine && (
-            <p className={[styles.whyLine, styles.whySubordinate].join(" ")}>
-              {supportingLine}
-            </p>
-          )}
-
-          {pipelineSummary &&
-            !primaryInsight &&
-            repoObservations.length === 0 && (
-              <p className={styles.whyLine}>{pipelineSummary}</p>
-            )}
         </div>
       )}
 
-      {summary.mergePosture && (
+      {presentation.status && (
         <div className={styles.outcomeRow}>
           <MSBadge
             variant="posture"
             tone={tone}
             className={styles.postureBadge}
           >
-            {cardPostureDisplayLabel(summary.mergePosture)}
+            {postureLabel}
           </MSBadge>
           {exposure && (
             <span className={styles.exposureMeta}>

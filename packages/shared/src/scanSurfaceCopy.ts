@@ -349,6 +349,33 @@ export const scanSurfaceCopy = {
     areasSeparator: " | ",
     contextSeparator: " | ",
   },
+  /** Shared presentation layer copy (composeHeadline, key points, verification). */
+  presentation: {
+    limitedContextHeadline: "Dependency upgrade with limited scan context",
+    limitedContextMessage: "PR-specific scan context was limited",
+    limitedContextKeyPoint:
+      "PR-specific intelligence was limited for this scan",
+    noChangedPackagesHeadline: "Dependency scan complete",
+    multiRuntimeHeadline: "Multiple runtime dependency upgrades need review",
+    buildOnlyHeadline:
+      "{package} patch upgrade with limited application impact",
+    runtimeHeadline: "{package} upgrade affects {surface}",
+    defaultUpgradeHeadline: "{package} dependency upgrade needs review",
+    changedPackageKeyPoint: "Changed package: {package}",
+    usedInPathsSingle: "Used across application code ({path})",
+    usedInPathsMultiple: "Used across {count} code paths",
+    noRuntimePathsKeyPoint: "No runtime usage paths detected",
+    blastRadiusWideKeyPoint: "Blast radius is wide",
+    blastRadiusLevelKeyPoint: "Blast radius is {level}",
+    noAffectedAreasKeyPoint: "No affected application areas identified",
+    affectedAreasKeyPoint: "Affected areas: {areas}",
+    verifyCiTypecheck: "Confirm CI/typecheck passes",
+    verifyAuthFlow: "Run authenticated API request flow",
+    verifyErrorResponses: "Check error responses and status codes",
+    graphDepthContext: "Repository graph max depth: {depth}",
+    graphSizeContext: "Repository graph: {nodes} nodes, {edges} edges",
+    actionLabelReview: "Review scan",
+  },
   cli: {
     stderrAnalysisIncomplete: "Analysis could not be completed.",
     stderrOutputNotVerified: "These results could not be verified.",

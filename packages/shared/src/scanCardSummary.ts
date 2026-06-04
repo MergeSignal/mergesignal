@@ -1,10 +1,7 @@
-import type { CatalogPhrase } from "./cardObservationCatalog.js";
-import { deriveScanNarrative } from "./deriveScanNarrative.js";
-import { presentScanCardSummary } from "./presentScanCardSummary.js";
-import type { NarrativeAvailabilityMode } from "./scanNarrativeFacts.js";
+import { buildScanCardPresentation } from "./presentation/orchestration/buildScanCardPresentation.js";
+import type { ScanCardPresentation } from "./presentation/dto/scanCardPresentation.js";
 import {
   mergePostureFromDecision,
-  MERGE_POSTURE_LABEL,
   type MergePosture,
 } from "./riskVocabulary.js";
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
@@ -28,38 +25,10 @@ export type FindingCountSummary = {
   low: number;
 };
 
-export type ScanCardSummary = {
-  mergePosture: MergePosture | null;
-  riskIndex: number | null;
-  riskIndexBand: RiskIndexBand | null;
-  headline: string;
-  /** @deprecated Use operationalObservations */
-  summaryLine: string | null;
-  findingCounts: FindingCountSummary | null;
-  /** @deprecated Use affectedAreas */
-  topAffectedAreas: string[];
-  /** Catalog-mapped topology observations (0–3). Tier 3 repo context — legacy wire field. */
-  operationalObservations: CatalogPhrase[];
-  /** Optional quiet subline when exactly one observation is shown. */
-  supportingLine: string | null;
-  narrativeMode: NarrativeAvailabilityMode;
-  codeIntelligenceAvailable: boolean;
-  changedPackagesDisplay: string | null;
-  runtimeSurfaceLabel: string | null;
-  reachabilityLabel: string | null;
-  blastRadiusLabel: string | null;
-  affectedAreas: string[];
-  primaryInsight: string | null;
-  structuralOnlyDisclaimer: string | null;
-  /** One-line usage hint from packageUsage paths or areas. */
-  usageSummary: string | null;
-  /** Single verification prompt from changed-scope guidance or usage. */
-  verificationLine: string | null;
-  /** Optional blast factor subline when factors exist. */
-  blastRadiusDetail: string | null;
-  /** Short framework list (max 2 on card). */
-  frameworksSummary: string | null;
-};
+/** @deprecated Use ScanCardPresentation */
+export type ScanCardSummary = ScanCardPresentation;
+
+export { ScanCardPresentation };
 
 const STALE_SUBLINE = "Based on earlier commit";
 export const SCAN_CARD_SCANNING_SUMMARY = "Waiting for results...";
@@ -134,15 +103,7 @@ export function isPipelinePlaceholderCopy(
 
 /** True when summary reflects pipeline lifecycle, not merge posture. */
 export function isPipelineCardSummary(summary: ScanCardSummary): boolean {
-  if (isPipelinePlaceholderCopy(summary.summaryLine)) return true;
-  return (
-    summary.mergePosture === null &&
-    summary.riskIndex === null &&
-    (summary.headline === scanSurfaceCopy.pipeline.scanRunning ||
-      summary.headline === scanSurfaceCopy.pipeline.analysisIncomplete ||
-      summary.headline === scanSurfaceCopy.pipeline.scanUnavailable) &&
-    summary.narrativeMode === "denormalized"
-  );
+  return summary.pipeline != null;
 }
 
 /** Single source for risk index color bands (aligns with decision score bands). */
@@ -185,29 +146,11 @@ export function deriveScanCardSummary(
   result: ScanResult | null | undefined,
   pipelineStatus: ScanPipelineStatus,
 ): ScanCardSummary {
-  if (pipelineStatus === "queued" || pipelineStatus === "running") {
-    return presentScanCardSummary(deriveScanNarrative(null), {
-      pipelineStatus,
-    });
-  }
-
-  if (pipelineStatus === "failed") {
-    return presentScanCardSummary(deriveScanNarrative(null), {
-      pipelineStatus: "failed",
-    });
-  }
-
-  if (!result) {
-    return {
-      ...presentScanCardSummary(deriveScanNarrative(null), { pipelineStatus }),
-      headline: scanSurfaceCopy.pipeline.scanUnavailable,
-    };
-  }
-
-  const facts = deriveScanNarrative(result);
-  return presentScanCardSummary(facts, {
+  return buildScanCardPresentation({
     pipelineStatus,
-    findings: result.findings,
+    result: result ?? null,
+    decision: result?.decision?.recommendation,
+    totalScore: result?.totalScore,
   });
 }
 
@@ -269,46 +212,10 @@ export function resolvePrScanCardSummary(
     scannedAt: input.scannedAt,
   });
 
-  if (effectivePipeline === "done") {
-    const scanResult =
-      input.result ??
-      (hasScanCompletionEvidence({
-        decision: input.decision,
-        totalScore: input.totalScore,
-        hasResult: false,
-      })
-        ? ({
-            totalScore: input.totalScore ?? 0,
-            layerScores: {
-              security: 0,
-              maintainability: 0,
-              ecosystem: 0,
-              upgradeImpact: 0,
-            },
-            findings: [],
-            generatedAt: new Date().toISOString(),
-            decision: mergePostureFromDecision(input.decision)
-              ? {
-                  recommendation: mergePostureFromDecision(input.decision)!,
-                  confidence: "medium" as const,
-                  reasoning: [],
-                }
-              : undefined,
-          } satisfies ScanResult)
-        : null);
-
-    if (scanResult) {
-      const fromResult = deriveScanCardSummary(scanResult, "done");
-      if (!isPipelineCardSummary(fromResult)) return fromResult;
-    }
-
-    return deriveScanCardSummaryFromDenormalized(
-      input.decision,
-      input.totalScore,
-      input.summaryText,
-      "done",
-    );
-  }
-
-  return deriveScanCardSummary(input.result, effectivePipeline);
+  return buildScanCardPresentation({
+    pipelineStatus: effectivePipeline,
+    result: input.result,
+    decision: input.decision,
+    totalScore: input.totalScore,
+  });
 }

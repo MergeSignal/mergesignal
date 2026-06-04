@@ -518,7 +518,7 @@ export function deriveScanNarrative(
   }
 
   let affectedAreas = tier1Blocks.affectedAreas;
-  if (affectedAreas.length === 0) {
+  if (affectedAreas.length === 0 && mode !== "pr_intelligence") {
     affectedAreas = selectTopAffectedAreas(result, { max: 2 }).map((label) => ({
       id: label.toLowerCase().replace(/\s+/g, "_").slice(0, 48),
       label,
