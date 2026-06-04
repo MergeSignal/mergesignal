@@ -1,7 +1,7 @@
-import { auth } from "../../../../../auth";
-import { isDevAuthBypass } from "../../../../../lib/dev-auth";
-import { checkRepoAccessForSession } from "../../../../../lib/repo-guard";
-import { serverApiFetch } from "../../../../../lib/server-api";
+import { auth } from "../../../../auth";
+import { isDevAuthBypass } from "../../../../lib/dev-auth";
+import { checkRepoAccessForSession } from "../../../../lib/repo-guard";
+import { serverApiFetch } from "../../../../lib/server-api";
 
 function parseRepoId(repoId: string): { owner: string; repo: string } {
   const [owner = "", repo = ""] = repoId.split("/", 2);
