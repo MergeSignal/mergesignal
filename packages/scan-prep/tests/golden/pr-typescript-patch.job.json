@@ -1,0 +1,30 @@
+{
+  "scanId": "golden-typescript-patch",
+  "repoId": "MergeSignal/mergesignal",
+  "dependencyGraph": {},
+  "lockfile": {
+    "manager": "pnpm",
+    "content": "lockfileVersion: '9.0'\nimporters:\n  .:\n    devDependencies:\n      typescript:\n        specifier: 5.9.3\n        version: 5.9.3\npackages:\n  typescript@5.9.2:\n    resolution: {integrity: sha512-ts592}\n  typescript@5.9.3:\n    resolution: {integrity: sha512-ts593}\n"
+  },
+  "baseLockfile": {
+    "manager": "pnpm",
+    "content": "lockfileVersion: '9.0'\nimporters:\n  .:\n    devDependencies:\n      typescript:\n        specifier: 5.9.2\n        version: 5.9.2\npackages:\n  typescript@5.9.2:\n    resolution: {integrity: sha512-ts592}\n  typescript@5.9.3:\n    resolution: {integrity: sha512-ts593}\n"
+  },
+  "changedFiles": ["pnpm-lock.yaml", "package.json"],
+  "repoSource": {
+    "provider": "github",
+    "owner": "MergeSignal",
+    "repo": "mergesignal",
+    "sha": "55d10d73340e23344915b5bce3192b2ef00e633f",
+    "installationId": 12345
+  },
+  "github": {
+    "owner": "MergeSignal",
+    "repo": "mergesignal",
+    "prNumber": 28,
+    "headSha": "55d10d73340e23344915b5bce3192b2ef00e633f",
+    "baseSha": "ec415b67beb3deea32b64781631e0c918b638616",
+    "baseRef": "main",
+    "installationId": 12345
+  }
+}

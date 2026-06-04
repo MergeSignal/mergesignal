@@ -1,0 +1,10 @@
+{
+  "changedPackages": ["typescript"],
+  "lockfilePackageDelta": {
+    "added": [],
+    "removed": [],
+    "updated": ["typescript"]
+  },
+  "warningCodes": [],
+  "codeAnalysisEnabled": true
+}

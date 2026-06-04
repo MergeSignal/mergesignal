@@ -11,6 +11,7 @@ import { classifyFetchError, fetchGitHubFiles } from "./github-files.js";
 import {
   detectChangedPackages,
   detectLockfilePackageDelta,
+  isPnpmLockfileDiffEmpty,
 } from "./lockfile-diff.js";
 import { logInfo, logWarn } from "./log.js";
 
@@ -74,9 +75,11 @@ export async function prepareScanContext(
       );
 
       const deltaEmpty =
-        lockfilePackageDelta.added.length === 0 &&
-        lockfilePackageDelta.removed.length === 0 &&
-        lockfilePackageDelta.updated.length === 0;
+        lockfile.manager === "pnpm"
+          ? isPnpmLockfileDiffEmpty(baseLockfile.content, lockfile.content)
+          : lockfilePackageDelta.added.length === 0 &&
+            lockfilePackageDelta.removed.length === 0 &&
+            lockfilePackageDelta.updated.length === 0;
 
       if (deltaEmpty && github) {
         warn(
