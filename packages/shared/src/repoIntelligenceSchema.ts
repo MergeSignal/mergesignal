@@ -1,9 +1,20 @@
+/**
+ * Canonical `ScanResult.repoIntelligence` wire contract (Wave 1 + Wave 2).
+ *
+ * Bump {@link REPO_INTELLIGENCE_ABI} when this schema changes incompatibly.
+ * Engine maps internal signals to this shape at emit time; consumers must use
+ * {@link safeParseRepoIntelligence} and honor `analysisPreparation.repoIntelligenceValidation`.
+ */
 import { z } from "zod";
+import type { ScanResult } from "./types.js";
 import type {
   BlastRadiusLevel,
   ReachabilityKind,
   RuntimeSurfaceKind,
 } from "./scanNarrativeFacts.js";
+
+/** Bump when wire schema changes incompatibly. */
+export const REPO_INTELLIGENCE_ABI = "1" as const;
 
 const surfaceKindSchema = z.enum(["runtime", "build", "test", "unknown"]);
 
@@ -17,6 +28,159 @@ const reachabilityKindSchema = z.enum([
 
 const blastLevelSchema = z.enum(["narrow", "moderate", "wide"]);
 
+const packageUsageWireSchema = z.object({
+  packageName: z.string().min(1),
+  files: z.array(z.string()),
+  paths: z.array(z.string()).optional(),
+  criticalPaths: z.array(z.string()).optional(),
+  areas: z.array(z.string()).optional(),
+});
+
+const packageIntelWireSchema = z.object({
+  runtimeSurface: surfaceKindSchema,
+  reachability: reachabilityKindSchema,
+  usage: packageUsageWireSchema,
+  areas: z.array(z.string()).optional(),
+});
+
+const areaSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+});
+
+const hotspotWireSchema = z.object({
+  packageName: z.string().min(1),
+  source: z.enum(["code", "graph"]).optional(),
+  depth: z.number().optional(),
+  paths: z.array(z.string()),
+});
+
+const blastRadiusWireSchema = z.object({
+  level: blastLevelSchema,
+  factors: z.array(z.string()).optional(),
+  changedPackageCount: z.number().int().nonnegative().optional(),
+});
+
+/** Strict canonical wire schema — single source of truth. */
+export const repoIntelligenceWireSchema = z.object({
+  packages: z.record(z.string(), packageIntelWireSchema),
+  packageUsage: z.array(packageUsageWireSchema).optional(),
+  blastRadius: blastRadiusWireSchema.optional(),
+  applicationAreas: z.array(areaSchema).optional(),
+  affectedAreas: z.array(areaSchema).optional(),
+  hotspots: z.array(hotspotWireSchema).optional(),
+  frameworks: z.array(z.string().min(1)).optional(),
+});
+
+/** @deprecated Use {@link repoIntelligenceWireSchema}. */
+export const repoIntelligenceSchema = repoIntelligenceWireSchema;
+
+export type RepoIntelligence = z.infer<typeof repoIntelligenceWireSchema>;
+
+export type ParseRepoIntelligenceSuccess = {
+  ok: true;
+  value: RepoIntelligence;
+};
+
+export type ParseRepoIntelligenceFailure = {
+  ok: false;
+  issues: string[];
+  issueCount: number;
+  packageCount: number;
+};
+
+export type ParseRepoIntelligenceResult =
+  | ParseRepoIntelligenceSuccess
+  | ParseRepoIntelligenceFailure;
+
+function formatZodIssues(error: z.ZodError): string[] {
+  return error.issues.map(
+    (i) => `${i.path.join(".") || "(root)"}: ${i.message}`,
+  );
+}
+
+export function countRepoIntelligencePackages(raw: unknown): number {
+  if (raw == null || typeof raw !== "object") return 0;
+  const obj = raw as Record<string, unknown>;
+  if (obj.packages != null && typeof obj.packages === "object") {
+    return Object.keys(obj.packages as object).length;
+  }
+  if (Array.isArray(obj.packageUsage)) {
+    return obj.packageUsage.length;
+  }
+  return 0;
+}
+
+export function safeParseRepoIntelligence(
+  raw: unknown,
+): ParseRepoIntelligenceResult {
+  const packageCount = countRepoIntelligencePackages(raw);
+  if (raw == null || typeof raw !== "object") {
+    return {
+      ok: false,
+      issues: ["(root): expected object"],
+      issueCount: 1,
+      packageCount: 0,
+    };
+  }
+  const parsed = repoIntelligenceWireSchema.safeParse(raw);
+  if (!parsed.success) {
+    const issues = formatZodIssues(parsed.error);
+    return {
+      ok: false,
+      issues,
+      issueCount: issues.length,
+      packageCount,
+    };
+  }
+  const value = parsed.data;
+  if (Object.keys(value).length === 0) {
+    return {
+      ok: false,
+      issues: ["(root): empty object"],
+      issueCount: 1,
+      packageCount: 0,
+    };
+  }
+  if (
+    Object.keys(value.packages).length === 0 &&
+    (value.packageUsage?.length ?? 0) === 0
+  ) {
+    return {
+      ok: false,
+      issues: ["packages: at least one package required"],
+      issueCount: 1,
+      packageCount: 0,
+    };
+  }
+  return { ok: true, value };
+}
+
+/** Throws when wire block is present but invalid (CI / tests only). */
+export function validateRepoIntelligenceWire(raw: unknown): RepoIntelligence {
+  const r = safeParseRepoIntelligence(raw);
+  if (!r.ok) {
+    throw new Error(`repoIntelligence contract: ${r.issues.join("; ")}`);
+  }
+  return r.value;
+}
+
+/** CI helper — fails test when engine output includes invalid repoIntelligence. */
+export function assertEngineOutputRepoIntelligenceValid(
+  scan: ScanResult,
+): void {
+  if (scan.repoIntelligence == null) return;
+  validateRepoIntelligenceWire(scan.repoIntelligence);
+}
+
+/**
+ * @deprecated Prefer {@link safeParseRepoIntelligence}. Returns null on failure (silent).
+ */
+export function parseRepoIntelligence(raw: unknown): RepoIntelligence | null {
+  const r = safeParseRepoIntelligence(raw);
+  return r.ok ? r.value : null;
+}
+
 const looseSurfaceSchema = z.union([
   surfaceKindSchema,
   z.string(),
@@ -28,95 +192,6 @@ const looseReachabilitySchema = z.union([
   z.string(),
   z.object({ kind: z.string() }).passthrough(),
 ]);
-
-const packageUsageEntrySchema = z
-  .object({
-    packageName: z.string().optional(),
-    package: z.string().optional(),
-    files: z.array(z.string()).optional(),
-    paths: z.array(z.string()).optional(),
-    criticalPaths: z.array(z.string()).optional(),
-    areas: z.array(z.string()).optional(),
-  })
-  .passthrough();
-
-const packageIntelSchema = z
-  .object({
-    runtimeSurface: looseSurfaceSchema.optional(),
-    reachability: looseReachabilitySchema.optional(),
-    packageUsage: packageUsageEntrySchema.optional(),
-    usage: packageUsageEntrySchema.optional(),
-    areas: z.array(z.string()).optional(),
-    hotspots: z
-      .array(
-        z
-          .object({
-            packageName: z.string().optional(),
-            paths: z.array(z.string()).optional(),
-            depth: z.number().optional(),
-          })
-          .passthrough(),
-      )
-      .optional(),
-  })
-  .passthrough();
-
-const areaSchema = z
-  .object({
-    id: z.string(),
-    label: z.string(),
-  })
-  .passthrough();
-
-export const repoIntelligenceSchema = z
-  .object({
-    packages: z.record(z.string(), packageIntelSchema).optional(),
-    packageUsage: z.array(packageUsageEntrySchema).optional(),
-    blastRadius: z
-      .object({
-        level: blastLevelSchema.optional(),
-        factors: z.array(z.string()).optional(),
-        changedPackageCount: z.number().optional(),
-      })
-      .passthrough()
-      .optional(),
-    runtimeSurface: looseSurfaceSchema.optional(),
-    reachability: looseReachabilitySchema.optional(),
-    applicationAreas: z.array(areaSchema).optional(),
-    affectedAreas: z.array(areaSchema).optional(),
-    hotspots: z
-      .array(
-        z
-          .object({
-            packageName: z.string(),
-            source: z.enum(["code", "graph"]).optional(),
-            depth: z.number().optional(),
-            paths: z.array(z.string()).optional(),
-          })
-          .passthrough(),
-      )
-      .optional(),
-    frameworks: z.array(z.string()).optional(),
-  })
-  .passthrough();
-
-export type RepoIntelligence = z.infer<typeof repoIntelligenceSchema>;
-
-export function parseRepoIntelligence(raw: unknown): RepoIntelligence | null {
-  if (raw == null || typeof raw !== "object") return null;
-  const parsed = repoIntelligenceSchema.safeParse(raw);
-  if (!parsed.success) return null;
-  const value = parsed.data;
-  if (Object.keys(value).length === 0) return null;
-  if (
-    Object.keys(value).length === 1 &&
-    value.packages &&
-    Object.keys(value.packages).length === 0
-  ) {
-    return null;
-  }
-  return value;
-}
 
 const RUNTIME_SURFACE_ALIASES: ReadonlyArray<[RegExp, RuntimeSurfaceKind]> = [
   [/\bruntime\b/i, "runtime"],
@@ -174,7 +249,7 @@ export function normalizeReachabilityKind(
 }
 
 export function readSurfaceFromLoose(
-  value: z.infer<typeof looseSurfaceSchema> | undefined,
+  value: z.infer<typeof looseSurfaceSchema> | RuntimeSurfaceKind | undefined,
 ): RuntimeSurfaceKind | null {
   if (value == null) return null;
   if (typeof value === "string") return normalizeRuntimeSurfaceKind(value);
@@ -185,7 +260,7 @@ export function readSurfaceFromLoose(
 }
 
 export function readReachabilityFromLoose(
-  value: z.infer<typeof looseReachabilitySchema> | undefined,
+  value: z.infer<typeof looseReachabilitySchema> | ReachabilityKind | undefined,
 ): ReachabilityKind | null {
   if (value == null) return null;
   if (typeof value === "string") return normalizeReachabilityKind(value);

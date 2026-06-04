@@ -12,6 +12,7 @@ import type {
   ScanResult,
 } from "@mergesignal/shared";
 import {
+  applyRepoIntelligenceValidation,
   parseScanResultOrThrow,
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
@@ -308,11 +309,31 @@ export async function executeScanJob(
     const codeIntelligenceAvailable =
       prepared.preparationSummary.codeAnalysisEnabled &&
       Boolean(prepared.codeAnalysis?.fileContents.size);
-    const resultToStore = mergeAnalysisPreparation(
+    const withPreparation = mergeAnalysisPreparation(
       validated,
       prepared.warnings,
       codeIntelligenceAvailable,
     );
+    const {
+      result: resultToStore,
+      contractFailed,
+      logPayload,
+    } = applyRepoIntelligenceValidation(withPreparation);
+
+    if (contractFailed && logPayload) {
+      logScanEvent("warn", "repo_intelligence_contract_failed", {
+        scanId,
+        repoId,
+        jobId,
+        pr,
+        prNumber: job.data.github?.prNumber ?? null,
+        methodologyVersion: logPayload.methodologyVersion ?? null,
+        issueCount: logPayload.issueCount,
+        representativeIssues: logPayload.representativeIssues,
+        packageCount: logPayload.packageCount,
+        codeIntelligenceAvailable,
+      });
+    }
 
     try {
       const n = await persistSuccess(

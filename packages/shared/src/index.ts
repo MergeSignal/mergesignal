@@ -13,6 +13,8 @@ export * from "./deriveCardOperationalObservations.js";
 export * from "./deriveCardDisplaySummary.js";
 export * from "./scanNarrativeFacts.js";
 export * from "./repoIntelligenceSchema.js";
+export * from "./repoIntelligenceMappers.js";
+export * from "./repoIntelligenceValidation.js";
 export * from "./deriveScanNarrative.js";
 export * from "./extractRepositoryContextFacts.js";
 export * from "./presentScanCardSummary.js";

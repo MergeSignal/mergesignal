@@ -2,10 +2,10 @@ import { extractRepositoryContextFacts } from "./extractRepositoryContextFacts.j
 import {
   normalizeReachabilityKind,
   normalizeRuntimeSurfaceKind,
-  parseRepoIntelligence,
   readBlastLevel,
   readReachabilityFromLoose,
   readSurfaceFromLoose,
+  safeParseRepoIntelligence,
   type RepoIntelligence,
 } from "./repoIntelligenceSchema.js";
 import {
@@ -17,6 +17,7 @@ import {
   type NarrativeAvailabilityMode,
   type NarrativePackageUsage,
   type ReachabilityKind,
+  type RepoIntelligenceParseStatus,
   type ReviewerGuidanceKind,
   type ReviewerGuidanceScope,
   type RuntimeSurfaceKind,
@@ -118,7 +119,6 @@ function collectPackageUsageForChanged(
   for (const name of changed.all) {
     const pkgIntel = ri.packages?.[name];
     if (pkgIntel?.usage) mergeEntry(pkgIntel.usage, name);
-    if (pkgIntel?.packageUsage) mergeEntry(pkgIntel.packageUsage, name);
     if (pkgIntel?.areas?.length) {
       const row = ensure(name);
       row.areas = uniqueStrings([...row.areas, ...pkgIntel.areas]);
@@ -155,7 +155,7 @@ function collectCodeHotspots(
   const hotspots: ScanNarrativeFacts["hotspots"] = [];
   const pkgIntel =
     primary && ri.packages?.[primary] ? ri.packages[primary] : undefined;
-  const riHotspots = ri.hotspots ?? pkgIntel?.hotspots ?? [];
+  const riHotspots = ri.hotspots ?? [];
   for (const h of riHotspots) {
     const name = (h.packageName ?? primary ?? "").trim();
     if (!name) continue;
@@ -211,8 +211,8 @@ function extractTier1FromRepoIntelligence(
   const frameworks = collectFrameworks(ri);
   const paths = allUsagePaths(packageUsage);
 
-  const runtimeRaw = pkgIntel?.runtimeSurface ?? ri.runtimeSurface ?? undefined;
-  const reachRaw = pkgIntel?.reachability ?? ri.reachability ?? undefined;
+  const runtimeRaw = pkgIntel?.runtimeSurface;
+  const reachRaw = pkgIntel?.reachability;
 
   const runtimeKind =
     readSurfaceFromLoose(runtimeRaw) ?? (primary ? "unknown" : null);
@@ -432,6 +432,34 @@ function blastRadiusFromChangedCount(
   };
 }
 
+function resolveTrustedRepoIntelligence(result: ScanResult): {
+  parsed: RepoIntelligence | null;
+  parseStatus: RepoIntelligenceParseStatus;
+} {
+  const raw = result.repoIntelligence;
+  const validationStatus =
+    result.analysisPreparation?.repoIntelligenceValidation?.status;
+
+  if (raw == null) {
+    return { parsed: null, parseStatus: "absent" };
+  }
+
+  if (validationStatus === "invalid") {
+    return { parsed: null, parseStatus: "untrusted" };
+  }
+
+  if (validationStatus === "absent") {
+    return { parsed: null, parseStatus: "absent" };
+  }
+
+  const parsed = safeParseRepoIntelligence(raw);
+  if (parsed.ok) {
+    return { parsed: parsed.value, parseStatus: "ok" };
+  }
+
+  return { parsed: null, parseStatus: "invalid" };
+}
+
 /**
  * Consumer-agnostic scan intelligence — structured facts only (no UI copy).
  */
@@ -453,8 +481,12 @@ export function deriveScanNarrative(
   const codeIntelligenceAvailable =
     result.analysisPreparation?.codeIntelligenceAvailable !== false;
 
-  const parsedRi = parseRepoIntelligence(result.repoIntelligence);
-  const corpusGate = codeIntelligenceAvailable && parsedRi != null;
+  const { parsed: parsedRi, parseStatus: repoIntelligenceParse } =
+    resolveTrustedRepoIntelligence(result);
+  const corpusGate =
+    codeIntelligenceAvailable &&
+    repoIntelligenceParse === "ok" &&
+    parsedRi != null;
 
   let tier1Blocks = emptyTier1Blocks();
 
@@ -519,6 +551,7 @@ export function deriveScanNarrative(
         tier2: reviewerGuidance.length > 0,
         tier3,
       },
+      repoIntelligenceParse,
     },
     changedPackages,
     packageUsage: tier1Blocks.packageUsage,

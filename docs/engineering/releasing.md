@@ -4,6 +4,8 @@
 
 The canonical contract and presentation package lives in `packages/shared` and is published to the **public npm registry** as `@mergesignal/shared`.
 
+**`0.3.0`+:** strict `repoIntelligence` wire (`REPO_INTELLIGENCE_ABI`), `safeParseRepoIntelligence`, and `applyRepoIntelligenceValidation`. Publish shared before bumping the engine’s exact pin.
+
 **Publish (maintainers)**
 
 1. Bump `version` in `packages/shared/package.json` (semver).

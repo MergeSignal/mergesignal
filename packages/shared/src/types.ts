@@ -82,7 +82,8 @@ export type AnalysisContextWarningCode =
   | "code_fetch_auth_failure"
   | "code_fetch_timeout"
   | "code_fetch_rate_limit"
-  | "code_corpus_empty";
+  | "code_corpus_empty"
+  | "repo_intelligence_contract_invalid";
 
 export type AnalysisContextWarning = {
   code: AnalysisContextWarningCode;
@@ -90,10 +91,21 @@ export type AnalysisContextWarning = {
   details?: Record<string, unknown>;
 };
 
+export type RepoIntelligenceValidationStatus = "valid" | "invalid" | "absent";
+
+export type RepoIntelligenceValidation = {
+  status: RepoIntelligenceValidationStatus;
+  abi: string;
+  issueCount?: number;
+  representativeIssues?: string[];
+  validatedAt: string;
+};
+
 /** Worker-authored diagnostics merged onto persisted ScanResult when corpus unavailable. */
 export type AnalysisPreparation = {
   codeIntelligenceAvailable: boolean;
   warnings: AnalysisContextWarning[];
+  repoIntelligenceValidation?: RepoIntelligenceValidation;
 };
 
 /** Subset of PR identity passed into analysis (no installation tokens). */
@@ -340,9 +352,11 @@ export type ScanResult = {
   reportPresentation?: ReportPresentation;
   /** Echo of `ScanRequest.changedPackages` when non-empty (e.g. lockfile diff); for Check Run / UI copy. */
   changedPackages?: string[];
-  /** Optional repository intelligence block when code corpus was analyzed. */
-  repoIntelligence?: import("./repoIntelligenceSchema.js").RepoIntelligence &
-    Record<string, unknown>;
+  /**
+   * Raw engine-emitted repository intelligence (valid or invalid wire).
+   * Consumers must use `analysisPreparation.repoIntelligenceValidation` + {@link safeParseRepoIntelligence}.
+   */
+  repoIntelligence?: unknown;
   /** Worker merge: preparation diagnostics (code corpus availability). */
   analysisPreparation?: AnalysisPreparation;
 };

@@ -32,11 +32,18 @@ export type NarrativePackageUsage = {
   areas: string[];
 };
 
+export type RepoIntelligenceParseStatus =
+  | "ok"
+  | "invalid"
+  | "absent"
+  | "untrusted";
+
 export type ScanNarrativeFacts = {
   availability: {
     mode: NarrativeAvailabilityMode;
     codeIntelligenceAvailable: boolean;
     tiersPresent: { tier1: boolean; tier2: boolean; tier3: boolean };
+    repoIntelligenceParse: RepoIntelligenceParseStatus;
   };
 
   changedPackages: {
@@ -107,6 +114,7 @@ export const EMPTY_SCAN_NARRATIVE_FACTS: ScanNarrativeFacts = {
     mode: "denormalized",
     codeIntelligenceAvailable: false,
     tiersPresent: { tier1: false, tier2: false, tier3: false },
+    repoIntelligenceParse: "absent",
   },
   changedPackages: { primary: null, others: [], all: [] },
   packageUsage: [],

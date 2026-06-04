@@ -304,6 +304,71 @@ describe("executeScanJob", () => {
     expect(analyze).not.toHaveBeenCalled();
   });
 
+  it("completes scan when repoIntelligence contract is invalid but retains raw block", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    vi.mocked(analyze).mockResolvedValue({
+      ...validEngineOutput,
+      repoIntelligence: {
+        packageUsage: [{ name: "jsonwebtoken", files: ["src/a.ts"] }],
+        blastRadius: { level: "large", factors: [] },
+      },
+    });
+
+    let status = "queued";
+    let persisted: Record<string, unknown> | undefined;
+
+    const pool = {
+      query: vi.fn(async (sql: string, params?: unknown[]) => {
+        if (sql.startsWith("SELECT status")) {
+          return { rows: [{ status }], rowCount: 1 };
+        }
+        if (sql.includes("status IN ('queued', 'running')")) {
+          status = "running";
+          return { rowCount: 1 };
+        }
+        if (sql.includes("heartbeat_at = NOW()")) return { rowCount: 1 };
+        if (sql.includes("status = 'done'")) {
+          status = "done";
+          persisted = JSON.parse(String(params?.[0])) as Record<
+            string,
+            unknown
+          >;
+          return { rowCount: 1 };
+        }
+        return { rows: [], rowCount: 0 };
+      }),
+    } as unknown as Pool;
+
+    await executeScanJob(
+      pool,
+      makeJob({
+        github: {
+          owner: "acme",
+          repo: "app",
+          prNumber: 26,
+          headSha: "head",
+          installationId: 1,
+        },
+      }),
+      "worker-test",
+    );
+
+    expect(status).toBe("done");
+    expect(persisted?.repoIntelligence).toBeDefined();
+    const prep = persisted?.analysisPreparation as {
+      repoIntelligenceValidation?: { status: string };
+    };
+    expect(prep.repoIntelligenceValidation?.status).toBe("invalid");
+
+    const contractLog = warnSpy.mock.calls
+      .map((c) => String(c[0]))
+      .find((line) => line.includes("repo_intelligence_contract_failed"));
+    expect(contractLog).toBeDefined();
+
+    warnSpy.mockRestore();
+  });
+
   it("marks failed when persistSuccess fails after retries", async () => {
     vi.mocked(analyze).mockResolvedValue(validEngineOutput);
 

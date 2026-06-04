@@ -8,6 +8,11 @@ export const fixtureRepoIntelligenceFastify: RepoIntelligence = {
       reachability: "on_runtime_paths",
       usage: {
         packageName: "fastify",
+        files: [
+          "apps/api/src/server.ts",
+          "apps/api/src/routes/account.ts",
+          "apps/api/src/middleware/auth.ts",
+        ],
         paths: ["apps/api/src/server.ts", "apps/api/src/routes/account.ts"],
         criticalPaths: ["apps/api/src/middleware/auth.ts"],
         areas: ["API", "Auth middleware"],
@@ -39,13 +44,18 @@ export const fixtureRepoIntelligenceTypescript: RepoIntelligence = {
     typescript: {
       runtimeSurface: "build",
       reachability: "build_only",
+      usage: {
+        packageName: "typescript",
+        files: ["tsconfig.json"],
+        paths: [],
+      },
     },
   },
   blastRadius: { level: "narrow", changedPackageCount: 1 },
   applicationAreas: [],
 };
 
-/** Empty corpus stub (engine-test-fixture default). */
+/** Empty packages map — treated as absent by narrative when validation not set. */
 export const fixtureRepoIntelligenceEmpty: RepoIntelligence = {
   packages: {},
 };
@@ -58,6 +68,7 @@ export const fixtureRepoIntelligenceMultiPackage: RepoIntelligence = {
       reachability: "on_runtime_paths",
       usage: {
         packageName: "lodash",
+        files: ["apps/billing/export.ts"],
         paths: ["apps/billing/export.ts"],
         areas: ["Billing"],
       },
@@ -67,6 +78,7 @@ export const fixtureRepoIntelligenceMultiPackage: RepoIntelligence = {
       reachability: "on_runtime_paths",
       usage: {
         packageName: "axios",
+        files: ["apps/api/client.ts"],
         paths: ["apps/api/client.ts"],
         areas: ["API"],
       },
@@ -75,10 +87,12 @@ export const fixtureRepoIntelligenceMultiPackage: RepoIntelligence = {
   packageUsage: [
     {
       packageName: "lodash",
+      files: ["apps/billing/export.ts"],
       paths: ["apps/billing/export.ts"],
     },
     {
       packageName: "axios",
+      files: ["apps/api/client.ts"],
       paths: ["apps/api/client.ts"],
     },
   ],
