@@ -42,14 +42,3 @@ export function aggregateFindingCounts(
   }
   return counts;
 }
-
-export type RiskIndexBand = "low" | "medium" | "high";
-
-export function deriveRiskIndexBand(
-  score: number | null | undefined,
-): RiskIndexBand | null {
-  if (score == null || !Number.isFinite(score)) return null;
-  if (score > 60) return "high";
-  if (score > 30) return "medium";
-  return "low";
-}

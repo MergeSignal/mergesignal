@@ -4,7 +4,7 @@ import { scanSurfaceCopy } from "../../scanSurfaceCopy.js";
 import type { PipelineStatus, PresentationStatus } from "../dto/types.js";
 import type { PresentationProfile } from "./presentationProfile.js";
 
-export type DerivePresentationProfileContext = {
+type DerivePresentationProfileContext = {
   pipelineStatus: PipelineStatus;
   decision?: string | null;
   totalScore?: number | null;
