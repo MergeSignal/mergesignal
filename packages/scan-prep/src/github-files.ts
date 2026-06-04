@@ -2,7 +2,7 @@ import type { RepoSource } from "@mergesignal/shared";
 import { Octokit } from "octokit";
 
 import { getInstallationToken } from "./github-auth.js";
-import { logError, logInfo, logWarn } from "./log.js";
+import { logInfo, logWarn } from "./log.js";
 
 const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
 const MAX_FILE_SIZE_BYTES = 500_000;

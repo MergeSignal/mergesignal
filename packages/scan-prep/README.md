@@ -14,6 +14,8 @@ Reimplement `lockfile-diff`, `github-files`, `github-auth`, or `file-cache` unde
 
 CI enforces this via `scripts/ci/forbid-worker-prep-duplication.sh`.
 
+`mergesignal-engine` also maintains an in-repo workspace copy at `packages/scan-prep` — keep behavior in sync when changing this package.
+
 ## Environment
 
 | Variable                     | Purpose                                      |
