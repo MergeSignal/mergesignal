@@ -2,13 +2,9 @@
  * Lockfile diff — detects changed packages between base and head lockfiles.
  */
 
-import { logWarn } from "./log.js";
+import type { LockfilePackageDelta } from "@mergesignal/shared";
 
-export type LockfilePackageDelta = {
-  added: string[];
-  removed: string[];
-  updated: string[];
-};
+import { logWarn } from "./log.js";
 
 type ImporterDep = {
   specifier: string;
