@@ -13,6 +13,7 @@ import {
   type ScanDetailViewModel,
 } from "./scanDetailViewModel.js";
 import { fixtureRepoIntelligenceFastify } from "./fixtures/repoIntelligenceFixtures.js";
+import { analysisPreparationWithValidRepoIntel } from "./fixtures/repoIntelligenceTestHelpers.js";
 import type { ScanResult } from "./types.js";
 
 const baseResult = {
@@ -171,7 +172,7 @@ describe("Tier 1 success criterion", () => {
       {
         ...baseResult,
         changedPackages: ["fastify"],
-        analysisPreparation: { codeIntelligenceAvailable: true, warnings: [] },
+        analysisPreparation: analysisPreparationWithValidRepoIntel(),
         repoIntelligence: fixtureRepoIntelligenceFastify,
         insights: [
           {

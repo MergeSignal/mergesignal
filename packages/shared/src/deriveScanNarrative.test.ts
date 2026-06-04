@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { deriveScanNarrative } from "./deriveScanNarrative.js";
+import { legacyEngineRepoIntelligenceJwt } from "./fixtures/legacyEngineRepoIntelligence.js";
 import {
-  fixtureRepoIntelligenceEmpty,
   fixtureRepoIntelligenceFastify,
   fixtureRepoIntelligenceMultiPackage,
   fixtureRepoIntelligenceTypescript,
 } from "./fixtures/repoIntelligenceFixtures.js";
+import {
+  analysisPreparationWithInvalidRepoIntel,
+  analysisPreparationWithValidRepoIntel,
+} from "./fixtures/repoIntelligenceTestHelpers.js";
 import type { ScanResult } from "./types.js";
 
 const baseResult = {
@@ -27,16 +31,47 @@ describe("deriveScanNarrative", () => {
     expect(facts.changedPackages.all).toEqual([]);
   });
 
+  it("ignores repoIntelligence when validation status is not valid", () => {
+    const result = {
+      ...baseResult,
+      changedPackages: ["fastify"],
+      analysisPreparation: {
+        codeIntelligenceAvailable: true,
+        warnings: [],
+      },
+      repoIntelligence: fixtureRepoIntelligenceFastify,
+    } satisfies ScanResult;
+
+    const facts = deriveScanNarrative(result);
+    expect(facts.availability.repoIntelligenceParse).toBe("absent");
+    expect(facts.availability.tiersPresent.tier1).toBe(false);
+  });
+
+  it("treats worker-invalid repoIntelligence as untrusted (raw retained, not consumed)", () => {
+    const result = {
+      ...baseResult,
+      changedPackages: ["jsonwebtoken"],
+      analysisPreparation: analysisPreparationWithInvalidRepoIntel(),
+      repoIntelligence: legacyEngineRepoIntelligenceJwt,
+    } satisfies ScanResult;
+
+    const facts = deriveScanNarrative(result);
+    expect(facts.availability.repoIntelligenceParse).toBe("untrusted");
+    expect(facts.availability.tiersPresent.tier1).toBe(false);
+    expect(facts.packageUsage).toHaveLength(0);
+  });
+
   it("populates tier1 from repoIntelligence when corpus available", () => {
     const result = {
       ...baseResult,
       changedPackages: ["fastify"],
-      analysisPreparation: { codeIntelligenceAvailable: true, warnings: [] },
+      analysisPreparation: analysisPreparationWithValidRepoIntel(),
       repoIntelligence: fixtureRepoIntelligenceFastify,
     } satisfies ScanResult;
 
     const facts = deriveScanNarrative(result);
     expect(facts.availability.mode).toBe("pr_intelligence");
+    expect(facts.availability.repoIntelligenceParse).toBe("ok");
     expect(facts.availability.codeIntelligenceAvailable).toBe(true);
     expect(facts.changedPackages.primary).toBe("fastify");
     expect(facts.runtimeSurface?.kind).toBe("runtime");
@@ -102,7 +137,7 @@ describe("deriveScanNarrative", () => {
     const result = {
       ...baseResult,
       changedPackages: ["typescript"],
-      analysisPreparation: { codeIntelligenceAvailable: true, warnings: [] },
+      analysisPreparation: analysisPreparationWithValidRepoIntel(),
       repoIntelligence: fixtureRepoIntelligenceTypescript,
     } satisfies ScanResult;
 
@@ -117,7 +152,7 @@ describe("deriveScanNarrative", () => {
     const result = {
       ...baseResult,
       changedPackages: ["lodash", "axios"],
-      analysisPreparation: { codeIntelligenceAvailable: true, warnings: [] },
+      analysisPreparation: analysisPreparationWithValidRepoIntel(),
       repoIntelligence: fixtureRepoIntelligenceMultiPackage,
     } satisfies ScanResult;
 
@@ -143,7 +178,7 @@ describe("deriveScanNarrative", () => {
     const result = {
       ...baseResult,
       changedPackages: ["fastify"],
-      analysisPreparation: { codeIntelligenceAvailable: true, warnings: [] },
+      analysisPreparation: analysisPreparationWithValidRepoIntel(),
       repoIntelligence: fixtureRepoIntelligenceFastify,
       graphInsights: {
         maxDepth: 3,
@@ -176,15 +211,15 @@ describe("deriveScanNarrative", () => {
     ).toHaveLength(1);
   });
 
-  it("treats empty packages-only repoIntelligence as absent", () => {
+  it("does not tier1 when repoIntelligence block is omitted", () => {
     const result = {
       ...baseResult,
       changedPackages: ["react"],
-      analysisPreparation: { codeIntelligenceAvailable: true, warnings: [] },
-      repoIntelligence: fixtureRepoIntelligenceEmpty,
+      analysisPreparation: analysisPreparationWithValidRepoIntel(),
     } satisfies ScanResult;
 
     const facts = deriveScanNarrative(result);
+    expect(facts.availability.repoIntelligenceParse).toBe("absent");
     expect(facts.availability.tiersPresent.tier1).toBe(false);
   });
 });

@@ -55,11 +55,6 @@ export const fixtureRepoIntelligenceTypescript: RepoIntelligence = {
   applicationAreas: [],
 };
 
-/** Empty packages map — treated as absent by narrative when validation not set. */
-export const fixtureRepoIntelligenceEmpty: RepoIntelligence = {
-  packages: {},
-};
-
 /** Multi-package PR with distinct usage per package. */
 export const fixtureRepoIntelligenceMultiPackage: RepoIntelligence = {
   packages: {

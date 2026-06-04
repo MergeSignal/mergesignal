@@ -7,11 +7,7 @@
  */
 import { z } from "zod";
 import type { ScanResult } from "./types.js";
-import type {
-  BlastRadiusLevel,
-  ReachabilityKind,
-  RuntimeSurfaceKind,
-} from "./scanNarrativeFacts.js";
+import type { BlastRadiusLevel } from "./scanNarrativeFacts.js";
 
 /** Bump when wire schema changes incompatibly. */
 export const REPO_INTELLIGENCE_ABI = "1" as const;
@@ -71,9 +67,6 @@ export const repoIntelligenceWireSchema = z.object({
   hotspots: z.array(hotspotWireSchema).optional(),
   frameworks: z.array(z.string().min(1)).optional(),
 });
-
-/** @deprecated Use {@link repoIntelligenceWireSchema}. */
-export const repoIntelligenceSchema = repoIntelligenceWireSchema;
 
 export type RepoIntelligence = z.infer<typeof repoIntelligenceWireSchema>;
 
@@ -171,103 +164,6 @@ export function assertEngineOutputRepoIntelligenceValid(
 ): void {
   if (scan.repoIntelligence == null) return;
   validateRepoIntelligenceWire(scan.repoIntelligence);
-}
-
-/**
- * @deprecated Prefer {@link safeParseRepoIntelligence}. Returns null on failure (silent).
- */
-export function parseRepoIntelligence(raw: unknown): RepoIntelligence | null {
-  const r = safeParseRepoIntelligence(raw);
-  return r.ok ? r.value : null;
-}
-
-const looseSurfaceSchema = z.union([
-  surfaceKindSchema,
-  z.string(),
-  z.object({ kind: z.string() }).passthrough(),
-]);
-
-const looseReachabilitySchema = z.union([
-  reachabilityKindSchema,
-  z.string(),
-  z.object({ kind: z.string() }).passthrough(),
-]);
-
-const RUNTIME_SURFACE_ALIASES: ReadonlyArray<[RegExp, RuntimeSurfaceKind]> = [
-  [/\bruntime\b/i, "runtime"],
-  [/\bproduction\b/i, "runtime"],
-  [/\bapi\b/i, "runtime"],
-  [/\bbuild\b/i, "build"],
-  [/\bdev(?:elopment)?\b/i, "build"],
-  [/\btypescript\b/i, "build"],
-  [/\btest\b/i, "test"],
-  [/\bvitest\b/i, "test"],
-  [/\bjest\b/i, "test"],
-];
-
-const REACHABILITY_ALIASES: ReadonlyArray<[RegExp, ReachabilityKind]> = [
-  [/\bon[_\s-]?runtime/i, "on_runtime_paths"],
-  [/\bruntime[_\s-]?path/i, "on_runtime_paths"],
-  [/\bdirect\b/i, "on_runtime_paths"],
-  [/\bbuild[_\s-]?only/i, "build_only"],
-  [/\btest[_\s-]?only/i, "test_only"],
-  [/\bunreachable\b/i, "unreachable"],
-];
-
-export function normalizeRuntimeSurfaceKind(
-  raw: string | undefined,
-): RuntimeSurfaceKind {
-  if (!raw?.trim()) return "unknown";
-  const t = raw.trim().toLowerCase();
-  if (t === "runtime" || t === "build" || t === "test" || t === "unknown") {
-    return t;
-  }
-  for (const [re, kind] of RUNTIME_SURFACE_ALIASES) {
-    if (re.test(t)) return kind;
-  }
-  return "unknown";
-}
-
-export function normalizeReachabilityKind(
-  raw: string | undefined,
-): ReachabilityKind {
-  if (!raw?.trim()) return "unknown";
-  const t = raw.trim().toLowerCase();
-  if (
-    t === "on_runtime_paths" ||
-    t === "build_only" ||
-    t === "test_only" ||
-    t === "unreachable" ||
-    t === "unknown"
-  ) {
-    return t;
-  }
-  for (const [re, kind] of REACHABILITY_ALIASES) {
-    if (re.test(t)) return kind;
-  }
-  return "unknown";
-}
-
-export function readSurfaceFromLoose(
-  value: z.infer<typeof looseSurfaceSchema> | RuntimeSurfaceKind | undefined,
-): RuntimeSurfaceKind | null {
-  if (value == null) return null;
-  if (typeof value === "string") return normalizeRuntimeSurfaceKind(value);
-  if (typeof value === "object" && "kind" in value) {
-    return normalizeRuntimeSurfaceKind(String(value.kind));
-  }
-  return null;
-}
-
-export function readReachabilityFromLoose(
-  value: z.infer<typeof looseReachabilitySchema> | ReachabilityKind | undefined,
-): ReachabilityKind | null {
-  if (value == null) return null;
-  if (typeof value === "string") return normalizeReachabilityKind(value);
-  if (typeof value === "object" && "kind" in value) {
-    return normalizeReachabilityKind(String(value.kind));
-  }
-  return null;
 }
 
 export function readBlastLevel(

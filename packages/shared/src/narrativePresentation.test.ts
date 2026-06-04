@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { deriveScanNarrative } from "./deriveScanNarrative.js";
 import { fixtureRepoIntelligenceFastify } from "./fixtures/repoIntelligenceFixtures.js";
+import { analysisPreparationWithValidRepoIntel } from "./fixtures/repoIntelligenceTestHelpers.js";
 import {
   composeVerificationPrompt,
   formatChangedPackagesShort,
@@ -34,7 +35,7 @@ describe("narrativePresentation", () => {
     const facts = deriveScanNarrative({
       ...baseResult,
       changedPackages: ["fastify"],
-      analysisPreparation: { codeIntelligenceAvailable: true, warnings: [] },
+      analysisPreparation: analysisPreparationWithValidRepoIntel(),
       repoIntelligence: fixtureRepoIntelligenceFastify,
     });
     const usage = summarizePackageUsage(facts);

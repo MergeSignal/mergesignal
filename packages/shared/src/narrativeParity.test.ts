@@ -5,6 +5,7 @@ import { deriveScanCardSummary } from "./scanCardSummary.js";
 import { deriveScanDetailViewModel } from "./scanDetailViewModel.js";
 import { presentGitHubPrComment } from "./presentGitHubPrComment.js";
 import { fixtureRepoIntelligenceFastify } from "./fixtures/repoIntelligenceFixtures.js";
+import { analysisPreparationWithValidRepoIntel } from "./fixtures/repoIntelligenceTestHelpers.js";
 import type { ScanResult } from "./types.js";
 
 const ORIGIN = "https://app.example.com";
@@ -23,7 +24,7 @@ describe("narrative parity across consumers", () => {
       findings: [],
       generatedAt: "2026-01-01T00:00:00.000Z",
       changedPackages: ["fastify"],
-      analysisPreparation: { codeIntelligenceAvailable: true, warnings: [] },
+      analysisPreparation: analysisPreparationWithValidRepoIntel(),
       repoIntelligence: fixtureRepoIntelligenceFastify,
       decision: {
         recommendation: "needs_review",

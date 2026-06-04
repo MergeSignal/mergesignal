@@ -1,10 +1,6 @@
 import { extractRepositoryContextFacts } from "./extractRepositoryContextFacts.js";
 import {
-  normalizeReachabilityKind,
-  normalizeRuntimeSurfaceKind,
   readBlastLevel,
-  readReachabilityFromLoose,
-  readSurfaceFromLoose,
   safeParseRepoIntelligence,
   type RepoIntelligence,
 } from "./repoIntelligenceSchema.js";
@@ -64,14 +60,6 @@ function uniqueStrings(values: string[]): string[] {
   return out;
 }
 
-function usageEntryPackageName(entry: {
-  packageName?: string;
-  package?: string;
-}): string | null {
-  const name = (entry.packageName ?? entry.package ?? "").trim();
-  return name || null;
-}
-
 function collectPackageUsageForChanged(
   ri: RepoIntelligence,
   changed: ScanNarrativeFacts["changedPackages"],
@@ -95,8 +83,7 @@ function collectPackageUsageForChanged(
 
   const mergeEntry = (
     entry: {
-      packageName?: string;
-      package?: string;
+      packageName: string;
       paths?: string[];
       criticalPaths?: string[];
       files?: string[];
@@ -104,8 +91,8 @@ function collectPackageUsageForChanged(
     },
     packageNameOverride?: string,
   ) => {
-    const name = packageNameOverride ?? usageEntryPackageName(entry);
-    if (!name || !changed.all.includes(name)) return;
+    const name = packageNameOverride ?? entry.packageName.trim();
+    if (!changed.all.includes(name)) return;
     const row = ensure(name);
     row.paths = uniqueStrings([...row.paths, ...(entry.paths ?? [])]);
     row.criticalPaths = uniqueStrings([
@@ -211,12 +198,8 @@ function extractTier1FromRepoIntelligence(
   const frameworks = collectFrameworks(ri);
   const paths = allUsagePaths(packageUsage);
 
-  const runtimeRaw = pkgIntel?.runtimeSurface;
-  const reachRaw = pkgIntel?.reachability;
-
-  const runtimeKind =
-    readSurfaceFromLoose(runtimeRaw) ?? (primary ? "unknown" : null);
-  const reachKind = readReachabilityFromLoose(reachRaw);
+  const runtimeKind = pkgIntel?.runtimeSurface ?? null;
+  const reachKind = pkgIntel?.reachability ?? null;
 
   const runtimeSurface =
     runtimeKind != null
@@ -448,7 +431,7 @@ function resolveTrustedRepoIntelligence(result: ScanResult): {
     return { parsed: null, parseStatus: "untrusted" };
   }
 
-  if (validationStatus === "absent") {
+  if (validationStatus !== "valid") {
     return { parsed: null, parseStatus: "absent" };
   }
 
@@ -568,6 +551,3 @@ export function deriveScanNarrative(
     riskIndex,
   };
 }
-
-/** @internal Test helper — normalize loose engine strings. */
-export { normalizeReachabilityKind, normalizeRuntimeSurfaceKind };
