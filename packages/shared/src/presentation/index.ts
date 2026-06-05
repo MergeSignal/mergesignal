@@ -8,6 +8,11 @@ export type { BuildScanDetailsPresentationInput } from "./orchestration/buildSca
 
 export type { PresentationProfile } from "./profile/presentationProfile.js";
 export type {
+  PresentationIntent,
+  PresentationInterpretation,
+} from "./intent/presentationIntent.js";
+export { derivePresentationInterpretation } from "./intent/derivePresentationInterpretation.js";
+export type {
   PipelineStatus,
   PresentationStatus,
   PresentationDensity,

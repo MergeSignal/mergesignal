@@ -4,6 +4,7 @@ import type {
   PresentationEvidenceContext,
   PresentationStatus,
 } from "./types.js";
+import type { PresentationIntent } from "../intent/presentationIntent.js";
 import type { FindingSeverity, ScoreLayer } from "../../types.js";
 
 export type ScanDetailsPresentation = {
@@ -123,4 +124,6 @@ export type ScanDetailsPresentation = {
     methodologyVersion?: string | null;
     changedPackagesSummary?: string;
   };
+
+  presentationIntent?: PresentationIntent;
 };

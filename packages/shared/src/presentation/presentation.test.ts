@@ -77,6 +77,9 @@ describe("presentScanCard personas", () => {
     const card = presentScanCard(bundle);
     expect(card.density).toBe("minimal");
     expect(card.status).toBe("safe");
+    expect(card.presentationIntent).toBe("tooling_patch");
+    expect(card.headline).toMatch(/patch upgrade/i);
+    expect(card.headline).not.toMatch(/needs review/i);
     expect(card.changedPackages).toContain("typescript");
     expect(card.verificationActions.length).toBeGreaterThan(0);
   });

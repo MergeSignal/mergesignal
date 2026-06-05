@@ -12,6 +12,13 @@ export const fixtureRepoIntelligenceFastify: RepoIntelligence = {
       suppressRuntimeNarrative: false,
       dependencyClass: "runtime",
       packageRole: "http_framework",
+      verificationFocus: [
+        "routes",
+        "middleware",
+        "auth_flow",
+        "serialization",
+        "error_handling",
+      ],
       usage: {
         packageName: "fastify",
         files: [
@@ -31,7 +38,7 @@ export const fixtureRepoIntelligenceFastify: RepoIntelligence = {
     changedPackageCount: 1,
   },
   applicationAreas: [
-    { id: "api", label: "API routes" },
+    { id: "api", label: "API request handling" },
     { id: "auth", label: "Auth middleware" },
   ],
   hotspots: [

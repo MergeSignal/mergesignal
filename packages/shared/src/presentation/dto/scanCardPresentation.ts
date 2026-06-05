@@ -6,6 +6,7 @@ import type {
   PresentationEvidenceRow,
   PresentationStatus,
 } from "./types.js";
+import type { PresentationIntent } from "../intent/presentationIntent.js";
 
 export type ScanCardPresentation = {
   pipeline?: {
@@ -34,4 +35,5 @@ export type ScanCardPresentation = {
   riskIndex?: number | null;
   findingCounts?: FindingCountSummary | null;
   actionLabel?: string;
+  presentationIntent?: PresentationIntent;
 };

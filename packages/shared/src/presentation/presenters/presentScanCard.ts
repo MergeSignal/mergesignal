@@ -66,6 +66,7 @@ export function presentScanCard(
       ? aggregateFindingCounts(result.findings)
       : null,
     actionLabel: scanSurfaceCopy.presentation.actionLabelReview,
+    presentationIntent: profile.interpretation.intent,
   };
 
   return normalizeCard(presentation);

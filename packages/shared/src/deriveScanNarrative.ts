@@ -11,8 +11,10 @@ import {
   NARRATIVE_FACT_MAX_HOTSPOTS,
   NARRATIVE_FACT_MAX_PATHS,
   type BlastRadiusLevel,
+  type ChangedPackageSemantics,
   type NarrativeAvailabilityMode,
   type NarrativePackageUsage,
+  type PackageSemanticsSummary,
   type ReachabilityKind,
   type RepoIntelligenceParseStatus,
   type ReviewerGuidanceKind,
@@ -178,6 +180,47 @@ function mergeGraphHotspots(
   return [...byName.values()].slice(0, NARRATIVE_FACT_MAX_HOTSPOTS);
 }
 
+function projectPackageSemanticsFromWire(
+  pkgIntel: RepoIntelligence["packages"][string] | undefined,
+): PackageSemanticsSummary | null {
+  if (!pkgIntel) return null;
+  return {
+    dependencyClass: pkgIntel.dependencyClass ?? null,
+    packageRole: pkgIntel.packageRole ?? null,
+    runtimeImpact: pkgIntel.runtimeImpact ?? null,
+    expectedImpact: pkgIntel.expectedImpact ?? null,
+    suppressRuntimeNarrative: pkgIntel.suppressRuntimeNarrative === true,
+    evidenceStrength: pkgIntel.evidenceStrength ?? null,
+    verificationFocus: pkgIntel.verificationFocus ?? [],
+  };
+}
+
+function projectChangedPackageSemantics(
+  ri: RepoIntelligence,
+  changed: ScanNarrativeFacts["changedPackages"],
+): ChangedPackageSemantics[] {
+  return changed.all.map((packageName) => {
+    const pkgIntel = ri.packages?.[packageName];
+    const usage = pkgIntel?.usage;
+    const paths = usage?.paths ?? [];
+    const criticalPaths = usage?.criticalPaths ?? [];
+    const areas = usage?.areas ?? [];
+    const summary = projectPackageSemanticsFromWire(pkgIntel);
+    return {
+      packageName,
+      dependencyClass: summary?.dependencyClass ?? null,
+      packageRole: summary?.packageRole ?? null,
+      runtimeImpact: summary?.runtimeImpact ?? null,
+      expectedImpact: summary?.expectedImpact ?? null,
+      suppressRuntimeNarrative: summary?.suppressRuntimeNarrative ?? false,
+      evidenceStrength: summary?.evidenceStrength ?? null,
+      verificationFocus: summary?.verificationFocus ?? [],
+      usagePathCount: paths.length + criticalPaths.length,
+      usageAreaCount: areas.length,
+    };
+  });
+}
+
 function extractTier1FromRepoIntelligence(
   ri: RepoIntelligence,
   changed: ScanNarrativeFacts["changedPackages"],
@@ -188,6 +231,7 @@ function extractTier1FromRepoIntelligence(
   | "runtimeSurface"
   | "reachability"
   | "packageSemantics"
+  | "changedPackageSemantics"
   | "blastRadius"
   | "affectedAreas"
   | "hotspots"
@@ -231,14 +275,8 @@ function extractTier1FromRepoIntelligence(
       }
     : null;
 
-  const packageSemantics = pkgIntel
-    ? {
-        runtimeImpact: pkgIntel.runtimeImpact ?? null,
-        expectedImpact: pkgIntel.expectedImpact ?? null,
-        suppressRuntimeNarrative: suppressRuntime,
-        verificationFocus: pkgIntel.verificationFocus ?? [],
-      }
-    : null;
+  const packageSemantics = projectPackageSemanticsFromWire(pkgIntel);
+  const changedPackageSemantics = projectChangedPackageSemantics(ri, changed);
 
   const blastFromRi = ri.blastRadius;
   const blastLevel =
@@ -279,6 +317,7 @@ function extractTier1FromRepoIntelligence(
     runtimeSurface,
     reachability,
     packageSemantics,
+    changedPackageSemantics,
     blastRadius,
     affectedAreas: affectedAreas.slice(0, NARRATIVE_FACT_MAX_AREAS),
     hotspots: codeHotspots.slice(0, NARRATIVE_FACT_MAX_HOTSPOTS),
@@ -293,6 +332,7 @@ function hasMeaningfulTier1(
     | "runtimeSurface"
     | "reachability"
     | "packageSemantics"
+    | "changedPackageSemantics"
     | "blastRadius"
     | "affectedAreas"
     | "hotspots"
@@ -304,6 +344,7 @@ function hasMeaningfulTier1(
     tier1.runtimeSurface != null ||
     tier1.reachability != null ||
     tier1.packageSemantics?.expectedImpact != null ||
+    tier1.changedPackageSemantics.length > 0 ||
     tier1.blastRadius != null ||
     tier1.affectedAreas.length > 0 ||
     tier1.hotspots.length > 0
@@ -412,6 +453,7 @@ function emptyTier1Blocks(): Pick<
   | "runtimeSurface"
   | "reachability"
   | "packageSemantics"
+  | "changedPackageSemantics"
   | "blastRadius"
   | "affectedAreas"
   | "hotspots"
@@ -422,6 +464,7 @@ function emptyTier1Blocks(): Pick<
     runtimeSurface: null,
     reachability: null,
     packageSemantics: null,
+    changedPackageSemantics: [],
     blastRadius: null,
     affectedAreas: [],
     hotspots: [],
@@ -565,6 +608,7 @@ export function deriveScanNarrative(
     runtimeSurface: tier1Blocks.runtimeSurface,
     reachability: tier1Blocks.reachability,
     packageSemantics: tier1Blocks.packageSemantics,
+    changedPackageSemantics: tier1Blocks.changedPackageSemantics,
     blastRadius: tier1Blocks.blastRadius,
     affectedAreas,
     hotspots: tier1Blocks.hotspots,

@@ -171,15 +171,24 @@ export function presentScanDetails(
   const posture = profile.status;
   const postureLabel = MERGE_POSTURE_LABEL[posture];
 
+  const toolingIntent =
+    profile.interpretation.intent === "tooling_patch" ||
+    profile.interpretation.intent === "tooling_upgrade";
+  const verdictLine =
+    profile.priority === "pr_intelligence" && toolingIntent && keyPoints[0]
+      ? keyPoints[0]!
+      : deriveVerdictLineFromFacts(facts, result);
+
   return {
     evidenceContext: evidenceContextFromProfile(bundle),
     status: profile.status,
     density: profile.density,
     confidence: profile.confidence,
+    presentationIntent: profile.interpretation.intent,
     hero: {
       headline: normalizeGeneratedText(headline),
       subheadline: normalizeGeneratedTextNullable(subheadline) ?? undefined,
-      verdictLine: deriveVerdictLineFromFacts(facts, result),
+      verdictLine: normalizeGeneratedText(verdictLine),
       scopeChip: deriveDetailReachChip(result.totalScore) ?? undefined,
       postureLabel,
       riskIndex: facts.riskIndex,

@@ -148,6 +148,10 @@ describe("deriveScanNarrative", () => {
     expect(facts.packageSemantics?.runtimeImpact).toBe("none");
     expect(facts.packageSemantics?.expectedImpact).toBe("typecheck");
     expect(facts.packageSemantics?.suppressRuntimeNarrative).toBe(true);
+    expect(facts.packageSemantics?.dependencyClass).toBe("tooling");
+    expect(facts.packageSemantics?.packageRole).toBe("typechecker");
+    expect(facts.changedPackageSemantics).toHaveLength(1);
+    expect(facts.changedPackageSemantics[0]?.packageName).toBe("typescript");
     expect(facts.blastRadius?.level).toBe("narrow");
   });
 

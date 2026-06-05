@@ -38,6 +38,69 @@ export type RepoIntelligenceParseStatus =
   | "absent"
   | "untrusted";
 
+export type PackageDependencyClass =
+  | "runtime"
+  | "tooling"
+  | "test"
+  | "lint"
+  | "format"
+  | "build"
+  | "ci"
+  | "unknown";
+
+export type PackageRoleKind =
+  | "typechecker"
+  | "compiler"
+  | "bundler"
+  | "linter"
+  | "formatter"
+  | "test_runner"
+  | "http_framework"
+  | "auth"
+  | "queue"
+  | "orm"
+  | "unknown";
+
+export type PackageRuntimeImpact =
+  | "none"
+  | "possible"
+  | "confirmed"
+  | "unknown";
+
+export type PackageExpectedImpact =
+  | "runtime"
+  | "build_time"
+  | "typecheck"
+  | "test_time"
+  | "development_only"
+  | "unknown";
+
+export type PackageEvidenceStrength = "high" | "medium" | "low";
+
+/** Engine semantic projection for one changed package (wire copy only). */
+export type ChangedPackageSemantics = {
+  packageName: string;
+  dependencyClass: PackageDependencyClass | null;
+  packageRole: PackageRoleKind | null;
+  runtimeImpact: PackageRuntimeImpact | null;
+  expectedImpact: PackageExpectedImpact | null;
+  suppressRuntimeNarrative: boolean;
+  evidenceStrength: PackageEvidenceStrength | null;
+  verificationFocus: string[];
+  usagePathCount: number;
+  usageAreaCount: number;
+};
+
+export type PackageSemanticsSummary = {
+  dependencyClass: PackageDependencyClass | null;
+  packageRole: PackageRoleKind | null;
+  runtimeImpact: PackageRuntimeImpact | null;
+  expectedImpact: PackageExpectedImpact | null;
+  suppressRuntimeNarrative: boolean;
+  evidenceStrength: PackageEvidenceStrength | null;
+  verificationFocus: string[];
+};
+
 export type ScanNarrativeFacts = {
   availability: {
     mode: NarrativeAvailabilityMode;
@@ -66,20 +129,11 @@ export type ScanNarrativeFacts = {
     evidence: { paths: string[]; frameworks: string[] };
   } | null;
 
-  /** From sanitized repoIntelligence primary package semantics (ABI 2). */
-  packageSemantics: {
-    runtimeImpact: "none" | "possible" | "confirmed" | "unknown" | null;
-    expectedImpact:
-      | "runtime"
-      | "build_time"
-      | "typecheck"
-      | "test_time"
-      | "development_only"
-      | "unknown"
-      | null;
-    suppressRuntimeNarrative: boolean;
-    verificationFocus: string[];
-  } | null;
+  /** Primary changed package semantics (ABI 2 wire projection). */
+  packageSemantics: PackageSemanticsSummary | null;
+
+  /** Per changed package semantics for mixed-PR precedence (wire projection). */
+  changedPackageSemantics: ChangedPackageSemantics[];
 
   blastRadius: {
     level: BlastRadiusLevel;
@@ -137,6 +191,7 @@ export const EMPTY_SCAN_NARRATIVE_FACTS: ScanNarrativeFacts = {
   runtimeSurface: null,
   reachability: null,
   packageSemantics: null,
+  changedPackageSemantics: [],
   blastRadius: null,
   affectedAreas: [],
   hotspots: [],
