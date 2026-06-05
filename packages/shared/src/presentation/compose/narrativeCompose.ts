@@ -136,6 +136,3 @@ export function evidenceContextFromProfile(bundle: ScanPresentationBundle): {
     degradedMessage: bundle.profile.degradedMessage,
   };
 }
-
-// Re-export for tests that referenced topAreaLabel indirectly via bundle
-export { topAreaLabel };

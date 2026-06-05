@@ -44,7 +44,7 @@ export function guardHeadlineForPosture(
   return headline;
 }
 
-export function guardLinesForPosture(
+function guardLinesForPosture(
   lines: string[],
   status: PresentationStatus,
 ): string[] {

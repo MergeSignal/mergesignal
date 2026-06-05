@@ -13,7 +13,7 @@ import {
 
 const basePrep = analysisPreparationWithValidRepoIntel();
 
-export const fixtureRepoIntelligenceEslint: RepoIntelligence = {
+const fixtureRepoIntelligenceEslint: RepoIntelligence = {
   packages: {
     eslint: {
       runtimeSurface: "build",
@@ -32,7 +32,7 @@ export const fixtureRepoIntelligenceEslint: RepoIntelligence = {
   applicationAreas: [],
 };
 
-export const fixtureRepoIntelligencePrettier: RepoIntelligence = {
+const fixtureRepoIntelligencePrettier: RepoIntelligence = {
   packages: {
     prettier: {
       runtimeSurface: "build",
@@ -51,7 +51,7 @@ export const fixtureRepoIntelligencePrettier: RepoIntelligence = {
   applicationAreas: [],
 };
 
-export const fixtureRepoIntelligenceVitest: RepoIntelligence = {
+const fixtureRepoIntelligenceVitest: RepoIntelligence = {
   packages: {
     vitest: {
       runtimeSurface: "test",
@@ -70,7 +70,7 @@ export const fixtureRepoIntelligenceVitest: RepoIntelligence = {
   applicationAreas: [],
 };
 
-export const fixtureRepoIntelligenceNextAuth: RepoIntelligence = {
+const fixtureRepoIntelligenceNextAuth: RepoIntelligence = {
   packages: {
     "next-auth": {
       runtimeSurface: "runtime",
@@ -94,7 +94,7 @@ export const fixtureRepoIntelligenceNextAuth: RepoIntelligence = {
   applicationAreas: [{ id: "auth", label: "authentication flows" }],
 };
 
-export const fixtureRepoIntelligenceBullmq: RepoIntelligence = {
+const fixtureRepoIntelligenceBullmq: RepoIntelligence = {
   packages: {
     bullmq: {
       runtimeSurface: "runtime",
@@ -118,7 +118,7 @@ export const fixtureRepoIntelligenceBullmq: RepoIntelligence = {
   applicationAreas: [{ id: "workers", label: "background job processing" }],
 };
 
-export const fixtureRepoIntelligenceUnknown: RepoIntelligence = {
+const fixtureRepoIntelligenceUnknown: RepoIntelligence = {
   packages: {
     "opaque-pkg": {
       runtimeSurface: "unknown",
@@ -137,7 +137,7 @@ export const fixtureRepoIntelligenceUnknown: RepoIntelligence = {
   applicationAreas: [],
 };
 
-export const fixtureRepoIntelligenceMixedToolingRuntime: RepoIntelligence = {
+const fixtureRepoIntelligenceMixedToolingRuntime: RepoIntelligence = {
   packages: {
     typescript: fixtureRepoIntelligenceTypescript.packages.typescript!,
     fastify: fixtureRepoIntelligenceFastify.packages.fastify!,

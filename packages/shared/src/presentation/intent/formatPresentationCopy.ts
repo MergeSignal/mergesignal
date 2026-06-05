@@ -76,7 +76,7 @@ export function formatPresentationHeadline(
   );
 }
 
-export function formatExpectedImpactKeyPoint(
+function formatExpectedImpactKeyPoint(
   interpretation: PresentationInterpretation,
 ): string | null {
   if (
@@ -96,7 +96,7 @@ export function formatExpectedImpactKeyPoint(
   );
 }
 
-export function formatLimitedEvidenceKeyPoint(): string {
+function formatLimitedEvidenceKeyPoint(): string {
   return scanSurfaceCopy.presentation.limitedEvidenceKeyPoint;
 }
 

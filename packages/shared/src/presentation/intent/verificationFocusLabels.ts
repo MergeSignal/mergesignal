@@ -19,7 +19,7 @@ const FOCUS_LABELS: Record<string, string> = {
   format: "format",
 };
 
-export function labelVerificationFocus(focus: string): string {
+function labelVerificationFocus(focus: string): string {
   const key = focus.trim().toLowerCase();
   if (!key) return "";
   return FOCUS_LABELS[key] ?? focus.replace(/_/g, " ");
