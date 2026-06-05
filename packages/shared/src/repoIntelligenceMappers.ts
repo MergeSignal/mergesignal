@@ -76,7 +76,15 @@ export function mapReachabilityKind(input: {
     return "unreachable";
   }
   if (bucket === "moderate" || bucket === "high") {
-    return "on_runtime_paths";
+    if (dominantSurface === "test") return "test_only";
+    if (
+      dominantSurface === "build" ||
+      dominantSurface === "dev" ||
+      dominantSurface === "ci"
+    ) {
+      return "build_only";
+    }
+    return "unknown";
   }
   return "unknown";
 }

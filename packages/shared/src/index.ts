@@ -14,6 +14,7 @@ export * from "./deriveCardDisplaySummary.js";
 export * from "./scanNarrativeFacts.js";
 export * from "./repoIntelligenceSchema.js";
 export * from "./repoIntelligenceMappers.js";
+export * from "./repoIntelligenceSemantics.js";
 export * from "./repoIntelligenceValidation.js";
 export * from "./deriveScanNarrative.js";
 export * from "./extractRepositoryContextFacts.js";

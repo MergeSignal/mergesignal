@@ -66,6 +66,21 @@ export type ScanNarrativeFacts = {
     evidence: { paths: string[]; frameworks: string[] };
   } | null;
 
+  /** From sanitized repoIntelligence primary package semantics (ABI 2). */
+  packageSemantics: {
+    runtimeImpact: "none" | "possible" | "confirmed" | "unknown" | null;
+    expectedImpact:
+      | "runtime"
+      | "build_time"
+      | "typecheck"
+      | "test_time"
+      | "development_only"
+      | "unknown"
+      | null;
+    suppressRuntimeNarrative: boolean;
+    verificationFocus: string[];
+  } | null;
+
   blastRadius: {
     level: BlastRadiusLevel;
     changedPackageCount?: number;
@@ -121,6 +136,7 @@ export const EMPTY_SCAN_NARRATIVE_FACTS: ScanNarrativeFacts = {
   frameworks: [],
   runtimeSurface: null,
   reachability: null,
+  packageSemantics: null,
   blastRadius: null,
   affectedAreas: [],
   hotspots: [],

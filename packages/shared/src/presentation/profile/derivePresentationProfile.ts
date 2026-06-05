@@ -60,7 +60,10 @@ function deriveDensity(
     return hasHighSeverityFindings(facts) ? "standard" : "minimal";
   }
 
-  const runtime = facts.runtimeSurface?.kind === "runtime";
+  const semantics = facts.packageSemantics;
+  const runtime =
+    facts.runtimeSurface?.kind === "runtime" ||
+    semantics?.runtimeImpact === "confirmed";
   const wideOrModerate =
     facts.blastRadius?.level === "wide" ||
     facts.blastRadius?.level === "moderate";
@@ -71,7 +74,14 @@ function deriveDensity(
     return "rich";
   }
 
+  const toolingImpact =
+    semantics?.expectedImpact === "typecheck" ||
+    semantics?.expectedImpact === "development_only" ||
+    semantics?.expectedImpact === "test_time" ||
+    semantics?.expectedImpact === "build_time";
   const buildOnly =
+    semantics?.suppressRuntimeNarrative === true ||
+    toolingImpact ||
     facts.runtimeSurface?.kind === "build" ||
     facts.reachability?.kind === "build_only";
   const narrowBlast =

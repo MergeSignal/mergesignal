@@ -229,12 +229,16 @@ export function composeContextLineFromFacts(
   options: { includePathSample?: boolean; maxAreas?: number } = {},
 ): string | null {
   const parts: string[] = [];
-  const runtime = labelRuntimeSurface(facts);
-  const reach = summarizeReachability(facts, options.includePathSample ? 1 : 0);
+  const suppressRuntime =
+    facts.packageSemantics?.suppressRuntimeNarrative === true;
+  const runtime = suppressRuntime ? null : labelRuntimeSurface(facts);
+  const reach = suppressRuntime
+    ? null
+    : summarizeReachability(facts, options.includePathSample ? 1 : 0);
   const blast = labelBlastRadiusLevel(facts);
 
   if (runtime) parts.push(runtime);
-  if (reach.kindLabel) {
+  if (reach?.kindLabel) {
     if (options.includePathSample && reach.pathSamples[0]) {
       parts.push(`${reach.kindLabel} (${reach.pathSamples[0]})`);
     } else {

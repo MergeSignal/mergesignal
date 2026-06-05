@@ -10,7 +10,7 @@ import type { ScanResult } from "./types.js";
 import type { BlastRadiusLevel } from "./scanNarrativeFacts.js";
 
 /** Bump when wire schema changes incompatibly. */
-export const REPO_INTELLIGENCE_ABI = "1" as const;
+export const REPO_INTELLIGENCE_ABI = "2" as const;
 
 const surfaceKindSchema = z.enum(["runtime", "build", "test", "unknown"]);
 
@@ -32,11 +32,91 @@ const packageUsageWireSchema = z.object({
   areas: z.array(z.string()).optional(),
 });
 
+const dependencyClassSchema = z.enum([
+  "runtime",
+  "tooling",
+  "test",
+  "lint",
+  "format",
+  "build",
+  "ci",
+  "unknown",
+]);
+
+const packageRoleSchema = z.enum([
+  "typechecker",
+  "compiler",
+  "bundler",
+  "linter",
+  "formatter",
+  "test_runner",
+  "http_framework",
+  "auth",
+  "queue",
+  "orm",
+  "unknown",
+]);
+
+const lockfileKindSchema = z.enum([
+  "production",
+  "development",
+  "optional",
+  "unknown",
+]);
+
+const runtimeImpactSchema = z.enum([
+  "none",
+  "possible",
+  "confirmed",
+  "unknown",
+]);
+
+const expectedImpactSchema = z.enum([
+  "runtime",
+  "build_time",
+  "typecheck",
+  "test_time",
+  "development_only",
+  "unknown",
+]);
+
+const evidenceStrengthSchema = z.enum(["high", "medium", "low"]);
+
+const classificationProvenanceSchema = z.object({
+  dependencyClass: z.enum([
+    "registry",
+    "graph",
+    "lockfile",
+    "heuristic",
+    "unknown",
+  ]),
+  packageRole: z.enum(["registry", "graph", "heuristic", "unknown"]),
+  registryEntryId: z.string().optional(),
+});
+
+const semanticDiagnosticSchema = z.object({
+  packageName: z.string().min(1),
+  ruleId: z.string().min(1),
+  before: z.record(z.string(), z.unknown()),
+  after: z.record(z.string(), z.unknown()),
+  reason: z.string().min(1),
+});
+
 const packageIntelWireSchema = z.object({
   runtimeSurface: surfaceKindSchema,
   reachability: reachabilityKindSchema,
   usage: packageUsageWireSchema,
   areas: z.array(z.string()).optional(),
+  dependencyClass: dependencyClassSchema.optional(),
+  packageRole: packageRoleSchema.optional(),
+  lockfileKind: lockfileKindSchema.optional(),
+  runtimeImpact: runtimeImpactSchema.optional(),
+  expectedImpact: expectedImpactSchema.optional(),
+  evidenceStrength: evidenceStrengthSchema.optional(),
+  confidenceReason: z.string().optional(),
+  verificationFocus: z.array(z.string()).optional(),
+  suppressRuntimeNarrative: z.boolean().optional(),
+  classificationProvenance: classificationProvenanceSchema.optional(),
 });
 
 const areaSchema = z.object({
@@ -66,6 +146,7 @@ export const repoIntelligenceWireSchema = z.object({
   affectedAreas: z.array(areaSchema).optional(),
   hotspots: z.array(hotspotWireSchema).optional(),
   frameworks: z.array(z.string().min(1)).optional(),
+  semanticDiagnostics: z.array(semanticDiagnosticSchema).optional(),
 });
 
 export type RepoIntelligence = z.infer<typeof repoIntelligenceWireSchema>;

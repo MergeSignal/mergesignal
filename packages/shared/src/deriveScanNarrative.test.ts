@@ -133,7 +133,7 @@ describe("deriveScanNarrative", () => {
     expect(facts.repositoryContext[0]?.family).toBe("transitive_volume");
   });
 
-  it("populates build-only runtime surface from repoIntelligence", () => {
+  it("populates tooling semantics without runtime surface chips for typescript", () => {
     const result = {
       ...baseResult,
       changedPackages: ["typescript"],
@@ -143,8 +143,11 @@ describe("deriveScanNarrative", () => {
 
     const facts = deriveScanNarrative(result);
     expect(facts.availability.mode).toBe("pr_intelligence");
-    expect(facts.runtimeSurface?.kind).toBe("build");
-    expect(facts.reachability?.kind).toBe("build_only");
+    expect(facts.runtimeSurface).toBeNull();
+    expect(facts.reachability).toBeNull();
+    expect(facts.packageSemantics?.runtimeImpact).toBe("none");
+    expect(facts.packageSemantics?.expectedImpact).toBe("typecheck");
+    expect(facts.packageSemantics?.suppressRuntimeNarrative).toBe(true);
     expect(facts.blastRadius?.level).toBe("narrow");
   });
 

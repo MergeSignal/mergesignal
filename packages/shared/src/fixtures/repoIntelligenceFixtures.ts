@@ -6,6 +6,12 @@ export const fixtureRepoIntelligenceFastify: RepoIntelligence = {
     fastify: {
       runtimeSurface: "runtime",
       reachability: "on_runtime_paths",
+      runtimeImpact: "confirmed",
+      expectedImpact: "runtime",
+      evidenceStrength: "high",
+      suppressRuntimeNarrative: false,
+      dependencyClass: "runtime",
+      packageRole: "http_framework",
       usage: {
         packageName: "fastify",
         files: [
@@ -44,6 +50,13 @@ export const fixtureRepoIntelligenceTypescript: RepoIntelligence = {
     typescript: {
       runtimeSurface: "build",
       reachability: "build_only",
+      runtimeImpact: "none",
+      expectedImpact: "typecheck",
+      evidenceStrength: "medium",
+      suppressRuntimeNarrative: true,
+      dependencyClass: "tooling",
+      packageRole: "typechecker",
+      verificationFocus: ["ci", "typecheck"],
       usage: {
         packageName: "typescript",
         files: ["tsconfig.json"],

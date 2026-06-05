@@ -4,6 +4,7 @@ import {
   safeParseRepoIntelligence,
   type RepoIntelligence,
 } from "./repoIntelligenceSchema.js";
+import { isRuntimeNarrativeSafe } from "./repoIntelligenceSemantics.js";
 import {
   EMPTY_SCAN_NARRATIVE_FACTS,
   NARRATIVE_FACT_MAX_AREAS,
@@ -186,6 +187,7 @@ function extractTier1FromRepoIntelligence(
   | "frameworks"
   | "runtimeSurface"
   | "reachability"
+  | "packageSemantics"
   | "blastRadius"
   | "affectedAreas"
   | "hotspots"
@@ -198,8 +200,15 @@ function extractTier1FromRepoIntelligence(
   const frameworks = collectFrameworks(ri);
   const paths = allUsagePaths(packageUsage);
 
-  const runtimeKind = pkgIntel?.runtimeSurface ?? null;
-  const reachKind = pkgIntel?.reachability ?? null;
+  const suppressRuntime = pkgIntel?.suppressRuntimeNarrative === true;
+  const narrativeSafe = isRuntimeNarrativeSafe(pkgIntel);
+
+  const runtimeKind =
+    narrativeSafe && !suppressRuntime
+      ? (pkgIntel?.runtimeSurface ?? null)
+      : null;
+  const reachKind =
+    narrativeSafe && !suppressRuntime ? (pkgIntel?.reachability ?? null) : null;
 
   const runtimeSurface =
     runtimeKind != null
@@ -219,6 +228,15 @@ function extractTier1FromRepoIntelligence(
           paths,
           frameworks,
         },
+      }
+    : null;
+
+  const packageSemantics = pkgIntel
+    ? {
+        runtimeImpact: pkgIntel.runtimeImpact ?? null,
+        expectedImpact: pkgIntel.expectedImpact ?? null,
+        suppressRuntimeNarrative: suppressRuntime,
+        verificationFocus: pkgIntel.verificationFocus ?? [],
       }
     : null;
 
@@ -260,6 +278,7 @@ function extractTier1FromRepoIntelligence(
     frameworks,
     runtimeSurface,
     reachability,
+    packageSemantics,
     blastRadius,
     affectedAreas: affectedAreas.slice(0, NARRATIVE_FACT_MAX_AREAS),
     hotspots: codeHotspots.slice(0, NARRATIVE_FACT_MAX_HOTSPOTS),
@@ -273,6 +292,7 @@ function hasMeaningfulTier1(
     | "frameworks"
     | "runtimeSurface"
     | "reachability"
+    | "packageSemantics"
     | "blastRadius"
     | "affectedAreas"
     | "hotspots"
@@ -283,6 +303,7 @@ function hasMeaningfulTier1(
     tier1.frameworks.length > 0 ||
     tier1.runtimeSurface != null ||
     tier1.reachability != null ||
+    tier1.packageSemantics?.expectedImpact != null ||
     tier1.blastRadius != null ||
     tier1.affectedAreas.length > 0 ||
     tier1.hotspots.length > 0
@@ -390,6 +411,7 @@ function emptyTier1Blocks(): Pick<
   | "frameworks"
   | "runtimeSurface"
   | "reachability"
+  | "packageSemantics"
   | "blastRadius"
   | "affectedAreas"
   | "hotspots"
@@ -399,6 +421,7 @@ function emptyTier1Blocks(): Pick<
     frameworks: [],
     runtimeSurface: null,
     reachability: null,
+    packageSemantics: null,
     blastRadius: null,
     affectedAreas: [],
     hotspots: [],
@@ -541,6 +564,7 @@ export function deriveScanNarrative(
     frameworks: tier1Blocks.frameworks,
     runtimeSurface: tier1Blocks.runtimeSurface,
     reachability: tier1Blocks.reachability,
+    packageSemantics: tier1Blocks.packageSemantics,
     blastRadius: tier1Blocks.blastRadius,
     affectedAreas,
     hotspots: tier1Blocks.hotspots,
