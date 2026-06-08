@@ -22,7 +22,7 @@
   border: none;
   background: transparent;
   overflow-x: auto;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   line-height: var(--ms-leading-snug);
   color: var(--ms-color-text-emphasis);
 }

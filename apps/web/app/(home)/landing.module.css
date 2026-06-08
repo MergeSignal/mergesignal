@@ -177,7 +177,7 @@
 }
 
 .kicker {
-  font-size:      var(--ms-text-xs);
+  font-size:      var(--ms-text-sm);
   font-weight:    var(--ms-font-weight-semibold);
   letter-spacing: var(--ms-tracking-loose);
   text-transform: uppercase;

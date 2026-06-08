@@ -7,7 +7,7 @@
 }
 
 .compact {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
 }
 
 @keyframes pulse {

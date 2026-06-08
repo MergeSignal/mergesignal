@@ -46,7 +46,7 @@
 }
 
 .stripStat {
-  height: calc(var(--ms-text-xs) * var(--ms-leading-snug));
+  height: calc(var(--ms-text-sm) * var(--ms-leading-snug));
   width: 5rem;
 }
 
@@ -106,18 +106,18 @@
 }
 
 .outcomeBar {
-  height: calc(var(--ms-text-xs) * var(--ms-leading-ui));
+  height: calc(var(--ms-text-sm) * var(--ms-leading-ui));
   width: 3.75rem;
   border-radius: var(--ms-radius-full);
 }
 
 .scoreBar {
-  height: calc(var(--ms-text-xs) * var(--ms-leading-snug));
-  width: calc(var(--ms-text-xs) * var(--ms-leading-subhead));
+  height: calc(var(--ms-text-sm) * var(--ms-leading-snug));
+  width: calc(var(--ms-text-sm) * var(--ms-leading-subhead));
 }
 
 .whyBar {
-  height: calc(var(--ms-text-xs) * var(--ms-leading-snug));
+  height: calc(var(--ms-text-sm) * var(--ms-leading-snug));
   width: 72%;
 }
 
@@ -136,6 +136,6 @@
 }
 
 .timestampBar {
-  height: calc(var(--ms-text-xs) * var(--ms-leading-snug));
+  height: calc(var(--ms-text-sm) * var(--ms-leading-snug));
   width: 4.5rem;
 }

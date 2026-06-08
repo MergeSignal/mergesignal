@@ -37,7 +37,7 @@
 }
 
 .prNumber {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   font-weight: var(--ms-font-weight-semibold);
   color: var(--ms-color-text-muted);
   font-family: var(--ms-font-family-mono);
@@ -66,7 +66,7 @@
 .metaRow {
   display: flex;
   align-items: center;
-  min-height: calc(var(--ms-text-xs) * var(--ms-leading-snug));
+  min-height: calc(var(--ms-text-sm) * var(--ms-leading-snug));
 }
 
 .body {
@@ -109,7 +109,7 @@
 .viewDetailsLink {
   display: inline-flex;
   align-items: center;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   font-weight: var(--ms-font-weight-semibold);
   color: var(--ms-color-accent-alt);
   text-decoration: none;
@@ -141,13 +141,13 @@
 }
 
 .noAction {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   color: var(--ms-color-text-muted);
   visibility: hidden;
 }
 
 .updatedAt {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   color: var(--ms-color-text-muted);
   white-space: nowrap;
   flex-shrink: 0;

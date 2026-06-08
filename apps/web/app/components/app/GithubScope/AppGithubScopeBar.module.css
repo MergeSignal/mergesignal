@@ -29,7 +29,7 @@
 }
 
 .helper {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   color: var(--ms-color-text-muted);
   margin-top: var(--ms-space-2xs);
 }
@@ -74,7 +74,7 @@
 }
 
 .emptyRepoHint {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   color: var(--ms-color-text-muted);
   line-height: 1.5;
   margin: var(--ms-space-xs) 0 0;

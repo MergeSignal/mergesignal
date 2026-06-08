@@ -3,7 +3,7 @@
   align-items: center;
   padding: 0.1rem 0.45rem;
   border-radius: var(--ms-radius-full);
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   font-family: var(--ms-font-family-mono);
   letter-spacing: var(--ms-tracking-snug);
   color: var(--ms-color-text-muted);

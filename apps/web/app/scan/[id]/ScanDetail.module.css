@@ -28,7 +28,7 @@
 
 .sectionMeta {
   margin: 0;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   line-height: var(--ms-leading-snug);
   color: var(--ms-color-text-muted);
 }
@@ -97,7 +97,7 @@
 
 .actionRailHint {
   margin: 0;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   color: var(--ms-color-text-muted);
   line-height: var(--ms-leading-snug);
 }
@@ -155,7 +155,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   font-weight: var(--ms-font-semibold, 600);
   color: var(--ms-color-text-muted);
   border-radius: var(--ms-radius-sm, 4px);
@@ -182,7 +182,7 @@
 .actionRailPriority {
   grid-column: 2;
   justify-self: start;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   padding: 0.125rem 0.5rem;
   border-radius: var(--ms-radius-pill, 999px);
   border: var(--ms-border-width) solid var(--ms-color-border);
@@ -320,7 +320,7 @@
 }
 
 .packageOverflow {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
 }
 
 @media (max-width: 768px) {
@@ -436,7 +436,7 @@
 
 .overflowHint {
   color: var(--ms-color-text-muted);
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
 }
 
 .findingsList {
@@ -483,7 +483,7 @@
 }
 
 .packageChip {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   padding: 2px var(--ms-space-2xs);
   border-radius: var(--ms-radius-2xs);
   background: color-mix(in oklab, var(--ms-color-surface-emphasis) 50%, transparent);
@@ -514,13 +514,13 @@
 
 .metadataLine {
   margin: 0;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   color: var(--ms-color-text-muted);
 }
 
 .metadataDetails {
   margin-top: var(--ms-space-2xs);
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   color: var(--ms-color-text-muted);
 }
 
@@ -566,7 +566,7 @@
 
 .staleBadge {
   margin-left: var(--ms-space-xs);
-  font-size: var(--ms-text-2xs);
+  font-size: var(--ms-text-xs);
   text-transform: uppercase;
   letter-spacing: var(--ms-tracking-wide);
   color: var(--ms-color-warning);
@@ -616,7 +616,7 @@
 
 .affectedFiles {
   margin-top: var(--ms-space-sm);
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
 }
 
 .affectedFiles summary {
@@ -637,7 +637,7 @@
 .debugPre {
   white-space: pre-wrap;
   overflow: auto;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
 }
 
 .demoBanner {
@@ -658,7 +658,7 @@
   }
 
   .breadcrumb {
-    font-size: var(--ms-text-xs);
+    font-size: var(--ms-text-sm);
   }
 
   .actionRailButton {
@@ -666,7 +666,7 @@
   }
 
   .actionRailTitle {
-    font-size: var(--ms-text-xs);
+    font-size: var(--ms-text-sm);
   }
 
   .impactGrid {

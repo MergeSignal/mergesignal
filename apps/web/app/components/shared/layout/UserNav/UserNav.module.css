@@ -18,7 +18,7 @@
 }
 
 .user {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   opacity: 0.85;
   max-width: 12rem;
   overflow: hidden;
@@ -32,7 +32,7 @@
   cursor: pointer;
   border-radius: var(--ms-radius-xs);
   padding: 0.35rem 0.75rem;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
 }
 
 .button {
@@ -63,5 +63,5 @@
 
 .muted {
   opacity: 0.6;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
 }

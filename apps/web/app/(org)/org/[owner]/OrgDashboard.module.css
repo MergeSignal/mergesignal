@@ -154,7 +154,7 @@
   gap: var(--ms-space-2xs);
   padding: var(--ms-space-sm) var(--ms-space-sm);
   border-radius: var(--ms-radius-xs);
-  font-size:      var(--ms-text-xs);
+  font-size:      var(--ms-text-sm);
   font-weight:    var(--ms-font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: var(--ms-tracking-wider);

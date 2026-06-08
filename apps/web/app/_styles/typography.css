@@ -41,9 +41,9 @@
    * II. Font size scale (rem)
    * ═══════════════════════════════════════════════════════════════════ */
 
-  --ms-text-3xs:  0.5rem;    /*   8px */
-  --ms-text-2xs:  0.625rem;  /*  10px */
-  --ms-text-xs:   0.75rem;   /*  12px */
+  --ms-text-2xs:  0.5rem;    /*   8px */
+  --ms-text-xs:  0.625rem;  /*  10px */
+  --ms-text-sm:   0.75rem;   /*  12px */
   --ms-text-md:   0.875rem;  /*  14px */
   --ms-text-base: 1rem;      /*  16px */
   --ms-text-lg:   1.125rem;  /*  18px */
@@ -125,13 +125,13 @@
 
   /* Narrow viewports — page title scales down further */
   --ms-font-size-page-title-narrow: clamp(
-    var(--ms-text-xs),
+    var(--ms-text-sm),
     0.45rem + 3.2vw,
     var(--ms-text-lg)
   );
 
   /* Extra-small phones — fixed size for long PR titles */
-  --ms-font-size-page-title-compact: var(--ms-text-xs);
+  --ms-font-size-page-title-compact: var(--ms-text-sm);
 
   /* ═══════════════════════════════════════════════════════════════════
    * VII. Composite type tokens  (--ms-type-{role}-{property})
@@ -148,7 +148,7 @@
   --ms-type-body-line-height:  var(--ms-leading-snug);
 
   /* ── Label (form labels, UI meta, nav links) ────────────────────── */
-  --ms-type-label-font-size:    var(--ms-text-xs);
+  --ms-type-label-font-size:    var(--ms-text-sm);
   --ms-type-label-font-weight:  var(--ms-font-weight-medium);
   --ms-type-label-line-height:  var(--ms-leading-snug);
 

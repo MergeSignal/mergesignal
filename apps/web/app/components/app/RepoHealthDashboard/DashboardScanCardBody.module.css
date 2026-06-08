@@ -43,11 +43,11 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--ms-space-sm);
-  min-height: calc(var(--ms-text-xs) * var(--ms-leading-ui));
+  min-height: calc(var(--ms-text-sm) * var(--ms-leading-ui));
 }
 
 .postureBadge {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   font-weight: var(--ms-font-weight-medium);
   opacity: var(--ms-opacity-soft);
 }
@@ -58,7 +58,7 @@
 }
 
 .scopeLabel {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   font-weight: var(--ms-font-weight-medium);
   letter-spacing: var(--ms-tracking-snug);
   color: var(--ms-color-text-muted);
@@ -82,7 +82,7 @@
 .limitedContext {
   margin: 0;
   padding: var(--ms-space-xs) var(--ms-space-sm);
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   line-height: var(--ms-leading-subhead);
   color: var(--ms-color-warning);
   background: color-mix(in srgb, var(--ms-color-warning) 8%, transparent);
@@ -111,7 +111,7 @@
 
 .scopeAreas {
   margin: 0;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   line-height: var(--ms-leading-subhead);
   color: var(--ms-color-text-muted);
   overflow: hidden;
@@ -128,7 +128,7 @@
 .verificationPill {
   margin: 0;
   padding: var(--ms-space-2xs) var(--ms-space-xs);
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   line-height: var(--ms-leading-snug);
   color: var(--ms-color-text-emphasis);
   border: var(--ms-border-width) solid var(--ms-color-border);
@@ -140,7 +140,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--ms-space-2xs);
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   color: var(--ms-color-text-muted);
 }
 
@@ -150,7 +150,7 @@
 
 .pipelineHeadline {
   margin: 0;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   line-height: var(--ms-leading-subhead);
   color: var(--ms-color-text-muted);
   overflow: hidden;
@@ -162,7 +162,7 @@
 
 .pipelineSubheadline {
   margin: 0;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   color: var(--ms-color-text-muted);
   line-height: var(--ms-leading-snug);
 }
@@ -170,7 +170,7 @@
 .staleNote {
   margin: 0;
   margin-top: var(--ms-space-2xs);
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   font-style: italic;
   color: var(--ms-color-warning);
   line-height: var(--ms-leading-snug);

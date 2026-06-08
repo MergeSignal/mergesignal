@@ -25,7 +25,7 @@
 }
 
 .title {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   text-transform: uppercase;
   letter-spacing: var(--ms-tracking-label);
   opacity: 0.9;
@@ -35,7 +35,7 @@
 
 @media (max-width: 640px) {
   .title {
-    font-size: var(--ms-text-2xs);
+    font-size: var(--ms-text-xs);
     letter-spacing: var(--ms-tracking-wide);
   }
 }
@@ -48,13 +48,13 @@
 .muted {
   margin-top: var(--ms-space-2xs);
   color: var(--ms-color-text-muted);
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
 }
 
 .note {
   margin-top: var(--ms-space-sm);
   color: var(--ms-color-text-muted);
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
 }
 
 .note code {

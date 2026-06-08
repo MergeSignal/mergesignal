@@ -16,7 +16,7 @@
 
 .tagline {
   font-family:    var(--ms-font-family-sans);
-  font-size:      var(--ms-text-2xs);
+  font-size:      var(--ms-text-xs);
   font-weight:    var(--ms-font-weight-regular);
   letter-spacing: var(--ms-tracking-widest);
   color: var(--ms-color-text-muted);

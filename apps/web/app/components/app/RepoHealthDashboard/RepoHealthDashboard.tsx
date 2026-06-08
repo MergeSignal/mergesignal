@@ -158,7 +158,7 @@ export function RepoHealthDashboard({
       {viewModel.hasMore && (
         <p
           style={{
-            fontSize: "var(--ms-text-xs)",
+            fontSize: "var(--ms-text-sm)",
             color: "var(--ms-color-text-muted)",
             padding: "var(--ms-space-sm) var(--ms-space-md)",
           }}

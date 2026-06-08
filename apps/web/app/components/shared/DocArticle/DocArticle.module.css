@@ -77,7 +77,7 @@
   border: var(--ms-border-width) solid var(--ms-color-border);
   background: var(--ms-color-surface);
   overflow-x: auto;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   line-height: var(--ms-leading-snug);
 }
 

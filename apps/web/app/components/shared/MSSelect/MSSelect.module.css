@@ -55,7 +55,7 @@
 }
 
 .groupLabel {
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   font-weight: var(--ms-font-weight-semibold);
   color: var(--ms-color-text-muted);
   text-transform: uppercase;

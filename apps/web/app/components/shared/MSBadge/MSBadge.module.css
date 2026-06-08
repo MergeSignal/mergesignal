@@ -4,7 +4,7 @@
   gap: 0.3rem;
   padding: 0.2rem 0.55rem;
   border-radius: var(--ms-radius-full);
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   font-weight: var(--ms-font-weight-semibold);
   border: var(--ms-border-width) solid transparent;
   white-space: nowrap;

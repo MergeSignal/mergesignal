@@ -16,7 +16,7 @@
 .link {
   display: block;
   padding: var(--ms-space-2xs) var(--ms-space-xs);
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-sm);
   color: var(--ms-color-text-muted);
   text-decoration: none;
   border-left: calc(3 * var(--ms-border-width)) solid transparent;
