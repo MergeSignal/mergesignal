@@ -4,21 +4,23 @@ import {
   type PrScanIndexResponse,
 } from "./repo-health-view-model";
 import type { GithubOpenPR } from "./github-open-pull-requests";
-import type { ScanCardPresentation } from "@mergesignal/shared";
+import type { DashboardCardPresentation } from "@mergesignal/shared";
 import { scanSurfaceCopy } from "@mergesignal/shared";
 
 function makeCardPresentation(
-  overrides: Partial<ScanCardPresentation> = {},
-): ScanCardPresentation {
+  overrides: Partial<DashboardCardPresentation> = {},
+): DashboardCardPresentation {
   return {
-    status: "risky",
+    verdict: {
+      posture: "risky",
+      postureLabel: "Risky",
+    },
     headline: "Risky dependency upgrade",
-    changedPackages: [],
-    keyPoints: [],
-    affectedAreas: [],
-    verificationActions: [],
-    evidence: [],
-    riskIndex: 72,
+    insights: [],
+    verification: [],
+    layout: "standard",
+    detailActionLabel: scanSurfaceCopy.presentation.actionLabelReview,
+    sortKey: { postureRank: 2, riskIndex: 72 },
     ...overrides,
   };
 }
@@ -47,7 +49,7 @@ function makeIndex(
     score?: number | null;
     headSha?: string;
     scannedAt?: string;
-    cardPresentation?: ScanCardPresentation;
+    cardPresentation?: DashboardCardPresentation;
   }>,
 ): PrScanIndexResponse {
   const byPrNumber: PrScanIndexResponse["byPrNumber"] = {};
@@ -67,23 +69,39 @@ function makeIndex(
               subheadline: scanSurfaceCopy.pipeline.scanIncomplete,
             },
             headline: scanSurfaceCopy.pipeline.scanRunning,
-            status: undefined,
-            riskIndex: null,
+            verdict: undefined,
+            sortKey: { postureRank: -1, riskIndex: -1 },
           })
         : makeCardPresentation({
-            status:
-              e.decision === "safe" ||
-              e.decision === "needs_review" ||
-              e.decision === "risky"
-                ? e.decision
-                : "risky",
+            verdict: {
+              posture:
+                e.decision === "safe" ||
+                e.decision === "needs_review" ||
+                e.decision === "risky"
+                  ? e.decision
+                  : "risky",
+              postureLabel:
+                e.decision === "safe"
+                  ? "Safe"
+                  : e.decision === "needs_review"
+                    ? "Needs review"
+                    : "Risky",
+            },
             headline:
               e.decision === "safe"
                 ? "Safe upgrade"
                 : e.decision === "needs_review"
                   ? "Needs review"
                   : "Risky upgrade",
-            riskIndex: e.score ?? 50,
+            sortKey: {
+              postureRank:
+                e.decision === "safe"
+                  ? 0
+                  : e.decision === "needs_review"
+                    ? 1
+                    : 2,
+              riskIndex: e.score ?? 50,
+            },
           }));
 
     byPrNumber[String(e.prNumber)] = {
@@ -220,9 +238,9 @@ describe("buildRepoPullHealthViewModel", () => {
           score: 72,
           scannedAt,
           cardPresentation: makeCardPresentation({
-            status: "risky",
+            verdict: { posture: "risky", postureLabel: "Risky" },
             headline: "Risky upgrade",
-            riskIndex: 72,
+            sortKey: { postureRank: 2, riskIndex: 72 },
           }),
         },
       ]),
@@ -243,11 +261,14 @@ describe("buildRepoPullHealthViewModel", () => {
             scanId: "scan-1",
             pipelineStatus: "done",
             cardPresentation: makeCardPresentation({
-              status: "needs_review",
+              verdict: {
+                posture: "needs_review",
+                postureLabel: "Needs review",
+              },
               headline: "Needs review",
-              riskIndex: 48,
-              keyPoints: ["Dependency upgrade needs review"],
-              affectedAreas: ["Auth flow"],
+              sortKey: { postureRank: 1, riskIndex: 48 },
+              insights: ["Dependency upgrade needs review"],
+              scopeAreas: ["Auth flow"],
             }),
             createdAt: new Date(2026, 0, 1).toISOString(),
             githubPrNumber: 1,
@@ -267,7 +288,7 @@ describe("buildRepoPullHealthViewModel", () => {
     expect(vm.rows[0]!.presentationState).toBe("ready");
     expect(vm.rows[0]!.posture).toBe("needs_review");
     expect(vm.rows[0]!.cardPresentation?.headline).toBe("Needs review");
-    expect(vm.rows[0]!.cardPresentation?.keyPoints).toContain(
+    expect(vm.rows[0]!.cardPresentation?.insights).toContain(
       "Dependency upgrade needs review",
     );
   });
@@ -290,7 +311,7 @@ describe("buildRepoPullHealthViewModel", () => {
               headline: scanSurfaceCopy.pipeline.scanRunning,
             },
             headline: scanSurfaceCopy.pipeline.scanRunning,
-            status: undefined,
+            verdict: undefined,
           }),
         },
       ]),

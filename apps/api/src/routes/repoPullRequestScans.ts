@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import {
   resolvePipelineStatus,
-  type ScanCardPresentation,
+  type DashboardCardPresentation,
   type ScanPipelineStatus,
   type ScanResult,
 } from "@mergesignal/shared";
@@ -13,7 +13,7 @@ import { getOwnerGithubQuotaStatus } from "../services/scanQuota.js";
 type PrScanIndexEntry = {
   scanId: string;
   pipelineStatus: ScanPipelineStatus;
-  cardPresentation: ScanCardPresentation;
+  cardPresentation: DashboardCardPresentation;
   createdAt: string;
   githubPrNumber: number;
   githubHeadSha: string | null;

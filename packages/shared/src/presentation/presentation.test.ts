@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildScanPresentationBundle } from "./orchestration/buildScanPresentationBundle.js";
-import { presentScanCard } from "./presenters/presentScanCard.js";
+import { presentDashboardCard } from "./presenters/presentDashboardCard.js";
 import { presentScanDetails } from "./presenters/presentScanDetails.js";
 import { presentGitHubCheckRun } from "./presenters/presentGitHubCheckRun.js";
 import { presentGitHubPrComment } from "./presenters/presentGitHubPrComment.js";
@@ -55,33 +55,31 @@ describe("buildScanPresentationBundle", () => {
   });
 });
 
-describe("presentScanCard personas", () => {
-  it("fastify card is rich with affected areas and verification", () => {
+describe("presentDashboardCard personas", () => {
+  it("fastify card has scope areas and verification", () => {
     const bundle = buildScanPresentationBundle({
       result: scanResultFastifyRuntime,
       pipelineStatus: "done",
     })!;
-    const card = presentScanCard(bundle);
-    expect(card.density).toBe("rich");
-    expect(card.affectedAreas.length).toBeGreaterThan(0);
-    expect(card.verificationActions.length).toBeGreaterThan(0);
+    const card = presentDashboardCard(bundle);
+    expect(card.layout).toBe("expanded");
+    expect(card.scopeAreas!.length).toBeGreaterThan(0);
+    expect(card.verification.length).toBeGreaterThan(0);
     expect(card.headline.toLowerCase()).toContain("fastify");
-    expect(card.supportingContext).toBeUndefined();
+    expect(card.verdict?.posture).toBe("needs_review");
   });
 
-  it("typescript card is minimal safe without graph-first story", () => {
+  it("typescript card is quiet safe", () => {
     const bundle = buildScanPresentationBundle({
       result: scanResultTypescriptPatch,
       pipelineStatus: "done",
     })!;
-    const card = presentScanCard(bundle);
-    expect(card.density).toBe("minimal");
-    expect(card.status).toBe("safe");
-    expect(card.presentationIntent).toBe("tooling_patch");
+    const card = presentDashboardCard(bundle);
+    expect(["quiet", "standard"]).toContain(card.layout);
+    expect(card.verdict?.posture).toBe("safe");
     expect(card.headline).toMatch(/patch upgrade/i);
     expect(card.headline).not.toMatch(/needs review/i);
-    expect(card.changedPackages).toContain("typescript");
-    expect(card.verificationActions.length).toBeGreaterThan(0);
+    expect(card.verification.length).toBeGreaterThan(0);
   });
 });
 
@@ -92,7 +90,7 @@ describe("presentation parity across surfaces", () => {
       pipelineStatus: "done",
     })!;
 
-    const card = presentScanCard(bundle);
+    const card = presentDashboardCard(bundle);
     const details = presentScanDetails(bundle, { scanId: SCAN_ID });
     const check = presentGitHubCheckRun(bundle, {
       scanId: SCAN_ID,
@@ -101,14 +99,14 @@ describe("presentation parity across surfaces", () => {
     const comment = presentGitHubPrComment(bundle);
     const cli = presentCliScanSummary(bundle, { repoLabel: "acme/api" });
 
-    for (const dto of [card, details, check, comment, cli]) {
+    for (const dto of [details, check, comment, cli]) {
       expect(dto.status).toBe(bundle.profile.status);
       expect(dto.density).toBe(bundle.profile.density);
       expect(dto.confidence).toBe(bundle.profile.confidence);
       expect(dto.evidenceContext?.priority).toBe(bundle.profile.priority);
     }
 
-    expect(card.primaryPackage).toBe("fastify");
+    expect(card.verdict?.posture).toBe(bundle.profile.status);
     expect(details.narrative.primaryPackage).toBe("fastify");
     expect(check.title.toLowerCase()).toContain("fastify");
   });

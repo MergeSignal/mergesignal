@@ -3,7 +3,7 @@ import { staleScanSubline } from "@mergesignal/shared";
 import type { PRHealthRow } from "../../../../lib/repo-health-view-model";
 import { formatRelativeTime } from "../../../../lib/formatRelativeTime";
 import { MSChip } from "../../shared/MSChip/MSChip";
-import { MSRiskSummary } from "../../shared/MSRiskSummary/MSRiskSummary";
+import { DashboardScanCardBody } from "./DashboardScanCardBody";
 import { MSScanStateIndicator } from "../../shared/MSScanStateIndicator/MSScanStateIndicator";
 import { MSTruncatedWithTooltip } from "../../shared/MSTruncatedWithTooltip/MSTruncatedWithTooltip";
 import styles from "./PRHealthCard.module.css";
@@ -55,7 +55,7 @@ export function PRHealthCard({ row }: { row: PRHealthRow }) {
 
         <div className={styles.body}>
           {showRiskBlock && cardPresentation && (
-            <MSRiskSummary
+            <DashboardScanCardBody
               presentation={cardPresentation}
               stale={presentationState === "stale"}
               staleSubline={
@@ -65,7 +65,7 @@ export function PRHealthCard({ row }: { row: PRHealthRow }) {
           )}
 
           {showPipelineBody && cardPresentation && (
-            <MSRiskSummary presentation={cardPresentation} />
+            <DashboardScanCardBody presentation={cardPresentation} />
           )}
 
           {showPipelineBody && !cardPresentation && (
@@ -85,7 +85,7 @@ export function PRHealthCard({ row }: { row: PRHealthRow }) {
                 className={styles.viewDetailsLink}
                 aria-label={`View scan details for PR #${pr.number}: ${pr.title}`}
               >
-                View details
+                {cardPresentation?.detailActionLabel ?? "View details"}
               </Link>
             ) : (
               <span className={styles.noAction} aria-hidden="true">

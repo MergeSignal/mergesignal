@@ -121,36 +121,36 @@ function getOpenApiSpec() {
                 subheadline: { type: "string", nullable: true },
               },
             },
-            status: {
-              type: "string",
+            verdict: {
+              type: "object",
               nullable: true,
-              enum: ["safe", "needs_review", "risky", null],
-            },
-            density: {
-              type: "string",
-              nullable: true,
-              enum: ["minimal", "rich", null],
-            },
-            confidence: {
-              type: "string",
-              nullable: true,
-              enum: ["high", "medium", "low", null],
+              properties: {
+                posture: {
+                  type: "string",
+                  enum: ["safe", "needs_review", "risky"],
+                },
+                postureLabel: { type: "string" },
+                scopeLabel: { type: "string", nullable: true },
+              },
             },
             headline: { type: "string" },
-            subheadline: { type: "string", nullable: true },
-            changedPackages: {
+            limitedContext: {
+              type: "object",
+              nullable: true,
+              properties: {
+                message: { type: "string" },
+              },
+            },
+            insights: { type: "array", items: { type: "string" } },
+            scopeAreas: {
               type: "array",
+              nullable: true,
               items: { type: "string" },
             },
-            primaryPackage: { type: "string", nullable: true },
-            keyPoints: { type: "array", items: { type: "string" } },
-            affectedAreas: { type: "array", items: { type: "string" } },
-            verificationActions: {
+            verification: { type: "array", items: { type: "string" } },
+            evidenceChips: {
               type: "array",
-              items: { type: "string" },
-            },
-            evidence: {
-              type: "array",
+              nullable: true,
               items: {
                 type: "object",
                 properties: {
@@ -160,31 +160,26 @@ function getOpenApiSpec() {
                 required: ["label", "value"],
               },
             },
-            supportingContext: {
-              type: "array",
-              nullable: true,
-              items: { type: "string" },
+            layout: {
+              type: "string",
+              enum: ["quiet", "standard", "expanded"],
             },
-            riskIndex: { type: "integer", nullable: true },
-            findingCounts: {
+            detailActionLabel: { type: "string" },
+            sortKey: {
               type: "object",
-              nullable: true,
               properties: {
-                critical: { type: "integer" },
-                high: { type: "integer" },
-                medium: { type: "integer" },
-                low: { type: "integer" },
+                postureRank: { type: "integer" },
+                riskIndex: { type: "integer" },
               },
             },
-            actionLabel: { type: "string", nullable: true },
           },
           required: [
             "headline",
-            "changedPackages",
-            "keyPoints",
-            "affectedAreas",
-            "verificationActions",
-            "evidence",
+            "insights",
+            "verification",
+            "layout",
+            "detailActionLabel",
+            "sortKey",
           ],
         },
         ScanDetailsPresentation: {

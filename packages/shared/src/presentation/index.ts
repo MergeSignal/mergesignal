@@ -1,7 +1,10 @@
 export type { ScanPresentationBundle } from "./orchestration/scanPresentationBundle.js";
 export { buildScanPresentationBundle } from "./orchestration/buildScanPresentationBundle.js";
 export type { BuildScanPresentationBundleInput } from "./orchestration/buildScanPresentationBundle.js";
-export { buildScanCardPresentation } from "./orchestration/buildScanCardPresentation.js";
+export {
+  buildScanCardPresentation,
+  buildDashboardCardPresentation,
+} from "./orchestration/buildScanCardPresentation.js";
 export type { BuildScanCardPresentationInput } from "./orchestration/buildScanCardPresentation.js";
 export { buildScanDetailsPresentation } from "./orchestration/buildScanDetailsPresentation.js";
 export type { BuildScanDetailsPresentationInput } from "./orchestration/buildScanDetailsPresentation.js";
@@ -22,7 +25,10 @@ export type {
   PresentationEvidenceRow,
 } from "./dto/types.js";
 
-export type { ScanCardPresentation } from "./dto/scanCardPresentation.js";
+export type { DashboardCardPresentation } from "./dto/dashboardCardPresentation.js";
+export type { DashboardCardLayout } from "./dto/dashboardCardPresentation.js";
+/** @deprecated Use DashboardCardPresentation */
+export type { DashboardCardPresentation as ScanCardPresentation } from "./dto/dashboardCardPresentation.js";
 export type { ScanDetailsPresentation } from "./dto/scanDetailsPresentation.js";
 export type {
   GitHubCheckRunPresentation,
@@ -30,9 +36,10 @@ export type {
   CliScanPresentation,
 } from "./dto/githubAndCliPresentation.js";
 
-export { presentScanCard } from "./presenters/presentScanCard.js";
-export type { PresentScanCardContext } from "./presenters/presentScanCard.js";
-export { presentPipelineScanCard } from "./presenters/presentPipelineScanCard.js";
+export {
+  presentDashboardCard,
+  presentPipelineDashboardCard,
+} from "./presenters/presentDashboardCard.js";
 export { presentScanDetails } from "./presenters/presentScanDetails.js";
 export type { PresentScanDetailsContext } from "./presenters/presentScanDetails.js";
 export { presentGitHubCheckRun } from "./presenters/presentGitHubCheckRun.js";
@@ -44,6 +51,8 @@ export { renderGitHubPrCommentMarkdown } from "./render/renderGitHubPrCommentMar
 export { renderCliScanSummaryText } from "./render/renderCliScanSummaryText.js";
 
 export {
+  buildNarrativeChannels,
+  projectCompactKeyPoints,
   composeHeadline,
   composeSubheadline,
   composeKeyPoints,
@@ -53,3 +62,4 @@ export {
   composeSupportingContext,
   evidenceContextFromProfile,
 } from "./compose/narrativeCompose.js";
+export type { NarrativeChannels } from "./compose/narrativeChannels.js";

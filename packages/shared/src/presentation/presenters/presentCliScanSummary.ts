@@ -1,10 +1,11 @@
 import {
+  buildNarrativeChannels,
   composeHeadline,
-  composeKeyPoints,
   composeSubheadline,
   composeSupportingContext,
   composeVerificationActions,
   evidenceContextFromProfile,
+  projectCompactKeyPoints,
 } from "../compose/narrativeCompose.js";
 import type { CliScanPresentation } from "../dto/githubAndCliPresentation.js";
 import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
@@ -31,7 +32,7 @@ export function presentCliScanSummary(
     evidenceContext: evidenceContextFromProfile(bundle),
     headline: composeHeadline(bundle),
     subheadline: composeSubheadline(bundle),
-    keyPoints: composeKeyPoints(bundle, 6),
+    keyPoints: projectCompactKeyPoints(buildNarrativeChannels(bundle), 6),
     verificationActions: composeVerificationActions(bundle, 5),
     metrics: {
       riskIndex: facts.riskIndex ?? result.totalScore ?? 0,

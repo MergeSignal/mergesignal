@@ -1,9 +1,10 @@
 import {
+  buildNarrativeChannels,
   composeHeadline,
-  composeKeyPoints,
   composeSubheadline,
   composeVerificationActions,
   evidenceContextFromProfile,
+  projectCompactKeyPoints,
 } from "../compose/narrativeCompose.js";
 import type { GitHubCheckRunPresentation } from "../dto/githubAndCliPresentation.js";
 import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
@@ -14,7 +15,7 @@ export function presentGitHubCheckRun(
 ): GitHubCheckRunPresentation {
   const { profile } = bundle;
   const headline = composeHeadline(bundle);
-  const keyPoints = composeKeyPoints(bundle, 3);
+  const keyPoints = projectCompactKeyPoints(buildNarrativeChannels(bundle), 3);
   const actions = composeVerificationActions(bundle, 3);
   const detailsUrl = `${ctx.webAppOrigin.replace(/\/$/, "")}/scan/${ctx.scanId}`;
 

@@ -1,7 +1,7 @@
 import {
   MERGE_POSTURE_SORT_ORDER,
   type MergePosture,
-  type ScanCardPresentation,
+  type DashboardCardPresentation,
   type ScanCardPresentationState,
   type ScanPipelineStatus,
 } from "@mergesignal/shared";
@@ -10,7 +10,7 @@ import type { GithubOpenPR } from "./github-open-pull-requests";
 export type PrScanEntry = {
   scanId: string;
   pipelineStatus: ScanPipelineStatus;
-  cardPresentation: ScanCardPresentation;
+  cardPresentation: DashboardCardPresentation;
   createdAt: string;
   githubPrNumber: number;
   githubHeadSha: string | null;
@@ -53,7 +53,7 @@ export type PRHealthRow = {
   scanState: ScanState;
   posture: MergePosture | null;
   isOutdated: boolean;
-  cardPresentation: ScanCardPresentation | null;
+  cardPresentation: DashboardCardPresentation | null;
   timestampIso: string;
 };
 
@@ -128,7 +128,7 @@ export function buildRepoPullHealthViewModel(
     const presentationState = derivePresentationState(scan, pr.headSha);
     const scanState = presentationToLegacyState(presentationState);
     const cardPresentation = scan?.cardPresentation ?? null;
-    const posture = cardPresentation?.status ?? null;
+    const posture = cardPresentation?.verdict?.posture ?? null;
     const isOutdated = presentationState === "stale";
     const timestampIso = timestampForRow(pr, scan, presentationState);
 
@@ -153,8 +153,8 @@ export function buildRepoPullHealthViewModel(
     const bOrder = b.posture ? MERGE_POSTURE_SORT_ORDER[b.posture] : -1;
     if (aOrder !== bOrder) return bOrder - aOrder;
 
-    const aScore = a.cardPresentation?.riskIndex ?? -1;
-    const bScore = b.cardPresentation?.riskIndex ?? -1;
+    const aScore = a.cardPresentation?.sortKey.riskIndex ?? -1;
+    const bScore = b.cardPresentation?.sortKey.riskIndex ?? -1;
     if (aScore !== bScore) return bScore - aScore;
 
     return (

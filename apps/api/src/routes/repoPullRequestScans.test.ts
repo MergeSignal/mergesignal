@@ -164,12 +164,11 @@ describe("repoPullRequestScansRoutes", () => {
     const entry = body.byPrNumber["42"];
     expect(entry.scanId).toBe("scan-1");
     expect(entry.pipelineStatus).toBe("done");
-    expect(entry.cardPresentation.status).toBe("risky");
-    expect(entry.cardPresentation.riskIndex).toBe(72);
+    expect(entry.cardPresentation.verdict?.posture).toBe("risky");
+    expect(entry.cardPresentation.sortKey.riskIndex).toBe(72);
     expect(entry.cardPresentation.headline).toBeTruthy();
     expect(entry.githubBaseRef).toBe("main");
-    expect(Array.isArray(entry.cardPresentation.affectedAreas)).toBe(true);
-    expect(entry.cardPresentation.affectedAreas.length).toBeLessThanOrEqual(2);
+    expect(Array.isArray(entry.cardPresentation.insights)).toBe(true);
   });
 
   it("aggregates decisions correctly", async () => {
@@ -234,8 +233,8 @@ describe("repoPullRequestScansRoutes", () => {
     });
     const body = res.json();
     const card = body.byPrNumber["42"].cardPresentation;
-    expect(card.status).toBe("risky");
-    expect(card.keyPoints.length).toBeGreaterThan(0);
+    expect(card.verdict?.posture).toBe("risky");
+    expect(card.insights.length).toBeGreaterThan(0);
   });
 
   it("extracts affectedAreas from explain reasons (max 2)", async () => {
@@ -262,7 +261,7 @@ describe("repoPullRequestScansRoutes", () => {
       url: "/repo/acme/frontend/pull-request-scans",
     });
     const body = res.json();
-    const areas = body.byPrNumber["42"].cardPresentation.affectedAreas;
+    const areas = body.byPrNumber["42"].cardPresentation.scopeAreas ?? [];
     expect(areas.length).toBeLessThanOrEqual(2);
     expect(areas).toEqual(["Auth flow", "State sync"]);
   });
@@ -286,7 +285,9 @@ describe("repoPullRequestScansRoutes", () => {
     });
     const body = res.json();
     expect(body.byPrNumber["42"].pipelineStatus).toBe("done");
-    expect(body.byPrNumber["42"].cardPresentation.status).toBe("risky");
+    expect(body.byPrNumber["42"].cardPresentation.verdict?.posture).toBe(
+      "risky",
+    );
     expect(body.byPrNumber["42"].cardPresentation.pipeline).toBeUndefined();
   });
 
@@ -309,7 +310,9 @@ describe("repoPullRequestScansRoutes", () => {
     });
     const body = res.json();
     expect(body.byPrNumber["42"].pipelineStatus).toBe("done");
-    expect(body.byPrNumber["42"].cardPresentation.status).toBe("needs_review");
+    expect(body.byPrNumber["42"].cardPresentation.verdict?.posture).toBe(
+      "needs_review",
+    );
     expect(body.byPrNumber["42"].cardPresentation.pipeline).toBeUndefined();
   });
 

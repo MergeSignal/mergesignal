@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildScanPresentationBundle } from "./presentation/orchestration/buildScanPresentationBundle.js";
-import { presentScanCard } from "./presentation/presenters/presentScanCard.js";
+import { presentDashboardCard } from "./presentation/presenters/presentDashboardCard.js";
 import { presentScanDetails } from "./presentation/presenters/presentScanDetails.js";
 import { presentGitHubPrComment } from "./presentation/presenters/presentGitHubPrComment.js";
 import { renderGitHubCheckRunMarkdown } from "./presentation/render/renderGitHubCheckRunMarkdown.js";
@@ -50,7 +50,7 @@ describe("narrative parity across consumers", () => {
       pipelineStatus: "done",
     })!;
 
-    const card = presentScanCard(bundle);
+    const card = presentDashboardCard(bundle);
     const detail = presentScanDetails(bundle, {
       scanId: SCAN_ID,
     });
@@ -63,9 +63,10 @@ describe("narrative parity across consumers", () => {
     );
     const prComment = presentGitHubPrComment(bundle);
 
-    expect(card.primaryPackage).toBe("fastify");
     expect(detail.narrative.primaryPackage).toBe("fastify");
-    expect(card.evidence.some((e) => e.label === "Reachability")).toBe(true);
+    expect(card.evidenceChips?.some((e) => e.label === "Reachability")).toBe(
+      true,
+    );
 
     const asciiOnly = /^[\x00-\x7F]*$/;
     expect(asciiOnly.test(checkRun)).toBe(true);

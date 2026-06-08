@@ -2,9 +2,11 @@ import type { PipelineStatus } from "../dto/types.js";
 import type { ScanResult } from "../../types.js";
 import { mergePostureFromDecision } from "../../riskVocabulary.js";
 import { buildScanPresentationBundle } from "./buildScanPresentationBundle.js";
-import { presentScanCard } from "../presenters/presentScanCard.js";
-import { presentPipelineScanCard } from "../presenters/presentPipelineScanCard.js";
-import type { ScanCardPresentation } from "../dto/scanCardPresentation.js";
+import {
+  presentDashboardCard,
+  presentPipelineDashboardCard,
+} from "../presenters/presentDashboardCard.js";
+import type { DashboardCardPresentation } from "../dto/dashboardCardPresentation.js";
 
 export type BuildScanCardPresentationInput = {
   pipelineStatus: PipelineStatus;
@@ -40,9 +42,9 @@ function minimalResultFromDenormalized(
 
 export function buildScanCardPresentation(
   input: BuildScanCardPresentationInput,
-): ScanCardPresentation {
+): DashboardCardPresentation {
   if (input.pipelineStatus !== "done") {
-    return presentPipelineScanCard(
+    return presentPipelineDashboardCard(
       input.pipelineStatus === "failed" ? "failed" : input.pipelineStatus,
     );
   }
@@ -52,7 +54,7 @@ export function buildScanCardPresentation(
     minimalResultFromDenormalized(input.decision, input.totalScore);
 
   if (!result) {
-    return presentPipelineScanCard("failed");
+    return presentPipelineDashboardCard("failed");
   }
 
   const bundle = buildScanPresentationBundle({
@@ -63,8 +65,11 @@ export function buildScanCardPresentation(
   });
 
   if (!bundle) {
-    return presentPipelineScanCard("failed");
+    return presentPipelineDashboardCard("failed");
   }
 
-  return presentScanCard(bundle, { includeFindingCounts: true });
+  return presentDashboardCard(bundle);
 }
+
+/** Alias for dashboard card builder. */
+export const buildDashboardCardPresentation = buildScanCardPresentation;

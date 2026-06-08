@@ -1,0 +1,318 @@
+{
+  "typescriptPatch": {
+    "verdict": {
+      "posture": "safe",
+      "postureLabel": "Safe"
+    },
+    "headline": "TypeScript patch upgrade",
+    "insights": [
+      "No runtime usage paths detected",
+      "Expected impact is limited to build and typecheck workflows"
+    ],
+    "verification": ["Verify CI", "Verify typecheck"],
+    "evidenceChips": [
+      {
+        "label": "Blast radius",
+        "value": "Narrow"
+      }
+    ],
+    "layout": "standard",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": 0,
+      "riskIndex": 18
+    }
+  },
+  "eslint": {
+    "verdict": {
+      "posture": "safe",
+      "postureLabel": "Safe"
+    },
+    "headline": "ESLint tooling upgrade",
+    "insights": [
+      "No runtime usage paths detected",
+      "Expected impact is limited to development workflows"
+    ],
+    "verification": ["Verify CI", "Verify lint"],
+    "evidenceChips": [
+      {
+        "label": "Blast radius",
+        "value": "Narrow"
+      }
+    ],
+    "layout": "standard",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": 0,
+      "riskIndex": 18
+    }
+  },
+  "prettier": {
+    "verdict": {
+      "posture": "safe",
+      "postureLabel": "Safe"
+    },
+    "headline": "Prettier tooling upgrade",
+    "insights": [
+      "No runtime usage paths detected",
+      "Expected impact is limited to development workflows"
+    ],
+    "verification": ["Verify CI", "Verify format"],
+    "evidenceChips": [
+      {
+        "label": "Blast radius",
+        "value": "Narrow"
+      }
+    ],
+    "layout": "standard",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": 0,
+      "riskIndex": 18
+    }
+  },
+  "vitest": {
+    "verdict": {
+      "posture": "safe",
+      "postureLabel": "Safe"
+    },
+    "headline": "Test runner tooling upgrade",
+    "insights": [
+      "No runtime usage paths detected",
+      "Expected impact is limited to test workflows"
+    ],
+    "verification": ["Verify CI", "Verify test suite"],
+    "evidenceChips": [
+      {
+        "label": "Blast radius",
+        "value": "Narrow"
+      }
+    ],
+    "layout": "standard",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": 0,
+      "riskIndex": 18
+    }
+  },
+  "fastifyRuntime": {
+    "verdict": {
+      "posture": "needs_review",
+      "postureLabel": "Needs review",
+      "scopeLabel": "Moderate reach"
+    },
+    "headline": "Fastify runtime upgrade affects API request handling",
+    "insights": ["Used in runtime application paths"],
+    "scopeAreas": ["API request handling", "Auth middleware"],
+    "verification": ["Verify routes", "Verify middleware/hooks"],
+    "evidenceChips": [
+      {
+        "label": "Reachability",
+        "value": "On runtime paths"
+      },
+      {
+        "label": "Blast radius",
+        "value": "Moderate"
+      }
+    ],
+    "layout": "expanded",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": 1,
+      "riskIndex": 55
+    }
+  },
+  "nextAuth": {
+    "verdict": {
+      "posture": "needs_review",
+      "postureLabel": "Needs review",
+      "scopeLabel": "Moderate reach"
+    },
+    "headline": "Next-auth runtime upgrade affects authentication flows",
+    "insights": ["Used in runtime application paths"],
+    "scopeAreas": ["authentication flows"],
+    "verification": ["Verify auth flow", "Verify session"],
+    "evidenceChips": [
+      {
+        "label": "Reachability",
+        "value": "On runtime paths"
+      },
+      {
+        "label": "Blast radius",
+        "value": "Moderate"
+      }
+    ],
+    "layout": "expanded",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": 1,
+      "riskIndex": 52
+    }
+  },
+  "bullmq": {
+    "verdict": {
+      "posture": "needs_review",
+      "postureLabel": "Needs review",
+      "scopeLabel": "Moderate reach"
+    },
+    "headline": "Bullmq runtime upgrade affects background job processing",
+    "insights": ["Used in runtime application paths"],
+    "scopeAreas": ["background job processing"],
+    "verification": ["Verify workers", "Verify queue"],
+    "evidenceChips": [
+      {
+        "label": "Reachability",
+        "value": "On runtime paths"
+      },
+      {
+        "label": "Blast radius",
+        "value": "Moderate"
+      }
+    ],
+    "layout": "expanded",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": 1,
+      "riskIndex": 48
+    }
+  },
+  "limitedContext": {
+    "verdict": {
+      "posture": "needs_review",
+      "postureLabel": "Needs review",
+      "scopeLabel": "Limited reach"
+    },
+    "headline": "Dependency upgrade with limited scan context",
+    "limitedContext": {
+      "message": "PR-specific scan context was limited"
+    },
+    "insights": [
+      "PR-specific intelligence was limited for this scan",
+      "Changed package: lodash"
+    ],
+    "verification": [],
+    "evidenceChips": [
+      {
+        "label": "Blast radius",
+        "value": "Narrow"
+      }
+    ],
+    "layout": "standard",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": 1,
+      "riskIndex": 40
+    }
+  },
+  "unknownSafe": {
+    "verdict": {
+      "posture": "safe",
+      "postureLabel": "Safe",
+      "scopeLabel": "Focused reach"
+    },
+    "headline": "Opaque-pkg dependency upgrade",
+    "insights": ["Evidence for this upgrade is limited"],
+    "verification": [],
+    "evidenceChips": [
+      {
+        "label": "Blast radius",
+        "value": "Narrow"
+      }
+    ],
+    "layout": "standard",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": 0,
+      "riskIndex": 18
+    }
+  },
+  "mixedTypescriptFastify": {
+    "verdict": {
+      "posture": "needs_review",
+      "postureLabel": "Needs review",
+      "scopeLabel": "Moderate reach"
+    },
+    "headline": "Fastify runtime upgrade affects API request handling",
+    "insights": ["Used in runtime application paths"],
+    "scopeAreas": ["API request handling", "Auth middleware"],
+    "verification": ["Verify routes", "Verify middleware/hooks"],
+    "evidenceChips": [
+      {
+        "label": "Blast radius",
+        "value": "Moderate"
+      }
+    ],
+    "layout": "expanded",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": 1,
+      "riskIndex": 55
+    }
+  },
+  "pipeline_queued": {
+    "pipeline": {
+      "status": "queued",
+      "headline": "Scan in progress",
+      "subheadline": "Waiting for scan results"
+    },
+    "headline": "Scan in progress",
+    "insights": [],
+    "verification": [],
+    "layout": "standard",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": -1,
+      "riskIndex": -1
+    }
+  },
+  "pipeline_running": {
+    "pipeline": {
+      "status": "running",
+      "headline": "Scan in progress",
+      "subheadline": "Waiting for scan results"
+    },
+    "headline": "Scan in progress",
+    "insights": [],
+    "verification": [],
+    "layout": "standard",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": -1,
+      "riskIndex": -1
+    }
+  },
+  "pipeline_failed": {
+    "pipeline": {
+      "status": "failed",
+      "headline": "Analysis could not be completed"
+    },
+    "headline": "Analysis could not be completed",
+    "insights": [],
+    "verification": [],
+    "layout": "standard",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": -1,
+      "riskIndex": -1
+    }
+  },
+  "denormalizedRisky": {
+    "verdict": {
+      "posture": "risky",
+      "postureLabel": "Risky",
+      "scopeLabel": "Moderate reach"
+    },
+    "headline": "Dependency upgrade with limited scan context",
+    "limitedContext": {
+      "message": "PR-specific scan context was limited"
+    },
+    "insights": ["PR-specific intelligence was limited for this scan"],
+    "verification": [],
+    "layout": "standard",
+    "detailActionLabel": "Review scan",
+    "sortKey": {
+      "postureRank": 2,
+      "riskIndex": 72
+    }
+  }
+}

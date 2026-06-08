@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildScanPresentationBundle } from "./orchestration/buildScanPresentationBundle.js";
-import { presentScanCard } from "./presenters/presentScanCard.js";
+import { presentDashboardCard } from "./presenters/presentDashboardCard.js";
 import { presentScanDetails } from "./presenters/presentScanDetails.js";
 import { presentCliScanSummary } from "./presenters/presentCliScanSummary.js";
 import type { PresentationIntent } from "./intent/presentationIntent.js";
@@ -128,16 +128,17 @@ function cardFor(result: ScanResult) {
     result,
     pipelineStatus: "done",
   })!;
-  return presentScanCard(bundle);
+  return presentDashboardCard(bundle);
 }
 
 describe("presentation personas", () => {
   for (const persona of personas) {
     it(`${persona.name}: intent, posture alignment, headline`, () => {
       const card = cardFor(persona.result);
-      expect(card.presentationIntent).toBe(persona.intent);
-      expect(card.status).toBe(persona.status);
-      expect(card.density).toBe(persona.density);
+      expect(card.verdict?.posture).toBe(persona.status);
+      if (persona.density === "rich") {
+        expect(card.layout).toBe("expanded");
+      }
       expect(card.headline).toMatch(persona.headlineMatch);
       if (persona.headlineMustNot) {
         expect(card.headline).not.toMatch(persona.headlineMustNot);
@@ -145,26 +146,26 @@ describe("presentation personas", () => {
       if (persona.status === "safe") {
         const combined = [
           card.headline,
-          ...card.keyPoints,
-          ...card.verificationActions,
+          ...card.insights,
+          ...card.verification,
         ].join(" ");
         expect(combined).not.toMatch(SAFE_FORBIDDEN);
       }
       if (persona.status === "needs_review") {
-        const combined = card.verificationActions.join(" ");
+        const combined = card.verification.join(" ");
         expect(combined).not.toMatch(REVIEW_FORBIDDEN);
       }
       if (persona.verificationIncludes) {
         for (const v of persona.verificationIncludes) {
           expect(
-            card.verificationActions.some((a) =>
+            card.verification.some((a) =>
               a.toLowerCase().includes(v.toLowerCase()),
             ),
           ).toBe(true);
         }
       }
       if (persona.verificationMustNot) {
-        expect(card.verificationActions.join(" ")).not.toMatch(
+        expect(card.verification.join(" ")).not.toMatch(
           persona.verificationMustNot,
         );
       }
@@ -173,7 +174,7 @@ describe("presentation personas", () => {
 
   it("mixed typescript+fastify: runtime intent, fastify in headline", () => {
     const card = cardFor(scanResultMixedTypescriptFastify);
-    expect(card.presentationIntent).toBe("runtime_upgrade");
+    expect(card.verdict?.posture).toBe("needs_review");
     expect(card.headline.toLowerCase()).toContain("fastify");
     expect(card.headline).not.toMatch(/patch upgrade/i);
   });
@@ -183,7 +184,7 @@ describe("presentation personas", () => {
       result: scanResultFastifyRuntime,
       pipelineStatus: "done",
     })!;
-    const card = presentScanCard(bundle);
+    const card = presentDashboardCard(bundle);
     const details = presentScanDetails(bundle, { scanId: SCAN_ID });
     const cli = presentCliScanSummary(bundle, { repoLabel: "acme/api" });
     expect(details.hero.headline).toBe(card.headline);
@@ -195,7 +196,7 @@ describe("presentation personas", () => {
       result: scanResultTypescriptPatch,
       pipelineStatus: "done",
     })!;
-    const card = presentScanCard(bundle);
+    const card = presentDashboardCard(bundle);
     const details = presentScanDetails(bundle, { scanId: SCAN_ID });
     const cli = presentCliScanSummary(bundle, { repoLabel: "acme/api" });
     expect(details.hero.headline).toBe(card.headline);

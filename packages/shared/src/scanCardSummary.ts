@@ -1,5 +1,5 @@
 import { buildScanCardPresentation } from "./presentation/orchestration/buildScanCardPresentation.js";
-import type { ScanCardPresentation } from "./presentation/dto/scanCardPresentation.js";
+import type { DashboardCardPresentation } from "./presentation/dto/dashboardCardPresentation.js";
 import {
   mergePostureFromDecision,
   type MergePosture,
@@ -25,10 +25,8 @@ export type FindingCountSummary = {
   low: number;
 };
 
-/** @deprecated Use ScanCardPresentation */
-export type ScanCardSummary = ScanCardPresentation;
-
-export { ScanCardPresentation };
+/** @deprecated Use DashboardCardPresentation */
+export type ScanCardSummary = DashboardCardPresentation;
 
 const STALE_SUBLINE = "Based on earlier commit";
 export const SCAN_CARD_SCANNING_SUMMARY = "Waiting for results...";

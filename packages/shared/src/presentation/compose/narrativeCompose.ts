@@ -8,10 +8,20 @@ import {
 import { scanSurfaceCopy } from "../../scanSurfaceCopy.js";
 import {
   formatPresentationHeadline,
-  formatPresentationKeyPoints,
   formatPresentationVerification,
 } from "../intent/formatPresentationCopy.js";
 import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
+import {
+  buildNarrativeChannels,
+  projectCompactKeyPoints,
+  type NarrativeChannels,
+} from "./narrativeChannels.js";
+
+export {
+  buildNarrativeChannels,
+  projectCompactKeyPoints,
+  type NarrativeChannels,
+} from "./narrativeChannels.js";
 
 function topAreaLabel(bundle: ScanPresentationBundle): string | null {
   const area = bundle.facts.affectedAreas[0];
@@ -41,13 +51,7 @@ export function composeKeyPoints(
   bundle: ScanPresentationBundle,
   max: number,
 ): string[] {
-  const { facts, profile } = bundle;
-  return formatPresentationKeyPoints(
-    profile.interpretation,
-    facts,
-    profile.status,
-    max,
-  );
+  return projectCompactKeyPoints(buildNarrativeChannels(bundle), max);
 }
 
 export function composeVerificationActions(

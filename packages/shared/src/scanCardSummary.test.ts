@@ -11,7 +11,7 @@ import {
   resolvePrScanCardSummary,
   staleScanSubline,
 } from "./scanCardSummary.js";
-import type { ScanCardPresentation } from "./presentation/dto/scanCardPresentation.js";
+import type { DashboardCardPresentation } from "./presentation/dto/dashboardCardPresentation.js";
 import type { ScanResult } from "./types.js";
 
 const baseResult = {
@@ -27,8 +27,8 @@ const baseResult = {
 } satisfies ScanResult;
 
 function pipelineCard(
-  overrides: Partial<ScanCardPresentation> = {},
-): ScanCardPresentation {
+  overrides: Partial<DashboardCardPresentation> = {},
+): DashboardCardPresentation {
   return {
     pipeline: {
       status: "queued",
@@ -36,11 +36,11 @@ function pipelineCard(
       subheadline: scanSurfaceCopy.pipeline.scanIncomplete,
     },
     headline: scanSurfaceCopy.pipeline.scanRunning,
-    changedPackages: [],
-    keyPoints: [],
-    affectedAreas: [],
-    verificationActions: [],
-    evidence: [],
+    insights: [],
+    verification: [],
+    layout: "standard",
+    detailActionLabel: scanSurfaceCopy.presentation.actionLabelReview,
+    sortKey: { postureRank: -1, riskIndex: -1 },
     ...overrides,
   };
 }
@@ -91,7 +91,7 @@ describe("deriveScanCardSummary", () => {
     const queued = deriveScanCardSummary(null, "queued");
     expect(queued.headline).toBe(scanSurfaceCopy.pipeline.scanRunning);
     expect(queued.pipeline?.status).toBe("queued");
-    expect(queued.status).toBeUndefined();
+    expect(queued.verdict).toBeUndefined();
 
     const running = deriveScanCardSummary(null, "running");
     expect(running.headline).toBe(scanSurfaceCopy.pipeline.scanRunning);
@@ -125,11 +125,11 @@ describe("deriveScanCardSummary", () => {
       },
     } satisfies ScanResult;
     const summary = deriveScanCardSummary(r, "done");
-    expect(summary.status).toBe("risky");
+    expect(summary.verdict?.posture).toBe("risky");
     expect(summary.headline).toBe(
       scanSurfaceCopy.presentation.limitedContextHeadline,
     );
-    expect(summary.riskIndex).toBe(72);
+    expect(summary.sortKey.riskIndex).toBe(72);
   });
 
   it("keeps quiet safe cards minimal without extra key points beyond defaults", () => {
@@ -143,8 +143,8 @@ describe("deriveScanCardSummary", () => {
       },
     } satisfies ScanResult;
     const summary = deriveScanCardSummary(r, "done");
-    expect(summary.status).toBe("safe");
-    expect(summary.keyPoints.length).toBeGreaterThan(0);
+    expect(summary.verdict?.posture).toBe("safe");
+    expect(summary.insights.length).toBeGreaterThan(0);
   });
 
   it("surfaces catalog key points from explain signals", () => {
@@ -174,7 +174,7 @@ describe("deriveScanCardSummary", () => {
       },
     } satisfies ScanResult;
     const summary = deriveScanCardSummary(r, "done");
-    expect(summary.keyPoints.length).toBeGreaterThan(0);
+    expect(summary.insights.length).toBeGreaterThan(0);
   });
 
   it("exports stale subline constant", () => {
@@ -261,8 +261,8 @@ describe("deriveScanCardSummaryFromDenormalized", () => {
       "Auth boundary change",
       "done",
     );
-    expect(summary.status).toBe("risky");
-    expect(summary.riskIndex).toBe(72);
+    expect(summary.verdict?.posture).toBe("risky");
+    expect(summary.sortKey.riskIndex).toBe(72);
     expect(summary.pipeline).toBeUndefined();
   });
 
@@ -273,7 +273,7 @@ describe("deriveScanCardSummaryFromDenormalized", () => {
       "Waiting for results...",
       "done",
     );
-    expect(summary.status).toBe("risky");
+    expect(summary.verdict?.posture).toBe("risky");
     expect(summary.pipeline).toBeUndefined();
   });
 
@@ -284,7 +284,7 @@ describe("deriveScanCardSummaryFromDenormalized", () => {
       "No high-confidence merge risks from this PR dependency change",
       "done",
     );
-    expect(summary.status).toBe("safe");
+    expect(summary.verdict?.posture).toBe("safe");
     expect(summary.pipeline).toBeUndefined();
   });
 });
@@ -298,7 +298,7 @@ describe("resolvePrScanCardSummary", () => {
       summaryText: "Waiting for results...",
       result: null,
     });
-    expect(summary.status).toBe("risky");
+    expect(summary.verdict?.posture).toBe("risky");
     expect(summary.pipeline).toBeUndefined();
   });
 });

@@ -1,5 +1,3 @@
-/* Decision flow: outcome (badge + score) → evidence → why */
-
 .outcomeFlow {
   display: flex;
   flex-direction: column;
@@ -40,8 +38,7 @@
   opacity: var(--ms-opacity-strong);
 }
 
-/* Verdict row: calm badge + subordinate exposure */
-.outcomeRow {
+.verdictRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -60,63 +57,46 @@
   opacity: var(--ms-opacity-full);
 }
 
-.exposureMeta {
-  display: inline-flex;
-  align-items: baseline;
-  flex-wrap: nowrap;
-  gap: 0;
+.scopeLabel {
   font-size: var(--ms-text-xs);
-  line-height: var(--ms-leading-none);
-  flex-shrink: 0;
-}
-
-.exposureCategory {
   font-weight: var(--ms-font-weight-medium);
   letter-spacing: var(--ms-tracking-snug);
   color: var(--ms-color-text-muted);
+  flex-shrink: 0;
 }
 
-.risky .exposureCategory {
-  color: var(--ms-color-text-muted);
-}
-
-.upgradeContext {
+.headline {
   margin: 0;
-  font-size: var(--ms-text-xs);
+  font-size: var(--ms-text-md);
   font-weight: var(--ms-font-weight-semibold);
   letter-spacing: var(--ms-tracking-snug);
   color: var(--ms-color-text-emphasis);
   line-height: var(--ms-leading-snug);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.contextMeta {
+.limitedContext {
   margin: 0;
+  padding: var(--ms-space-xs) var(--ms-space-sm);
   font-size: var(--ms-text-xs);
   line-height: var(--ms-leading-subhead);
-  color: var(--ms-color-text-muted);
+  color: var(--ms-color-warning);
+  background: color-mix(in srgb, var(--ms-color-warning) 8%, transparent);
+  border-radius: var(--ms-radius-xs);
 }
 
-.structuralDisclaimer {
-  margin: 0;
-  font-size: var(--ms-text-xs);
-  font-style: italic;
-  color: var(--ms-color-text-muted);
-  line-height: var(--ms-leading-snug);
-}
-
-/* Operational center — evidence leads when present */
-.artifactCore {
+.insightBlock {
   display: flex;
   flex-direction: column;
   gap: var(--ms-space-2xs);
   min-width: 0;
 }
 
-.hasEvidence .artifactCore {
-  gap: var(--ms-space-xs);
-}
-
-.evidenceLine {
+.insightLine {
   margin: 0;
   font-size: var(--ms-text-sm);
   font-weight: var(--ms-font-weight-medium);
@@ -129,21 +109,46 @@
   -webkit-box-orient: vertical;
 }
 
-.evidenceReview {
-  color: var(--ms-color-text-emphasis);
+.scopeAreas {
+  margin: 0;
+  font-size: var(--ms-text-xs);
+  line-height: var(--ms-leading-subhead);
+  color: var(--ms-color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.evidenceRisky {
-  font-weight: var(--ms-font-weight-semibold);
-  letter-spacing: var(--ms-tracking-tight);
+.verificationBlock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ms-space-2xs);
 }
 
-.hasEvidence .evidenceLine {
-  font-size: var(--ms-text-md);
+.verificationPill {
+  margin: 0;
+  padding: var(--ms-space-2xs) var(--ms-space-xs);
+  font-size: var(--ms-text-xs);
   line-height: var(--ms-leading-snug);
+  color: var(--ms-color-text-emphasis);
+  border: var(--ms-border-width) solid var(--ms-color-border);
+  border-radius: var(--ms-radius-xs);
+  background: var(--ms-color-surface);
 }
 
-.whyLine {
+.evidenceChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ms-space-2xs);
+  font-size: var(--ms-text-xs);
+  color: var(--ms-color-text-muted);
+}
+
+.evidenceChip {
+  white-space: nowrap;
+}
+
+.pipelineHeadline {
   margin: 0;
   font-size: var(--ms-text-xs);
   line-height: var(--ms-leading-subhead);
@@ -155,42 +160,26 @@
   -webkit-box-orient: vertical;
 }
 
-.whySubordinate {
-  color: var(--ms-color-border);
-}
-
-.whyReview,
-.whyRisky {
-  color: var(--ms-color-text-emphasis);
-}
-
-.whyRisky {
-  font-weight: var(--ms-font-weight-semibold);
-  letter-spacing: var(--ms-tracking-tight);
-  line-height: var(--ms-leading-subhead);
-}
-
-.whySafe {
+.pipelineSubheadline {
+  margin: 0;
+  font-size: var(--ms-text-xs);
   color: var(--ms-color-text-muted);
+  line-height: var(--ms-leading-snug);
 }
 
 .staleNote {
   margin: 0;
   margin-top: var(--ms-space-2xs);
   font-size: var(--ms-text-xs);
+  font-style: italic;
   color: var(--ms-color-warning);
   line-height: var(--ms-leading-snug);
 }
 
 @media (max-width: 600px) {
-  .evidenceLine,
-  .whyLine {
+  .headline,
+  .pipelineHeadline,
+  .insightLine {
     -webkit-line-clamp: 3;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .outcomeFlow {
-    transition: none;
   }
 }

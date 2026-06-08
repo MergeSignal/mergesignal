@@ -6,12 +6,13 @@ import {
   type ScanDetailViewModel,
 } from "../../scanDetailViewModel.js";
 import {
+  buildNarrativeChannels,
   composeHeadline,
-  composeKeyPoints,
   composeSubheadline,
   composeSupportingContext,
   composeVerificationActions,
   evidenceContextFromProfile,
+  projectCompactKeyPoints,
 } from "../compose/narrativeCompose.js";
 import {
   normalizeGeneratedText,
@@ -157,7 +158,8 @@ export function presentScanDetails(
 
   const headline = composeHeadline(bundle);
   const subheadline = composeSubheadline(bundle);
-  const keyPoints = composeKeyPoints(bundle, 6);
+  const channels = buildNarrativeChannels(bundle);
+  const keyPoints = projectCompactKeyPoints(channels, 6);
   const verificationTitles = composeVerificationActions(bundle, 6);
 
   const supportingLines = composeSupportingContext(bundle);
@@ -189,7 +191,10 @@ export function presentScanDetails(
       headline: normalizeGeneratedText(headline),
       subheadline: normalizeGeneratedTextNullable(subheadline) ?? undefined,
       verdictLine: normalizeGeneratedText(verdictLine),
-      scopeChip: deriveDetailReachChip(result.totalScore) ?? undefined,
+      scopeChip:
+        channels.reachLabel ??
+        deriveDetailReachChip(result.totalScore) ??
+        undefined,
       postureLabel,
       riskIndex: facts.riskIndex,
     },
