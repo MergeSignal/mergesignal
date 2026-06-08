@@ -17,7 +17,7 @@
     "@mergesignal/scan-prep": "workspace:^",
     "@mergesignal/shared": "workspace:^",
     "@sentry/node": "^8.55.1",
-    "bullmq": "^5.70.1",
+    "bullmq": "^5.78.0",
     "dotenv": "^17.4.2",
     "pg": "^8.19.0"
   },
