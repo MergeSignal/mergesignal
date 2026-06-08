@@ -14,13 +14,11 @@ import type { ScanPresentationBundle } from "../orchestration/scanPresentationBu
 import {
   buildNarrativeChannels,
   projectCompactKeyPoints,
-  type NarrativeChannels,
 } from "./narrativeChannels.js";
 
 export {
   buildNarrativeChannels,
   projectCompactKeyPoints,
-  type NarrativeChannels,
 } from "./narrativeChannels.js";
 
 function topAreaLabel(bundle: ScanPresentationBundle): string | null {

@@ -1,10 +1,7 @@
 export type { ScanPresentationBundle } from "./orchestration/scanPresentationBundle.js";
 export { buildScanPresentationBundle } from "./orchestration/buildScanPresentationBundle.js";
 export type { BuildScanPresentationBundleInput } from "./orchestration/buildScanPresentationBundle.js";
-export {
-  buildScanCardPresentation,
-  buildDashboardCardPresentation,
-} from "./orchestration/buildScanCardPresentation.js";
+export { buildScanCardPresentation } from "./orchestration/buildScanCardPresentation.js";
 export type { BuildScanCardPresentationInput } from "./orchestration/buildScanCardPresentation.js";
 export { buildScanDetailsPresentation } from "./orchestration/buildScanDetailsPresentation.js";
 export type { BuildScanDetailsPresentationInput } from "./orchestration/buildScanDetailsPresentation.js";
@@ -62,4 +59,3 @@ export {
   composeSupportingContext,
   evidenceContextFromProfile,
 } from "./compose/narrativeCompose.js";
-export type { NarrativeChannels } from "./compose/narrativeChannels.js";

@@ -15,30 +15,3 @@ export type PresentationEvidenceContext = {
   priority: PresentationPriority;
   degradedMessage?: string;
 };
-
-export type FindingCountSummary = {
-  critical: number;
-  high: number;
-  medium: number;
-  low: number;
-};
-
-export function aggregateFindingCounts(
-  findings: Array<{ severity: string }> | null | undefined,
-): FindingCountSummary {
-  const counts: FindingCountSummary = {
-    critical: 0,
-    high: 0,
-    medium: 0,
-    low: 0,
-  };
-  if (!Array.isArray(findings)) return counts;
-  for (const f of findings) {
-    const s = f.severity;
-    if (s === "critical") counts.critical += 1;
-    else if (s === "high") counts.high += 1;
-    else if (s === "medium") counts.medium += 1;
-    else if (s === "low") counts.low += 1;
-  }
-  return counts;
-}

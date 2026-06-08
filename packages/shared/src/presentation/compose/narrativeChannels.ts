@@ -13,7 +13,7 @@ import {
   labelReachabilityKind,
 } from "../../narrativePresentation.js";
 
-export type NarrativeChannels = {
+type NarrativeChannels = {
   headline: string;
   limitedContextMessage?: string;
   reachLabel?: string;

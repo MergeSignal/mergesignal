@@ -149,43 +149,6 @@ export function formatPresentationInsightLines(
   return applyPostureVocabularyGuardLines(points, status);
 }
 
-/** @deprecated Use buildNarrativeChannels + projectCompactKeyPoints. */
-export function formatPresentationKeyPoints(
-  interpretation: PresentationInterpretation,
-  facts: ScanNarrativeFacts,
-  status: PresentationStatus | undefined,
-  max: number,
-): string[] {
-  const points = formatPresentationInsightLines(interpretation, facts, status);
-
-  if (interpretation.allowRuntimeNarrative && facts.affectedAreas.length > 0) {
-    const labels = facts.affectedAreas
-      .slice(0, 2)
-      .map((a) => a.label)
-      .join(", ");
-    points.push(
-      scanSurfaceCopy.presentation.affectedAreasKeyPoint.replace(
-        "{areas}",
-        labels,
-      ),
-    );
-  }
-
-  const blast = facts.blastRadius;
-  if (blast?.level === "wide") {
-    points.push(scanSurfaceCopy.presentation.blastRadiusWideKeyPoint);
-  } else if (blast?.level === "moderate") {
-    points.push(
-      scanSurfaceCopy.presentation.blastRadiusLevelKeyPoint.replace(
-        "{level}",
-        "Moderate",
-      ),
-    );
-  }
-
-  return points.slice(0, max);
-}
-
 const AUTH_VERIFICATION = [
   "routes",
   "middleware/hooks",

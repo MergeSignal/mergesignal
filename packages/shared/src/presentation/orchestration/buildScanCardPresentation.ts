@@ -70,6 +70,3 @@ export function buildScanCardPresentation(
 
   return presentDashboardCard(bundle);
 }
-
-/** Alias for dashboard card builder. */
-export const buildDashboardCardPresentation = buildScanCardPresentation;
