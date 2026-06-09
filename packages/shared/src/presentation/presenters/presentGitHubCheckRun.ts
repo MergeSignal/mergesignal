@@ -8,6 +8,7 @@ import {
 } from "../compose/narrativeCompose.js";
 import type { GitHubCheckRunPresentation } from "../dto/githubAndCliPresentation.js";
 import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
+import { projectAssessmentFields } from "../projectAssessmentFields.js";
 
 export function presentGitHubCheckRun(
   bundle: ScanPresentationBundle,
@@ -36,6 +37,7 @@ export function presentGitHubCheckRun(
   sections.push({ id: "footer", bullets: [`Full scan: ${detailsUrl}`] });
 
   return {
+    ...projectAssessmentFields(bundle),
     status: profile.status,
     density: profile.density,
     confidence: profile.confidence,

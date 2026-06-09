@@ -1,15 +1,23 @@
 {
   "typescriptPatch": {
+    "posture": "safe",
+    "primaryConcern": null,
+    "factors": ["tooling_maintenance"],
+    "reasoning": [
+      "No dedicated dependency review required beyond normal engineering process."
+    ],
+    "verificationFocus": ["ci", "typecheck"],
+    "reachVisibility": "hidden",
+    "narrativeIntensity": "minimal",
     "verdict": {
       "posture": "safe",
       "postureLabel": "Safe"
     },
-    "headline": "TypeScript patch upgrade",
+    "headline": "typescript patch upgrade",
     "insights": [
-      "No runtime usage paths detected",
-      "Expected impact is limited to build and typecheck workflows"
+      "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verification": ["Verify CI", "Verify typecheck"],
+    "verification": ["Verify ci", "Verify typecheck"],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -24,16 +32,24 @@
     }
   },
   "eslint": {
+    "posture": "safe",
+    "primaryConcern": null,
+    "factors": ["tooling_maintenance"],
+    "reasoning": [
+      "No dedicated dependency review required beyond normal engineering process."
+    ],
+    "verificationFocus": ["ci", "lint"],
+    "reachVisibility": "hidden",
+    "narrativeIntensity": "minimal",
     "verdict": {
       "posture": "safe",
       "postureLabel": "Safe"
     },
-    "headline": "ESLint tooling upgrade",
+    "headline": "eslint patch upgrade",
     "insights": [
-      "No runtime usage paths detected",
-      "Expected impact is limited to development workflows"
+      "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verification": ["Verify CI", "Verify lint"],
+    "verification": ["Verify ci", "Verify lint"],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -48,16 +64,24 @@
     }
   },
   "prettier": {
+    "posture": "safe",
+    "primaryConcern": null,
+    "factors": ["tooling_maintenance"],
+    "reasoning": [
+      "No dedicated dependency review required beyond normal engineering process."
+    ],
+    "verificationFocus": ["ci", "format"],
+    "reachVisibility": "hidden",
+    "narrativeIntensity": "minimal",
     "verdict": {
       "posture": "safe",
       "postureLabel": "Safe"
     },
-    "headline": "Prettier tooling upgrade",
+    "headline": "prettier patch upgrade",
     "insights": [
-      "No runtime usage paths detected",
-      "Expected impact is limited to development workflows"
+      "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verification": ["Verify CI", "Verify format"],
+    "verification": ["Verify ci", "Verify format"],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -72,16 +96,24 @@
     }
   },
   "vitest": {
+    "posture": "safe",
+    "primaryConcern": null,
+    "factors": ["test_infra_change"],
+    "reasoning": [
+      "No dedicated dependency review required beyond normal engineering process."
+    ],
+    "verificationFocus": ["ci", "test_suite"],
+    "reachVisibility": "hidden",
+    "narrativeIntensity": "minimal",
     "verdict": {
       "posture": "safe",
       "postureLabel": "Safe"
     },
-    "headline": "Test runner tooling upgrade",
+    "headline": "vitest patch upgrade",
     "insights": [
-      "No runtime usage paths detected",
-      "Expected impact is limited to test workflows"
+      "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verification": ["Verify CI", "Verify test suite"],
+    "verification": ["Verify ci", "Verify test_suite"],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -96,20 +128,35 @@
     }
   },
   "fastifyRuntime": {
+    "posture": "needs_review",
+    "primaryConcern": "confirmed_runtime_usage",
+    "factors": ["confirmed_runtime_usage", "http_framework_infrastructure"],
+    "reasoning": [
+      "Changed package has confirmed usage on runtime application paths in this repository.",
+      "HTTP framework infrastructure"
+    ],
+    "verificationFocus": [
+      "routes",
+      "middleware",
+      "auth_flow",
+      "serialization",
+      "error_handling"
+    ],
+    "reachVisibility": "prominent",
+    "narrativeIntensity": "elevated",
     "verdict": {
       "posture": "needs_review",
       "postureLabel": "Needs review",
       "scopeLabel": "Moderate reach"
     },
-    "headline": "Fastify runtime upgrade affects API request handling",
-    "insights": ["Used in runtime application paths"],
+    "headline": "fastify runtime upgrade affects application code",
+    "insights": [
+      "Changed package has confirmed usage on runtime application paths in this repository.",
+      "HTTP framework infrastructure"
+    ],
     "scopeAreas": ["API request handling", "Auth middleware"],
-    "verification": ["Verify routes", "Verify middleware/hooks"],
+    "verification": ["Verify routes", "Verify middleware"],
     "evidenceChips": [
-      {
-        "label": "Reachability",
-        "value": "On runtime paths"
-      },
       {
         "label": "Blast radius",
         "value": "Moderate"
@@ -123,20 +170,27 @@
     }
   },
   "nextAuth": {
+    "posture": "needs_review",
+    "primaryConcern": "confirmed_runtime_usage",
+    "factors": ["confirmed_runtime_usage", "auth_infrastructure"],
+    "reasoning": [
+      "Changed package has confirmed usage on runtime application paths in this repository."
+    ],
+    "verificationFocus": ["auth_flow", "session", "routes"],
+    "reachVisibility": "prominent",
+    "narrativeIntensity": "elevated",
     "verdict": {
       "posture": "needs_review",
       "postureLabel": "Needs review",
       "scopeLabel": "Moderate reach"
     },
-    "headline": "Next-auth runtime upgrade affects authentication flows",
-    "insights": ["Used in runtime application paths"],
+    "headline": "next-auth runtime upgrade affects authentication flows",
+    "insights": [
+      "Changed package has confirmed usage on runtime application paths in this repository."
+    ],
     "scopeAreas": ["authentication flows"],
-    "verification": ["Verify auth flow", "Verify session"],
+    "verification": ["Verify auth_flow", "Verify session"],
     "evidenceChips": [
-      {
-        "label": "Reachability",
-        "value": "On runtime paths"
-      },
       {
         "label": "Blast radius",
         "value": "Moderate"
@@ -150,20 +204,35 @@
     }
   },
   "bullmq": {
+    "posture": "needs_review",
+    "primaryConcern": "confirmed_runtime_usage",
+    "factors": [
+      "confirmed_runtime_usage",
+      "queue_infrastructure",
+      "verification_required"
+    ],
+    "reasoning": [
+      "Changed package has confirmed usage on runtime application paths in this repository.",
+      "Queue infrastructure",
+      "Verification focus required"
+    ],
+    "verificationFocus": ["workers", "queue", "serialization"],
+    "reachVisibility": "prominent",
+    "narrativeIntensity": "elevated",
     "verdict": {
       "posture": "needs_review",
       "postureLabel": "Needs review",
       "scopeLabel": "Moderate reach"
     },
-    "headline": "Bullmq runtime upgrade affects background job processing",
-    "insights": ["Used in runtime application paths"],
+    "headline": "bullmq runtime upgrade affects workers and queues",
+    "insights": [
+      "Changed package has confirmed usage on runtime application paths in this repository.",
+      "Queue infrastructure",
+      "Verification focus required"
+    ],
     "scopeAreas": ["background job processing"],
     "verification": ["Verify workers", "Verify queue"],
     "evidenceChips": [
-      {
-        "label": "Reachability",
-        "value": "On runtime paths"
-      },
       {
         "label": "Blast radius",
         "value": "Moderate"
@@ -177,18 +246,25 @@
     }
   },
   "limitedContext": {
+    "posture": "needs_review",
+    "primaryConcern": "insufficient_evidence",
+    "factors": ["insufficient_collection_evidence"],
+    "reasoning": [
+      "Collection evidence is partial; confidence is reduced but review posture is preserved when runtime signals exist."
+    ],
+    "verificationFocus": [],
+    "reachVisibility": "hidden",
+    "narrativeIntensity": "minimal",
     "verdict": {
       "posture": "needs_review",
-      "postureLabel": "Needs review",
-      "scopeLabel": "Limited reach"
+      "postureLabel": "Needs review"
     },
     "headline": "Dependency upgrade with limited scan context",
     "limitedContext": {
       "message": "PR-specific scan context was limited"
     },
     "insights": [
-      "PR-specific intelligence was limited for this scan",
-      "Changed package: lodash"
+      "Collection evidence is partial; confidence is reduced but review posture is preserved when runtime signals exist."
     ],
     "verification": [],
     "evidenceChips": [
@@ -205,13 +281,24 @@
     }
   },
   "unknownSafe": {
+    "posture": "safe",
+    "primaryConcern": null,
+    "factors": ["ecosystem_unknown_package"],
+    "reasoning": [
+      "No dedicated dependency review required beyond normal engineering process."
+    ],
+    "verificationFocus": [],
+    "reachVisibility": "contextual",
+    "narrativeIntensity": "standard",
     "verdict": {
       "posture": "safe",
       "postureLabel": "Safe",
-      "scopeLabel": "Focused reach"
+      "scopeLabel": "Limited reach"
     },
-    "headline": "Opaque-pkg dependency upgrade",
-    "insights": ["Evidence for this upgrade is limited"],
+    "headline": "opaque-pkg dependency upgrade",
+    "insights": [
+      "No dedicated dependency review required beyond normal engineering process."
+    ],
     "verification": [],
     "evidenceChips": [
       {
@@ -227,15 +314,34 @@
     }
   },
   "mixedTypescriptFastify": {
+    "posture": "needs_review",
+    "primaryConcern": "confirmed_runtime_usage",
+    "factors": ["confirmed_runtime_usage", "http_framework_infrastructure"],
+    "reasoning": [
+      "Changed package has confirmed usage on runtime application paths in this repository."
+    ],
+    "verificationFocus": [
+      "ci",
+      "typecheck",
+      "routes",
+      "middleware",
+      "auth_flow",
+      "serialization",
+      "error_handling"
+    ],
+    "reachVisibility": "prominent",
+    "narrativeIntensity": "elevated",
     "verdict": {
       "posture": "needs_review",
       "postureLabel": "Needs review",
       "scopeLabel": "Moderate reach"
     },
-    "headline": "Fastify runtime upgrade affects API request handling",
-    "insights": ["Used in runtime application paths"],
+    "headline": "fastify runtime upgrade affects application code",
+    "insights": [
+      "Changed package has confirmed usage on runtime application paths in this repository."
+    ],
     "scopeAreas": ["API request handling", "Auth middleware"],
-    "verification": ["Verify routes", "Verify middleware/hooks"],
+    "verification": ["Verify ci", "Verify typecheck"],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -297,16 +403,25 @@
     }
   },
   "denormalizedRisky": {
+    "posture": "risky",
+    "primaryConcern": "insufficient_evidence",
+    "factors": ["insufficient_collection_evidence"],
+    "reasoning": [],
+    "verificationFocus": [],
+    "reachVisibility": "hidden",
+    "narrativeIntensity": "minimal",
     "verdict": {
       "posture": "risky",
-      "postureLabel": "Risky",
-      "scopeLabel": "Moderate reach"
+      "postureLabel": "Risky"
     },
     "headline": "Dependency upgrade with limited scan context",
     "limitedContext": {
       "message": "PR-specific scan context was limited"
     },
-    "insights": ["PR-specific intelligence was limited for this scan"],
+    "insights": [
+      "Collection evidence is partial; confidence is reduced but review posture is preserved when runtime signals exist.",
+      "Insufficient collection evidence"
+    ],
     "verification": [],
     "layout": "standard",
     "detailActionLabel": "Review scan",

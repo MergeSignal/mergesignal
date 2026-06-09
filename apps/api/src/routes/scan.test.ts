@@ -356,6 +356,33 @@ describe("scan routes", () => {
         },
         findings: [],
         generatedAt: now,
+        assessment: {
+          posture: "risky",
+          confidence: "medium",
+          primaryConcern: "confirmed_runtime_usage",
+          concerns: [
+            {
+              kind: "confirmed_runtime_usage",
+              rank: 1,
+              packages: ["pkg"],
+              evidenceRefs: ["test"],
+            },
+          ],
+          factors: ["confirmed_runtime_usage"],
+          changeClasses: ["runtime_upgrade"],
+          presentation: {
+            narrativeIntensity: "standard",
+            reachVisibility: "contextual",
+            verificationIntensity: "required",
+            insightEmissionFloor: "full",
+            reportMode: "high_signal_pr",
+          },
+        },
+        decision: {
+          recommendation: "risky",
+          confidence: "medium",
+          reasoning: ["Runtime usage confirmed"],
+        },
       };
       const mockScan = {
         id: "scan_123",

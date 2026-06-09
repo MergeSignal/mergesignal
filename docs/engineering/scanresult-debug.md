@@ -17,4 +17,10 @@ Presentation DTOs are the default API and UI contract. Raw engine output is opt-
 
 ## Presentation orchestration
 
-All surfaces derive from `buildScanPresentationBundle()` in `@mergesignal/shared`. Presenters consume `{ facts, profile, result }` and must not re-run narrative derivation.
+All surfaces derive from `buildScanPresentationBundle()` in `@mergesignal/shared`. The bundle requires `result.assessment` on fresh engine output. Presenters consume `{ assessment, presentation, profile, facts, result }` and project assessment fields — they must not infer posture, reach, or verification policy from scores.
+
+Authority and field classification: [presentation-ownership.md](./presentation-ownership.md).
+
+## Assessment on the wire
+
+Fresh engine `ScanResult` JSON includes top-level `assessment` (posture, confidence, primary concern, factors, presentation policy) and projections such as `decision.reasoning`. Historical rows may lack `assessment`; the UI treats those as incomplete until re-scanned (see presentation-ownership for future compatibility notes).

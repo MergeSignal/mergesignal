@@ -5,8 +5,29 @@ import type {
   UpgradeSimulationRequest,
   UpgradeSimulationResult,
 } from "@mergesignal/shared";
-
 const METHODOLOGY_VERSION = "engine-stub/v2";
+
+const STUB_ASSESSMENT = {
+  posture: "needs_review" as const,
+  confidence: "low" as const,
+  primaryConcern: "insufficient_evidence" as const,
+  concerns: [
+    {
+      kind: "insufficient_evidence" as const,
+      rank: 1,
+      evidenceRefs: ["stub:engine"],
+    },
+  ],
+  factors: ["insufficient_collection_evidence"],
+  changeClasses: ["ecosystem_unknown" as const],
+  presentation: {
+    narrativeIntensity: "minimal" as const,
+    reachVisibility: "hidden" as const,
+    verificationIntensity: "none" as const,
+    insightEmissionFloor: "none" as const,
+    reportMode: "high_signal_pr" as const,
+  },
+};
 
 function buildMockResult(): ScanResult {
   return {
@@ -40,6 +61,7 @@ function buildMockResult(): ScanResult {
       },
     ],
     insights: [],
+    assessment: STUB_ASSESSMENT,
     decision: {
       recommendation: "needs_review",
       confidence: "low",

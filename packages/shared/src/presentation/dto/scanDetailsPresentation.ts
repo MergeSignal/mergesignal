@@ -1,3 +1,4 @@
+import type { AssessmentPresentationFields } from "./assessmentPresentationFields.js";
 import type {
   PresentationConfidence,
   PresentationDensity,
@@ -7,7 +8,7 @@ import type {
 import type { PresentationIntent } from "../intent/presentationIntent.js";
 import type { FindingSeverity, ScoreLayer } from "../../types.js";
 
-export type ScanDetailsPresentation = {
+export type ScanDetailsPresentation = AssessmentPresentationFields & {
   evidenceContext: PresentationEvidenceContext;
   status: PresentationStatus;
   density: PresentationDensity;

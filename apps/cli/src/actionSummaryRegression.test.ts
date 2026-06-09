@@ -16,6 +16,22 @@ const renderFailure = join(
 );
 const copyJson = join(repoRoot, "scripts/ci/scan-surface-copy.generated.json");
 
+const minimalAssessment = {
+  posture: "safe" as const,
+  confidence: "high" as const,
+  primaryConcern: null,
+  concerns: [],
+  factors: ["tooling_maintenance"],
+  changeClasses: ["tooling_maintenance"],
+  presentation: {
+    narrativeIntensity: "minimal" as const,
+    reachVisibility: "hidden" as const,
+    verificationIntensity: "advisory" as const,
+    insightEmissionFloor: "none" as const,
+    reportMode: "high_signal_pr" as const,
+  },
+};
+
 const stubLikeResult = {
   totalScore: 10,
   layerScores: {
@@ -28,6 +44,7 @@ const stubLikeResult = {
   recommendations: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
   methodologyVersion: "engine-stub/v2",
+  assessment: minimalAssessment,
 };
 
 const trustedLikeResult = {
@@ -88,7 +105,7 @@ describe("GitHub Actions step summary scripts", () => {
     expect(summary).toContain("MergeSignal (demo output)");
   });
 
-  it("trusted profile renders production merge posture + risk index header", () => {
+  it("trusted profile renders bundle-based CLI summary with posture and risk index", () => {
     writeFileSync(jsonFile, JSON.stringify(trustedLikeResult));
     const { status, summary } = runRender("trusted", jsonFile);
     expect(status).toBe(0);
@@ -96,16 +113,11 @@ describe("GitHub Actions step summary scripts", () => {
       string,
       string
     >;
-    expect(summary).toMatch(
-      /# MergeSignal dependency review — Safe · Risk index/,
-    );
+    expect(summary).toContain("MergeSignal -");
+    expect(summary).toContain("Status: safe");
+    expect(summary).toContain("Risk index: 10");
     expect(summary).toContain(demo["actions.riskIndexDirectionShort"]!);
-    expect(summary).toContain("| Layer | Score | Layer risk |");
-    const defaultFold =
-      summary.indexOf("<details>") === -1
-        ? summary
-        : summary.slice(0, summary.indexOf("<details>"));
-    expect(defaultFold.length).toBeLessThan(1600);
+    expect(summary.length).toBeLessThan(1600);
   });
 
   it("failure summary never mimics success scorecard", () => {

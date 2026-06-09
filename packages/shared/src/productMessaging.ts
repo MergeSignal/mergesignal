@@ -7,7 +7,7 @@ import { MERGE_POSTURE_LABEL } from "./riskVocabulary.js";
 
 export const productMessaging = {
   formalDefinition:
-    "MergeSignal analyzes dependency upgrades, identifies affected application flows, and provides reviewer guidance before merge.",
+    "MergeSignal analyzes dependency upgrades in context, inspects relevant code paths, and provides focused reviewer guidance before merge - without requiring a full repository scan.",
 
   hero: {
     kicker: "Merge-decision intelligence for dependency upgrades",
@@ -94,11 +94,12 @@ export const productMessaging = {
       "The repository dashboard is a runtime-aware review surface for open upgrade pull requests: triage by merge recommendation, then read operational context on each card.",
     posture: `Posture indicates the merge recommendation (${MERGE_POSTURE_LABEL.safe}, ${MERGE_POSTURE_LABEL.needs_review}, ${MERGE_POSTURE_LABEL.risky}).`,
     exposure:
-      "Exposure indicates how broadly the upgrade touches runtime-relevant application areas.",
-    exposureCategoriesLead: "On each scanned card, exposure reads as one of:",
+      "Reach indicates how prominently affected application paths are surfaced for this upgrade.",
+    exposureCategoriesLead:
+      "Risk index bands (supporting context) read as one of:",
     exposureCategories: CARD_EXPOSURE_CATEGORY_LABELS,
     cardBody:
-      "Below the verdict, scanned cards lead with the changed package, runtime surface, reachability, blast radius, and affected areas when code intelligence is available; repository-wide graph signals appear only as supporting context.",
+      "Below the verdict, scanned cards lead with the changed package, affected areas, verification checks, and blast radius when code intelligence is available - focused on this PR, not the whole repository.",
   },
 } as const;
 

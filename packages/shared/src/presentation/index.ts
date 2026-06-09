@@ -11,7 +11,6 @@ export type {
   PresentationIntent,
   PresentationInterpretation,
 } from "./intent/presentationIntent.js";
-export { derivePresentationInterpretation } from "./intent/derivePresentationInterpretation.js";
 export type {
   PipelineStatus,
   PresentationStatus,

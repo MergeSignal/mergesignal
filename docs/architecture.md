@@ -29,6 +29,12 @@ MergeSignal analyzes dependency upgrades and provides reviewer guidance before m
 
 The public repository ships an **OSS stub engine** for local development and demo CI. **Production analysis** uses a proprietary engine — see [packages/engine-stub/README.md](../packages/engine-stub/README.md).
 
+## Presentation layer
+
+All user-facing surfaces read `ScanResult.assessment` as the sole authority for merge posture and presentation policy. The shared package builds a `ScanPresentationBundle` and presenters project fields to DTOs without re-interpreting scores or repo intelligence for posture.
+
+See [presentation-ownership.md](./engineering/presentation-ownership.md) for the authority chain, public vs internal assessment fields, and CI guardrails.
+
 ## Diagram
 
 ```

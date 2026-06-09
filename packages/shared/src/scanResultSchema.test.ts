@@ -96,10 +96,27 @@ describe("scanResultSchema", () => {
   });
 });
 
+const minimalAssessment = {
+  posture: "safe" as const,
+  confidence: "high" as const,
+  primaryConcern: null,
+  concerns: [] as [],
+  factors: ["tooling_maintenance"],
+  changeClasses: ["tooling_maintenance" as const],
+  presentation: {
+    narrativeIntensity: "minimal" as const,
+    reachVisibility: "hidden" as const,
+    verificationIntensity: "advisory" as const,
+    insightEmissionFloor: "none" as const,
+    reportMode: "high_signal_pr" as const,
+  },
+};
+
 describe("engineOutputScanResultSchema (strict, fresh engine only)", () => {
   const withMethodology = {
     ...minimalValid,
     methodologyVersion: "engine-test-fixture/v1",
+    assessment: minimalAssessment,
   };
 
   it("rejects payload that relaxed parser accepts when methodology is missing", () => {

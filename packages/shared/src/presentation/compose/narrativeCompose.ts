@@ -6,10 +6,6 @@ import {
   labelRuntimeSurface,
 } from "../../narrativePresentation.js";
 import { scanSurfaceCopy } from "../../scanSurfaceCopy.js";
-import {
-  formatPresentationHeadline,
-  formatPresentationVerification,
-} from "../intent/formatPresentationCopy.js";
 import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
 import {
   buildNarrativeChannels,
@@ -29,12 +25,7 @@ function topAreaLabel(bundle: ScanPresentationBundle): string | null {
 }
 
 export function composeHeadline(bundle: ScanPresentationBundle): string {
-  const { facts, profile } = bundle;
-  return formatPresentationHeadline(
-    profile.interpretation,
-    facts,
-    profile.status,
-  );
+  return buildNarrativeChannels(bundle).headline;
 }
 
 export function composeSubheadline(
@@ -56,12 +47,7 @@ export function composeVerificationActions(
   bundle: ScanPresentationBundle,
   max: number,
 ): string[] {
-  const { profile } = bundle;
-  return formatPresentationVerification(
-    profile.interpretation,
-    profile.status,
-    max,
-  );
+  return buildNarrativeChannels(bundle).verification.slice(0, max);
 }
 
 export function composeAffectedAreaLabels(

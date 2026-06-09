@@ -88,8 +88,8 @@ describe("productMessaging", () => {
       d.cardBody,
     ].join(" ");
     expect(text).toContain("merge recommendation");
-    expect(text).toContain("runtime-relevant");
-    expect(text).not.toMatch(/risk index|total score|0-100|formula|weight/i);
+    expect(text).toContain("affected application paths");
+    expect(text).not.toMatch(/total score|0-100|formula|weight/i);
     expect(d.exposureCategories).toHaveLength(5);
     expect(d.exposureCategories).toContain("Elevated exposure");
   });

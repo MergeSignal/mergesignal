@@ -40,6 +40,21 @@ const validEngineOutput = {
   findings: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
   methodologyVersion: "acme-prod/v1",
+  assessment: {
+    posture: "needs_review" as const,
+    confidence: "medium" as const,
+    primaryConcern: null,
+    concerns: [],
+    factors: ["tooling_maintenance"],
+    changeClasses: ["tooling_maintenance"],
+    presentation: {
+      narrativeIntensity: "standard" as const,
+      reachVisibility: "hidden" as const,
+      verificationIntensity: "advisory" as const,
+      insightEmissionFloor: "none" as const,
+      reportMode: "high_signal_pr" as const,
+    },
+  },
   decision: {
     recommendation: "needs_review" as const,
     confidence: "medium" as const,

@@ -10,6 +10,7 @@ import { scanSurfaceCopy } from "../../scanSurfaceCopy.js";
 import type { DashboardCardPresentation } from "../dto/dashboardCardPresentation.js";
 import { buildNarrativeChannels } from "../compose/narrativeChannels.js";
 import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
+import { projectAssessmentFields } from "../projectAssessmentFields.js";
 
 const INSIGHTS_CAP = 3;
 const SCOPE_AREAS_CAP = 2;
@@ -101,6 +102,7 @@ export function presentDashboardCard(
     .map(formatVerificationLine);
 
   const card: DashboardCardPresentation = {
+    ...projectAssessmentFields(bundle),
     verdict: {
       posture,
       postureLabel: MERGE_POSTURE_LABEL[posture],

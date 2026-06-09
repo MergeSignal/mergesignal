@@ -40,6 +40,12 @@ export default function GettingStartedPage() {
       <h1>Getting started</h1>
       <p>{productMessaging.formalDefinition}</p>
       <p>
+        MergeSignal focuses on the packages changed in your PR, inspects the
+        relevant code paths, and reads only the evidence needed to explain
+        upgrade risk - keeping reviews targeted without scanning your entire
+        repository.
+      </p>
+      <p>
         Start locally in seconds, then add GitHub Actions for reviewer guidance
         on every upgrade PR.
       </p>

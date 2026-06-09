@@ -193,7 +193,7 @@ describe("repoPullRequestScansRoutes", () => {
     expect(body.aggregates.byDecision.safe).toBe(1);
   });
 
-  it("maps explain signals to key points instead of generic reasoning", async () => {
+  it("maps assessment reasoning to card insights", async () => {
     vi.mocked(db.query).mockResolvedValue({
       rows: [
         makeRow({
@@ -207,8 +207,31 @@ describe("repoPullRequestScansRoutes", () => {
             },
             findings: [],
             generatedAt: "2026-01-01T00:00:00.000Z",
+            assessment: {
+              posture: "risky",
+              confidence: "medium",
+              primaryConcern: "confirmed_runtime_usage",
+              concerns: [
+                {
+                  kind: "confirmed_runtime_usage",
+                  rank: 1,
+                  packages: ["lodash"],
+                  evidenceRefs: ["test"],
+                },
+              ],
+              factors: ["confirmed_runtime_usage"],
+              changeClasses: ["runtime_upgrade"],
+              presentation: {
+                narrativeIntensity: "elevated",
+                reachVisibility: "prominent",
+                verificationIntensity: "required",
+                insightEmissionFloor: "full",
+                reportMode: "high_signal_pr",
+              },
+            },
             decision: {
               recommendation: "risky",
+              confidence: "medium",
               reasoning: ["High-risk transitive dependency detected"],
             },
             explain: {
@@ -234,21 +257,68 @@ describe("repoPullRequestScansRoutes", () => {
     const body = res.json();
     const card = body.byPrNumber["42"].cardPresentation;
     expect(card.verdict?.posture).toBe("risky");
-    expect(card.insights.length).toBeGreaterThan(0);
+    expect(card.insights).toContain("High-risk transitive dependency detected");
   });
 
-  it("extracts affectedAreas from explain reasons (max 2)", async () => {
+  it("projects application areas from repo intelligence (max 2)", async () => {
     vi.mocked(db.query).mockResolvedValue({
       rows: [
         makeRow({
           result: {
-            explain: {
-              reasons: [
-                { title: "Auth flow", scoreImpact: -20 },
-                { title: "State sync", scoreImpact: -15 },
-                { title: "Middleware", scoreImpact: -10 },
-                { title: "Extra area", scoreImpact: -5 },
+            totalScore: 72,
+            layerScores: {
+              security: 1,
+              maintainability: 2,
+              ecosystem: 3,
+              upgradeImpact: 4,
+            },
+            findings: [],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+            changedPackages: ["auth-lib"],
+            assessment: {
+              posture: "needs_review",
+              confidence: "medium",
+              primaryConcern: "confirmed_runtime_usage",
+              concerns: [
+                {
+                  kind: "confirmed_runtime_usage",
+                  rank: 1,
+                  packages: ["auth-lib"],
+                  evidenceRefs: ["test"],
+                },
               ],
+              factors: ["confirmed_runtime_usage"],
+              changeClasses: ["runtime_upgrade"],
+              presentation: {
+                narrativeIntensity: "elevated",
+                reachVisibility: "prominent",
+                verificationIntensity: "required",
+                insightEmissionFloor: "full",
+                reportMode: "high_signal_pr",
+              },
+            },
+            decision: {
+              recommendation: "needs_review",
+              confidence: "medium",
+              reasoning: ["Runtime usage confirmed"],
+            },
+            repoIntelligence: {
+              packages: {
+                "auth-lib": {
+                  runtimeSurface: "runtime",
+                  reachability: "on_runtime_paths",
+                  usage: {
+                    packageName: "auth-lib",
+                    files: ["src/auth.ts"],
+                    paths: ["src/auth.ts"],
+                  },
+                },
+              },
+              applicationAreas: [
+                { id: "auth", label: "Auth flow" },
+                { id: "state", label: "State sync" },
+              ],
+              blastRadius: { level: "moderate", changedPackageCount: 1 },
             },
           },
         }),

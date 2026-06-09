@@ -1,11 +1,12 @@
 import { z } from "zod";
+import { assessmentSchema } from "./assessmentSchema.js";
 import type { EngineEmittedScanResult, ScanResult } from "./types.js";
 
 /** Bump when persisted `result` JSON validation rules change materially (relaxed / legacy-tolerant). */
-export const SCAN_RESULT_ABI = "1" as const;
+export const SCAN_RESULT_ABI = "2" as const;
 
 /** Bump when strict fresh-engine-output validation rules change materially. */
-export const ENGINE_OUTPUT_SCAN_ABI = "2" as const;
+export const ENGINE_OUTPUT_SCAN_ABI = "3" as const;
 
 const layerScoresSchema = z.object({
   security: z.number(),
@@ -64,6 +65,7 @@ const engineOutputGeneratedAtSchema = z
 export const engineOutputScanResultSchema = scanResultSchema.extend({
   methodologyVersion: z.string().trim().min(1),
   generatedAt: engineOutputGeneratedAtSchema,
+  assessment: assessmentSchema,
 });
 
 export type EngineOutputScanResultParseFailure = {

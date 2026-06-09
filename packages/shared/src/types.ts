@@ -1,3 +1,5 @@
+import type { Assessment } from "./assessmentSchema.js";
+
 export type LayerScores = {
   security: number;
   maintainability: number;
@@ -333,6 +335,8 @@ export type ScanResult = {
   layerScores: LayerScores;
   findings: Finding[];
   methodologyVersion?: string;
+  /** Assessment Contract — sole authority for posture and presentation intensity. */
+  assessment?: Assessment;
   confidence?: RiskConfidence;
   signals?: RiskSignal[];
   contributions?: ScoreContribution[];

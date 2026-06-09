@@ -1,3 +1,4 @@
+import { MERGE_POSTURE_LABEL } from "./riskVocabulary.js";
 import type {
   PRInsight,
   PRDecision,
@@ -61,4 +62,32 @@ function renderInsightAsMarkdown(f: FormattedInsight): string {
   ].join("\n");
 }
 
-export { renderInsightsAsMarkdown } from "./presentGitHubPrComment.js";
+function renderInsightBlock(f: FormattedInsight): string {
+  return [
+    f.message,
+    "",
+    "**Where it shows up**",
+    "",
+    f.where,
+    "",
+    "**What to do**",
+    "",
+    f.action,
+  ].join("\n");
+}
+
+/** Legacy markdown renderer for raw PR insights (format-only; no bundle inference). */
+export function renderInsightsAsMarkdown(
+  insights: PRInsight[],
+  decision: PRDecision,
+): string {
+  const title = MERGE_POSTURE_LABEL[decision.recommendation];
+  const lines: string[] = [`**${title}**`, "", "---", ""];
+  for (const insight of insights) {
+    lines.push(renderInsightBlock(formatInsight(insight)), "", "---", "");
+  }
+  for (const reason of decision.reasoning) {
+    lines.push(reason);
+  }
+  return lines.join("\n");
+}

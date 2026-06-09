@@ -1,4 +1,3 @@
-import { humanizeEngineSurfaceText } from "./actionsStepSummary.js";
 import type {
   DependencyGraphInsights,
   ExplainReason,
@@ -18,6 +17,54 @@ import type {
  */
 
 export const CARD_OBSERVATION_MAX_LENGTH = 48;
+
+/** Presentation-only rewrite of known engine metric tokens. */
+export function humanizeEngineSurfaceText(raw: string): string {
+  const input = raw.trim();
+  if (!input) return input;
+  let t = input.replace(/_/g, " ");
+  t = t.replace(
+    /^(security|maintainability|ecosystem|upgradeimpact|upgrade\s+impact)[.:]\s*/i,
+    "",
+  );
+  const subs: Array<[RegExp, string]> = [
+    [
+      /ecosystem\.package\s*surface|ecosystem\s+package\s*surface|package\s+surface\b/gi,
+      "broad declared package footprint",
+    ],
+    [
+      /graph\.duplicates?\b|graph\s+duplicates?\b/gi,
+      "overlapping dependency paths to the same packages",
+    ],
+    [
+      /graph\.fan\s*in\s*max|graph\s+fan\s+in\s+max/gi,
+      "many import paths converge on a few widely shared packages",
+    ],
+    [
+      /graph\.fan\s*in|graph\s+fan\s+in/gi,
+      "shared packages see many inbound dependency paths",
+    ],
+    [
+      /graph\.transitive(?:\s+volume)?|graph\s+transitive(?:\s+volume)?/gi,
+      "transitive dependency volume",
+    ],
+    [/graph\.depth|graph\s+depth/gi, "indirect dependency depth"],
+    [/graph\.hotspot|graph\s+hotspot/gi, "dependency hotspots"],
+    [/graph\.hidden|graph\s+hidden/gi, "hidden transitive paths"],
+    [
+      /graph\.vulnerable|graph\s+vulnerable/gi,
+      "known vulnerable packages on the graph",
+    ],
+    [/graph\.fan|graph\s+fan/gi, "fan-in"],
+  ];
+  for (const [re, rep] of subs) t = t.replace(re, rep);
+  t = t
+    .replace(/\bdependency\s+chain\s+depth\b/gi, "indirect dependency depth")
+    .replace(/^dependency\s+depth$/gi, "indirect dependency depth");
+  t = t.replace(/\s+/g, " ").trim();
+  if (!t) return input;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
 
 export const CARD_OBSERVATION_CATALOG = [
   "Large upgrade blast radius",

@@ -1,7 +1,11 @@
+import {
+  parseAssessmentOrThrow,
+  toPublicPresentation,
+} from "../../assessmentSchema.js";
 import { deriveScanNarrative } from "../../deriveScanNarrative.js";
 import type { ScanResult } from "../../types.js";
 import type { PipelineStatus } from "../dto/types.js";
-import { derivePresentationProfile } from "../profile/derivePresentationProfile.js";
+import { buildProfileFromAssessment } from "../profile/buildProfileFromAssessment.js";
 import type { ScanPresentationBundle } from "./scanPresentationBundle.js";
 
 export type BuildScanPresentationBundleInput = {
@@ -13,25 +17,30 @@ export type BuildScanPresentationBundleInput = {
 
 /**
  * Mandatory orchestration entrypoint for completed-scan presentation.
- * Only place that calls deriveScanNarrative and derivePresentationProfile.
+ * Assessment is the sole authority; profile is a thin projection.
  */
 export function buildScanPresentationBundle(
   input: BuildScanPresentationBundleInput,
 ): ScanPresentationBundle | null {
   if (input.pipelineStatus !== "done" || !input.result) return null;
 
-  const facts = deriveScanNarrative(input.result);
-  const profile = derivePresentationProfile(facts, {
-    pipelineStatus: input.pipelineStatus,
-    decision: input.decision,
-    totalScore: input.totalScore ?? input.result.totalScore,
-  });
+  const assessment = input.result.assessment;
+  if (!assessment) return null;
 
-  if (!profile) return null;
+  parseAssessmentOrThrow(assessment);
+  const presentation = toPublicPresentation(assessment.presentation);
+  const profile = buildProfileFromAssessment(
+    assessment,
+    presentation,
+    input.result,
+  );
+  const facts = deriveScanNarrative(input.result);
 
   return {
-    facts,
+    assessment,
+    presentation,
     profile,
+    facts,
     result: input.result,
   };
 }

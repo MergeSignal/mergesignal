@@ -7,6 +7,7 @@ import {
   trustedActionsSummaryDenylistPhrases,
   validateTrustedEngineScanResult,
 } from "./trustedScanGuards.js";
+import { assessmentStub } from "./fixtures/assessmentFixtures.js";
 import type { ScanResult } from "./types.js";
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
 
@@ -22,6 +23,12 @@ const baseResult: ScanResult = {
   recommendations: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
   methodologyVersion: "engine-stub/v2",
+  assessment: assessmentStub,
+  decision: {
+    recommendation: "needs_review",
+    confidence: "low",
+    reasoning: ["Stub engine cannot perform real analysis"],
+  },
 };
 
 describe("trustedScanGuards", () => {

@@ -21,10 +21,27 @@ const minimalScan = (repoId: string): ScanResult => ({
   generatedAt: new Date().toISOString(),
   methodologyVersion: METHODOLOGY_VERSION,
   confidence: "high",
+  assessment: {
+    posture: "safe",
+    confidence: "high",
+    primaryConcern: null,
+    concerns: [],
+    factors: ["tooling_maintenance"],
+    changeClasses: ["tooling_maintenance"],
+    presentation: {
+      narrativeIntensity: "minimal",
+      reachVisibility: "hidden",
+      verificationIntensity: "advisory",
+      insightEmissionFloor: "none",
+      reportMode: "high_signal_pr",
+    },
+  },
   decision: {
     recommendation: "safe",
     confidence: "high",
-    reasoning: [],
+    reasoning: [
+      "No dedicated dependency review required beyond normal engineering process.",
+    ],
   },
   insights: [],
   signals: [],

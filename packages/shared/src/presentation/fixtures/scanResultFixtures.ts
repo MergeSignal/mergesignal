@@ -1,5 +1,10 @@
 import type { ScanResult } from "../../types.js";
 import {
+  assessmentFastifyRuntime,
+  assessmentLimitedContext,
+  assessmentTypescriptPatch,
+} from "../../fixtures/assessmentFixtures.js";
+import {
   fixtureRepoIntelligenceFastify,
   fixtureRepoIntelligenceTypescript,
 } from "../../fixtures/repoIntelligenceFixtures.js";
@@ -18,10 +23,14 @@ export const scanResultFastifyRuntime: ScanResult = {
   changedPackages: ["fastify"],
   analysisPreparation: analysisPreparationWithValidRepoIntel(),
   repoIntelligence: fixtureRepoIntelligenceFastify,
+  assessment: assessmentFastifyRuntime,
   decision: {
     recommendation: "needs_review",
     confidence: "medium",
-    reasoning: [],
+    reasoning: [
+      "Changed package has confirmed usage on runtime application paths in this repository.",
+      "HTTP framework infrastructure",
+    ],
   },
   insights: [
     {
@@ -49,10 +58,13 @@ export const scanResultTypescriptPatch: ScanResult = {
   changedPackages: ["typescript"],
   analysisPreparation: analysisPreparationWithValidRepoIntel(),
   repoIntelligence: fixtureRepoIntelligenceTypescript,
+  assessment: assessmentTypescriptPatch,
   decision: {
     recommendation: "safe",
     confidence: "high",
-    reasoning: [],
+    reasoning: [
+      "No dedicated dependency review required beyond normal engineering process.",
+    ],
   },
   graphInsights: {
     maxDepth: 4,
@@ -74,6 +86,7 @@ export const scanResultLimitedContext: ScanResult = {
   generatedAt: "2026-01-01T00:00:00.000Z",
   changedPackages: ["lodash"],
   repoIntelligence: { invalid: true },
+  assessment: assessmentLimitedContext,
   graphInsights: {
     maxDepth: 5,
     nodes: 200,
@@ -85,6 +98,8 @@ export const scanResultLimitedContext: ScanResult = {
   decision: {
     recommendation: "needs_review",
     confidence: "low",
-    reasoning: [],
+    reasoning: [
+      "Collection evidence is partial; confidence is reduced but review posture is preserved when runtime signals exist.",
+    ],
   },
 };

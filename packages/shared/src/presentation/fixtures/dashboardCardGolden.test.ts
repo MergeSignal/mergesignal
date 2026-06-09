@@ -4,8 +4,16 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildScanCardPresentation } from "../orchestration/buildScanCardPresentation.js";
 import {
+  scanResultBullmq,
+  scanResultEslint,
   scanResultFastifyRuntime,
+  scanResultLimitedContext,
+  scanResultMixedTypescriptFastify,
+  scanResultNextAuth,
+  scanResultPrettier,
   scanResultTypescriptPatch,
+  scanResultUnknownSafe,
+  scanResultVitest,
 } from "./presentationPersonaFixtures.js";
 import type { DashboardCardPresentation } from "../dto/dashboardCardPresentation.js";
 
@@ -18,22 +26,32 @@ const golden = JSON.parse(readFileSync(goldenPath, "utf8")) as Record<
   DashboardCardPresentation
 >;
 
-describe("dashboardCardGolden fixtures", () => {
-  it("matches live typescript patch card", () => {
-    const live = buildScanCardPresentation({
-      result: scanResultTypescriptPatch,
-      pipelineStatus: "done",
-    });
-    expect(live).toEqual(golden.typescriptPatch);
-  });
+const personaCases: Array<{
+  key: string;
+  result: Parameters<typeof buildScanCardPresentation>[0]["result"];
+}> = [
+  { key: "typescriptPatch", result: scanResultTypescriptPatch },
+  { key: "eslint", result: scanResultEslint },
+  { key: "prettier", result: scanResultPrettier },
+  { key: "vitest", result: scanResultVitest },
+  { key: "fastifyRuntime", result: scanResultFastifyRuntime },
+  { key: "nextAuth", result: scanResultNextAuth },
+  { key: "bullmq", result: scanResultBullmq },
+  { key: "limitedContext", result: scanResultLimitedContext },
+  { key: "unknownSafe", result: scanResultUnknownSafe },
+  { key: "mixedTypescriptFastify", result: scanResultMixedTypescriptFastify },
+];
 
-  it("matches live fastify runtime card", () => {
-    const live = buildScanCardPresentation({
-      result: scanResultFastifyRuntime,
-      pipelineStatus: "done",
+describe("dashboardCardGolden fixtures", () => {
+  for (const { key, result } of personaCases) {
+    it(`matches live ${key} card`, () => {
+      const live = buildScanCardPresentation({
+        result,
+        pipelineStatus: "done",
+      });
+      expect(live).toEqual(golden[key]);
     });
-    expect(live).toEqual(golden.fastifyRuntime);
-  });
+  }
 
   it("fastify golden has deduplicated channels", () => {
     const card = golden.fastifyRuntime;

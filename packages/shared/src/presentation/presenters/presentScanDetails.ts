@@ -1,16 +1,9 @@
-import { deriveDetailReachChip } from "../../formatCardExposureDisplay.js";
+import { MERGE_CONCERN_LABELS } from "../../assessmentLabels.js";
 import { MERGE_POSTURE_LABEL } from "../../riskVocabulary.js";
 import {
-  deriveVerdictLineFromFacts,
-  presentScanDetailViewModel,
-  type ScanDetailViewModel,
-} from "../../scanDetailViewModel.js";
-import {
   buildNarrativeChannels,
-  composeHeadline,
   composeSubheadline,
   composeSupportingContext,
-  composeVerificationActions,
   evidenceContextFromProfile,
   projectCompactKeyPoints,
 } from "../compose/narrativeCompose.js";
@@ -21,105 +14,13 @@ import {
 import { scanSurfaceCopy } from "../../scanSurfaceCopy.js";
 import type { ScanDetailsPresentation } from "../dto/scanDetailsPresentation.js";
 import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
+import { projectAssessmentFields } from "../projectAssessmentFields.js";
 
 export type PresentScanDetailsContext = {
   scanId: string;
   methodologyVersion?: string | null;
   prNumber?: number | null;
 };
-
-function mapOperationalImpact(
-  vm: ScanDetailViewModel,
-): ScanDetailsPresentation["operationalImpact"] {
-  const oi = vm.operationalImpact;
-  if (oi.status === "hidden") {
-    return { status: "hidden", items: [] };
-  }
-  if (oi.status === "rich") {
-    return {
-      status: "rich",
-      items: oi.items.map((item) => ({
-        message: item.message,
-        where: item.where,
-        verify: item.verify,
-        affectedFiles: item.affectedFiles,
-      })),
-    };
-  }
-  return {
-    status: "compact",
-    items: oi.items,
-    fallbackMessage: oi.fallbackMessage,
-  };
-}
-
-function mapRecommendations(
-  vm: ScanDetailViewModel,
-): ScanDetailsPresentation["recommendations"] {
-  const items = vm.recommendedActions.items.map((item) => ({
-    rank: item.rank,
-    title: item.title,
-    priority:
-      item.priority === "high" ||
-      item.priority === "medium" ||
-      item.priority === "low"
-        ? item.priority
-        : ("medium" as const),
-    rationale: item.detail?.why,
-  }));
-  return { items };
-}
-
-function mapEvidence(
-  bundle: ScanPresentationBundle,
-  vm: ScanDetailViewModel,
-): ScanDetailsPresentation["evidence"] {
-  const defaultCollapsed =
-    bundle.profile.priority === "pr_intelligence" &&
-    bundle.profile.density === "rich";
-
-  const ev = vm.evidence;
-  if (!ev) {
-    return {
-      defaultCollapsed,
-      attentionAreas: [],
-      findings: [],
-      findingsOverflowCount: 0,
-    };
-  }
-
-  return {
-    defaultCollapsed,
-    attentionAreas: ev.attentionAreas.map((area) => ({
-      problemLabel: area.problemLabel,
-      problemDescription: area.problemDescription,
-      packages: area.packages.map((p) => ({
-        name: p.name,
-        version: p.version,
-        direct: p.direct,
-        severity: p.severity,
-        evidence: p.evidence,
-      })),
-      overflowCount: area.overflowCount,
-    })),
-    findings: ev.findings.map((f) => ({
-      id: f.id,
-      severity: f.severity,
-      title: f.title,
-      description: f.description,
-      packageName: f.packageName,
-      recommendation: f.recommendation,
-      source: f.source,
-    })),
-    findingsOverflowCount: ev.findingsOverflowCount,
-    topology: ev.topology
-      ? {
-          summaryLine: ev.topology.summaryLine,
-          deepest: ev.topology.deepest,
-        }
-      : undefined,
-  };
-}
 
 function mapUsage(
   bundle: ScanPresentationBundle,
@@ -142,26 +43,43 @@ function mapUsage(
   };
 }
 
+function mapEvidence(
+  bundle: ScanPresentationBundle,
+): ScanDetailsPresentation["evidence"] {
+  const defaultCollapsed =
+    bundle.profile.priority === "pr_intelligence" &&
+    bundle.profile.density === "rich";
+
+  const findings = (bundle.result.findings ?? []).slice(0, 8).map((f) => ({
+    id: f.id,
+    severity: f.severity,
+    title: f.title,
+    description: f.description,
+    packageName: f.packageName,
+    recommendation: f.recommendation,
+    source: "dependency" as const,
+  }));
+
+  return {
+    defaultCollapsed,
+    attentionAreas: [],
+    findings,
+    findingsOverflowCount: Math.max(
+      0,
+      (bundle.result.findings?.length ?? 0) - findings.length,
+    ),
+  };
+}
+
 export function presentScanDetails(
   bundle: ScanPresentationBundle,
   ctx: PresentScanDetailsContext,
 ): ScanDetailsPresentation {
-  const { facts, profile, result } = bundle;
-
-  const vm = presentScanDetailViewModel(facts, result, {
-    scanId: ctx.scanId,
-    status: "done",
-    methodologyVersion: ctx.methodologyVersion,
-    prNumber: ctx.prNumber,
-    repoContext: { status: "hidden" },
-  });
-
-  const headline = composeHeadline(bundle);
-  const subheadline = composeSubheadline(bundle);
+  const { assessment, facts, profile, result } = bundle;
+  const assessmentFields = projectAssessmentFields(bundle);
   const channels = buildNarrativeChannels(bundle);
   const keyPoints = projectCompactKeyPoints(channels, 6);
-  const verificationTitles = composeVerificationActions(bundle, 6);
-
+  const subheadline = composeSubheadline(bundle);
   const supportingLines = composeSupportingContext(bundle);
   const supportingContext = supportingLines
     ? {
@@ -170,33 +88,44 @@ export function presentScanDetails(
       }
     : undefined;
 
-  const posture = profile.status;
-  const postureLabel = MERGE_POSTURE_LABEL[posture];
-
-  const toolingIntent =
-    profile.interpretation.intent === "tooling_patch" ||
-    profile.interpretation.intent === "tooling_upgrade";
+  const postureLabel = MERGE_POSTURE_LABEL[profile.status];
   const verdictLine =
-    profile.priority === "pr_intelligence" && toolingIntent && keyPoints[0]
-      ? keyPoints[0]!
-      : deriveVerdictLineFromFacts(facts, result);
+    assessmentFields.reasoning[0] ??
+    (assessment.primaryConcern
+      ? MERGE_CONCERN_LABELS[assessment.primaryConcern]
+      : postureLabel);
+
+  const verificationActions = channels.verification.map((title, index) => ({
+    title: normalizeGeneratedText(title),
+    detail: assessmentFields.reasoning[index + 1],
+  }));
+
+  const recommendations = verificationActions.map((action, index) => ({
+    rank: index + 1,
+    title: action.title,
+    priority:
+      profile.status === "risky"
+        ? ("high" as const)
+        : profile.status === "needs_review"
+          ? ("medium" as const)
+          : ("low" as const),
+    rationale: action.detail,
+  }));
 
   return {
+    ...assessmentFields,
     evidenceContext: evidenceContextFromProfile(bundle),
     status: profile.status,
     density: profile.density,
     confidence: profile.confidence,
     presentationIntent: profile.interpretation.intent,
     hero: {
-      headline: normalizeGeneratedText(headline),
+      headline: normalizeGeneratedText(channels.headline),
       subheadline: normalizeGeneratedTextNullable(subheadline) ?? undefined,
       verdictLine: normalizeGeneratedText(verdictLine),
-      scopeChip:
-        channels.reachLabel ??
-        deriveDetailReachChip(result.totalScore) ??
-        undefined,
+      scopeChip: channels.reachLabel,
       postureLabel,
-      riskIndex: facts.riskIndex,
+      riskIndex: result.totalScore,
     },
     narrative: {
       keyPoints: keyPoints.map((k) => normalizeGeneratedText(k)),
@@ -204,31 +133,10 @@ export function presentScanDetails(
       primaryPackage: facts.changedPackages.primary ?? undefined,
     },
     usage: mapUsage(bundle),
-    verification: {
-      actions: verificationTitles.map((title) => ({
-        title: normalizeGeneratedText(title),
-      })),
-    },
-    signalSummary: vm.signalSummary
-      ? {
-          riskIndex: vm.signalSummary.score,
-          band:
-            vm.signalSummary.overallBand === "moderate"
-              ? ("medium" as const)
-              : vm.signalSummary.overallBand === "high"
-                ? ("high" as const)
-                : ("low" as const),
-          layers: vm.signalSummary.layers.map((l) => ({
-            layer: l.layer,
-            score: l.score,
-            band: l.concernLabel,
-            label: l.label,
-          })),
-        }
-      : undefined,
-    operationalImpact: mapOperationalImpact(vm),
-    recommendations: mapRecommendations(vm),
-    evidence: mapEvidence(bundle, vm),
+    verification: { actions: verificationActions },
+    operationalImpact: { status: "hidden", items: [] },
+    recommendations: { items: recommendations },
+    evidence: mapEvidence(bundle),
     supportingContext,
     metadata: {
       scanId: ctx.scanId,

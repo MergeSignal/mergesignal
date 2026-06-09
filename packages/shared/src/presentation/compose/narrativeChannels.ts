@@ -1,17 +1,15 @@
-import { deriveDetailReachChip } from "../../formatCardExposureDisplay.js";
 import { scanSurfaceCopy } from "../../scanSurfaceCopy.js";
+import {
+  applicationAreaLabels,
+  formatAssessmentHeadline,
+  projectInsightLines,
+  projectVerificationActions,
+  reachVisibilityLabel,
+} from "../../assessmentProjection.js";
+import { safeParseRepoIntelligence } from "../../repoIntelligenceSchema.js";
 import type { PresentationEvidenceRow } from "../dto/types.js";
-import {
-  formatPresentationHeadline,
-  formatPresentationInsightLines,
-  formatPresentationVerification,
-} from "../intent/formatPresentationCopy.js";
 import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
-import { formatCardAreaLabels } from "../../formatCardAreaLabels.js";
-import {
-  labelBlastRadiusLevel,
-  labelReachabilityKind,
-} from "../../narrativePresentation.js";
+import { labelBlastRadiusLevel } from "../../narrativePresentation.js";
 
 type NarrativeChannels = {
   headline: string;
@@ -27,78 +25,40 @@ function composeScopeAreaLabels(
   bundle: ScanPresentationBundle,
   max: number,
 ): string[] {
-  const labels: string[] = [];
-  for (const area of bundle.facts.affectedAreas) {
-    const formatted = formatCardAreaLabels([area.label], 1);
-    if (formatted[0]) labels.push(formatted[0]);
-    if (labels.length >= max) break;
-  }
-  return labels;
-}
-
-function isTautologicalEvidenceRow(row: PresentationEvidenceRow): boolean {
-  const label = row.label.trim().toLowerCase();
-  const value = row.value.trim().toLowerCase();
-  if (label === "runtime" && value === "runtime") return true;
-  return false;
+  const parsed = safeParseRepoIntelligence(bundle.result.repoIntelligence);
+  const labels = parsed.ok ? applicationAreaLabels(parsed.value) : [];
+  return labels.slice(0, max);
 }
 
 function composeChannelEvidence(
   bundle: ScanPresentationBundle,
   max: number,
 ): PresentationEvidenceRow[] {
-  const { facts, profile } = bundle;
+  const blast = labelBlastRadiusLevel(bundle.facts);
   const rows: PresentationEvidenceRow[] = [];
-
-  if (!profile.interpretation.suppressRuntimeNarrative) {
-    const reach = labelReachabilityKind(facts);
-    if (reach) rows.push({ label: "Reachability", value: reach });
-  }
-
-  const blast = labelBlastRadiusLevel(facts);
   if (blast) rows.push({ label: "Blast radius", value: blast });
-
-  return rows.filter((row) => !isTautologicalEvidenceRow(row)).slice(0, max);
-}
-
-function shouldShowReachLabel(bundle: ScanPresentationBundle): boolean {
-  const { profile } = bundle;
-  if (profile.status === "safe" && profile.density === "minimal") {
-    return false;
-  }
-  return profile.status !== "safe" || profile.density !== "minimal";
+  return rows.slice(0, max);
 }
 
 /** Canonical non-redundant narrative channels — single dedupe point for all surfaces. */
 export function buildNarrativeChannels(
   bundle: ScanPresentationBundle,
 ): NarrativeChannels {
-  const { facts, profile, result } = bundle;
-  const riskIndex = facts.riskIndex ?? result.totalScore ?? null;
+  const { assessment, presentation, profile, result } = bundle;
 
-  const reachLabel =
-    shouldShowReachLabel(bundle) && riskIndex != null
-      ? (deriveDetailReachChip(riskIndex) ?? undefined)
-      : undefined;
+  const reachLabel = reachVisibilityLabel(presentation.reachVisibility);
 
   return {
-    headline: formatPresentationHeadline(
-      profile.interpretation,
-      facts,
-      profile.status,
-    ),
+    headline: formatAssessmentHeadline(assessment, result, profile.status),
     limitedContextMessage: profile.degradedMessage ?? undefined,
     reachLabel,
-    insights: formatPresentationInsightLines(
-      profile.interpretation,
-      facts,
-      profile.status,
-    ),
+    insights: projectInsightLines(assessment, result),
     scopeAreas: composeScopeAreaLabels(bundle, 4),
     evidence: composeChannelEvidence(bundle, 4),
-    verification: formatPresentationVerification(
-      profile.interpretation,
-      profile.status,
+    verification: projectVerificationActions(
+      assessment,
+      presentation,
+      result,
       6,
     ),
   };

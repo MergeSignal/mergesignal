@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { deriveScanCardSummary } from "./scanCardSummary.js";
 import { deriveScanNarrative } from "./deriveScanNarrative.js";
 import {
   fixtureRepoIntelligenceFastify,
   fixtureRepoIntelligenceMultiPackage,
 } from "./fixtures/repoIntelligenceFixtures.js";
+import { assessmentFastifyRuntime } from "./fixtures/assessmentFixtures.js";
 import { validateRepoIntelligenceWire } from "./repoIntelligenceSchema.js";
+import { buildScanPresentationBundle } from "./presentation/orchestration/buildScanPresentationBundle.js";
+import { presentDashboardCard } from "./presentation/presenters/presentDashboardCard.js";
 import type { ScanResult } from "./types.js";
 
 const baseScan = {
@@ -36,6 +38,14 @@ describe("engine wire regression (canonical fixtures)", () => {
       ...baseScan,
       changedPackages: ["fastify"],
       repoIntelligence: fixtureRepoIntelligenceFastify,
+      assessment: assessmentFastifyRuntime,
+      decision: {
+        recommendation: "needs_review" as const,
+        confidence: "medium" as const,
+        reasoning: [
+          "Changed package has confirmed usage on runtime application paths in this repository.",
+        ],
+      },
     } satisfies ScanResult;
 
     const facts = deriveScanNarrative(result);
@@ -44,7 +54,11 @@ describe("engine wire regression (canonical fixtures)", () => {
     expect(facts.availability.repoIntelligenceParse).toBe("ok");
     expect(facts.packageUsage[0]?.packageName).toBe("fastify");
 
-    const card = deriveScanCardSummary(result, "done");
+    const bundle = buildScanPresentationBundle({
+      result,
+      pipelineStatus: "done",
+    })!;
+    const card = presentDashboardCard(bundle);
     expect(card.insights.length).toBeGreaterThan(0);
     expect(card.verification.length).toBeGreaterThan(0);
   });
@@ -55,6 +69,12 @@ describe("engine wire regression (canonical fixtures)", () => {
       ...baseScan,
       changedPackages: ["lodash", "axios"],
       repoIntelligence: fixtureRepoIntelligenceMultiPackage,
+      assessment: assessmentFastifyRuntime,
+      decision: {
+        recommendation: "needs_review" as const,
+        confidence: "medium" as const,
+        reasoning: [],
+      },
     } satisfies ScanResult;
 
     const facts = deriveScanNarrative(result);

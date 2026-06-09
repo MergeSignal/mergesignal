@@ -1,6 +1,10 @@
+import { assessmentLimitedContext } from "../../fixtures/assessmentFixtures.js";
 import type { PipelineStatus } from "../dto/types.js";
 import type { ScanResult } from "../../types.js";
-import { mergePostureFromDecision } from "../../riskVocabulary.js";
+import {
+  mergePostureFromDecision,
+  type MergePosture,
+} from "../../riskVocabulary.js";
 import { buildScanPresentationBundle } from "./buildScanPresentationBundle.js";
 import {
   presentDashboardCard,
@@ -24,6 +28,7 @@ function minimalResultFromDenormalized(
     return null;
   }
 
+  const resolvedPosture = posture as MergePosture | undefined;
   return {
     totalScore: totalScore ?? 0,
     layerScores: {
@@ -34,8 +39,11 @@ function minimalResultFromDenormalized(
     },
     findings: [],
     generatedAt: new Date().toISOString(),
-    decision: posture
-      ? { recommendation: posture, confidence: "medium", reasoning: [] }
+    decision: resolvedPosture
+      ? { recommendation: resolvedPosture, confidence: "medium", reasoning: [] }
+      : undefined,
+    assessment: resolvedPosture
+      ? { ...assessmentLimitedContext, posture: resolvedPosture }
       : undefined,
   };
 }

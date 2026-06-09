@@ -1,5 +1,18 @@
+import type { Assessment } from "../../assessmentSchema.js";
 import type { RepoIntelligence } from "../../repoIntelligenceSchema.js";
 import type { ScanResult } from "../../types.js";
+import {
+  assessmentBullmq,
+  assessmentEslint,
+  assessmentFastifyRuntime,
+  assessmentLimitedContext,
+  assessmentMixedTypescriptFastify,
+  assessmentNextAuth,
+  assessmentPrettier,
+  assessmentTypescriptPatch,
+  assessmentUnknownSafe,
+  assessmentVitest,
+} from "../../fixtures/assessmentFixtures.js";
 import {
   fixtureRepoIntelligenceFastify,
   fixtureRepoIntelligenceTypescript,
@@ -146,7 +159,27 @@ const fixtureRepoIntelligenceMixedToolingRuntime: RepoIntelligence = {
   applicationAreas: fixtureRepoIntelligenceFastify.applicationAreas,
 };
 
-function scanBase(over: Partial<ScanResult> = {}): ScanResult {
+function decisionForAssessment(assessment: Assessment): ScanResult["decision"] {
+  return {
+    recommendation: assessment.posture,
+    confidence: assessment.confidence,
+    reasoning:
+      assessment.posture === "safe"
+        ? [
+            "No dedicated dependency review required beyond normal engineering process.",
+          ]
+        : assessment.primaryConcern === "confirmed_runtime_usage"
+          ? [
+              "Changed package has confirmed usage on runtime application paths in this repository.",
+            ]
+          : ["Explicit human review warranted before merge."],
+  };
+}
+
+function scanBase(
+  assessment: Assessment,
+  over: Partial<ScanResult> = {},
+): ScanResult {
   return {
     totalScore: 18,
     layerScores: {
@@ -157,68 +190,65 @@ function scanBase(over: Partial<ScanResult> = {}): ScanResult {
     },
     findings: [],
     generatedAt: "2026-01-01T00:00:00.000Z",
-    decision: {
-      recommendation: "safe",
-      confidence: "high",
-      reasoning: [],
-    },
+    assessment,
+    decision: decisionForAssessment(assessment),
     analysisPreparation: basePrep,
     ...over,
   };
 }
 
-export const scanResultEslint: ScanResult = scanBase({
+export const scanResultEslint: ScanResult = scanBase(assessmentEslint, {
   changedPackages: ["eslint"],
   repoIntelligence: fixtureRepoIntelligenceEslint,
 });
 
-export const scanResultPrettier: ScanResult = scanBase({
+export const scanResultPrettier: ScanResult = scanBase(assessmentPrettier, {
   changedPackages: ["prettier"],
   repoIntelligence: fixtureRepoIntelligencePrettier,
 });
 
-export const scanResultVitest: ScanResult = scanBase({
+export const scanResultVitest: ScanResult = scanBase(assessmentVitest, {
   changedPackages: ["vitest"],
   repoIntelligence: fixtureRepoIntelligenceVitest,
 });
 
-export const scanResultNextAuth: ScanResult = scanBase({
+export const scanResultNextAuth: ScanResult = scanBase(assessmentNextAuth, {
   totalScore: 52,
   changedPackages: ["next-auth"],
   repoIntelligence: fixtureRepoIntelligenceNextAuth,
-  decision: {
-    recommendation: "needs_review",
-    confidence: "medium",
-    reasoning: [],
-  },
 });
 
-export const scanResultBullmq: ScanResult = scanBase({
+export const scanResultBullmq: ScanResult = scanBase(assessmentBullmq, {
   totalScore: 48,
   changedPackages: ["bullmq"],
   repoIntelligence: fixtureRepoIntelligenceBullmq,
   decision: {
     recommendation: "needs_review",
     confidence: "medium",
-    reasoning: [],
+    reasoning: [
+      "Changed package has confirmed usage on runtime application paths in this repository.",
+      "Queue infrastructure",
+      "Verification focus required",
+    ],
   },
 });
 
-export const scanResultUnknownSafe: ScanResult = scanBase({
-  changedPackages: ["opaque-pkg"],
-  repoIntelligence: fixtureRepoIntelligenceUnknown,
-});
-
-export const scanResultMixedTypescriptFastify: ScanResult = scanBase({
-  totalScore: 55,
-  changedPackages: ["typescript", "fastify"],
-  repoIntelligence: fixtureRepoIntelligenceMixedToolingRuntime,
-  decision: {
-    recommendation: "needs_review",
-    confidence: "medium",
-    reasoning: [],
+export const scanResultUnknownSafe: ScanResult = scanBase(
+  assessmentUnknownSafe,
+  {
+    changedPackages: ["opaque-pkg"],
+    repoIntelligence: fixtureRepoIntelligenceUnknown,
   },
-});
+);
+
+export const scanResultMixedTypescriptFastify: ScanResult = scanBase(
+  assessmentMixedTypescriptFastify,
+  {
+    totalScore: 55,
+    changedPackages: ["typescript", "fastify"],
+    repoIntelligence: fixtureRepoIntelligenceMixedToolingRuntime,
+  },
+);
 
 export {
   scanResultFastifyRuntime,

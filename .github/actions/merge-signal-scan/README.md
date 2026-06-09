@@ -59,7 +59,7 @@ Use **repository variables** for non-secret overrides (`vars.MERGESIGNAL_ENGINE_
 ## What you get
 
 - **Problem addressed:** dependency and lockfile changes can introduce security, maintenance, and upgrade risk that is easy to miss in review.
-- **Immediately after adding the action:** each matching workflow run includes a **job summary** in GitHub Actions with **merge posture**, a compact **risk index** (0 = lowest merge risk, 100 = highest), prioritized **reviewer guidance** (PR insights and recommendations), and **expandable** score and dependency-graph context—no separate MergeSignal server required.
+- **Immediately after adding the action:** each matching workflow run includes a **job summary** in GitHub Actions with **merge posture**, focused **reviewer guidance** for this PR's changed packages, and **verification checks** on relevant code paths — dependency-focused analysis without scanning the entire repository. A compact risk index and layer breakdown remain available as supporting context.
 
 ## Recommended workflow
 

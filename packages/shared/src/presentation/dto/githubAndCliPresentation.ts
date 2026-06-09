@@ -1,3 +1,4 @@
+import type { AssessmentPresentationFields } from "./assessmentPresentationFields.js";
 import type {
   PresentationConfidence,
   PresentationDensity,
@@ -5,7 +6,7 @@ import type {
   PresentationStatus,
 } from "./types.js";
 
-export type GitHubCheckRunPresentation = {
+export type GitHubCheckRunPresentation = AssessmentPresentationFields & {
   status: PresentationStatus;
   density: PresentationDensity;
   confidence: PresentationConfidence;
@@ -22,7 +23,7 @@ export type GitHubCheckRunPresentation = {
   detailsUrl: string;
 };
 
-export type GitHubPrCommentPresentation = {
+export type GitHubPrCommentPresentation = AssessmentPresentationFields & {
   status: PresentationStatus;
   density: PresentationDensity;
   confidence: PresentationConfidence;
@@ -36,7 +37,7 @@ export type GitHubPrCommentPresentation = {
   }>;
 };
 
-export type CliScanPresentation = {
+export type CliScanPresentation = AssessmentPresentationFields & {
   header: { repoLabel: string; methodology?: string; confidence?: string };
   status: PresentationStatus;
   density: PresentationDensity;

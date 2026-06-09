@@ -9,6 +9,7 @@ import {
 } from "../compose/narrativeCompose.js";
 import type { CliScanPresentation } from "../dto/githubAndCliPresentation.js";
 import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
+import { projectAssessmentFields } from "../projectAssessmentFields.js";
 
 export function presentCliScanSummary(
   bundle: ScanPresentationBundle,
@@ -21,6 +22,7 @@ export function presentCliScanSummary(
     : "";
 
   return {
+    ...projectAssessmentFields(bundle),
     header: {
       repoLabel: ctx.repoLabel ?? "scan",
       methodology: result.methodologyVersion ?? undefined,

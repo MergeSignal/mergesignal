@@ -17,36 +17,35 @@ export function detailPresentationToViewModel(
     statusLabel: p.hero.postureLabel,
   };
 
+  const toOverallBand = (
+    band: "low" | "medium" | "high",
+  ): ScanDetailSignalSummary["overallBand"] =>
+    band === "high" ? "high" : band === "medium" ? "moderate" : "low";
+
+  const toConcernLevel = (
+    band: string,
+  ): ScanDetailSignalSummary["layers"][number]["concernLevel"] => {
+    const lower = band.toLowerCase();
+    if (lower.includes("high")) return "high";
+    if (lower.includes("medium") || lower.includes("moderate")) return "medium";
+    return "low";
+  };
+
   const signalSummary: ScanDetailSignalSummary | null = p.signalSummary
     ? {
         score: p.signalSummary.riskIndex,
-        overallBand:
-          p.signalSummary.band === "high"
-            ? "high"
-            : p.signalSummary.band === "medium"
-              ? "moderate"
-              : "low",
+        overallBand: toOverallBand(p.signalSummary.band),
         overallLabel: p.hero.postureLabel,
         gauge: {
           fillPercent: p.signalSummary.riskIndex,
-          band:
-            p.signalSummary.band === "high"
-              ? "high"
-              : p.signalSummary.band === "medium"
-                ? "moderate"
-                : "low",
+          band: toOverallBand(p.signalSummary.band),
           ariaLabel: `Risk index ${p.signalSummary.riskIndex}`,
         },
         layers: p.signalSummary.layers.map((l) => ({
           layer: l.layer,
           label: l.label,
           score: l.score,
-          concernLevel: l.band.toLowerCase().includes("high")
-            ? "high"
-            : l.band.toLowerCase().includes("medium") ||
-                l.band.toLowerCase().includes("moderate")
-              ? "medium"
-              : "low",
+          concernLevel: toConcernLevel(l.band),
           concernLabel: l.band,
         })),
       }
@@ -117,8 +116,8 @@ export function detailPresentationToViewModel(
         p.evidenceContext.priority === "pr_intelligence",
       changedPackagesDisplay: p.narrative.changedPackages.join(", ") || null,
       runtimeSurfaceLabel: null,
-      reachabilityLabel: null,
-      blastRadiusLabel: null,
+      reachabilityLabel: p.reachVisibility ?? null,
+      blastRadiusLabel: p.hero.scopeChip ?? null,
       affectedAreas: p.narrative.keyPoints.filter(Boolean).slice(0, 4),
       structuralOnlyDisclaimer:
         p.evidenceContext.priority === "limited"
