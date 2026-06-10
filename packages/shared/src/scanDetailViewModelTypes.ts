@@ -3,6 +3,12 @@ import type { NarrativeAvailabilityMode } from "./scanNarrativeFacts.js";
 import type { MergePosture } from "./riskVocabulary.js";
 import type { FindingSeverity, ScoreLayer } from "./types.js";
 
+/** Max operational-impact rows before collapse on scan detail. */
+export const TIER1_MAX_VISIBLE_IMPACTS = 3;
+
+/** Findings list collapse threshold on scan detail evidence panel. */
+export const ACT3_EVIDENCE_COLLAPSE_THRESHOLD = 10;
+
 export type ScanDetailOverallRiskBand = "low" | "moderate" | "high";
 export type ScanDetailLayerConcernLevel = "low" | "medium" | "high";
 
