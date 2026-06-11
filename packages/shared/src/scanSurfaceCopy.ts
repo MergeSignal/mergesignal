@@ -9,6 +9,10 @@ export const scanSurfaceCopy = {
     scanIncomplete: "Waiting for scan results",
     scanUnavailable: "Scan data unavailable",
     analysisIncomplete: "Analysis could not be completed",
+    surfacesNotSynchronized:
+      "Analysis complete - GitHub check not synchronized",
+    surfacesNotSynchronizedDetail:
+      "Scan results are saved; the GitHub Check Run will appear after publishing completes.",
     outputNotVerified: "These results could not be verified",
   },
   actions: {

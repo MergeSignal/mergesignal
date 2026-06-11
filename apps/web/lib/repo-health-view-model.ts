@@ -10,12 +10,14 @@ import type { GithubOpenPR } from "./github-open-pull-requests";
 export type PrScanEntry = {
   scanId: string;
   pipelineStatus: ScanPipelineStatus;
+  presentationState?: ScanCardPresentationState;
   cardPresentation: DashboardCardPresentation;
   createdAt: string;
   githubPrNumber: number;
   githubHeadSha: string | null;
   githubBaseRef: string | null;
   scannedAt: string | null;
+  githubSurfacesPublishedAt?: string | null;
 };
 
 export type PrScanAggregates = {
@@ -70,6 +72,7 @@ function derivePresentationState(
   prHeadSha: string,
 ): ScanCardPresentationState {
   if (!scan) return "not_scanned";
+  if (scan.presentationState) return scan.presentationState;
 
   const pipeline = scan.pipelineStatus;
   if (pipeline === "queued" || pipeline === "running") return "scanning";
@@ -89,6 +92,7 @@ function presentationToLegacyState(
     case "ready":
       return "done";
     case "scanning":
+    case "surfaces_incomplete":
       return "in_progress";
     case "analysis_failed":
       return "failed";
@@ -110,7 +114,11 @@ function timestampForRow(
   ) {
     return scan.scannedAt;
   }
-  if (presentationState === "scanning" && scan?.createdAt) {
+  if (
+    (presentationState === "scanning" ||
+      presentationState === "surfaces_incomplete") &&
+    scan?.createdAt
+  ) {
     return scan.createdAt;
   }
   return pr.updatedAt;
@@ -132,7 +140,11 @@ export function buildRepoPullHealthViewModel(
     const isOutdated = presentationState === "stale";
     const timestampIso = timestampForRow(pr, scan, presentationState);
 
-    if (posture && presentationState !== "scanning") {
+    if (
+      posture &&
+      presentationState !== "scanning" &&
+      presentationState !== "surfaces_incomplete"
+    ) {
       byPosture[posture] += 1;
     }
 

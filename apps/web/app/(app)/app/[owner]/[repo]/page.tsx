@@ -38,24 +38,36 @@ export default async function RepoOverviewPage({
     },
   };
 
+  const prsPromise = accessToken
+    ? fetchOpenPullRequestsForRepo(accessToken, owner, repo)
+    : Promise.resolve({ kind: "error" as const, status: 401 });
+
   const [prsResult, scansResult] = await Promise.all([
-    accessToken
-      ? fetchOpenPullRequestsForRepo(accessToken, owner, repo)
-      : Promise.resolve({ kind: "error" as const, status: 401 }),
-    serverApiGet<PrScanIndexResponse>(
-      `/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pull-request-scans`,
-    ).catch((err: unknown) => {
-      // 404 → route not deployed yet or no data — treat as empty, not an error.
-      // 5xx → real server failure worth surfacing in the UI.
-      if (err instanceof ApiError && err.status === 404) {
-        return null;
-      }
-      const msg =
-        err instanceof ApiError
-          ? `Scan data temporarily unavailable (${err.status})`
-          : "Could not reach scan service";
-      return { error: msg };
-    }),
+    prsPromise,
+    prsPromise
+      .then(async (prsRes) => {
+        const prHeads =
+          prsRes.kind === "success" && prsRes.prs.length > 0
+            ? prsRes.prs.map((pr) => `${pr.number}:${pr.headSha}`).join(",")
+            : undefined;
+        const scanPath = `/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pull-request-scans`;
+        const url = prHeads
+          ? `${scanPath}?prHeads=${encodeURIComponent(prHeads)}`
+          : scanPath;
+        return serverApiGet<PrScanIndexResponse>(url);
+      })
+      .catch((err: unknown) => {
+        // 404 → route not deployed yet or no data — treat as empty, not an error.
+        // 5xx → real server failure worth surfacing in the UI.
+        if (err instanceof ApiError && err.status === 404) {
+          return null;
+        }
+        const msg =
+          err instanceof ApiError
+            ? `Scan data temporarily unavailable (${err.status})`
+            : "Could not reach scan service";
+        return { error: msg };
+      }),
   ]);
 
   let openPRs: GithubOpenPR[] = [];

@@ -127,6 +127,23 @@ export function presentDashboardCard(
   return normalizeDashboardCard(card);
 }
 
+export function presentSurfacesIncompleteDashboardCard(): DashboardCardPresentation {
+  const headline = scanSurfaceCopy.pipeline.surfacesNotSynchronized;
+  return normalizeDashboardCard({
+    pipeline: {
+      status: "failed",
+      headline,
+      subheadline: scanSurfaceCopy.pipeline.surfacesNotSynchronizedDetail,
+    },
+    headline,
+    insights: [],
+    verification: [],
+    layout: "standard",
+    detailActionLabel: scanSurfaceCopy.presentation.actionLabelReview,
+    sortKey: { postureRank: -1, riskIndex: -1 },
+  });
+}
+
 export function presentPipelineDashboardCard(
   pipelineStatus: "queued" | "running" | "failed",
 ): DashboardCardPresentation {

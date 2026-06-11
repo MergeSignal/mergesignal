@@ -21,6 +21,10 @@ const STATE_COPY: Record<
     label: scanSurfaceCopy.pipeline.analysisIncomplete,
     tone: "danger",
   },
+  surfaces_incomplete: {
+    label: scanSurfaceCopy.pipeline.surfacesNotSynchronized,
+    tone: "warning",
+  },
   stale: { label: "Scan outdated", tone: "warning" },
 };
 

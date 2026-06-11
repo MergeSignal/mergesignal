@@ -3,6 +3,8 @@
   "pipeline.scanIncomplete": "Waiting for scan results",
   "pipeline.scanUnavailable": "Scan data unavailable",
   "pipeline.analysisIncomplete": "Analysis could not be completed",
+  "pipeline.surfacesNotSynchronized": "Analysis complete - GitHub check not synchronized",
+  "pipeline.surfacesNotSynchronizedDetail": "Scan results are saved; the GitHub Check Run will appear after publishing completes.",
   "pipeline.outputNotVerified": "These results could not be verified",
   "actions.failureTitle": "MergeSignal",
   "actions.failureBody": "Analysis could not be completed. Check the workflow logs for details.",

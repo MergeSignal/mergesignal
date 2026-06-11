@@ -1,7 +1,9 @@
 import {
   buildScanCardPresentation,
   buildScanDetailsPresentation,
+  presentSurfacesIncompleteDashboardCard,
   resolvePipelineStatus,
+  type ScanCardPresentationState,
   type ScanResult,
 } from "@mergesignal/shared";
 
@@ -11,7 +13,11 @@ export function buildScanCardForApi(input: {
   totalScore: number | null;
   result: ScanResult | null;
   scannedAt?: string | null;
+  presentationState?: ScanCardPresentationState;
 }) {
+  if (input.presentationState === "surfaces_incomplete") {
+    return presentSurfacesIncompleteDashboardCard();
+  }
   const effectivePipeline = resolvePipelineStatus(input.pipelineStatus, {
     decision: input.decision,
     totalScore: input.totalScore,

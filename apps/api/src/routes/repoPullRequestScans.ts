@@ -1,24 +1,31 @@
 import type { FastifyInstance } from "fastify";
 import {
-  resolvePipelineStatus,
   type DashboardCardPresentation,
+  type ScanCardPresentationState,
   type ScanPipelineStatus,
-  type ScanResult,
 } from "@mergesignal/shared";
 import { db } from "../db.js";
 import { sendProblem } from "../problem.js";
-import { buildScanCardForApi } from "../services/scanPresentationService.js";
 import { getOwnerGithubQuotaStatus } from "../services/scanQuota.js";
+import {
+  buildCardForResolvedScan,
+  groupRowsByPrNumber,
+  parsePrHeadsQuery,
+  resolvePrScanForHead,
+  type PrScanDbRow,
+} from "../services/resolvePrScanIndex.js";
 
 type PrScanIndexEntry = {
   scanId: string;
   pipelineStatus: ScanPipelineStatus;
+  presentationState: ScanCardPresentationState;
   cardPresentation: DashboardCardPresentation;
   createdAt: string;
   githubPrNumber: number;
   githubHeadSha: string | null;
   githubBaseRef: string | null;
   scannedAt: string | null;
+  githubSurfacesPublishedAt: string | null;
 };
 
 type PrScanAggregates = {
@@ -26,16 +33,10 @@ type PrScanAggregates = {
   byDecision: { safe: number; needs_review: number; risky: number };
 };
 
-function asScanResult(
-  result: Record<string, unknown> | null,
-): ScanResult | null {
-  if (!result) return null;
-  return result as ScanResult;
-}
-
 export async function repoPullRequestScansRoutes(app: FastifyInstance) {
   app.get("/repo/:owner/:repo/pull-request-scans", async (req, reply) => {
     const { owner, repo } = req.params as { owner: string; repo: string };
+    const query = req.query as { prHeads?: string };
 
     if (!owner?.trim() || !repo?.trim()) {
       return sendProblem(reply, req, {
@@ -55,20 +56,11 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
       });
     }
 
+    const prHeads = parsePrHeadsQuery(query.prHeads);
+
     const [scanRowsResult, quotaStatus] = await Promise.all([
-      db.query<{
-        scan_id: string;
-        status: string;
-        decision: string | null;
-        total_score: number | null;
-        github_pr_number: number;
-        github_head_sha: string | null;
-        github_base_ref: string | null;
-        created_at: Date;
-        result_generated_at: Date | null;
-        result: Record<string, unknown> | null;
-      }>(
-        `SELECT DISTINCT ON (github_pr_number)
+      db.query<PrScanDbRow>(
+        `SELECT
          id AS scan_id,
          status,
          decision,
@@ -78,69 +70,73 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
          github_base_ref,
          created_at,
          result_generated_at,
-         result
+         result,
+         github_surfaces_published_at
        FROM scans
        WHERE repo_id = $1
          AND github_pr_number IS NOT NULL
-       ORDER BY github_pr_number,
-         CASE status::text
-           WHEN 'done' THEN 0
-           WHEN 'failed' THEN 1
-           WHEN 'running' THEN 2
-           WHEN 'queued' THEN 3
-           ELSE 4
-         END,
-         created_at DESC`,
+       ORDER BY github_pr_number, created_at DESC`,
         [repoId],
       ),
       getOwnerGithubQuotaStatus(owner),
     ]);
 
     const { rows } = scanRowsResult;
+    const byPr = groupRowsByPrNumber(rows);
+
+    const prTargets =
+      prHeads.size > 0
+        ? [...prHeads.entries()]
+        : [...byPr.keys()].map(
+            (prNumber) =>
+              [
+                prNumber,
+                byPr.get(prNumber)?.[0]?.github_head_sha ?? "",
+              ] as const,
+          );
 
     const byPrNumber: Record<string, PrScanIndexEntry> = {};
     const aggregates: PrScanAggregates = {
-      totalCovered: rows.length,
+      totalCovered: 0,
       byDecision: { safe: 0, needs_review: 0, risky: 0 },
     };
 
-    for (const row of rows) {
-      const prKey = String(row.github_pr_number);
+    for (const [prNumber, headSha] of prTargets) {
+      if (!headSha) continue;
+      const resolved = resolvePrScanForHead(rows, prNumber, headSha);
+      if (!resolved) continue;
+
+      const { row, presentationState, pipelineStatus } = resolved;
       const scannedAt = row.result_generated_at
         ? new Date(row.result_generated_at).toISOString()
         : null;
-      const pipelineStatus = resolvePipelineStatus(row.status, {
-        decision: row.decision,
-        totalScore: row.total_score,
-        hasResult: row.result != null,
-        scannedAt,
-      });
+      const cardPresentation = buildCardForResolvedScan(resolved);
+
       const d = row.decision;
       if (
+        presentationState === "ready" &&
         pipelineStatus === "done" &&
         (d === "safe" || d === "needs_review" || d === "risky")
       ) {
         aggregates.byDecision[d] += 1;
       }
 
-      const cardPresentation = buildScanCardForApi({
-        pipelineStatus: row.status,
-        decision: row.decision,
-        totalScore: row.total_score,
-        result: asScanResult(row.result),
-        scannedAt,
-      });
-
+      const prKey = String(prNumber);
       byPrNumber[prKey] = {
         scanId: row.scan_id,
         pipelineStatus,
+        presentationState,
         cardPresentation,
         createdAt: new Date(row.created_at).toISOString(),
         githubPrNumber: row.github_pr_number,
         githubHeadSha: row.github_head_sha,
         githubBaseRef: row.github_base_ref,
         scannedAt,
+        githubSurfacesPublishedAt: row.github_surfaces_published_at
+          ? new Date(row.github_surfaces_published_at).toISOString()
+          : null,
       };
+      aggregates.totalCovered += 1;
     }
 
     return reply.send({ repoId, quotaStatus, byPrNumber, aggregates });

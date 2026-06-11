@@ -44,8 +44,49 @@ function makeRow(
     created_at: Date;
     result_generated_at: Date | null;
     result: Record<string, unknown> | null;
+    github_surfaces_published_at: Date | null;
   }> = {},
 ) {
+  const status = overrides.status ?? "done";
+  const defaultSurfaced =
+    status === "done" && overrides.github_surfaces_published_at === undefined
+      ? new Date("2026-01-01T00:02:00Z")
+      : (overrides.github_surfaces_published_at ?? null);
+  const defaultResult =
+    status === "done" && overrides.result === undefined
+      ? {
+          totalScore: overrides.total_score ?? 72,
+          layerScores: {
+            security: 1,
+            maintainability: 2,
+            ecosystem: 3,
+            upgradeImpact: 4,
+          },
+          findings: [],
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          assessment: {
+            posture: "risky",
+            confidence: "medium",
+            primaryConcern: "breaking_or_major",
+            concerns: [],
+            factors: ["breaking_or_major"],
+            changeClasses: ["breaking_change"],
+            presentation: {
+              narrativeIntensity: "elevated",
+              reachVisibility: "prominent",
+              verificationIntensity: "required",
+              insightEmissionFloor: "full",
+              reportMode: "high_signal_pr",
+            },
+          },
+          decision: {
+            recommendation: overrides.decision ?? "risky",
+            confidence: "medium",
+            reasoning: [],
+          },
+        }
+      : (overrides.result ?? null);
+
   return {
     scan_id: "scan-1",
     status: "done",
@@ -56,7 +97,8 @@ function makeRow(
     github_base_ref: "main",
     created_at: new Date("2026-01-01T00:00:00Z"),
     result_generated_at: new Date("2026-01-01T00:01:00Z"),
-    result: null,
+    result: defaultResult,
+    github_surfaces_published_at: defaultSurfaced,
     ...overrides,
   };
 }
@@ -336,65 +378,15 @@ describe("repoPullRequestScansRoutes", () => {
     expect(areas).toEqual(["Auth flow", "State sync"]);
   });
 
-  it("promotes running status to done when completion evidence exists", async () => {
-    vi.mocked(db.query).mockResolvedValue({
-      rows: [
-        makeRow({
-          status: "running",
-          decision: "risky",
-          total_score: 72,
-          result_generated_at: new Date("2026-01-01T00:01:00Z"),
-        }),
-      ],
-      rowCount: 1,
-    } as never);
-
-    const res = await app.inject({
-      method: "GET",
-      url: "/repo/acme/frontend/pull-request-scans",
-    });
-    const body = res.json();
-    expect(body.byPrNumber["42"].pipelineStatus).toBe("done");
-    expect(body.byPrNumber["42"].cardPresentation.verdict?.posture).toBe(
-      "risky",
-    );
-    expect(body.byPrNumber["42"].cardPresentation.pipeline).toBeUndefined();
-  });
-
-  it("promotes running to done with decision only (no result_generated_at)", async () => {
-    vi.mocked(db.query).mockResolvedValue({
-      rows: [
-        makeRow({
-          status: "running",
-          decision: "needs_review",
-          total_score: 48,
-          result_generated_at: null,
-        }),
-      ],
-      rowCount: 1,
-    } as never);
-
-    const res = await app.inject({
-      method: "GET",
-      url: "/repo/acme/frontend/pull-request-scans",
-    });
-    const body = res.json();
-    expect(body.byPrNumber["42"].pipelineStatus).toBe("done");
-    expect(body.byPrNumber["42"].cardPresentation.verdict?.posture).toBe(
-      "needs_review",
-    );
-    expect(body.byPrNumber["42"].cardPresentation.pipeline).toBeUndefined();
-  });
-
-  it("promotes running to done when only result_generated_at is set", async () => {
+  it("returns scanning for in-flight rows matching prHeads", async () => {
     vi.mocked(db.query).mockResolvedValue({
       rows: [
         makeRow({
           status: "running",
           decision: null,
           total_score: null,
-          result_generated_at: new Date("2026-01-01T00:01:00Z"),
-          result: null,
+          result_generated_at: null,
+          github_surfaces_published_at: null,
         }),
       ],
       rowCount: 1,
@@ -402,10 +394,149 @@ describe("repoPullRequestScansRoutes", () => {
 
     const res = await app.inject({
       method: "GET",
-      url: "/repo/acme/frontend/pull-request-scans",
+      url: "/repo/acme/frontend/pull-request-scans?prHeads=42:abc123",
     });
     const body = res.json();
-    expect(body.byPrNumber["42"].pipelineStatus).toBe("done");
+    expect(body.byPrNumber["42"].pipelineStatus).toBe("running");
+    expect(body.byPrNumber["42"].presentationState).toBe("scanning");
+    expect(body.byPrNumber["42"].cardPresentation.verdict).toBeUndefined();
+    expect(body.byPrNumber["42"].cardPresentation.pipeline).toBeDefined();
+  });
+
+  it("returns surfaces_incomplete when done without github_surfaces_published_at", async () => {
+    vi.mocked(db.query).mockResolvedValue({
+      rows: [
+        makeRow({
+          status: "done",
+          decision: "safe",
+          total_score: 20,
+          github_surfaces_published_at: null,
+          result: {
+            totalScore: 20,
+            layerScores: {
+              security: 1,
+              maintainability: 2,
+              ecosystem: 3,
+              upgradeImpact: 4,
+            },
+            findings: [],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+            assessment: {
+              posture: "safe",
+              confidence: "high",
+              primaryConcern: null,
+              concerns: [],
+              factors: ["tooling_maintenance"],
+              changeClasses: ["tooling_maintenance"],
+              presentation: {
+                narrativeIntensity: "minimal",
+                reachVisibility: "hidden",
+                verificationIntensity: "advisory",
+                insightEmissionFloor: "none",
+                reportMode: "high_signal_pr",
+              },
+            },
+            decision: {
+              recommendation: "safe",
+              confidence: "high",
+              reasoning: [],
+            },
+          },
+        }),
+      ],
+      rowCount: 1,
+    } as never);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/repo/acme/frontend/pull-request-scans?prHeads=42:abc123",
+    });
+    const body = res.json();
+    const entry = body.byPrNumber["42"];
+    expect(entry.presentationState).toBe("surfaces_incomplete");
+    expect(entry.cardPresentation.verdict).toBeUndefined();
+    expect(entry.cardPresentation.sortKey).toEqual({
+      postureRank: -1,
+      riskIndex: -1,
+    });
+    expect(body.aggregates.byDecision.safe).toBe(0);
+  });
+
+  it("returns ready only when surfaces are published for matching head", async () => {
+    vi.mocked(db.query).mockResolvedValue({
+      rows: [
+        makeRow({
+          status: "done",
+          decision: "safe",
+          total_score: 20,
+          github_surfaces_published_at: new Date("2026-01-01T00:02:00Z"),
+          result: {
+            totalScore: 20,
+            layerScores: {
+              security: 1,
+              maintainability: 2,
+              ecosystem: 3,
+              upgradeImpact: 4,
+            },
+            findings: [],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+            assessment: {
+              posture: "safe",
+              confidence: "high",
+              primaryConcern: null,
+              concerns: [],
+              factors: ["tooling_maintenance"],
+              changeClasses: ["tooling_maintenance"],
+              presentation: {
+                narrativeIntensity: "minimal",
+                reachVisibility: "hidden",
+                verificationIntensity: "advisory",
+                insightEmissionFloor: "none",
+                reportMode: "high_signal_pr",
+              },
+            },
+            decision: {
+              recommendation: "safe",
+              confidence: "high",
+              reasoning: [],
+            },
+          },
+        }),
+      ],
+      rowCount: 1,
+    } as never);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/repo/acme/frontend/pull-request-scans?prHeads=42:abc123",
+    });
+    const body = res.json();
+    expect(body.byPrNumber["42"].presentationState).toBe("ready");
+    expect(body.byPrNumber["42"].cardPresentation.verdict?.posture).toBe(
+      "safe",
+    );
+    expect(body.aggregates.byDecision.safe).toBe(1);
+  });
+
+  it("returns stale when surfaced scan is for an older head sha", async () => {
+    vi.mocked(db.query).mockResolvedValue({
+      rows: [
+        makeRow({
+          scan_id: "scan-old",
+          github_head_sha: "old-sha",
+          github_surfaces_published_at: new Date("2026-01-01T00:02:00Z"),
+        }),
+      ],
+      rowCount: 1,
+    } as never);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/repo/acme/frontend/pull-request-scans?prHeads=42:new-sha",
+    });
+    const body = res.json();
+    expect(body.byPrNumber["42"].presentationState).toBe("stale");
+    expect(body.byPrNumber["42"].scanId).toBe("scan-old");
   });
 
   it("returns 403 when authenticated owner does not match", async () => {

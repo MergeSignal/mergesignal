@@ -16,6 +16,10 @@ import {
   parseScanResultOrThrow,
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
+import {
+  isPublishGitHubSurfacesEnabled,
+  publishGitHubCheckRun,
+} from "./githubSurfaces.js";
 import { withPgRetries } from "./pgRetry.js";
 import { captureWorkerException } from "./sentry.js";
 
@@ -117,6 +121,40 @@ async function persistSuccess(
         engineReleaseGitSha,
         scanId,
       ],
+    ),
+  );
+  return res.rowCount ?? 0;
+}
+
+async function markSurfacesPublished(
+  pool: Pool,
+  scanId: string,
+): Promise<number> {
+  const res = await withPgRetries(() =>
+    pool.query(
+      `UPDATE scans SET
+        github_surfaces_published_at = NOW(),
+        github_surfaces_publish_error = NULL,
+        updated_at = NOW()
+      WHERE id = $1 AND status = 'done'`,
+      [scanId],
+    ),
+  );
+  return res.rowCount ?? 0;
+}
+
+async function markSurfacesPublishError(
+  pool: Pool,
+  scanId: string,
+  message: string,
+): Promise<number> {
+  const res = await withPgRetries(() =>
+    pool.query(
+      `UPDATE scans SET
+        github_surfaces_publish_error = $2,
+        updated_at = NOW()
+      WHERE id = $1 AND status = 'done'`,
+      [scanId, truncateErrorMessage(message, 2000)],
     ),
   );
   return res.rowCount ?? 0;
@@ -365,6 +403,36 @@ export async function executeScanJob(
           codeIntelligenceAvailable,
           warningCodes: prepared.preparationSummary.warningCodes,
         });
+
+        if (
+          isPublishGitHubSurfacesEnabled() &&
+          job.data.github &&
+          validated.decision
+        ) {
+          try {
+            await publishGitHubCheckRun(job.data.github, scanId, resultToStore);
+            const surfaced = await markSurfacesPublished(pool, scanId);
+            logScanEvent("info", "scan_surfaces_published", {
+              scanId,
+              repoId,
+              jobId,
+              pr,
+              rowsUpdated: surfaced,
+            });
+          } catch (e: unknown) {
+            captureWorkerException(e);
+            const msg = e instanceof Error ? e.message : String(e);
+            const errRows = await markSurfacesPublishError(pool, scanId, msg);
+            logScanEvent("error", "github_surfaces_publish_failed", {
+              scanId,
+              repoId,
+              jobId,
+              pr,
+              rowsUpdated: errRows,
+              err: msg,
+            });
+          }
+        }
       }
     } catch (e: unknown) {
       captureWorkerException(e);

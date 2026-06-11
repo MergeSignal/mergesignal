@@ -49,6 +49,7 @@ function makeIndex(
     score?: number | null;
     headSha?: string;
     scannedAt?: string;
+    presentationState?: PrScanIndexResponse["byPrNumber"][string]["presentationState"];
     cardPresentation?: DashboardCardPresentation;
   }>,
 ): PrScanIndexResponse {
@@ -107,6 +108,7 @@ function makeIndex(
     byPrNumber[String(e.prNumber)] = {
       scanId: `scan-${e.prNumber}`,
       pipelineStatus,
+      presentationState: e.presentationState,
       cardPresentation,
       createdAt: new Date(2026, 0, 1).toISOString(),
       githubPrNumber: e.prNumber,
@@ -296,6 +298,54 @@ describe("buildRepoPullHealthViewModel", () => {
   it("propagates hasMore", () => {
     const vm = buildRepoPullHealthViewModel([makePR(1)], makeIndex([]), true);
     expect(vm.hasMore).toBe(true);
+  });
+
+  it("marks surfaces_incomplete without posture and excludes from byPosture", () => {
+    const vm = buildRepoPullHealthViewModel(
+      [makePR(1)],
+      makeIndex([
+        {
+          prNumber: 1,
+          pipelineStatus: "done",
+          presentationState: "surfaces_incomplete",
+          cardPresentation: makeCardPresentation({
+            pipeline: {
+              status: "failed",
+              headline: scanSurfaceCopy.pipeline.surfacesNotSynchronized,
+            },
+            headline: scanSurfaceCopy.pipeline.surfacesNotSynchronized,
+            verdict: undefined,
+            sortKey: { postureRank: -1, riskIndex: -1 },
+          }),
+        },
+      ]),
+      false,
+    );
+    expect(vm.rows[0]!.presentationState).toBe("surfaces_incomplete");
+    expect(vm.rows[0]!.posture).toBeNull();
+    expect(vm.byPosture).toEqual({ risky: 0, needs_review: 0, safe: 0 });
+  });
+
+  it("sorts surfaces_incomplete with pipeline rows (not above risky)", () => {
+    const vm = buildRepoPullHealthViewModel(
+      [makePR(1), makePR(2)],
+      makeIndex([
+        {
+          prNumber: 1,
+          presentationState: "surfaces_incomplete",
+          pipelineStatus: "done",
+          cardPresentation: makeCardPresentation({
+            verdict: undefined,
+            headline: scanSurfaceCopy.pipeline.surfacesNotSynchronized,
+            sortKey: { postureRank: -1, riskIndex: -1 },
+          }),
+        },
+        { prNumber: 2, decision: "risky", score: 80 },
+      ]),
+      false,
+    );
+    expect(vm.rows[0]!.pr.number).toBe(2);
+    expect(vm.rows[1]!.pr.number).toBe(1);
   });
 
   it("marks running wire status as scanning even when card has posture", () => {

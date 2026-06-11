@@ -35,6 +35,7 @@ export type {
 export {
   presentDashboardCard,
   presentPipelineDashboardCard,
+  presentSurfacesIncompleteDashboardCard,
 } from "./presenters/presentDashboardCard.js";
 export { presentScanDetails } from "./presenters/presentScanDetails.js";
 export type { PresentScanDetailsContext } from "./presenters/presentScanDetails.js";
@@ -43,6 +44,13 @@ export { presentGitHubPrComment } from "./presenters/presentGitHubPrComment.js";
 export { presentCliScanSummary } from "./presenters/presentCliScanSummary.js";
 
 export { renderGitHubCheckRunMarkdown } from "./render/renderGitHubCheckRunMarkdown.js";
+export {
+  buildGitHubCheckRunOutput,
+  resolveWebAppOrigin,
+  type GitHubCheckRunConclusion,
+  type GitHubCheckRunOutput,
+  type BuildGitHubCheckRunOutputOptions,
+} from "./buildGitHubCheckRunOutput.js";
 export { renderGitHubPrCommentMarkdown } from "./render/renderGitHubPrCommentMarkdown.js";
 export { renderCliScanSummaryText } from "./render/renderCliScanSummaryText.js";
 

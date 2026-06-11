@@ -9,7 +9,12 @@ import { MSTruncatedWithTooltip } from "../../shared/MSTruncatedWithTooltip/MSTr
 import styles from "./PRHealthCard.module.css";
 
 function timestampLabel(presentationState: PRHealthRow["presentationState"]) {
-  if (presentationState === "scanning") return "Started";
+  if (
+    presentationState === "scanning" ||
+    presentationState === "surfaces_incomplete"
+  ) {
+    return "Started";
+  }
   if (presentationState === "ready" || presentationState === "stale") {
     return "Scanned";
   }
@@ -27,6 +32,7 @@ export function PRHealthCard({ row }: { row: PRHealthRow }) {
   const showPipelineBody =
     presentationState === "scanning" ||
     presentationState === "analysis_failed" ||
+    presentationState === "surfaces_incomplete" ||
     presentationState === "not_scanned";
 
   return (
