@@ -177,6 +177,61 @@ export type AssessmentPresentationPublic = Pick<
 
 export type Assessment = z.infer<typeof assessmentSchema>;
 
+const EMPTY_REACH_SCOPE: ReachScope = { packages: [], maxBucket: "very_low" };
+const EMPTY_VERIFICATION_SCOPE: VerificationScope = { packages: [], focus: [] };
+
+/** Structural focal placeholder when engine omits reviewFocalPoint (pre-ABI-2 output). */
+export function structuralLegacyReviewFocalPoint(): ReviewFocalPoint {
+  return {
+    episodeShape: "structural",
+    anchors: ["dependency_graph"],
+    election: {
+      grounding: [
+        {
+          packageName: "dependency_graph",
+          reason: "engine_output_missing_focal",
+          decidedBy: "reach",
+          evidenceRefs: ["platform:legacy_engine_assessment_shim"],
+        },
+      ],
+      exclusions: [],
+    },
+  };
+}
+
+/**
+ * Upgrade pre-ABI-2 engine assessments at platform boundaries.
+ * Full ABI-2 payloads pass through unchanged.
+ */
+export function coerceEngineOutputAssessment(data: unknown): unknown {
+  if (data == null || typeof data !== "object") return data;
+  if (assessmentSchema.safeParse(data).success) return data;
+
+  const obj = data as Record<string, unknown>;
+  const hasCore =
+    obj.posture != null &&
+    obj.confidence != null &&
+    obj.presentation != null &&
+    Array.isArray(obj.concerns) &&
+    Array.isArray(obj.factors) &&
+    Array.isArray(obj.changeClasses);
+
+  if (!hasCore) return data;
+
+  return {
+    ...obj,
+    reviewFocalPoint:
+      obj.reviewFocalPoint ?? structuralLegacyReviewFocalPoint(),
+    reachScope: obj.reachScope ?? EMPTY_REACH_SCOPE,
+    verificationScope: obj.verificationScope ?? EMPTY_VERIFICATION_SCOPE,
+  };
+}
+
+export const engineOutputAssessmentSchema = z.preprocess(
+  coerceEngineOutputAssessment,
+  assessmentSchema,
+);
+
 export function toPublicPresentation(
   wire: AssessmentPresentationWire,
 ): AssessmentPresentationPublic {
@@ -189,7 +244,7 @@ export function toPublicPresentation(
 }
 
 export function parseAssessmentOrThrow(data: unknown): Assessment {
-  const parsed = assessmentSchema.safeParse(data);
+  const parsed = assessmentSchema.safeParse(coerceEngineOutputAssessment(data));
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
@@ -202,7 +257,7 @@ export function parseAssessmentOrThrow(data: unknown): Assessment {
 export function safeParseAssessment(
   data: unknown,
 ): { ok: true; value: Assessment } | { ok: false; issues: string[] } {
-  const parsed = assessmentSchema.safeParse(data);
+  const parsed = assessmentSchema.safeParse(coerceEngineOutputAssessment(data));
   if (!parsed.success) {
     return {
       ok: false,

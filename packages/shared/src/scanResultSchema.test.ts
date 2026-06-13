@@ -152,4 +152,36 @@ describe("engineOutputScanResultSchema (strict, fresh engine only)", () => {
     });
     expect(r.ok).toBe(false);
   });
+
+  it("coerces pre-ABI-2 assessment missing focal/scope fields", () => {
+    const legacyAssessment = {
+      posture: "safe" as const,
+      confidence: "high" as const,
+      primaryConcern: null,
+      concerns: [],
+      factors: ["tooling_maintenance"],
+      changeClasses: ["tooling_maintenance" as const],
+      presentation: {
+        narrativeIntensity: "minimal" as const,
+        reachVisibility: "hidden" as const,
+        verificationIntensity: "advisory" as const,
+        insightEmissionFloor: "none" as const,
+        reportMode: "high_signal_pr" as const,
+      },
+    };
+    const r = safeParseEngineOutputScanResult({
+      ...withMethodology,
+      assessment: legacyAssessment,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.result.assessment?.reviewFocalPoint.episodeShape).toBe(
+        "structural",
+      );
+      expect(r.result.assessment?.reachScope).toEqual({
+        packages: [],
+        maxBucket: "very_low",
+      });
+    }
+  });
 });

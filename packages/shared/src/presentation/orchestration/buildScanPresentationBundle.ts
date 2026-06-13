@@ -27,17 +27,17 @@ export function buildScanPresentationBundle(
   const assessment = input.result.assessment;
   if (!assessment) return null;
 
-  parseAssessmentOrThrow(assessment);
-  const presentation = toPublicPresentation(assessment.presentation);
+  const normalized = parseAssessmentOrThrow(assessment);
+  const presentation = toPublicPresentation(normalized.presentation);
   const profile = buildProfileFromAssessment(
-    assessment,
+    normalized,
     presentation,
     input.result,
   );
   const facts = deriveScanNarrative(input.result);
 
   return {
-    assessment,
+    assessment: normalized,
     presentation,
     profile,
     facts,
