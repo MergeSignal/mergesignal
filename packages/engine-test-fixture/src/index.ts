@@ -1,13 +1,47 @@
-import {
-  assessmentTypescriptPatch,
-  type CodeAnalysisInput,
-  type ScanRequest,
-  type ScanResult,
-  type UpgradeSimulationRequest,
-  type UpgradeSimulationResult,
+import type {
+  Assessment,
+  CodeAnalysisInput,
+  ScanRequest,
+  ScanResult,
+  UpgradeSimulationRequest,
+  UpgradeSimulationResult,
 } from "@mergesignal/shared";
 
 const METHODOLOGY_VERSION = "engine-test-fixture/v1";
+
+/** Self-contained ABI-2 assessment — no runtime @mergesignal/shared import (Docker fixture engine). */
+const FIXTURE_ASSESSMENT: Assessment = {
+  reviewFocalPoint: {
+    episodeShape: "single_anchor",
+    anchors: ["typescript"],
+    election: {
+      grounding: [
+        {
+          packageName: "typescript",
+          reason: "fixture",
+          decidedBy: "reach",
+          evidenceRefs: ["fixture:focal"],
+        },
+      ],
+      exclusions: [],
+    },
+  },
+  reachScope: { packages: [], maxBucket: "very_low" },
+  verificationScope: { packages: [], focus: [] },
+  posture: "safe",
+  confidence: "high",
+  primaryConcern: null,
+  concerns: [],
+  factors: ["tooling_maintenance"],
+  changeClasses: ["tooling_maintenance"],
+  presentation: {
+    narrativeIntensity: "minimal",
+    reachVisibility: "hidden",
+    verificationIntensity: "advisory",
+    insightEmissionFloor: "none",
+    reportMode: "high_signal_pr",
+  },
+};
 
 const minimalScan = (repoId: string): ScanResult => ({
   totalScore: 12,
@@ -22,7 +56,7 @@ const minimalScan = (repoId: string): ScanResult => ({
   generatedAt: new Date().toISOString(),
   methodologyVersion: METHODOLOGY_VERSION,
   confidence: "high",
-  assessment: assessmentTypescriptPatch,
+  assessment: FIXTURE_ASSESSMENT,
   decision: {
     recommendation: "safe",
     confidence: "high",

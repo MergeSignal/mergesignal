@@ -283,12 +283,3 @@ export const assessmentUnknownSafe: Assessment = withAssessmentScope(
     verificationScope: emptyVerificationScope(),
   },
 );
-
-export {
-  emptyReachScope,
-  emptyVerificationScope,
-  minimalReviewFocalPoint,
-  reachScopeFor,
-  verificationScopeFor,
-  withAssessmentScope,
-} from "./assessmentScopeFixtures.js";

@@ -4,12 +4,14 @@ import type { ScanResult } from "../types.js";
 import {
   assessmentFastifyRuntime,
   assessmentTypescriptPatch,
+} from "../fixtures/assessmentFixtures.js";
+import {
   withAssessmentScope,
   minimalReviewFocalPoint,
   emptyReachScope,
   emptyVerificationScope,
   reachScopeFor,
-} from "../fixtures/assessmentFixtures.js";
+} from "../fixtures/assessmentScopeFixtures.js";
 import { buildScanPresentationBundle, presentDashboardCard } from "./index.js";
 import { buildGitHubCheckRunOutput } from "./buildGitHubCheckRunOutput.js";
 
