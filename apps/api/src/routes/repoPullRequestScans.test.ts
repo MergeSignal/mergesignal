@@ -1,6 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
 import { repoPullRequestScansRoutes } from "./repoPullRequestScans.js";
+import type { Assessment } from "@mergesignal/shared";
+import {
+  assessmentTypescriptPatch,
+  emptyReachScope,
+  emptyVerificationScope,
+  minimalReviewFocalPoint,
+  reachScopeFor,
+  withAssessmentScope,
+} from "@mergesignal/shared";
 
 vi.mock("../db.js", () => ({
   db: { query: vi.fn() },
@@ -31,6 +40,21 @@ const defaultQuotaOk = {
   used: 0,
   windowHours: 24,
 };
+
+function testAssessment(
+  anchor: string,
+  body: Omit<
+    Assessment,
+    "reviewFocalPoint" | "reachScope" | "verificationScope"
+  >,
+): Assessment {
+  return withAssessmentScope(body, {
+    reviewFocalPoint: minimalReviewFocalPoint([anchor]),
+    reachScope:
+      body.posture === "safe" ? emptyReachScope() : reachScopeFor([anchor]),
+    verificationScope: emptyVerificationScope(),
+  });
+}
 
 function makeRow(
   overrides: Partial<{
@@ -64,7 +88,7 @@ function makeRow(
           },
           findings: [],
           generatedAt: "2026-01-01T00:00:00.000Z",
-          assessment: {
+          assessment: testAssessment("pkg", {
             posture: "risky",
             confidence: "medium",
             primaryConcern: "breaking_or_major",
@@ -78,7 +102,7 @@ function makeRow(
               insightEmissionFloor: "full",
               reportMode: "high_signal_pr",
             },
-          },
+          }),
           decision: {
             recommendation: overrides.decision ?? "risky",
             confidence: "medium",
@@ -249,7 +273,7 @@ describe("repoPullRequestScansRoutes", () => {
             },
             findings: [],
             generatedAt: "2026-01-01T00:00:00.000Z",
-            assessment: {
+            assessment: testAssessment("lodash", {
               posture: "risky",
               confidence: "medium",
               primaryConcern: "confirmed_runtime_usage",
@@ -270,7 +294,7 @@ describe("repoPullRequestScansRoutes", () => {
                 insightEmissionFloor: "full",
                 reportMode: "high_signal_pr",
               },
-            },
+            }),
             decision: {
               recommendation: "risky",
               confidence: "medium",
@@ -317,7 +341,7 @@ describe("repoPullRequestScansRoutes", () => {
             findings: [],
             generatedAt: "2026-01-01T00:00:00.000Z",
             changedPackages: ["auth-lib"],
-            assessment: {
+            assessment: testAssessment("auth-lib", {
               posture: "needs_review",
               confidence: "medium",
               primaryConcern: "confirmed_runtime_usage",
@@ -338,7 +362,7 @@ describe("repoPullRequestScansRoutes", () => {
                 insightEmissionFloor: "full",
                 reportMode: "high_signal_pr",
               },
-            },
+            }),
             decision: {
               recommendation: "needs_review",
               confidence: "medium",
@@ -421,21 +445,7 @@ describe("repoPullRequestScansRoutes", () => {
             },
             findings: [],
             generatedAt: "2026-01-01T00:00:00.000Z",
-            assessment: {
-              posture: "safe",
-              confidence: "high",
-              primaryConcern: null,
-              concerns: [],
-              factors: ["tooling_maintenance"],
-              changeClasses: ["tooling_maintenance"],
-              presentation: {
-                narrativeIntensity: "minimal",
-                reachVisibility: "hidden",
-                verificationIntensity: "advisory",
-                insightEmissionFloor: "none",
-                reportMode: "high_signal_pr",
-              },
-            },
+            assessment: assessmentTypescriptPatch,
             decision: {
               recommendation: "safe",
               confidence: "high",
@@ -480,21 +490,7 @@ describe("repoPullRequestScansRoutes", () => {
             },
             findings: [],
             generatedAt: "2026-01-01T00:00:00.000Z",
-            assessment: {
-              posture: "safe",
-              confidence: "high",
-              primaryConcern: null,
-              concerns: [],
-              factors: ["tooling_maintenance"],
-              changeClasses: ["tooling_maintenance"],
-              presentation: {
-                narrativeIntensity: "minimal",
-                reachVisibility: "hidden",
-                verificationIntensity: "advisory",
-                insightEmissionFloor: "none",
-                reportMode: "high_signal_pr",
-              },
-            },
+            assessment: assessmentTypescriptPatch,
             decision: {
               recommendation: "safe",
               confidence: "high",

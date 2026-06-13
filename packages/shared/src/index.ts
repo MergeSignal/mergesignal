@@ -29,3 +29,15 @@ export * from "./trustedScanGuards.js";
 export * from "./actionsStepSummary.js";
 export * from "./productMessaging.js";
 export * from "./presentation/index.js";
+export {
+  emptyReachScope,
+  emptyVerificationScope,
+  minimalReviewFocalPoint,
+  reachScopeFor,
+  verificationScopeFor,
+  withAssessmentScope,
+} from "./fixtures/assessmentScopeFixtures.js";
+export {
+  assessmentStub,
+  assessmentTypescriptPatch,
+} from "./fixtures/assessmentFixtures.js";

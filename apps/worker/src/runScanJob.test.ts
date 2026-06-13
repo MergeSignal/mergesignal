@@ -2,6 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Job } from "bullmq";
 import type { Pool } from "pg";
 import type { ScanQueueJob } from "@mergesignal/shared";
+import {
+  withAssessmentScope,
+  minimalReviewFocalPoint,
+  emptyReachScope,
+  emptyVerificationScope,
+} from "@mergesignal/shared";
 import { executeScanJob } from "./runScanJob.js";
 
 vi.mock("@mergesignal/engine", async (importOriginal) => {
@@ -40,21 +46,28 @@ const validEngineOutput = {
   findings: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
   methodologyVersion: "acme-prod/v1",
-  assessment: {
-    posture: "needs_review" as const,
-    confidence: "medium" as const,
-    primaryConcern: null,
-    concerns: [],
-    factors: ["tooling_maintenance"],
-    changeClasses: ["tooling_maintenance"],
-    presentation: {
-      narrativeIntensity: "standard" as const,
-      reachVisibility: "hidden" as const,
-      verificationIntensity: "advisory" as const,
-      insightEmissionFloor: "none" as const,
-      reportMode: "high_signal_pr" as const,
+  assessment: withAssessmentScope(
+    {
+      posture: "needs_review" as const,
+      confidence: "medium" as const,
+      primaryConcern: null,
+      concerns: [],
+      factors: ["tooling_maintenance"],
+      changeClasses: ["tooling_maintenance"],
+      presentation: {
+        narrativeIntensity: "standard" as const,
+        reachVisibility: "hidden" as const,
+        verificationIntensity: "advisory" as const,
+        insightEmissionFloor: "none" as const,
+        reportMode: "high_signal_pr" as const,
+      },
     },
-  },
+    {
+      reviewFocalPoint: minimalReviewFocalPoint(["typescript"]),
+      reachScope: emptyReachScope(),
+      verificationScope: emptyVerificationScope(),
+    },
+  ),
   decision: {
     recommendation: "needs_review" as const,
     confidence: "medium" as const,

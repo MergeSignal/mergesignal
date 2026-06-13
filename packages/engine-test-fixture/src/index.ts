@@ -1,9 +1,10 @@
-import type {
-  CodeAnalysisInput,
-  ScanRequest,
-  ScanResult,
-  UpgradeSimulationRequest,
-  UpgradeSimulationResult,
+import {
+  assessmentTypescriptPatch,
+  type CodeAnalysisInput,
+  type ScanRequest,
+  type ScanResult,
+  type UpgradeSimulationRequest,
+  type UpgradeSimulationResult,
 } from "@mergesignal/shared";
 
 const METHODOLOGY_VERSION = "engine-test-fixture/v1";
@@ -21,21 +22,7 @@ const minimalScan = (repoId: string): ScanResult => ({
   generatedAt: new Date().toISOString(),
   methodologyVersion: METHODOLOGY_VERSION,
   confidence: "high",
-  assessment: {
-    posture: "safe",
-    confidence: "high",
-    primaryConcern: null,
-    concerns: [],
-    factors: ["tooling_maintenance"],
-    changeClasses: ["tooling_maintenance"],
-    presentation: {
-      narrativeIntensity: "minimal",
-      reachVisibility: "hidden",
-      verificationIntensity: "advisory",
-      insightEmissionFloor: "none",
-      reportMode: "high_signal_pr",
-    },
-  },
+  assessment: assessmentTypescriptPatch,
   decision: {
     recommendation: "safe",
     confidence: "high",
