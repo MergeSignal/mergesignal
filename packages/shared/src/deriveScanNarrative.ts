@@ -45,6 +45,28 @@ function parseChangedPackages(
   };
 }
 
+function changedPackagesFromAssessment(
+  result: ScanResult,
+): ScanNarrativeFacts["changedPackages"] {
+  const assessment = result.assessment;
+  const focal = assessment?.reviewFocalPoint;
+  // Follow-up: remove parseChangedPackages fallback after historical scan re-scan window.
+  if (focal?.anchors?.length && focal.anchors[0] !== "dependency_graph") {
+    const token = focal.anchors[0]!;
+    const primary = token.includes("+") ? token.split("+")[0]! : token;
+    const supporting = focal.supportingPackages ?? [];
+    const all = [
+      ...new Set([primary, ...supporting, ...(result.changedPackages ?? [])]),
+    ].sort((a, b) => a.localeCompare(b));
+    return {
+      primary,
+      others: all.filter((p) => p !== primary),
+      all,
+    };
+  }
+  return parseChangedPackages(result.changedPackages);
+}
+
 function blastLevelFromChangedCount(count: number): BlastRadiusLevel {
   if (count >= 8) return "wide";
   if (count >= 3) return "moderate";
@@ -519,7 +541,7 @@ export function deriveScanNarrative(
     return { ...EMPTY_SCAN_NARRATIVE_FACTS };
   }
 
-  const changedPackages = parseChangedPackages(result.changedPackages);
+  const changedPackages = changedPackagesFromAssessment(result);
   const mergePosture =
     mergePostureFromDecision(result.decision?.recommendation) ?? null;
   const riskIndex =

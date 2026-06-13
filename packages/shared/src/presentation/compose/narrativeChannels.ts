@@ -49,7 +49,7 @@ export function buildNarrativeChannels(
   const reachLabel = reachVisibilityLabel(presentation.reachVisibility);
 
   return {
-    headline: formatAssessmentHeadline(assessment, result, profile.status),
+    headline: formatAssessmentHeadline(assessment, profile.status),
     limitedContextMessage: profile.degradedMessage ?? undefined,
     reachLabel,
     insights: projectInsightLines(assessment, result),

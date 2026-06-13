@@ -10,13 +10,22 @@ import type { PresentationInterpretation } from "../intent/presentationIntent.js
 import type { PresentationProfile } from "./presentationProfile.js";
 import { collectVerificationFocus } from "../../assessmentProjection.js";
 
+function focalAnchorPackage(assessment: Assessment): string | null {
+  const anchors = assessment.reviewFocalPoint.anchors;
+  if (!anchors.length) return null;
+  const token = anchors[0]!;
+  if (token === "dependency_graph") return null;
+  if (token.includes("+")) return token.split("+")[0]!;
+  return token;
+}
+
 function buildInterpretation(
   assessment: Assessment,
   presentation: AssessmentPresentationPublic,
   result: ScanResult,
 ): PresentationInterpretation {
   const verificationLabels = collectVerificationFocus(result);
-  const anchorPackage = result.changedPackages?.[0] ?? null;
+  const anchorPackage = focalAnchorPackage(assessment);
   const suppressRuntimeNarrative = presentation.reachVisibility === "hidden";
 
   let intent: PresentationInterpretation["intent"] = "unknown_upgrade";

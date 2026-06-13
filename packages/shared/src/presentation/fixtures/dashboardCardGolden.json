@@ -6,7 +6,7 @@
     "reasoning": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verificationFocus": ["ci", "typecheck"],
+    "verificationFocus": [],
     "reachVisibility": "hidden",
     "narrativeIntensity": "minimal",
     "verdict": {
@@ -17,7 +17,7 @@
     "insights": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verification": ["Verify ci", "Verify typecheck"],
+    "verification": [],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -38,7 +38,7 @@
     "reasoning": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verificationFocus": ["ci", "lint"],
+    "verificationFocus": [],
     "reachVisibility": "hidden",
     "narrativeIntensity": "minimal",
     "verdict": {
@@ -49,7 +49,7 @@
     "insights": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verification": ["Verify ci", "Verify lint"],
+    "verification": [],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -70,7 +70,7 @@
     "reasoning": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verificationFocus": ["ci", "format"],
+    "verificationFocus": [],
     "reachVisibility": "hidden",
     "narrativeIntensity": "minimal",
     "verdict": {
@@ -81,7 +81,7 @@
     "insights": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verification": ["Verify ci", "Verify format"],
+    "verification": [],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -102,7 +102,7 @@
     "reasoning": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verificationFocus": ["ci", "test_suite"],
+    "verificationFocus": [],
     "reachVisibility": "hidden",
     "narrativeIntensity": "minimal",
     "verdict": {
@@ -113,7 +113,7 @@
     "insights": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verification": ["Verify ci", "Verify test_suite"],
+    "verification": [],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -135,13 +135,7 @@
       "Changed package has confirmed usage on runtime application paths in this repository.",
       "HTTP framework infrastructure"
     ],
-    "verificationFocus": [
-      "routes",
-      "middleware",
-      "auth_flow",
-      "serialization",
-      "error_handling"
-    ],
+    "verificationFocus": ["routes", "middleware"],
     "reachVisibility": "prominent",
     "narrativeIntensity": "elevated",
     "verdict": {
@@ -316,19 +310,15 @@
   "mixedTypescriptFastify": {
     "posture": "needs_review",
     "primaryConcern": "confirmed_runtime_usage",
-    "factors": ["confirmed_runtime_usage", "http_framework_infrastructure"],
+    "factors": [
+      "confirmed_runtime_usage",
+      "queue_infrastructure",
+      "http_framework_infrastructure"
+    ],
     "reasoning": [
       "Changed package has confirmed usage on runtime application paths in this repository."
     ],
-    "verificationFocus": [
-      "ci",
-      "typecheck",
-      "routes",
-      "middleware",
-      "auth_flow",
-      "serialization",
-      "error_handling"
-    ],
+    "verificationFocus": ["workers", "queue", "routes", "middleware"],
     "reachVisibility": "prominent",
     "narrativeIntensity": "elevated",
     "verdict": {
@@ -336,12 +326,12 @@
       "postureLabel": "Needs review",
       "scopeLabel": "Moderate reach"
     },
-    "headline": "fastify runtime upgrade affects application code",
+    "headline": "fastify runtime upgrade affects workers and queues",
     "insights": [
       "Changed package has confirmed usage on runtime application paths in this repository."
     ],
     "scopeAreas": ["API request handling", "Auth middleware"],
-    "verification": ["Verify ci", "Verify typecheck"],
+    "verification": ["Verify workers", "Verify queue"],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -353,81 +343,6 @@
     "sortKey": {
       "postureRank": 1,
       "riskIndex": 55
-    }
-  },
-  "pipeline_queued": {
-    "pipeline": {
-      "status": "queued",
-      "headline": "Scan in progress",
-      "subheadline": "Waiting for scan results"
-    },
-    "headline": "Scan in progress",
-    "insights": [],
-    "verification": [],
-    "layout": "standard",
-    "detailActionLabel": "Review scan",
-    "sortKey": {
-      "postureRank": -1,
-      "riskIndex": -1
-    }
-  },
-  "pipeline_running": {
-    "pipeline": {
-      "status": "running",
-      "headline": "Scan in progress",
-      "subheadline": "Waiting for scan results"
-    },
-    "headline": "Scan in progress",
-    "insights": [],
-    "verification": [],
-    "layout": "standard",
-    "detailActionLabel": "Review scan",
-    "sortKey": {
-      "postureRank": -1,
-      "riskIndex": -1
-    }
-  },
-  "pipeline_failed": {
-    "pipeline": {
-      "status": "failed",
-      "headline": "Analysis could not be completed"
-    },
-    "headline": "Analysis could not be completed",
-    "insights": [],
-    "verification": [],
-    "layout": "standard",
-    "detailActionLabel": "Review scan",
-    "sortKey": {
-      "postureRank": -1,
-      "riskIndex": -1
-    }
-  },
-  "denormalizedRisky": {
-    "posture": "risky",
-    "primaryConcern": "insufficient_evidence",
-    "factors": ["insufficient_collection_evidence"],
-    "reasoning": [],
-    "verificationFocus": [],
-    "reachVisibility": "hidden",
-    "narrativeIntensity": "minimal",
-    "verdict": {
-      "posture": "risky",
-      "postureLabel": "Risky"
-    },
-    "headline": "Dependency upgrade with limited scan context",
-    "limitedContext": {
-      "message": "PR-specific scan context was limited"
-    },
-    "insights": [
-      "Collection evidence is partial; confidence is reduced but review posture is preserved when runtime signals exist.",
-      "Insufficient collection evidence"
-    ],
-    "verification": [],
-    "layout": "standard",
-    "detailActionLabel": "Review scan",
-    "sortKey": {
-      "postureRank": 2,
-      "riskIndex": 72
     }
   }
 }

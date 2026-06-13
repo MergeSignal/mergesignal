@@ -44,8 +44,6 @@ const personas: PersonaExpectation[] = [
     density: "minimal",
     headlineMatch: /patch upgrade/i,
     headlineMustNot: /needs review/i,
-    verificationIncludes: ["CI", "typecheck"],
-    verificationMustNot: /auth flow/i,
   },
   {
     name: "eslint",
@@ -55,7 +53,6 @@ const personas: PersonaExpectation[] = [
     density: "minimal",
     headlineMatch: /patch upgrade/i,
     headlineMustNot: /needs review/i,
-    verificationIncludes: ["ci", "lint"],
   },
   {
     name: "prettier",
@@ -65,7 +62,6 @@ const personas: PersonaExpectation[] = [
     density: "minimal",
     headlineMatch: /patch upgrade/i,
     headlineMustNot: /needs review/i,
-    verificationIncludes: ["format"],
   },
   {
     name: "vitest",
@@ -75,7 +71,6 @@ const personas: PersonaExpectation[] = [
     density: "minimal",
     headlineMatch: /patch upgrade|dependency upgrade/i,
     headlineMustNot: /needs review/i,
-    verificationIncludes: ["test"],
   },
   {
     name: "fastify runtime",

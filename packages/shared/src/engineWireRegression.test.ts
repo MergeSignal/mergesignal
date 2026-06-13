@@ -80,8 +80,8 @@ describe("engine wire regression (canonical fixtures)", () => {
     const facts = deriveScanNarrative(result);
     expect(facts.availability.mode).toBe("pr_intelligence");
     expect(facts.packageUsage.map((u) => u.packageName)).toEqual([
-      "lodash",
       "axios",
+      "lodash",
     ]);
   });
 });

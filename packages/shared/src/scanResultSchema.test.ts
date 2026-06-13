@@ -6,6 +6,11 @@ import {
   safeParseEngineOutputScanResult,
   parseEngineOutputScanResultOrThrow,
 } from "./scanResultSchema.js";
+import {
+  emptyReachScope,
+  emptyVerificationScope,
+  minimalReviewFocalPoint,
+} from "./fixtures/assessmentScopeFixtures.js";
 
 const minimalValid = {
   totalScore: 42,
@@ -97,6 +102,9 @@ describe("scanResultSchema", () => {
 });
 
 const minimalAssessment = {
+  reviewFocalPoint: minimalReviewFocalPoint(["typescript"]),
+  reachScope: emptyReachScope(),
+  verificationScope: emptyVerificationScope(),
   posture: "safe" as const,
   confidence: "high" as const,
   primaryConcern: null,

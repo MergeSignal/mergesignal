@@ -4,7 +4,7 @@
  */
 import { z } from "zod";
 
-export const ASSESSMENT_ABI = "1" as const;
+export const ASSESSMENT_ABI = "2" as const;
 
 export const ASSESSMENT_POSTURES = ["safe", "needs_review", "risky"] as const;
 export type AssessmentPosture = (typeof ASSESSMENT_POSTURES)[number];
@@ -70,6 +70,32 @@ export const ASSESSMENT_REPORT_MODES = [
 ] as const;
 export type AssessmentReportMode = (typeof ASSESSMENT_REPORT_MODES)[number];
 
+export const REVIEW_EPISODE_SHAPES = [
+  "single_anchor",
+  "multi_anchor",
+  "parent_supporting",
+  "coupled_pair",
+  "tooling_bundle",
+  "structural",
+] as const;
+export type ReviewEpisodeShape = (typeof REVIEW_EPISODE_SHAPES)[number];
+
+export const FOCAL_ELECTION_DIMENSIONS = [
+  "concern",
+  "reach",
+  "changeSeverity",
+  "role_salience_tiebreak",
+] as const;
+export type FocalElectionDimension = (typeof FOCAL_ELECTION_DIMENSIONS)[number];
+
+export const REACH_SCOPE_MAX_BUCKETS = [
+  "very_low",
+  "low",
+  "moderate",
+  "high",
+] as const;
+export type ReachScopeMaxBucket = (typeof REACH_SCOPE_MAX_BUCKETS)[number];
+
 const assessmentConcernSchema = z.object({
   kind: z.enum(MERGE_CONCERN_KINDS),
   rank: z.number().int().nonnegative(),
@@ -85,7 +111,44 @@ const assessmentPresentationWireSchema = z.object({
   reportMode: z.enum(ASSESSMENT_REPORT_MODES),
 });
 
+const reviewFocalPointSchema = z.object({
+  episodeShape: z.enum(REVIEW_EPISODE_SHAPES),
+  anchors: z.array(z.string()),
+  supportingPackages: z.array(z.string()).optional(),
+  election: z.object({
+    grounding: z.array(
+      z.object({
+        packageName: z.string(),
+        reason: z.string(),
+        decidedBy: z.enum(FOCAL_ELECTION_DIMENSIONS),
+        evidenceRefs: z.array(z.string()),
+      }),
+    ),
+    exclusions: z.array(
+      z.object({
+        packageName: z.string(),
+        reason: z.string(),
+        lostOn: z.enum(FOCAL_ELECTION_DIMENSIONS),
+        evidenceRefs: z.array(z.string()),
+      }),
+    ),
+  }),
+});
+
+const reachScopeSchema = z.object({
+  packages: z.array(z.string()),
+  maxBucket: z.enum(REACH_SCOPE_MAX_BUCKETS),
+});
+
+const verificationScopeSchema = z.object({
+  packages: z.array(z.string()),
+  focus: z.array(z.string()),
+});
+
 export const assessmentSchema = z.object({
+  reviewFocalPoint: reviewFocalPointSchema,
+  reachScope: reachScopeSchema,
+  verificationScope: verificationScopeSchema,
   posture: z.enum(ASSESSMENT_POSTURES),
   confidence: z.enum(ASSESSMENT_CONFIDENCES),
   primaryConcern: z.enum(MERGE_CONCERN_KINDS).nullable(),
@@ -99,6 +162,9 @@ export type AssessmentConcern = z.infer<typeof assessmentConcernSchema>;
 export type AssessmentPresentationWire = z.infer<
   typeof assessmentPresentationWireSchema
 >;
+export type ReviewFocalPoint = z.infer<typeof reviewFocalPointSchema>;
+export type ReachScope = z.infer<typeof reachScopeSchema>;
+export type VerificationScope = z.infer<typeof verificationScopeSchema>;
 
 /** Public presentation subset — excludes engine policy fields. */
 export type AssessmentPresentationPublic = Pick<

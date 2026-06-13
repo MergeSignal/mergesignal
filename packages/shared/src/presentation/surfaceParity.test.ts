@@ -18,15 +18,41 @@ import {
 import type { ScanResult } from "../types.js";
 import { projectAssessmentFields } from "./projectAssessmentFields.js";
 
+import { buildNarrativeChannels } from "./compose/narrativeChannels.js";
+
 const SCAN_ID = "22222222-2222-4222-8222-222222222222";
 const ORIGIN = "https://app.example.com";
 
+const validationPersonasCore: Array<{
+  id: string;
+  name: string;
+  result: ScanResult;
+}> = [
+  {
+    id: "validation-pr-26",
+    name: "PR #26 mixed",
+    result: scanResultMixedTypescriptFastify,
+  },
+  {
+    id: "validation-pr-27",
+    name: "PR #27 fastify",
+    result: scanResultFastifyRuntime,
+  },
+  {
+    id: "validation-pr-28",
+    name: "PR #28 typescript",
+    result: scanResultTypescriptPatch,
+  },
+  {
+    id: "validation-pr-29",
+    name: "PR #29 prettier",
+    result: scanResultPrettier,
+  },
+  { id: "validation-pr-30", name: "PR #30 bullmq", result: scanResultBullmq },
+];
+
 const validationPersonas: Array<{ name: string; result: ScanResult }> = [
-  { name: "PR #26 mixed", result: scanResultMixedTypescriptFastify },
-  { name: "PR #27 fastify", result: scanResultFastifyRuntime },
-  { name: "PR #28 typescript", result: scanResultTypescriptPatch },
-  { name: "PR #29 prettier", result: scanResultPrettier },
-  { name: "PR #30 bullmq", result: scanResultBullmq },
+  ...validationPersonasCore,
   { name: "eslint", result: scanResultEslint },
   { name: "vitest", result: scanResultVitest },
 ];
@@ -91,4 +117,62 @@ describe("surfaceParity guardrail", () => {
       expect(s.details.hero.headline).toBe(s.card.headline);
     });
   }
+
+  it("validation personas #26–#30: pairwise distinct reviewFocalPoint and headlines", () => {
+    const focalPoints: unknown[] = [];
+    const headlines: string[] = [];
+
+    for (const persona of validationPersonasCore) {
+      const s = surfacesFor(persona.result);
+      focalPoints.push(persona.result.assessment!.reviewFocalPoint);
+      headlines.push(s.card.headline);
+      expect(s.check.title).toBe(s.card.headline);
+    }
+
+    for (let i = 0; i < headlines.length; i++) {
+      for (let j = i + 1; j < headlines.length; j++) {
+        expect(headlines[i]).not.toBe(headlines[j]);
+      }
+    }
+
+    for (let i = 0; i < focalPoints.length; i++) {
+      for (let j = i + 1; j < focalPoints.length; j++) {
+        expect(focalPoints[i]).not.toEqual(focalPoints[j]);
+      }
+    }
+  });
+
+  it("PR #26: headline uses focal fastify, not changedPackages[0] typescript", () => {
+    const result = scanResultMixedTypescriptFastify;
+    expect(result.changedPackages?.[0]).toBe("typescript");
+    const s = surfacesFor(result);
+    expect(s.card.headline.toLowerCase()).toContain("fastify");
+    expect(s.card.headline.toLowerCase()).not.toContain("typescript");
+  });
+
+  it("validation personas #28–#30: reach and verification channels differ by scope", () => {
+    const channelsById = new Map(
+      validationPersonasCore.map((p) => {
+        const bundle = buildScanPresentationBundle({
+          result: p.result,
+          pipelineStatus: "done",
+        })!;
+        return [p.id, buildNarrativeChannels(bundle)] as const;
+      }),
+    );
+
+    const ch28 = channelsById.get("validation-pr-28")!;
+    const ch29 = channelsById.get("validation-pr-29")!;
+    const ch27 = channelsById.get("validation-pr-27")!;
+    const ch30 = channelsById.get("validation-pr-30")!;
+    const ch26 = channelsById.get("validation-pr-26")!;
+
+    expect(ch28.reachLabel).toBeUndefined();
+    expect(ch29.reachLabel).toBeUndefined();
+    expect(ch27.verification.length).toBeGreaterThan(0);
+    expect(ch30.verification.length).toBeGreaterThan(0);
+    expect(ch27.verification).not.toEqual(ch30.verification);
+    expect(ch26.verification).not.toEqual(ch27.verification);
+    expect(ch26.scopeAreas.length).toBeGreaterThan(0);
+  });
 });

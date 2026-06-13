@@ -1,92 +1,80 @@
 import { describe, expect, it } from "vitest";
 import type { Assessment } from "../assessmentSchema.js";
 import type { ScanResult } from "../types.js";
+import {
+  assessmentFastifyRuntime,
+  assessmentTypescriptPatch,
+  withAssessmentScope,
+  minimalReviewFocalPoint,
+  emptyReachScope,
+  emptyVerificationScope,
+  reachScopeFor,
+} from "../fixtures/assessmentFixtures.js";
 import { buildScanPresentationBundle, presentDashboardCard } from "./index.js";
 import { buildGitHubCheckRunOutput } from "./buildGitHubCheckRunOutput.js";
 
-const safeAssessment: Assessment = {
-  posture: "safe",
-  confidence: "high",
-  primaryConcern: null,
-  concerns: [],
-  factors: ["tooling_maintenance"],
-  changeClasses: ["tooling_maintenance"],
-  presentation: {
-    narrativeIntensity: "minimal",
-    reachVisibility: "hidden",
-    verificationIntensity: "advisory",
-    insightEmissionFloor: "none",
-    reportMode: "high_signal_pr",
-  },
-};
+const safeAssessment: Assessment = assessmentTypescriptPatch;
 
-const baselineAssessment: Assessment = {
-  posture: "safe",
-  confidence: "medium",
-  primaryConcern: "graph_baseline_only",
-  concerns: [
-    {
-      kind: "graph_baseline_only",
-      rank: 1,
-      evidenceRefs: ["fixture:baseline"],
+const baselineAssessment: Assessment = withAssessmentScope(
+  {
+    posture: "safe",
+    confidence: "medium",
+    primaryConcern: "graph_baseline_only",
+    concerns: [
+      {
+        kind: "graph_baseline_only",
+        rank: 1,
+        evidenceRefs: ["fixture:baseline"],
+      },
+    ],
+    factors: ["graph_baseline_only"],
+    changeClasses: ["tooling_maintenance"],
+    presentation: {
+      narrativeIntensity: "minimal",
+      reachVisibility: "hidden",
+      verificationIntensity: "none",
+      insightEmissionFloor: "none",
+      reportMode: "lightweight_pr_graph_baseline",
     },
-  ],
-  factors: ["graph_baseline_only"],
-  changeClasses: ["tooling_maintenance"],
-  presentation: {
-    narrativeIntensity: "minimal",
-    reachVisibility: "hidden",
-    verificationIntensity: "none",
-    insightEmissionFloor: "none",
-    reportMode: "lightweight_pr_graph_baseline",
   },
-};
+  {
+    reviewFocalPoint: minimalReviewFocalPoint(["@types/minimist"]),
+    reachScope: emptyReachScope(),
+    verificationScope: emptyVerificationScope(),
+  },
+);
 
-const needsReviewAssessment: Assessment = {
-  posture: "needs_review",
-  confidence: "medium",
-  primaryConcern: "confirmed_runtime_usage",
-  concerns: [
-    {
-      kind: "confirmed_runtime_usage",
-      rank: 1,
-      packages: ["fastify"],
-      evidenceRefs: ["fixture:fastify"],
-    },
-  ],
-  factors: ["confirmed_runtime_usage", "http_framework_infrastructure"],
-  changeClasses: ["runtime_upgrade"],
-  presentation: {
-    narrativeIntensity: "elevated",
-    reachVisibility: "prominent",
-    verificationIntensity: "required",
-    insightEmissionFloor: "full",
-    reportMode: "high_signal_pr",
-  },
-};
+const needsReviewAssessment: Assessment = assessmentFastifyRuntime;
 
-const riskyAssessment: Assessment = {
-  posture: "risky",
-  confidence: "high",
-  primaryConcern: "breaking_or_major",
-  concerns: [
-    {
-      kind: "breaking_or_major",
-      rank: 1,
-      packages: ["react"],
-      evidenceRefs: ["fixture:breaking"],
+const riskyAssessment: Assessment = withAssessmentScope(
+  {
+    posture: "risky",
+    confidence: "high",
+    primaryConcern: "breaking_or_major",
+    concerns: [
+      {
+        kind: "breaking_or_major",
+        rank: 1,
+        packages: ["react"],
+        evidenceRefs: ["fixture:breaking"],
+      },
+    ],
+    factors: ["breaking_or_major"],
+    changeClasses: ["breaking_change"],
+    presentation: {
+      narrativeIntensity: "elevated",
+      reachVisibility: "prominent",
+      verificationIntensity: "required",
+      insightEmissionFloor: "full",
+      reportMode: "high_signal_pr",
     },
-  ],
-  factors: ["breaking_or_major"],
-  changeClasses: ["breaking_change"],
-  presentation: {
-    narrativeIntensity: "elevated",
-    reachVisibility: "prominent",
-    verificationIntensity: "required",
-    insightEmissionFloor: "full",
-    reportMode: "high_signal_pr",
   },
-};
+  {
+    reviewFocalPoint: minimalReviewFocalPoint(["react"]),
+    reachScope: reachScopeFor(["react"], "high"),
+    verificationScope: emptyVerificationScope(),
+  },
+);
 
 function assertNoLegacyCheckRunMarkers(summary: string): void {
   expect(summary).not.toContain("Risk index");

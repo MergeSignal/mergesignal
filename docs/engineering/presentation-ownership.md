@@ -20,6 +20,7 @@ Assessment → Decision → Narrative → Reach → Verification → Surfaces
 
 **Consumed by presenters (public contract):**
 
+- `assessment.reviewFocalPoint`, `reachScope`, `verificationScope` — identity, reach, and verification ownership (ABI 2)
 - `assessment.posture`, `confidence`, `primaryConcern`, `factors`
 - `assessment.presentation`: `narrativeIntensity`, `reachVisibility`, `verificationIntensity`, `reportMode`
 

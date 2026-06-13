@@ -11,6 +11,7 @@ import {
   analysisPreparationWithValidRepoIntel,
 } from "./fixtures/repoIntelligenceTestHelpers.js";
 import type { ScanResult } from "./types.js";
+import { assessmentFastifyRuntime } from "./fixtures/assessmentFixtures.js";
 
 const baseResult = {
   totalScore: 10,
@@ -79,6 +80,20 @@ describe("deriveScanNarrative", () => {
     expect(facts.blastRadius?.level).toBe("moderate");
     expect(facts.affectedAreas.map((a) => a.id)).toContain("api");
     expect(facts.hotspots[0]?.source).toBe("code");
+  });
+
+  it("changedPackages.primary follows reviewFocalPoint anchor, not changedPackages order", () => {
+    const result = {
+      ...baseResult,
+      changedPackages: ["typescript", "fastify"],
+      assessment: assessmentFastifyRuntime,
+      analysisPreparation: analysisPreparationWithValidRepoIntel(),
+      repoIntelligence: fixtureRepoIntelligenceFastify,
+    } satisfies ScanResult;
+
+    const facts = deriveScanNarrative(result);
+    expect(facts.changedPackages.primary).toBe("fastify");
+    expect(result.changedPackages?.[0]).toBe("typescript");
   });
 
   it("prefers changed-scope insights for reviewer guidance ordering", () => {

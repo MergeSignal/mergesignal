@@ -16,13 +16,45 @@ import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
 import { applyPostureVocabularyGuardHeadline } from "./presentation/intent/applyPostureVocabularyGuard.js";
 import type { PresentationStatus } from "./presentation/dto/types.js";
 
+function focalDisplayPackage(assessment: Assessment): string {
+  const anchors = assessment.reviewFocalPoint.anchors;
+  if (anchors.length === 0) return "dependency";
+  const token = anchors[0]!;
+  if (token === "dependency_graph") return "dependencies";
+  if (token.includes("+")) return token.split("+")[0]!;
+  return token;
+}
+
+function focalHeadlinePackages(assessment: Assessment): string {
+  const focal = assessment.reviewFocalPoint;
+  if (focal.episodeShape === "multi_anchor") {
+    return focal.anchors.join(", ");
+  }
+  return focalDisplayPackage(assessment);
+}
+
+/** Copy-formatting only — fills {surface} in runtime headline template. */
+function surfaceHintFromAssessment(assessment: Assessment): string {
+  const factors = assessment.factors;
+  const anchor = focalDisplayPackage(assessment);
+  if (anchor === "bullmq" || factors.includes("queue_infrastructure")) {
+    return "workers and queues";
+  }
+  if (anchor === "next-auth" || factors.includes("auth_infrastructure")) {
+    return "authentication flows";
+  }
+  return "application code";
+}
+
 export function collectVerificationFocus(result: ScanResult): string[] {
+  const scope = result.assessment?.verificationScope;
+  if (scope?.focus?.length) return [...scope.focus];
+  const packages = scope?.packages ?? [];
   const parsed = safeParseRepoIntelligence(result.repoIntelligence);
   if (!parsed.ok) return [];
-  const changed = new Set(result.changedPackages ?? []);
   const labels: string[] = [];
   const seen = new Set<string>();
-  for (const pkg of changed) {
+  for (const pkg of packages) {
     const row = parsed.value.packages[pkg];
     for (const focus of row?.verificationFocus ?? []) {
       const t = focus.trim();
@@ -51,18 +83,17 @@ export function reachVisibilityLabel(
 
 export function formatAssessmentHeadline(
   assessment: Assessment,
-  result: ScanResult,
   status: PresentationStatus,
 ): string {
   const copy = scanSurfaceCopy.presentation;
-  const runtimePkg = assessment.concerns.find(
-    (c) => c.kind === "confirmed_runtime_usage",
-  )?.packages?.[0];
-  const primaryPkg =
-    runtimePkg ??
-    result.changedPackages?.[0] ??
-    assessment.concerns.find((c) => c.packages?.length)?.packages?.[0] ??
-    "dependency";
+  const primaryPkg = focalHeadlinePackages(assessment);
+  if (assessment.reviewFocalPoint.episodeShape === "structural") {
+    const headline = copy.defaultUpgradeHeadline.replace(
+      "{package}",
+      "dependencies",
+    );
+    return applyPostureVocabularyGuardHeadline(headline, status, null);
+  }
 
   if (assessment.primaryConcern === "insufficient_evidence") {
     return applyPostureVocabularyGuardHeadline(
@@ -82,11 +113,7 @@ export function formatAssessmentHeadline(
   }
 
   if (assessment.primaryConcern === "confirmed_runtime_usage") {
-    const surface = assessment.factors.includes("queue_infrastructure")
-      ? "workers and queues"
-      : assessment.factors.includes("auth_infrastructure")
-        ? "authentication flows"
-        : "application code";
+    const surface = surfaceHintFromAssessment(assessment);
     const headline = copy.runtimeUpgradeHeadline
       .replace("{package}", primaryPkg)
       .replace("{surface}", surface);

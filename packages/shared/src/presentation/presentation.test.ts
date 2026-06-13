@@ -79,7 +79,7 @@ describe("presentDashboardCard personas", () => {
     expect(card.verdict?.posture).toBe("safe");
     expect(card.headline).toMatch(/patch upgrade/i);
     expect(card.headline).not.toMatch(/needs review/i);
-    expect(card.verification.length).toBeGreaterThan(0);
+    expect(card.verification.length).toBe(0);
   });
 });
 
