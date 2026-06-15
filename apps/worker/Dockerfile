@@ -100,7 +100,8 @@ RUN --mount=type=secret,id=gh_packages_token \
     pnpm install --frozen-lockfile --prod --filter @mergesignal/worker...
 
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
-COPY --from=builder /app/packages/shared ./packages/shared
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/engine/dist ./packages/engine/dist
 COPY --from=builder /app/packages/scan-prep/dist ./packages/scan-prep/dist
 COPY --from=builder /app/packages/engine-stub/dist ./packages/engine-stub/dist
