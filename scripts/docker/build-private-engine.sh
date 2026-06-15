@@ -166,6 +166,12 @@ copy_engine_runtime_deps() {
   rm -rf "$deploy_dir"
 }
 
+prune_engine_deploy_test_paths() {
+  local output_dir="$1"
+  find "$output_dir" -type d \( -name '__tests__' -o -name '*test-fixture*' \) -print0 2>/dev/null \
+    | xargs -0 rm -rf 2>/dev/null || true
+}
+
 main() {
   if [ -n "$ENGINE_REPO_TOKEN" ]; then
     clone_engine
@@ -187,6 +193,7 @@ main() {
     mkdir -p "$ENGINE_OUTPUT"
     copy_dist_output "$impl_file" "$ENGINE_OUTPUT"
     copy_engine_runtime_deps "$ENGINE_ROOT" "$ENGINE_OUTPUT" "$impl_file"
+    prune_engine_deploy_test_paths "$ENGINE_OUTPUT"
     write_manifest "$ENGINE_ROOT" "$impl_file" "${ENGINE_OUTPUT}/engine-manifest.json"
     log "Wrote dist + manifest to ${ENGINE_OUTPUT}"
   fi
