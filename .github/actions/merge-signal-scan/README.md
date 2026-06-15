@@ -106,7 +106,7 @@ If `fail_above` is **not** set, the **Verify score threshold** step is skipped a
 
 ## CI time (v1)
 
-The first run on a clean cache may take **several minutes** while the runner checks out MergeSignal, checks out and builds the private engine (when `trusted`), and runs the scan. A future **Phase 2** may shorten the MergeSignal toolchain checkout (for example via a prebuilt CLI artifact) without changing your workflow shape for the scan itself.
+The first run on a clean cache may take **several minutes** while the runner checks out MergeSignal, checks out and builds the private engine (when `trusted`), and runs the scan. A future toolchain optimization may shorten checkout (for example via a prebuilt CLI artifact) without changing your workflow shape for the scan itself.
 
 ## What we guarantee (public contract)
 

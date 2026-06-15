@@ -136,8 +136,8 @@ export default function GettingStartedPage() {
           </p>
           <p>
             First runs can take several minutes while the runner prepares
-            MergeSignal-that is expected for now and will improve when the CLI
-            ships as a smaller install (Phase 2).
+            MergeSignal-that is expected for now and may improve when a prebuilt
+            CLI install path is available.
           </p>
           <p>
             <strong>Advanced.</strong> For a full YAML template (including{" "}

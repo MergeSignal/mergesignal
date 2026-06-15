@@ -1,63 +1,70 @@
 # Releasing (GitHub Actions integration)
 
-## Two-package release order (Phase 2 decouple)
+## Current architecture (Phase 2 complete — 2026-06-15)
 
-Keep **`main` green** on both repos: use **release branches** and **atomic merges** only after registry artifacts exist. Do not push decoupled lockfiles before publish.
+Both repositories build and test **independently** with registry-resolved dependencies only.
 
-### Green-main sequence
+```
+@mergesignal/contracts@0.1.0  (GitHub Packages, published from mergesignal-engine)
+        ↓
+@mergesignal/shared@0.7.0     (npmjs.org, published from mergesignal)
+        ↓
+mergesignal apps + mergesignal-engine consumers
+```
 
-| Step | Repo               | Branch            | Action                                                                                                                                                                                             | `main` CI             |
-| ---- | ------------------ | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| 1    | mergesignal-engine | `release/phase-2` | Add Phase 2 + `publish-contracts.yml`; **do not merge yet**                                                                                                                                        | unchanged (green)     |
-| 2    | mergesignal-engine | release branch    | Publish contracts (`workflow_dispatch`, tag on branch, or local `npm publish`) — see [PUBLISHING.md](https://github.com/MergeSignal/mergesignal-engine/blob/main/packages/contracts/PUBLISHING.md) | unchanged             |
-| 3    | GitHub UI          | —                 | Contracts package → **Public** + **Manage Actions access** → `MergeSignal/mergesignal` Read                                                                                                        | —                     |
-| 4    | mergesignal        | `release/phase-2` | Phase 2 + decouple; `pnpm install` with PAT; refresh `pnpm-lock.yaml`; verify build/test                                                                                                           | unchanged until merge |
-| 5    | mergesignal        | `main`            | **Merge release PR** (single commit with decoupled lockfile)                                                                                                                                       | **green**             |
-| 6    | mergesignal        | `main`            | Tag `shared-v0.7.0` → push tag → npm publish                                                                                                                                                       | green                 |
-| 7    | mergesignal-engine | `release/phase-2` | Catalog `0.7.0`; `pnpm install` from npmjs; refresh lockfile; verify guards                                                                                                                        | unchanged until merge |
-| 8    | mergesignal-engine | `main`            | **Merge release PR** (single commit)                                                                                                                                                               | **green**             |
-| 9    | both               | `main`            | Fresh-clone validation (see below)                                                                                                                                                                 | green                 |
+| Repo               | Contracts                       | Shared                          | Engine deploy pin               |
+| ------------------ | ------------------------------- | ------------------------------- | ------------------------------- |
+| mergesignal        | GH Packages tarball in lockfile | workspace `0.7.0` + npm publish | `MERGESIGNAL_ENGINE_REF=v2.0.0` |
+| mergesignal-engine | workspace `packages/contracts`  | npm catalog `0.7.0`             | tag `v2.0.0`                    |
 
-Between steps 5 and 8: **mergesignal** `main` is on Phase 2 + contracts from GH; **mergesignal-engine** `main` remains on pre-Phase-2 state (still green on `shared@0.6.0`). No red window on either default branch.
+No cross-repo workspace paths, `file:` deps, or sibling checkouts are required.
+
+---
+
+## Routine release order
+
+When bumping contract or shared versions:
+
+1. **Contracts** (if wire shape changes) — bump `packages/contracts`, tag `contracts-vX.Y.Z` on mergesignal-engine, publish via [publish-contracts.yml](https://github.com/MergeSignal/mergesignal-engine/blob/main/.github/workflows/publish-contracts.yml).
+2. **Shared** — bump `packages/shared`, merge to `main`, tag `shared-vX.Y.Z`, publish via [publish-shared.yml](.github/workflows/publish-shared.yml).
+3. **Engine** — bump catalog pin in mergesignal-engine `pnpm-workspace.yaml`, refresh lockfile, tag engine release (e.g. `v2.0.1`), set `MERGESIGNAL_ENGINE_REF` on mergesignal.
+4. **Validate** — fresh-clone checks below on both repos.
 
 ### Lockfile refresh
 
-**After contracts publish (before mergesignal merge):**
+**mergesignal** (needs GH Packages auth for contracts):
 
 ```bash
-cd mergesignal
 export NODE_AUTH_TOKEN=ghp_...   # read:packages
 pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN"
 rm -rf node_modules && pnpm install
 pnpm build && pnpm test
 ```
 
-**After shared-v0.7.0 on npm (before engine merge):**
+**mergesignal-engine** (no GH token for install):
 
 ```bash
-cd mergesignal-engine
 rm -rf node_modules && pnpm install
 pnpm build && pnpm test
 pnpm run check:assessment-authority
 ```
 
-**Verify no cross-repo links before merge:**
+**Verify no cross-repo links:**
 
 ```bash
-rg '../mergesignal' mergesignal-engine/pnpm-workspace.yaml mergesignal-engine/pnpm-lock.yaml
-rg 'mergesignal-engine' mergesignal/pnpm-workspace.yaml mergesignal/pnpm-lock.yaml
+rg '../mergesignal|mergesignal-engine' pnpm-workspace.yaml pnpm-lock.yaml   # expect no matches
 ```
 
-### Final validation
+### Fresh-clone validation
 
 ```bash
-# mergesignal only — needs NODE_AUTH_TOKEN (read:packages)
-git clone .../mergesignal.git && cd mergesignal
+# mergesignal — needs NODE_AUTH_TOKEN (read:packages)
+git clone https://github.com/MergeSignal/mergesignal.git /tmp/ms-clone && cd /tmp/ms-clone
 export NODE_AUTH_TOKEN=ghp_...
 pnpm install --frozen-lockfile && pnpm build && pnpm test
 
-# mergesignal-engine only — no GH token
-git clone .../mergesignal-engine.git && cd mergesignal-engine
+# mergesignal-engine — no GH token
+git clone https://github.com/MergeSignal/mergesignal-engine.git /tmp/me-clone && cd /tmp/me-clone
 pnpm install --frozen-lockfile && pnpm build && pnpm test
 ```
 
@@ -139,13 +146,10 @@ If local publish succeeds but CI still shows `EOTP`, the GitHub **`NPM_TOKEN` se
 
 **Two-repo release order**
 
-1. Publish `@mergesignal/contracts@0.1.0` from mergesignal-engine (`contracts-v0.1.0`); complete GitHub Packages visibility + Actions access steps.
-2. Merge mergesignal decouple; confirm CI green.
-3. Merge shared changes on `main` (already at `0.7.0` for Phase 2).
-4. Tag `shared-v0.7.0` and push; confirm [publish workflow](.github/workflows/publish-shared.yml) succeeds.
-5. `npm view @mergesignal/shared@0.7.0`
-6. In `mergesignal-engine`: catalog pin `0.7.0`, `pnpm install`, merge when CI is green.
-7. Deploy engine/worker images if applicable.
+1. Publish `@mergesignal/contracts@X.Y.Z` from mergesignal-engine (`contracts-vX.Y.Z`); confirm GitHub Packages visibility + Actions access.
+2. Bump shared in mergesignal if needed; tag `shared-vX.Y.Z` and push; confirm [publish workflow](.github/workflows/publish-shared.yml) succeeds.
+3. In `mergesignal-engine`: bump catalog pin if needed, refresh lockfile, tag engine release, set `MERGESIGNAL_ENGINE_REF` on mergesignal.
+4. Run fresh-clone validation on both repos (see top of this doc).
 
 **Rollback**
 
