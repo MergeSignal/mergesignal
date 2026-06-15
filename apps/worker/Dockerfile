@@ -57,13 +57,16 @@ RUN if [ "$MERGESIGNAL_ENGINE_FIXTURE" = "1" ]; then \
     fi
 
 RUN --mount=type=secret,id=engine_repo_token \
+    --mount=type=secret,id=gh_packages_token \
     if [ "$MERGESIGNAL_ENGINE_FIXTURE" != "1" ]; then \
       chmod +x /scripts/build-private-engine.sh && \
       apk add --no-cache git bash && \
       test -n "$MERGESIGNAL_ENGINE_REF" || (echo "MERGESIGNAL_ENGINE_REF is required" >&2; exit 1) && \
       ENGINE_REPO_TOKEN="$(cat /run/secrets/engine_repo_token)" && \
+      NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
       test -n "$ENGINE_REPO_TOKEN" || (echo "engine_repo_token build secret is required" >&2; exit 1) && \
       ENGINE_REPO_TOKEN="$ENGINE_REPO_TOKEN" \
+      NODE_AUTH_TOKEN="$NODE_AUTH_TOKEN" \
       ENGINE_ROOT=/engine-src \
       MERGESIGNAL_ENGINE_REPOSITORY="$MERGESIGNAL_ENGINE_REPOSITORY" \
       MERGESIGNAL_ENGINE_REF="$MERGESIGNAL_ENGINE_REF" \

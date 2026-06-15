@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
   id-token: write
 
 jobs:
@@ -35,11 +36,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          registry-url: "https://registry.npmjs.org"
+          registry-url: https://npm.pkg.github.com
           scope: "@mergesignal"
           always-auth: true
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Resolve version from tag or package.json
         id: version
@@ -76,6 +75,8 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and test shared package
         run: |
@@ -100,7 +101,9 @@ jobs:
           NPM_CONFIG_PROVENANCE: "true"
         run: |
           set -euo pipefail
-          # setup-node writes auth to $RUNNER_TEMP/.npmrc and sets NPM_CONFIG_USERCONFIG (not ~/.npmrc)
+          # Re-point @mergesignal scope to npmjs for publish (repo .npmrc routes it to GH Packages).
+          npm config set @mergesignal:registry https://registry.npmjs.org/
+          npm config set //registry.npmjs.org/:_authToken "$NODE_AUTH_TOKEN"
           npm whoami
           npm publish --access public 2>&1 | tee /tmp/npm-publish.log
           exit "${PIPESTATUS[0]}"

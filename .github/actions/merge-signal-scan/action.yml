@@ -59,11 +59,15 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version-file: _ms_rt/.nvmrc
+        registry-url: https://npm.pkg.github.com
+        scope: "@mergesignal"
+        always-auth: true
 
     - name: Install and build MergeSignal
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        NODE_AUTH_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         cd "$GITHUB_WORKSPACE/_ms_rt"
@@ -101,6 +105,7 @@ runs:
       env:
         ENGINE_ROOT: ${{ github.workspace }}/_ms_engine
         ENGINE_IMPL_FILE: ${{ inputs.engine_impl_file }}
+        NODE_AUTH_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         bash "$GITHUB_WORKSPACE/_ms_rt/scripts/docker/build-private-engine.sh"
