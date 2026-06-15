@@ -18,7 +18,16 @@ export const scanResultFastifyRuntime: ScanResult = {
     ecosystem: 30,
     upgradeImpact: 15,
   },
-  findings: [],
+  findings: [
+    {
+      id: "finding-fastify-runtime",
+      title: "Runtime middleware coupling",
+      description: "Fastify middleware ordering may affect auth paths.",
+      severity: "medium",
+      packageName: "fastify",
+      recommendation: "Run auth smoke tests",
+    },
+  ],
   generatedAt: "2026-01-01T00:00:00.000Z",
   changedPackages: ["fastify"],
   analysisPreparation: analysisPreparationWithValidRepoIntel(),
@@ -85,6 +94,15 @@ export const scanResultLimitedContext: ScanResult = {
   findings: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
   changedPackages: ["lodash"],
+  analysisPreparation: {
+    codeIntelligenceAvailable: false,
+    warnings: [
+      {
+        code: "base_lockfile_missing",
+        message: "Base lockfile not available for diff",
+      },
+    ],
+  },
   repoIntelligence: { invalid: true },
   assessment: assessmentLimitedContext,
   graphInsights: {

@@ -1,9 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
+  deriveCardExposureCategory,
   deriveCardExposureDisplay,
   exposureAriaFragment,
   formatCardExposureLine,
 } from "./formatCardExposureDisplay.js";
+
+describe("deriveCardExposureCategory", () => {
+  it("maps score ranges to exposure categories", () => {
+    expect(deriveCardExposureCategory(0)).toBe("minimal");
+    expect(deriveCardExposureCategory(45)).toBe("moderate");
+    expect(deriveCardExposureCategory(90)).toBe("broad");
+    expect(deriveCardExposureCategory(null)).toBeNull();
+  });
+});
 
 describe("deriveCardExposureDisplay", () => {
   it("maps score to five fixed exposure buckets", () => {

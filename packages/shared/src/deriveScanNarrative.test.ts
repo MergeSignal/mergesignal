@@ -244,4 +244,74 @@ describe("deriveScanNarrative", () => {
     expect(facts.availability.repoIntelligenceParse).toBe("absent");
     expect(facts.availability.tiersPresent.tier1).toBe(false);
   });
+
+  it("projects preparation warnings and corpus gate reason", () => {
+    const result = {
+      ...baseResult,
+      changedPackages: ["lodash"],
+      analysisPreparation: {
+        codeIntelligenceAvailable: false,
+        warnings: [
+          {
+            code: "base_lockfile_missing",
+            message: "Base lockfile not available",
+          },
+        ],
+      },
+    } satisfies ScanResult;
+
+    const facts = deriveScanNarrative(result);
+    expect(facts.availability.preparationWarnings).toHaveLength(1);
+    expect(facts.availability.preparationWarnings[0]?.code).toBe(
+      "base_lockfile_missing",
+    );
+    expect(facts.availability.corpusGateReason).toBe("no_code_intelligence");
+    expect(facts.confidence.limitedContext).toBe(true);
+  });
+
+  it("links affected areas to packages, findings, paths, and verification", () => {
+    const result = {
+      ...baseResult,
+      changedPackages: ["fastify"],
+      analysisPreparation: analysisPreparationWithValidRepoIntel(),
+      repoIntelligence: fixtureRepoIntelligenceFastify,
+      findings: [
+        {
+          id: "f1",
+          title: "Auth middleware",
+          description: "d",
+          severity: "high",
+          packageName: "fastify",
+        },
+      ],
+    } satisfies ScanResult;
+
+    const facts = deriveScanNarrative(result);
+    const apiArea = facts.affectedAreas.find((a) => a.id === "api");
+    expect(apiArea).toBeDefined();
+    expect(apiArea?.packages).toContain("fastify");
+    expect(apiArea?.findingIds).toContain("f1");
+    expect(apiArea?.paths.length).toBeGreaterThan(0);
+    expect(apiArea?.evidenceStrength).toBe("high");
+    expect(apiArea?.hotspotPackages).toContain("fastify");
+    expect(apiArea?.verificationFocus).toContain("routes");
+  });
+
+  it("derives riskSignals with exposure layers", () => {
+    const facts = deriveScanNarrative(baseResult);
+    expect(facts.riskSignals?.riskIndex).toBe(10);
+    expect(facts.riskSignals?.exposure).toBe("minimal");
+    expect(facts.riskSignals?.layers).toHaveLength(4);
+    expect(facts.riskIndex).toBe(10);
+  });
+
+  it("projects assessment confidence verbatim", () => {
+    const result = {
+      ...baseResult,
+      assessment: assessmentFastifyRuntime,
+    } satisfies ScanResult;
+
+    const facts = deriveScanNarrative(result);
+    expect(facts.confidence.assessment).toBe("medium");
+  });
 });

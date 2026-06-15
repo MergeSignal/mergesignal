@@ -1,5 +1,7 @@
 import type { ObservationSignalFamily } from "./cardObservationCatalog.js";
 import type { MergePosture } from "./riskVocabulary.js";
+import type { RiskSignals } from "./riskSignals.js";
+import type { AnalysisContextWarning } from "./types.js";
 
 export type NarrativeAvailabilityMode =
   | "pr_intelligence"
@@ -77,6 +79,30 @@ export type PackageExpectedImpact =
 
 export type PackageEvidenceStrength = "high" | "medium" | "low";
 
+export type CorpusGateReason =
+  | "ok"
+  | "no_code_intelligence"
+  | "repo_intelligence_invalid"
+  | "repo_intelligence_absent";
+
+/** Enriched affected area with proof-chain linkage (Phase 3). */
+export type AffectedAreaFact = {
+  id: string;
+  label: string;
+  packages: string[];
+  findingIds: string[];
+  paths: string[];
+  evidenceStrength: PackageEvidenceStrength | null;
+  hotspotPackages: string[];
+  verificationFocus: string[];
+};
+
+export type ScanNarrativeConfidenceFacts = {
+  decision: "low" | "medium" | "high" | null;
+  assessment: "low" | "medium" | "high" | null;
+  limitedContext: boolean;
+};
+
 /** Engine semantic projection for one changed package (wire copy only). */
 export type ChangedPackageSemantics = {
   packageName: string;
@@ -107,6 +133,8 @@ export type ScanNarrativeFacts = {
     codeIntelligenceAvailable: boolean;
     tiersPresent: { tier1: boolean; tier2: boolean; tier3: boolean };
     repoIntelligenceParse: RepoIntelligenceParseStatus;
+    preparationWarnings: AnalysisContextWarning[];
+    corpusGateReason: CorpusGateReason;
   };
 
   changedPackages: {
@@ -141,10 +169,7 @@ export type ScanNarrativeFacts = {
     factors: string[];
   } | null;
 
-  affectedAreas: Array<{
-    id: string;
-    label: string;
-  }>;
+  affectedAreas: AffectedAreaFact[];
 
   hotspots: Array<{
     packageName: string;
@@ -164,9 +189,7 @@ export type ScanNarrativeFacts = {
     affectedFiles?: string[];
   }>;
 
-  confidence: {
-    decision: "low" | "medium" | "high" | null;
-  };
+  confidence: ScanNarrativeConfidenceFacts;
 
   repositoryContext: Array<{
     family: ObservationSignalFamily;
@@ -175,7 +198,9 @@ export type ScanNarrativeFacts = {
   }>;
 
   mergePosture: MergePosture | null;
+  /** @deprecated Use `riskSignals.riskIndex` — kept for frozen surface presenters. */
   riskIndex: number | null;
+  riskSignals: RiskSignals | null;
 };
 
 export const EMPTY_SCAN_NARRATIVE_FACTS: ScanNarrativeFacts = {
@@ -184,6 +209,8 @@ export const EMPTY_SCAN_NARRATIVE_FACTS: ScanNarrativeFacts = {
     codeIntelligenceAvailable: false,
     tiersPresent: { tier1: false, tier2: false, tier3: false },
     repoIntelligenceParse: "absent",
+    preparationWarnings: [],
+    corpusGateReason: "repo_intelligence_absent",
   },
   changedPackages: { primary: null, others: [], all: [] },
   packageUsage: [],
@@ -196,10 +223,11 @@ export const EMPTY_SCAN_NARRATIVE_FACTS: ScanNarrativeFacts = {
   affectedAreas: [],
   hotspots: [],
   reviewerGuidance: [],
-  confidence: { decision: null },
+  confidence: { decision: null, assessment: null, limitedContext: false },
   repositoryContext: [],
   mergePosture: null,
   riskIndex: null,
+  riskSignals: null,
 };
 
 /** Derivation caps — presenters apply tighter channel limits. */

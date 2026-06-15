@@ -1,6 +1,6 @@
 /**
- * Dashboard card exposure semantics — display-only interpretation of totalScore.
- * Not persisted; not an engine output; complements merge posture (Safe / Review / Risky).
+ * Canonical exposure bucket thresholds for numeric risk scores (0–100).
+ * Consumed by `deriveRiskSignals` for bundle facts; label formatters remain for aria copy.
  */
 
 export type CardExposureCategory =
@@ -50,14 +50,23 @@ function clampScore(score: number): number {
   return Math.min(100, Math.max(0, Math.round(score)));
 }
 
-/** Map numeric totalScore to a fixed exposure category (card UX only). */
-export function deriveCardExposureDisplay(
+/** Map numeric score to a fixed exposure category (canonical thresholds). */
+export function deriveCardExposureCategory(
   score: number | null | undefined,
-): CardExposureDisplay | null {
+): CardExposureCategory | null {
   if (score == null || !Number.isFinite(score)) return null;
   const value = clampScore(score);
   const idx = EXPOSURE_UPPER_BOUND.findIndex((bound) => value <= bound);
-  const category = EXPOSURE_ORDER[idx >= 0 ? idx : EXPOSURE_ORDER.length - 1]!;
+  return EXPOSURE_ORDER[idx >= 0 ? idx : EXPOSURE_ORDER.length - 1]!;
+}
+
+/** Map numeric totalScore to exposure category + display label. */
+export function deriveCardExposureDisplay(
+  score: number | null | undefined,
+): CardExposureDisplay | null {
+  const category = deriveCardExposureCategory(score);
+  if (category == null) return null;
+  const value = clampScore(score!);
   return { category, label: EXPOSURE_LABEL[category], value };
 }
 

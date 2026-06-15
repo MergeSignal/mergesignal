@@ -1,10 +1,15 @@
 import { extractRepositoryContextFacts } from "./extractRepositoryContextFacts.js";
 import {
+  areaIdFromLabel,
+  enrichAffectedAreaFacts,
+} from "./affectedAreaLinkage.js";
+import {
   readBlastLevel,
   safeParseRepoIntelligence,
   type RepoIntelligence,
 } from "./repoIntelligenceSchema.js";
 import { isRuntimeNarrativeSafe } from "./repoIntelligenceSemantics.js";
+import { deriveRiskSignals } from "./riskSignals.js";
 import {
   EMPTY_SCAN_NARRATIVE_FACTS,
   NARRATIVE_FACT_MAX_AREAS,
@@ -12,6 +17,7 @@ import {
   NARRATIVE_FACT_MAX_PATHS,
   type BlastRadiusLevel,
   type ChangedPackageSemantics,
+  type CorpusGateReason,
   type NarrativeAvailabilityMode,
   type NarrativePackageUsage,
   type PackageSemanticsSummary,
@@ -25,6 +31,7 @@ import {
 import { mergePostureFromDecision } from "./riskVocabulary.js";
 import { selectTopAffectedAreas } from "./selectTopAffectedAreas.js";
 import type {
+  AnalysisContextWarning,
   DependencyGraphInsight,
   Finding,
   PRInsight,
@@ -243,10 +250,9 @@ function projectChangedPackageSemantics(
   });
 }
 
-function extractTier1FromRepoIntelligence(
-  ri: RepoIntelligence,
-  changed: ScanNarrativeFacts["changedPackages"],
-): Pick<
+type AffectedAreaSeed = { id: string; label: string };
+
+type Tier1Blocks = Pick<
   ScanNarrativeFacts,
   | "packageUsage"
   | "frameworks"
@@ -255,9 +261,16 @@ function extractTier1FromRepoIntelligence(
   | "packageSemantics"
   | "changedPackageSemantics"
   | "blastRadius"
-  | "affectedAreas"
   | "hotspots"
-> {
+> & {
+  affectedAreas: AffectedAreaSeed[];
+  applicationAreaIds: Set<string>;
+};
+
+function extractTier1FromRepoIntelligence(
+  ri: RepoIntelligence,
+  changed: ScanNarrativeFacts["changedPackages"],
+): Tier1Blocks {
   const primary = changed.primary;
   const pkgIntel =
     primary && ri.packages?.[primary] ? ri.packages[primary] : undefined;
@@ -317,14 +330,16 @@ function extractTier1FromRepoIntelligence(
     : null;
 
   const areasRaw = ri.applicationAreas ?? ri.affectedAreas ?? [];
-  const affectedAreas: ScanNarrativeFacts["affectedAreas"] = [];
+  const applicationAreaIds = new Set<string>();
+  const affectedAreas: AffectedAreaSeed[] = [];
 
   for (const area of areasRaw) {
+    applicationAreaIds.add(area.id);
     affectedAreas.push({ id: area.id, label: area.label });
   }
   for (const row of packageUsage) {
     for (const label of row.areas) {
-      const id = label.toLowerCase().replace(/\s+/g, "_");
+      const id = areaIdFromLabel(label);
       if (!affectedAreas.some((a) => a.id === id)) {
         affectedAreas.push({ id, label });
       }
@@ -343,12 +358,13 @@ function extractTier1FromRepoIntelligence(
     blastRadius,
     affectedAreas: affectedAreas.slice(0, NARRATIVE_FACT_MAX_AREAS),
     hotspots: codeHotspots.slice(0, NARRATIVE_FACT_MAX_HOTSPOTS),
+    applicationAreaIds,
   };
 }
 
 function hasMeaningfulTier1(
   tier1: Pick<
-    ScanNarrativeFacts,
+    Tier1Blocks,
     | "packageUsage"
     | "frameworks"
     | "runtimeSurface"
@@ -468,18 +484,7 @@ function resolveAvailabilityMode(
   return "graph_fallback";
 }
 
-function emptyTier1Blocks(): Pick<
-  ScanNarrativeFacts,
-  | "packageUsage"
-  | "frameworks"
-  | "runtimeSurface"
-  | "reachability"
-  | "packageSemantics"
-  | "changedPackageSemantics"
-  | "blastRadius"
-  | "affectedAreas"
-  | "hotspots"
-> {
+function emptyTier1Blocks(): Tier1Blocks {
   return {
     packageUsage: [],
     frameworks: [],
@@ -490,6 +495,7 @@ function emptyTier1Blocks(): Pick<
     blastRadius: null,
     affectedAreas: [],
     hotspots: [],
+    applicationAreaIds: new Set(),
   };
 }
 
@@ -531,6 +537,54 @@ function resolveTrustedRepoIntelligence(result: ScanResult): {
   return { parsed: null, parseStatus: "invalid" };
 }
 
+function preparationWarningsFromResult(
+  result: ScanResult,
+): AnalysisContextWarning[] {
+  const warnings = result.analysisPreparation?.warnings;
+  if (!Array.isArray(warnings)) return [];
+  return warnings.map((w) => ({
+    code: w.code,
+    message: w.message,
+    ...(w.details != null ? { details: w.details } : {}),
+  }));
+}
+
+function resolveCorpusGateReason(input: {
+  codeIntelligenceAvailable: boolean;
+  repoIntelligenceParse: RepoIntelligenceParseStatus;
+  corpusGate: boolean;
+}): CorpusGateReason {
+  if (input.corpusGate) return "ok";
+  if (!input.codeIntelligenceAvailable) return "no_code_intelligence";
+  if (
+    input.repoIntelligenceParse === "invalid" ||
+    input.repoIntelligenceParse === "untrusted"
+  ) {
+    return "repo_intelligence_invalid";
+  }
+  return "repo_intelligence_absent";
+}
+
+function assessmentConfidenceFromResult(
+  result: ScanResult,
+): ScanNarrativeFacts["confidence"]["assessment"] {
+  const c = result.assessment?.confidence;
+  if (c === "low" || c === "medium" || c === "high") return c;
+  return null;
+}
+
+function limitedContextDiagnostic(input: {
+  corpusGateReason: CorpusGateReason;
+  preparationWarnings: AnalysisContextWarning[];
+  assessmentConfidence: ScanNarrativeFacts["confidence"]["assessment"];
+}): boolean {
+  return (
+    input.corpusGateReason !== "ok" ||
+    input.preparationWarnings.length > 0 ||
+    input.assessmentConfidence === "low"
+  );
+}
+
 /**
  * Consumer-agnostic scan intelligence — structured facts only (no UI copy).
  */
@@ -544,11 +598,8 @@ export function deriveScanNarrative(
   const changedPackages = changedPackagesFromAssessment(result);
   const mergePosture =
     mergePostureFromDecision(result.decision?.recommendation) ?? null;
-  const riskIndex =
-    typeof result.totalScore === "number" && Number.isFinite(result.totalScore)
-      ? result.totalScore
-      : null;
 
+  const preparationWarnings = preparationWarningsFromResult(result);
   const codeIntelligenceAvailable =
     result.analysisPreparation?.codeIntelligenceAvailable !== false;
 
@@ -559,15 +610,24 @@ export function deriveScanNarrative(
     repoIntelligenceParse === "ok" &&
     parsedRi != null;
 
+  const corpusGateReason = resolveCorpusGateReason({
+    codeIntelligenceAvailable,
+    repoIntelligenceParse,
+    corpusGate,
+  });
+
   let tier1Blocks = emptyTier1Blocks();
+  let applicationAreaIds = tier1Blocks.applicationAreaIds;
 
   if (corpusGate && parsedRi) {
     tier1Blocks = extractTier1FromRepoIntelligence(parsedRi, changedPackages);
+    applicationAreaIds = tier1Blocks.applicationAreaIds;
   } else if (changedPackages.all.length > 0) {
     tier1Blocks = {
       ...emptyTier1Blocks(),
       blastRadius: blastRadiusFromChangedCount(changedPackages.all.length),
     };
+    applicationAreaIds = tier1Blocks.applicationAreaIds;
   }
 
   tier1Blocks.hotspots = mergeGraphHotspots(
@@ -590,6 +650,7 @@ export function deriveScanNarrative(
   );
 
   const decisionConf = result.decision?.confidence;
+  const assessmentConfidence = assessmentConfidenceFromResult(result);
   const confidence = {
     decision:
       decisionConf === "low" ||
@@ -597,6 +658,12 @@ export function deriveScanNarrative(
       decisionConf === "high"
         ? decisionConf
         : null,
+    assessment: assessmentConfidence,
+    limitedContext: limitedContextDiagnostic({
+      corpusGateReason,
+      preparationWarnings,
+      assessmentConfidence,
+    }),
   };
 
   if (!tier1 && mode === "graph_fallback" && changedPackages.all.length > 0) {
@@ -605,13 +672,27 @@ export function deriveScanNarrative(
     );
   }
 
-  let affectedAreas = tier1Blocks.affectedAreas;
-  if (affectedAreas.length === 0 && mode !== "pr_intelligence") {
-    affectedAreas = selectTopAffectedAreas(result, { max: 2 }).map((label) => ({
-      id: label.toLowerCase().replace(/\s+/g, "_").slice(0, 48),
-      label,
-    }));
+  let affectedAreaSeeds = tier1Blocks.affectedAreas;
+  if (affectedAreaSeeds.length === 0 && mode !== "pr_intelligence") {
+    affectedAreaSeeds = selectTopAffectedAreas(result, { max: 2 }).map(
+      (label) => ({
+        id: areaIdFromLabel(label),
+        label,
+      }),
+    );
   }
+
+  const findings = Array.isArray(result.findings) ? result.findings : [];
+  const affectedAreas = enrichAffectedAreaFacts(affectedAreaSeeds, {
+    findings,
+    packageUsage: tier1Blocks.packageUsage,
+    changedPackageSemantics: tier1Blocks.changedPackageSemantics,
+    hotspots: tier1Blocks.hotspots,
+    applicationAreaIds,
+  });
+
+  const riskSignals = deriveRiskSignals(result);
+  const riskIndex = riskSignals?.riskIndex ?? null;
 
   return {
     availability: {
@@ -623,6 +704,8 @@ export function deriveScanNarrative(
         tier3,
       },
       repoIntelligenceParse,
+      preparationWarnings,
+      corpusGateReason,
     },
     changedPackages,
     packageUsage: tier1Blocks.packageUsage,
@@ -639,5 +722,6 @@ export function deriveScanNarrative(
     repositoryContext,
     mergePosture,
     riskIndex,
+    riskSignals,
   };
 }
