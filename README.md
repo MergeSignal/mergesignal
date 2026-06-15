@@ -30,6 +30,7 @@ MergeSignal consists of a **web application**, **API**, **worker**, and **analys
 ```bash
 git clone https://github.com/MergeSignal/mergesignal.git
 cd mergesignal
+# GitHub Packages auth for @mergesignal/contracts — see docs/engineering/releasing.md
 pnpm install
 pnpm ms scan
 ```

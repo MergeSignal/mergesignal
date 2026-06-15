@@ -153,7 +153,7 @@ describe("engineOutputScanResultSchema (strict, fresh engine only)", () => {
     expect(r.ok).toBe(false);
   });
 
-  it("coerces pre-ABI-2 assessment missing focal/scope fields", () => {
+  it("rejects ABI-1 assessment missing focal/scope fields on fresh engine path", () => {
     const legacyAssessment = {
       posture: "safe" as const,
       confidence: "high" as const,
@@ -173,15 +173,6 @@ describe("engineOutputScanResultSchema (strict, fresh engine only)", () => {
       ...withMethodology,
       assessment: legacyAssessment,
     });
-    expect(r.ok).toBe(true);
-    if (r.ok) {
-      expect(r.result.assessment?.reviewFocalPoint.episodeShape).toBe(
-        "structural",
-      );
-      expect(r.result.assessment?.reachScope).toEqual({
-        packages: [],
-        maxBucket: "very_low",
-      });
-    }
+    expect(r.ok).toBe(false);
   });
 });

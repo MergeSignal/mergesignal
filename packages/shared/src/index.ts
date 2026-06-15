@@ -1,5 +1,4 @@
 export * from "./types.js";
-export * from "./assessmentSchema.js";
 export * from "./assessmentLabels.js";
 export * from "./assessmentProjection.js";
 export * from "./formatInsight.js";

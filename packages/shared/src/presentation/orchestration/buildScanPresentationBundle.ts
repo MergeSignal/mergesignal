@@ -1,7 +1,5 @@
-import {
-  parseAssessmentOrThrow,
-  toPublicPresentation,
-} from "../../assessmentSchema.js";
+import { parseAssessmentOrThrow } from "@mergesignal/contracts";
+import { toPublicPresentation } from "../../assessmentPresentationUtils.js";
 import { deriveScanNarrative } from "../../deriveScanNarrative.js";
 import type { ScanResult } from "../../types.js";
 import type { PipelineStatus } from "../dto/types.js";
@@ -27,7 +25,13 @@ export function buildScanPresentationBundle(
   const assessment = input.result.assessment;
   if (!assessment) return null;
 
-  const normalized = parseAssessmentOrThrow(assessment);
+  let normalized;
+  try {
+    normalized = parseAssessmentOrThrow(assessment);
+  } catch {
+    return null;
+  }
+
   const presentation = toPublicPresentation(normalized.presentation);
   const profile = buildProfileFromAssessment(
     normalized,

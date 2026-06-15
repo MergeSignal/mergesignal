@@ -1,8 +1,8 @@
 import type {
   Assessment,
   AssessmentPresentationPublic,
-} from "../../assessmentSchema.js";
-import { narrativeIntensityToDensity } from "../../assessmentSchema.js";
+} from "@mergesignal/contracts";
+import { narrativeIntensityToDensity } from "../../assessmentPresentationUtils.js";
 import type { ScanResult } from "../../types.js";
 import { safeParseRepoIntelligence } from "../../repoIntelligenceSchema.js";
 import { scanSurfaceCopy } from "../../scanSurfaceCopy.js";

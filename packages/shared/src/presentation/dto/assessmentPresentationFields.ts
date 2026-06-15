@@ -1,9 +1,9 @@
-import type { MergeConcernKind } from "../../assessmentSchema.js";
 import type {
+  MergeConcernKind,
   NarrativeIntensity,
   ReachVisibility,
   VerificationIntensity,
-} from "../../assessmentSchema.js";
+} from "@mergesignal/contracts";
 
 /** Assessment-aligned fields projected identically across surfaces. */
 export type AssessmentPresentationFields = {

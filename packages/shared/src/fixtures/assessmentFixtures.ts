@@ -1,4 +1,4 @@
-import type { Assessment } from "../assessmentSchema.js";
+import type { Assessment } from "@mergesignal/contracts";
 import {
   emptyReachScope,
   emptyVerificationScope,

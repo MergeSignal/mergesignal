@@ -1,6 +1,6 @@
 {
   "name": "@mergesignal/shared",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "MergeSignal shared scan contract, presentation policy, and trusted validation",
   "type": "module",
   "main": "./dist/index.js",
@@ -30,13 +30,15 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && pnpm run generate:ci-copy",
-    "prepublishOnly": "pnpm run build",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run clean && pnpm run build",
     "generate:ci-copy": "tsx scripts/emit-scan-surface-copy.ts",
     "typecheck": "tsc --noEmit",
     "check-types": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "@mergesignal/contracts": "0.1.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

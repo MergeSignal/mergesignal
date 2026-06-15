@@ -7,7 +7,7 @@ import type {
   Assessment,
   AssessmentPresentationPublic,
   ReachVisibility,
-} from "./assessmentSchema.js";
+} from "@mergesignal/contracts";
 import {
   labelAssessmentFactor,
   MERGE_CONCERN_LABELS,

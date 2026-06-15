@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Assessment } from "../assessmentSchema.js";
+import type { Assessment } from "@mergesignal/contracts";
 import type { ScanResult } from "../types.js";
 import {
   assessmentFastifyRuntime,

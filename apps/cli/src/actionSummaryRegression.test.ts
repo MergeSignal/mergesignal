@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assessmentTypescriptPatch } from "@mergesignal/shared";
 
 const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const renderSummary = join(
@@ -15,22 +16,6 @@ const renderFailure = join(
   "scripts/ci/render-mergesignal-failure-summary.mjs",
 );
 const copyJson = join(repoRoot, "scripts/ci/scan-surface-copy.generated.json");
-
-const minimalAssessment = {
-  posture: "safe" as const,
-  confidence: "high" as const,
-  primaryConcern: null,
-  concerns: [],
-  factors: ["tooling_maintenance"],
-  changeClasses: ["tooling_maintenance"],
-  presentation: {
-    narrativeIntensity: "minimal" as const,
-    reachVisibility: "hidden" as const,
-    verificationIntensity: "advisory" as const,
-    insightEmissionFloor: "none" as const,
-    reportMode: "high_signal_pr" as const,
-  },
-};
 
 const stubLikeResult = {
   totalScore: 10,
@@ -44,7 +29,7 @@ const stubLikeResult = {
   recommendations: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
   methodologyVersion: "engine-stub/v2",
-  assessment: minimalAssessment,
+  assessment: assessmentTypescriptPatch,
 };
 
 const trustedLikeResult = {

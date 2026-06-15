@@ -1,7 +1,7 @@
 import type {
   Assessment,
   AssessmentPresentationPublic,
-} from "../../assessmentSchema.js";
+} from "@mergesignal/contracts";
 import type { ScanNarrativeFacts } from "../../scanNarrativeFacts.js";
 import type { ScanResult } from "../../types.js";
 import type { PresentationProfile } from "../profile/presentationProfile.js";

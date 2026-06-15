@@ -1,5 +1,5 @@
+import { assessmentSchema } from "@mergesignal/contracts";
 import { z } from "zod";
-import { engineOutputAssessmentSchema } from "./assessmentSchema.js";
 import type { EngineEmittedScanResult, ScanResult } from "./types.js";
 
 /** Bump when persisted `result` JSON validation rules change materially (relaxed / legacy-tolerant). */
@@ -65,7 +65,7 @@ const engineOutputGeneratedAtSchema = z
 export const engineOutputScanResultSchema = scanResultSchema.extend({
   methodologyVersion: z.string().trim().min(1),
   generatedAt: engineOutputGeneratedAtSchema,
-  assessment: engineOutputAssessmentSchema,
+  assessment: assessmentSchema,
 });
 
 export type EngineOutputScanResultParseFailure = {

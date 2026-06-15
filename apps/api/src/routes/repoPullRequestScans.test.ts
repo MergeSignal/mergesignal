@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
 import { repoPullRequestScansRoutes } from "./repoPullRequestScans.js";
-import type { Assessment } from "@mergesignal/shared";
+import type { Assessment } from "@mergesignal/contracts";
 import {
   assessmentTypescriptPatch,
   emptyReachScope,

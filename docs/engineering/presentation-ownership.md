@@ -42,13 +42,19 @@ If a projection disagrees with assessment, **assessment wins**. Fix or bypass th
 
 ## Historical scans
 
-**Current (no external users):** Fresh engine output requires `assessment`. Rows without it fail presentation or require re-scan.
+**Current (no external users):** Fresh engine output requires ABI-2 `assessment` validated by `@mergesignal/contracts`. Rows without a valid assessment get **degraded presentation** (failed dashboard card, empty scan detail, empty PR comment) — not silent coercion.
+
+**Post–Phase 2 behavior:**
+
+- **Persisted JSON** — `scanResultSchema` does not validate `assessment` shape on DB read; raw JSON remains available.
+- **Presentation** — `buildScanPresentationBundle` calls `parseAssessmentOrThrow` from `@mergesignal/contracts`. Invalid or ABI-1 assessments fail parse → bundle is `null` → existing degraded UI paths apply. **No ABI-1 → ABI-2 upgrade.**
+- **Fresh engine boundary** — `engineOutputScanResultSchema` requires strict ABI-2 assessment; ABI-1 engine output is rejected at the worker.
+- **Remedy** — re-scan with current engine to restore full presentation surfaces.
 
 **Future compatibility (design note — not implemented):**
 
 1. **Presentation snapshot** — optional persisted DTO at scan completion; historical reads serve the snapshot without re-derivation.
-2. **Assessment version migration** — lazy-upgrade stored JSON when the assessment ABI bumps; never re-run full analysis for display-only reads.
-3. **Degraded legacy mode** — pre-assessment scans show an explicit “legacy scan” banner with best-effort read-only fields; no silent score-based fallbacks.
+2. **Degraded legacy banner** — explicit “legacy scan” banner with read-only fields; no silent score-based fallbacks.
 
 ## Guardrails
 

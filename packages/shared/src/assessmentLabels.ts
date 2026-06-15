@@ -1,4 +1,4 @@
-import type { MergeConcernKind } from "./assessmentSchema.js";
+import type { MergeConcernKind } from "@mergesignal/contracts";
 
 /** Display labels for factor tokens (mirrors engine factor-registry labels). */
 export const ASSESSMENT_FACTOR_LABELS: Record<string, string> = {

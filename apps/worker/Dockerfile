@@ -5,7 +5,7 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/shared/package.json ./packages/shared/
@@ -16,7 +16,10 @@ COPY packages/engine-test-fixture/package.json ./packages/engine-test-fixture/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 
-RUN pnpm install --frozen-lockfile --filter @mergesignal/worker...
+RUN --mount=type=secret,id=gh_packages_token \
+    export NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
+    pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN" && \
+    pnpm install --frozen-lockfile --filter @mergesignal/worker...
 
 COPY apps/worker ./apps/worker
 COPY packages/shared ./packages/shared
@@ -76,7 +79,7 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 
 RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));delete p.scripts.prepare;fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');"
 
@@ -88,7 +91,10 @@ COPY packages/engine-stub/package.json ./packages/engine-stub/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 
-RUN pnpm install --frozen-lockfile --prod --filter @mergesignal/worker...
+RUN --mount=type=secret,id=gh_packages_token \
+    export NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
+    pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN" && \
+    pnpm install --frozen-lockfile --prod --filter @mergesignal/worker...
 
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
 COPY --from=builder /app/packages/shared ./packages/shared
