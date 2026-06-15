@@ -13,6 +13,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: read
+
 concurrency:
   group: fly-deploy-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -29,7 +33,11 @@ jobs:
         run: |
           for attempt in 1 2 3; do
             echo "flyctl deploy attempt $attempt/3"
-            if flyctl deploy . --config apps/web/fly.toml --dockerfile apps/web/Dockerfile --depot=false; then
+            if flyctl deploy . \
+              --config apps/web/fly.toml \
+              --dockerfile apps/web/Dockerfile \
+              --build-secret gh_packages_token="${{ secrets.GITHUB_TOKEN }}" \
+              --depot=false; then
               exit 0
             fi
             if [ "$attempt" -lt 3 ]; then
@@ -53,7 +61,11 @@ jobs:
         run: |
           for attempt in 1 2 3; do
             echo "flyctl deploy attempt $attempt/3"
-            if flyctl deploy . --config apps/api/fly.toml --dockerfile apps/api/Dockerfile --depot=false; then
+            if flyctl deploy . \
+              --config apps/api/fly.toml \
+              --dockerfile apps/api/Dockerfile \
+              --build-secret gh_packages_token="${{ secrets.GITHUB_TOKEN }}" \
+              --depot=false; then
               exit 0
             fi
             if [ "$attempt" -lt 3 ]; then
@@ -95,6 +107,7 @@ jobs:
               --config apps/worker/fly.toml \
               --dockerfile apps/worker/Dockerfile \
               --build-secret engine_repo_token="${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}" \
+              --build-secret gh_packages_token="${{ secrets.GITHUB_TOKEN }}" \
               --build-arg MERGESIGNAL_ENGINE_REF="${{ vars.MERGESIGNAL_ENGINE_REF }}" \
               --depot=false; then
               break

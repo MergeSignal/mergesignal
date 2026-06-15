@@ -7,7 +7,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Copy workspace configuration
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 
 # Copy all package.json files for workspace resolution
 COPY apps/api/package.json ./apps/api/
@@ -16,8 +16,11 @@ COPY packages/engine/package.json ./packages/engine/
 COPY packages/engine-stub/package.json ./packages/engine-stub/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --filter @mergesignal/api...
+# Install dependencies (@mergesignal/contracts from GitHub Packages)
+RUN --mount=type=secret,id=gh_packages_token \
+    export NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
+    pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN" && \
+    pnpm install --frozen-lockfile --filter @mergesignal/api...
 
 # Copy source code
 COPY apps/api ./apps/api
@@ -41,7 +44,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Copy workspace configuration
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 
 # Root has "prepare": "husky"; --prod does not install husky, but prepare still runs — strip it for the image.
 RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));delete p.scripts.prepare;fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');"
@@ -54,7 +57,10 @@ COPY packages/engine-stub/package.json ./packages/engine-stub/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 
 # Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod --filter @mergesignal/api...
+RUN --mount=type=secret,id=gh_packages_token \
+    export NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
+    pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN" && \
+    pnpm install --frozen-lockfile --prod --filter @mergesignal/api...
 
 # Copy built artifacts from builder (full shared package: exports point at src; include dist for compiled consumers)
 COPY --from=builder /app/apps/api/dist ./apps/api/dist

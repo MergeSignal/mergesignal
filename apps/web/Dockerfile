@@ -7,7 +7,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Copy workspace configuration
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 
 # Copy all package.json files for workspace resolution
 COPY apps/web/package.json ./apps/web/
@@ -15,8 +15,11 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --filter web...
+# Install dependencies (@mergesignal/contracts from GitHub Packages)
+RUN --mount=type=secret,id=gh_packages_token \
+    export NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
+    pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN" && \
+    pnpm install --frozen-lockfile --filter web...
 
 # Copy source code
 COPY apps/web ./apps/web
@@ -39,7 +42,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Copy workspace configuration
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 
 # Root has "prepare": "husky"; --prod does not install husky, but prepare still runs — strip it for the image.
 RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));delete p.scripts.prepare;fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');"
@@ -51,7 +54,10 @@ COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 
 # Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod --filter web...
+RUN --mount=type=secret,id=gh_packages_token \
+    export NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
+    pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN" && \
+    pnpm install --frozen-lockfile --prod --filter web...
 
 # Copy built Next.js artifacts from builder
 COPY --from=builder /app/apps/web/.next ./apps/web/.next
