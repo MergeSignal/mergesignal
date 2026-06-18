@@ -7,14 +7,14 @@ Both repositories build and test **independently** with registry-resolved depend
 ```
 @mergesignal/contracts@0.1.0  (GitHub Packages, published from mergesignal-engine)
         ↓
-@mergesignal/shared@0.8.0     (npmjs.org, published from mergesignal)
+@mergesignal/shared@0.8.1     (npmjs.org, published from mergesignal)
         ↓
 mergesignal apps + mergesignal-engine consumers
 ```
 
 | Repo               | Contracts                       | Shared                          | Engine deploy pin               |
 | ------------------ | ------------------------------- | ------------------------------- | ------------------------------- |
-| mergesignal        | GH Packages tarball in lockfile | workspace `0.8.0` + npm publish | `MERGESIGNAL_ENGINE_REF=v2.0.0` |
+| mergesignal        | GH Packages tarball in lockfile | workspace `0.8.1` + npm publish | `MERGESIGNAL_ENGINE_REF=v2.0.0` |
 | mergesignal-engine | workspace `packages/contracts`  | npm catalog `0.7.0`             | tag `v2.0.0`                    |
 
 No cross-repo workspace paths, `file:` deps, or sibling checkouts are required.
