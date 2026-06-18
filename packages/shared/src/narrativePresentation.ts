@@ -1,5 +1,22 @@
-import type { ScanNarrativeFacts } from "./scanNarrativeFacts.js";
+import type {
+  NarrativePackageUsage,
+  ScanNarrativeFacts,
+} from "./scanNarrativeFacts.js";
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
+
+/** Deduplicated union of wire usage path buckets — matches reachability/linkage semantics. */
+export function normalizedPackageUsagePaths(
+  row: NarrativePackageUsage,
+): string[] {
+  const paths: string[] = [];
+  const seen = new Set<string>();
+  for (const p of [...row.paths, ...row.criticalPaths, ...row.files]) {
+    if (!p || seen.has(p)) continue;
+    seen.add(p);
+    paths.push(p);
+  }
+  return paths;
+}
 
 export type SummarizePackageUsageOptions = {
   maxPaths?: number;
@@ -66,9 +83,7 @@ export function summarizePackageUsage(
 
   for (const row of rows) {
     packageNames.push(row.packageName);
-    const rowPaths = [...row.paths, ...row.criticalPaths, ...row.files].filter(
-      Boolean,
-    );
+    const rowPaths = normalizedPackageUsagePaths(row);
     pathCount += rowPaths.length;
     for (const p of rowPaths) {
       if (pathSamples.length >= maxPaths) break;

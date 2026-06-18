@@ -10,6 +10,7 @@ import {
   scanResultLimitedContext,
   scanResultTypescriptPatch,
 } from "./fixtures/scanResultFixtures.js";
+import { scanResultEslint } from "./fixtures/presentationPersonaFixtures.js";
 
 const SCAN_ID = "22222222-2222-4222-8222-222222222222";
 const ORIGIN = "https://app.example.com";
@@ -80,6 +81,41 @@ describe("presentDashboardCard personas", () => {
     expect(card.headline).toMatch(/patch upgrade/i);
     expect(card.headline).not.toMatch(/needs review/i);
     expect(card.verification.length).toBe(0);
+  });
+});
+
+describe("presentScanDetails usage paths", () => {
+  it("maps wire usage.files into detailPresentation.usage.items[].paths", () => {
+    const bundle = buildScanPresentationBundle({
+      result: scanResultEslint,
+      pipelineStatus: "done",
+    })!;
+    const details = presentScanDetails(bundle, { scanId: SCAN_ID });
+    const eslintUsage = details.usage?.items.find(
+      (item) => item.packageName === "eslint",
+    );
+
+    expect(eslintUsage).toBeDefined();
+    expect(eslintUsage!.paths).toEqual([".eslintrc.cjs"]);
+    expect(bundle.facts.packageUsage[0]?.paths).toEqual([]);
+    expect(bundle.facts.packageUsage[0]?.files).toEqual([".eslintrc.cjs"]);
+  });
+
+  it("deduplicates paths across paths, criticalPaths, and files buckets", () => {
+    const bundle = buildScanPresentationBundle({
+      result: scanResultFastifyRuntime,
+      pipelineStatus: "done",
+    })!;
+    const details = presentScanDetails(bundle, { scanId: SCAN_ID });
+    const fastifyUsage = details.usage?.items.find(
+      (item) => item.packageName === "fastify",
+    );
+
+    expect(fastifyUsage).toBeDefined();
+    expect(fastifyUsage!.paths.length).toBeGreaterThan(0);
+    expect(fastifyUsage!.paths).toContain("apps/api/src/server.ts");
+    expect(fastifyUsage!.paths).toContain("apps/api/src/middleware/auth.ts");
+    expect(new Set(fastifyUsage!.paths).size).toBe(fastifyUsage!.paths.length);
   });
 });
 

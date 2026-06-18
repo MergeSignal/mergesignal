@@ -1,4 +1,5 @@
 import { MERGE_CONCERN_LABELS } from "../../assessmentLabels.js";
+import { normalizedPackageUsagePaths } from "../../narrativePresentation.js";
 import { MERGE_POSTURE_LABEL } from "../../riskVocabulary.js";
 import {
   buildNarrativeChannels,
@@ -35,7 +36,7 @@ function mapUsage(
       : undefined,
     items: facts.packageUsage.map((row) => ({
       packageName: row.packageName,
-      paths: row.paths,
+      paths: normalizedPackageUsagePaths(row),
       areas: row.areas,
       criticalPaths: row.criticalPaths,
     })),
