@@ -220,6 +220,7 @@ export async function prepareScanContext(
     repoId: job.repoId,
     dependencyGraph: job.dependencyGraph ?? {},
     lockfile: job.lockfile,
+    baseLockfile: job.baseLockfile,
     repoSource: job.repoSource,
     changedFiles,
     changedPackages,

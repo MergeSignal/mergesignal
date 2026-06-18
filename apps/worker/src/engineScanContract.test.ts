@@ -32,6 +32,7 @@ packages:
 
 describe("worker → engine scan contract", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     __resetEngineLoaderCacheForTests();
     process.env.MERGESIGNAL_ENGINE_IMPL = "@mergesignal/engine-test-fixture";
     process.env.NODE_ENV = "test";
@@ -72,6 +73,7 @@ describe("worker → engine scan contract", () => {
         repoId: job.repoId,
         dependencyGraph: {},
         lockfile: job.lockfile,
+        baseLockfile: job.baseLockfile,
         repoSource: job.repoSource,
         changedPackages: ["react"],
         lockfilePackageDelta: {
@@ -144,7 +146,7 @@ describe("worker → engine scan contract", () => {
       repo: "app",
       prNumber: 1,
     });
-    expect(req.baseLockfile).toBeUndefined();
+    expect(req.baseLockfile).toEqual(job.baseLockfile);
     expect(codeAnalysis).toBeDefined();
     expect(codeAnalysis!.fileContents.size).toBeGreaterThan(0);
 
@@ -163,6 +165,10 @@ describe("worker → engine scan contract", () => {
     expect(prepared.scanRequest.lockfilePackageDelta?.updated).toContain(
       "react",
     );
+    expect(prepared.scanRequest.baseLockfile).toEqual({
+      manager: "pnpm",
+      content: pnpmBase,
+    });
   });
 
   it("records warnings and analysisPreparation when corpus missing", async () => {

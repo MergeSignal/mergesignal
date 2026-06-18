@@ -34,6 +34,7 @@ describe("golden prepareScanContext fixtures", () => {
     expect(prepared.scanRequest.lockfilePackageDelta).toEqual(
       expected.lockfilePackageDelta,
     );
+    expect(prepared.scanRequest.baseLockfile).toEqual(job.baseLockfile);
     expect(prepared.preparationSummary.codeAnalysisEnabled).toBe(
       expected.codeAnalysisEnabled,
     );
@@ -71,6 +72,7 @@ describe("golden prepareScanContext fixtures", () => {
       expect(prepared.scanRequest.lockfilePackageDelta).toEqual(
         expected.lockfilePackageDelta,
       );
+      expect(prepared.scanRequest.baseLockfile).toEqual(job.baseLockfile);
       expect(prepared.preparationSummary.codeAnalysisEnabled).toBe(
         expected.codeAnalysisEnabled,
       );

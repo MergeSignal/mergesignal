@@ -9,6 +9,7 @@ import { prepareScanContext } from "@mergesignal/scan-prep";
 import type {
   AnalysisPreparation,
   ScanQueueJob,
+  ScanRequest,
   ScanResult,
 } from "@mergesignal/shared";
 import {
@@ -281,15 +282,26 @@ export async function executeScanJob(
 
     let rawResult: unknown;
     const engineStarted = Date.now();
+    const analyzeRequest: ScanRequest = {
+      ...prepared.scanRequest,
+      ...(prepared.scanRequest.baseLockfile
+        ? {}
+        : job.data.baseLockfile
+          ? { baseLockfile: job.data.baseLockfile }
+          : {}),
+    };
+
     logScanEvent("info", "engine_execution_start", {
       scanId,
       repoId,
       jobId,
       pr,
       codeAnalysisEnabled: prepared.preparationSummary.codeAnalysisEnabled,
+      baseLockfilePresent: Boolean(analyzeRequest.baseLockfile),
+      lockfileDeltaUpdated: prepared.preparationSummary.lockfileDeltaUpdated,
     });
     try {
-      rawResult = await analyze(prepared.scanRequest, prepared.codeAnalysis);
+      rawResult = await analyze(analyzeRequest, prepared.codeAnalysis);
     } catch (e: unknown) {
       captureWorkerException(e);
       const msg = e instanceof Error ? e.message : String(e);

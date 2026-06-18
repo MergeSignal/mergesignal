@@ -150,7 +150,10 @@ describe("executeScanJob", () => {
 
     expect(analyze).toHaveBeenCalledTimes(1);
     const req = vi.mocked(analyze).mock.calls[0]![0];
-    expect(req.baseLockfile).toBeUndefined();
+    expect(req.baseLockfile).toEqual({
+      manager: "pnpm",
+      content: "x",
+    });
     expect(req.github).toEqual({ owner: "acme", repo: "app", prNumber: 7 });
 
     const doneSql = calls.find((c) => c.includes("status = 'done'"));
