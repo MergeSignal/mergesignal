@@ -1,3 +1,5 @@
+import { execSync } from "node:child_process";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -160,6 +162,39 @@ packages:
     resolution: {integrity: sha512-y}
 `;
 
+/** Case C: identical importers, packages section churn only */
+const transitiveChurnBase = `
+lockfileVersion: '9.0'
+importers:
+  .:
+    devDependencies:
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+packages:
+  typescript@5.9.2:
+    resolution: {integrity: sha512-ts592}
+  octokit@4.0.0:
+    resolution: {integrity: sha512-octokit-v4}
+`;
+
+const transitiveChurnHead = `
+lockfileVersion: '9.0'
+importers:
+  .:
+    devDependencies:
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+packages:
+  typescript@5.9.2:
+    resolution: {integrity: sha512-ts592}
+  octokit@5.0.0:
+    resolution: {integrity: sha512-octokit-v5}
+  jsonwebtoken@9.0.0:
+    resolution: {integrity: sha512-jwt}
+`;
+
 describe("detectLockfilePackageDelta", () => {
   it("detects added package", () => {
     const delta = detectLockfilePackageDelta(pnpmBase, pnpmHeadAdded, "pnpm");
@@ -247,5 +282,82 @@ describe("detectLockfilePackageDelta", () => {
     expect(
       detectChangedPackages(pnpmPackagesOnlyBase, pnpmPackagesOnlyHead, "pnpm"),
     ).toContain("typescript");
+  });
+});
+
+describe("pnpm PR-facing package delta (regression)", () => {
+  it("Case A: PR #28 canonical lockfiles emit typescript only", () => {
+    const changed = detectChangedPackages(pr28Base, pr28Head, "pnpm");
+    const delta = detectLockfilePackageDelta(pr28Base, pr28Head, "pnpm");
+
+    expect(changed).toEqual(["typescript"]);
+    expect(delta).toEqual({
+      added: [],
+      removed: [],
+      updated: ["typescript"],
+    });
+    expect(changed.some((name) => name.includes("octokit"))).toBe(false);
+    expect(changed.some((name) => name.includes("jsonwebtoken"))).toBe(false);
+  });
+
+  it("Case B: production reproduction pair (f993e62 → 55d10d7334) emits typescript only", () => {
+    const baseSha = "f993e62c6bbed663dae8aac14e9214a7d883e392";
+    const headSha = "55d10d73340e23344915b5bce3192b2ef00e633f";
+
+    let baseLockfile: string;
+    let headLockfile: string;
+    try {
+      baseLockfile = execSync(`git show ${baseSha}:pnpm-lock.yaml`, {
+        encoding: "utf8",
+      });
+      headLockfile = execSync(`git show ${headSha}:pnpm-lock.yaml`, {
+        encoding: "utf8",
+      });
+    } catch {
+      return;
+    }
+
+    const changed = detectChangedPackages(baseLockfile, headLockfile, "pnpm");
+    const delta = detectLockfilePackageDelta(
+      baseLockfile,
+      headLockfile,
+      "pnpm",
+    );
+
+    expect(changed).toEqual(["typescript"]);
+    expect(delta.updated).toEqual(["typescript"]);
+    expect(delta.added).toEqual([]);
+    expect(delta.removed).toEqual([]);
+  });
+
+  it("Case C: transitive packages-section churn does not inflate changedPackages", () => {
+    const changed = detectChangedPackages(
+      transitiveChurnBase,
+      transitiveChurnHead,
+      "pnpm",
+    );
+    const delta = detectLockfilePackageDelta(
+      transitiveChurnBase,
+      transitiveChurnHead,
+      "pnpm",
+    );
+
+    expect(changed).toEqual([]);
+    expect(delta).toEqual({ added: [], removed: [], updated: [] });
+    expect(
+      isPnpmLockfileDiffEmpty(transitiveChurnBase, transitiveChurnHead),
+    ).toBe(true);
+  });
+
+  it("Case D: direct dependency add, remove, and update still detected", () => {
+    expect(
+      detectLockfilePackageDelta(pnpmBase, pnpmHeadAdded, "pnpm").added,
+    ).toEqual(["lodash"]);
+    expect(
+      detectLockfilePackageDelta(pnpmBase, pnpmHeadRemoved, "pnpm").removed,
+    ).toContain("left-pad");
+    expect(
+      detectLockfilePackageDelta(pnpmBase, pnpmHeadUpdated, "pnpm").updated,
+    ).toContain("left-pad");
   });
 });

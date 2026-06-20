@@ -36,24 +36,6 @@ function sortDelta(delta: LockfilePackageDelta): LockfilePackageDelta {
   };
 }
 
-function mergeDeltas(...deltas: LockfilePackageDelta[]): LockfilePackageDelta {
-  const added = new Set<string>();
-  const removed = new Set<string>();
-  const updated = new Set<string>();
-
-  for (const delta of deltas) {
-    for (const name of delta.added) added.add(name);
-    for (const name of delta.removed) removed.add(name);
-    for (const name of delta.updated) updated.add(name);
-  }
-
-  return sortDelta({
-    added: Array.from(added),
-    removed: Array.from(removed),
-    updated: Array.from(updated),
-  });
-}
-
 function deltaFromChangedNames(delta: LockfilePackageDelta): string[] {
   const changed = new Set<string>([
     ...delta.added,
@@ -330,6 +312,26 @@ function diffFlatPackages(
   return sortDelta({ added, removed, updated });
 }
 
+function pnpmLockfileHasImporters(lockfileContent: string): boolean {
+  return lockfileContent.includes("importers:");
+}
+
+/** PR-facing delta: importer-direct changes when importers exist; else packages section. */
+function resolvePnpmPrFacingDelta(
+  importerDelta: LockfilePackageDelta,
+  packagesDelta: LockfilePackageDelta,
+  baseLockfile: string,
+  headLockfile: string,
+): LockfilePackageDelta {
+  if (
+    pnpmLockfileHasImporters(baseLockfile) &&
+    pnpmLockfileHasImporters(headLockfile)
+  ) {
+    return importerDelta;
+  }
+  return packagesDelta;
+}
+
 function detectPnpmLockfileDiffChannels(
   baseLockfile: string,
   headLockfile: string,
@@ -346,7 +348,12 @@ function detectPnpmLockfileDiffChannels(
     extractPnpmPackageVersions(baseLockfile),
     extractPnpmPackageVersions(headLockfile),
   );
-  const merged = mergeDeltas(importerDelta, packagesDelta);
+  const merged = resolvePnpmPrFacingDelta(
+    importerDelta,
+    packagesDelta,
+    baseLockfile,
+    headLockfile,
+  );
   return { merged, importerDelta, packagesDelta };
 }
 
@@ -354,17 +361,11 @@ export function isPnpmLockfileDiffEmpty(
   baseLockfile: string,
   headLockfile: string,
 ): boolean {
-  const { importerDelta, packagesDelta } = detectPnpmLockfileDiffChannels(
-    baseLockfile,
-    headLockfile,
-  );
+  const { merged } = detectPnpmLockfileDiffChannels(baseLockfile, headLockfile);
   return (
-    importerDelta.added.length === 0 &&
-    importerDelta.removed.length === 0 &&
-    importerDelta.updated.length === 0 &&
-    packagesDelta.added.length === 0 &&
-    packagesDelta.removed.length === 0 &&
-    packagesDelta.updated.length === 0
+    merged.added.length === 0 &&
+    merged.removed.length === 0 &&
+    merged.updated.length === 0
   );
 }
 
