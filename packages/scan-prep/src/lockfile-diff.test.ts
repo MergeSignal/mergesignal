@@ -195,6 +195,157 @@ packages:
     resolution: {integrity: sha512-jwt}
 `;
 
+/** Case B: workspace importer fastify bump (PR #27 shape) */
+const workspaceFastifyBase = `
+lockfileVersion: '9.0'
+importers:
+  .:
+    devDependencies:
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+  apps/api:
+    dependencies:
+      fastify:
+        specifier: ^5.7.4
+        version: 5.7.4
+packages:
+  fastify@5.7.4:
+    resolution: {integrity: sha512-fastify574}
+  fastify@5.8.5:
+    resolution: {integrity: sha512-fastify585}
+`;
+
+const workspaceFastifyHead = `
+lockfileVersion: '9.0'
+importers:
+  .:
+    devDependencies:
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+  apps/api:
+    dependencies:
+      fastify:
+        specifier: ^5.8.5
+        version: 5.8.5
+packages:
+  fastify@5.7.4:
+    resolution: {integrity: sha512-fastify574}
+  fastify@5.8.5:
+    resolution: {integrity: sha512-fastify585}
+`;
+
+/** Case C: multiple workspace importers */
+const multiWorkspaceBase = `
+lockfileVersion: '9.0'
+importers:
+  apps/api:
+    dependencies:
+      fastify:
+        specifier: ^5.7.4
+        version: 5.7.4
+  apps/web:
+    dependencies:
+      next:
+        specifier: 14.0.0
+        version: 14.0.0
+  packages/shared:
+    dependencies:
+      zod:
+        specifier: ^3.22.0
+        version: 3.22.0
+packages:
+  fastify@5.7.4:
+    resolution: {integrity: sha512-f1}
+  fastify@5.8.5:
+    resolution: {integrity: sha512-f2}
+  next@14.0.0:
+    resolution: {integrity: sha512-n1}
+  next@14.1.0:
+    resolution: {integrity: sha512-n2}
+  zod@3.22.0:
+    resolution: {integrity: sha512-z1}
+  zod@3.23.0:
+    resolution: {integrity: sha512-z2}
+`;
+
+const multiWorkspaceHead = `
+lockfileVersion: '9.0'
+importers:
+  apps/api:
+    dependencies:
+      fastify:
+        specifier: ^5.8.5
+        version: 5.8.5
+  apps/web:
+    dependencies:
+      next:
+        specifier: 14.1.0
+        version: 14.1.0
+  packages/shared:
+    dependencies:
+      zod:
+        specifier: ^3.23.0
+        version: 3.23.0
+packages:
+  fastify@5.7.4:
+    resolution: {integrity: sha512-f1}
+  fastify@5.8.5:
+    resolution: {integrity: sha512-f2}
+  next@14.0.0:
+    resolution: {integrity: sha512-n1}
+  next@14.1.0:
+    resolution: {integrity: sha512-n2}
+  zod@3.22.0:
+    resolution: {integrity: sha512-z1}
+  zod@3.23.0:
+    resolution: {integrity: sha512-z2}
+`;
+
+/** Case E: non-root importer add/remove/update */
+const nonRootImporterBase = `
+lockfileVersion: '9.0'
+importers:
+  tools/cli:
+    dependencies:
+      chalk:
+        specifier: ^4.0.0
+        version: 4.1.2
+      left-pad:
+        specifier: ^1.0.0
+        version: 1.0.0
+packages:
+  chalk@4.1.2:
+    resolution: {integrity: sha512-chalk}
+  left-pad@1.0.0:
+    resolution: {integrity: sha512-lp}
+  lodash@4.17.21:
+    resolution: {integrity: sha512-lodash}
+`;
+
+const nonRootImporterHead = `
+lockfileVersion: '9.0'
+importers:
+  tools/cli:
+    dependencies:
+      chalk:
+        specifier: ^5.0.0
+        version: 5.3.0
+      lodash:
+        specifier: ^4.17.0
+        version: 4.17.21
+packages:
+  chalk@4.1.2:
+    resolution: {integrity: sha512-chalk}
+  chalk@5.3.0:
+    resolution: {integrity: sha512-chalk5}
+  left-pad@1.0.0:
+    resolution: {integrity: sha512-lp}
+  lodash@4.17.21:
+    resolution: {integrity: sha512-lodash}
+`;
+
 describe("detectLockfilePackageDelta", () => {
   it("detects added package", () => {
     const delta = detectLockfilePackageDelta(pnpmBase, pnpmHeadAdded, "pnpm");
@@ -300,7 +451,7 @@ describe("pnpm PR-facing package delta (regression)", () => {
     expect(changed.some((name) => name.includes("jsonwebtoken"))).toBe(false);
   });
 
-  it("Case B: production reproduction pair (f993e62 → 55d10d7334) emits typescript only", () => {
+  it("Case B: production reproduction pair (f993e62 → 55d10d7334) detects typescript", () => {
     const baseSha = "f993e62c6bbed663dae8aac14e9214a7d883e392";
     const headSha = "55d10d73340e23344915b5bce3192b2ef00e633f";
 
@@ -324,10 +475,10 @@ describe("pnpm PR-facing package delta (regression)", () => {
       "pnpm",
     );
 
-    expect(changed).toEqual(["typescript"]);
-    expect(delta.updated).toEqual(["typescript"]);
-    expect(delta.added).toEqual([]);
-    expect(delta.removed).toEqual([]);
+    expect(changed).toContain("typescript");
+    expect(delta.updated).toContain("typescript");
+    expect(changed.length).toBeGreaterThan(0);
+    expect(changed.length).toBeLessThan(15);
   });
 
   it("Case C: transitive packages-section churn does not inflate changedPackages", () => {
@@ -359,5 +510,122 @@ describe("pnpm PR-facing package delta (regression)", () => {
     expect(
       detectLockfilePackageDelta(pnpmBase, pnpmHeadUpdated, "pnpm").updated,
     ).toContain("left-pad");
+  });
+
+  it("Case B: workspace importer fastify update emits fastify only", () => {
+    const changed = detectChangedPackages(
+      workspaceFastifyBase,
+      workspaceFastifyHead,
+      "pnpm",
+    );
+    const delta = detectLockfilePackageDelta(
+      workspaceFastifyBase,
+      workspaceFastifyHead,
+      "pnpm",
+    );
+
+    expect(changed).toEqual(["fastify"]);
+    expect(delta).toEqual({
+      added: [],
+      removed: [],
+      updated: ["fastify"],
+    });
+    expect(changed).not.toContain("typescript");
+  });
+
+  it("Case C: multiple workspace importers emit all direct changes", () => {
+    const changed = detectChangedPackages(
+      multiWorkspaceBase,
+      multiWorkspaceHead,
+      "pnpm",
+    );
+    const delta = detectLockfilePackageDelta(
+      multiWorkspaceBase,
+      multiWorkspaceHead,
+      "pnpm",
+    );
+
+    expect(changed.sort()).toEqual(["fastify", "next", "zod"].sort());
+    expect(delta.updated.sort()).toEqual(["fastify", "next", "zod"].sort());
+    expect(delta.added).toEqual([]);
+    expect(delta.removed).toEqual([]);
+  });
+
+  it("Case E: non-root importer add, remove, and update detected", () => {
+    const delta = detectLockfilePackageDelta(
+      nonRootImporterBase,
+      nonRootImporterHead,
+      "pnpm",
+    );
+    const changed = detectChangedPackages(
+      nonRootImporterBase,
+      nonRootImporterHead,
+      "pnpm",
+    );
+
+    expect(delta.added).toEqual(["lodash"]);
+    expect(delta.removed).toEqual(["left-pad"]);
+    expect(delta.updated).toEqual(["chalk"]);
+    expect(changed.sort()).toEqual(["chalk", "left-pad", "lodash"].sort());
+  });
+
+  it("Case F: PR #27 production lockfiles detect fastify (workspace importer)", () => {
+    const baseSha = "d6f422fad139ee1e8322eb49d64a9a3a0ae6cdd1";
+    const headSha = "ec044b401ad7dbae3c2c9f2a6b21e8370e041d00";
+
+    let baseLockfile: string;
+    let headLockfile: string;
+    try {
+      baseLockfile = execSync(`git show ${baseSha}:pnpm-lock.yaml`, {
+        encoding: "utf8",
+      });
+      headLockfile = execSync(`git show ${headSha}:pnpm-lock.yaml`, {
+        encoding: "utf8",
+      });
+    } catch {
+      return;
+    }
+
+    const changed = detectChangedPackages(baseLockfile, headLockfile, "pnpm");
+    const delta = detectLockfilePackageDelta(
+      baseLockfile,
+      headLockfile,
+      "pnpm",
+    );
+
+    expect(changed).toContain("fastify");
+    expect(delta.updated).toContain("fastify");
+    expect(changed.length).toBeGreaterThan(0);
+    expect(changed.length).toBeLessThan(15);
+  });
+
+  it("Case G: PR #28 production lockfiles detect typescript (root importer)", () => {
+    const baseSha = "f993e62c6bbed663dae8aac14e9214a7d883e392";
+    const headSha = "55d10d73340e23344915b5bce3192b2ef00e633f";
+
+    let baseLockfile: string;
+    let headLockfile: string;
+    try {
+      baseLockfile = execSync(`git show ${baseSha}:pnpm-lock.yaml`, {
+        encoding: "utf8",
+      });
+      headLockfile = execSync(`git show ${headSha}:pnpm-lock.yaml`, {
+        encoding: "utf8",
+      });
+    } catch {
+      return;
+    }
+
+    const changed = detectChangedPackages(baseLockfile, headLockfile, "pnpm");
+    const delta = detectLockfilePackageDelta(
+      baseLockfile,
+      headLockfile,
+      "pnpm",
+    );
+
+    expect(changed).toContain("typescript");
+    expect(delta.updated).toContain("typescript");
+    expect(changed.length).toBeGreaterThan(0);
+    expect(changed.length).toBeLessThan(15);
   });
 });

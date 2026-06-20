@@ -14,7 +14,7 @@ type ImporterDep = {
 const PNPM_PACKAGE_KEY_RE =
   /^\s+['"]?\/?(@[^@\s/]+\/[^@\s]+|[^@'":\s/]+)@([^'":\s]+)['"]?:/;
 
-const PNPM_ROOT_DEP_SECTIONS = new Set([
+const PNPM_IMPORTER_DEP_SECTIONS = new Set([
   "dependencies",
   "devDependencies",
   "optionalDependencies",
@@ -96,22 +96,44 @@ function diffPackageVersionSets(
   return sortDelta({ added, removed, updated });
 }
 
-function extractPnpmRootImporterDeps(
+function normalizePnpmPackageName(raw: string): string {
+  const trimmed = raw.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+/** Per-importer direct deps: importer key → package name → dep entry. */
+function extractPnpmImporterSections(
   lockfileContent: string,
-): Map<string, ImporterDep> {
-  const deps = new Map<string, ImporterDep>();
+): Map<string, Map<string, ImporterDep>> {
+  const importers = new Map<string, Map<string, ImporterDep>>();
 
   try {
     const lines = lockfileContent.split("\n");
     let inImporters = false;
-    let inRootImporter = false;
+    let currentImporter: string | null = null;
     let inDepSection = false;
     let currentName: string | null = null;
     let current: ImporterDep | null = null;
 
+    const importerDeps = (): Map<string, ImporterDep> => {
+      if (!currentImporter) return new Map();
+      let deps = importers.get(currentImporter);
+      if (!deps) {
+        deps = new Map();
+        importers.set(currentImporter, deps);
+      }
+      return deps;
+    };
+
     const flush = () => {
-      if (currentName && current) {
-        deps.set(currentName, current);
+      if (currentImporter && currentName && current) {
+        importerDeps().set(currentName, current);
       }
       currentName = null;
       current = null;
@@ -129,22 +151,19 @@ function extractPnpmRootImporterDeps(
         break;
       }
 
-      if (line.match(/^  \.:$/)) {
+      const importerMatch = line.match(/^  ([^\s][^:]*):$/);
+      if (importerMatch?.[1]) {
         flush();
-        inRootImporter = true;
+        currentImporter = importerMatch[1];
         inDepSection = false;
         continue;
       }
 
-      if (!inRootImporter) continue;
-
-      if (line.match(/^  [^.\s]/)) {
-        flush();
-        break;
-      }
-
       const sectionMatch = line.match(/^    ([^:]+):$/);
-      if (sectionMatch?.[1] && PNPM_ROOT_DEP_SECTIONS.has(sectionMatch[1])) {
+      if (
+        sectionMatch?.[1] &&
+        PNPM_IMPORTER_DEP_SECTIONS.has(sectionMatch[1])
+      ) {
         flush();
         inDepSection = true;
         continue;
@@ -155,7 +174,7 @@ function extractPnpmRootImporterDeps(
       const pkgMatch = line.match(/^      ([^:]+):$/);
       if (pkgMatch?.[1]) {
         flush();
-        currentName = pkgMatch[1];
+        currentName = normalizePnpmPackageName(pkgMatch[1]);
         current = { specifier: "", version: "" };
         continue;
       }
@@ -186,7 +205,39 @@ function extractPnpmRootImporterDeps(
     );
   }
 
-  return deps;
+  return importers;
+}
+
+function unionImporterDeltas(
+  baseLockfile: string,
+  headLockfile: string,
+): LockfilePackageDelta {
+  const baseSections = extractPnpmImporterSections(baseLockfile);
+  const headSections = extractPnpmImporterSections(headLockfile);
+  const importerKeys = new Set([
+    ...baseSections.keys(),
+    ...headSections.keys(),
+  ]);
+
+  const added = new Set<string>();
+  const removed = new Set<string>();
+  const updated = new Set<string>();
+
+  for (const importerKey of importerKeys) {
+    const delta = diffImporterDeps(
+      baseSections.get(importerKey) ?? new Map(),
+      headSections.get(importerKey) ?? new Map(),
+    );
+    for (const name of delta.added) added.add(name);
+    for (const name of delta.removed) removed.add(name);
+    for (const name of delta.updated) updated.add(name);
+  }
+
+  return sortDelta({
+    added: [...added],
+    removed: [...removed],
+    updated: [...updated],
+  });
 }
 
 function extractPnpmPackageVersions(
@@ -340,10 +391,7 @@ function detectPnpmLockfileDiffChannels(
   importerDelta: LockfilePackageDelta;
   packagesDelta: LockfilePackageDelta;
 } {
-  const importerDelta = diffImporterDeps(
-    extractPnpmRootImporterDeps(baseLockfile),
-    extractPnpmRootImporterDeps(headLockfile),
-  );
+  const importerDelta = unionImporterDeltas(baseLockfile, headLockfile);
   const packagesDelta = diffPackageVersionSets(
     extractPnpmPackageVersions(baseLockfile),
     extractPnpmPackageVersions(headLockfile),
