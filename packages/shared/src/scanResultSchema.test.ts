@@ -140,6 +140,19 @@ describe("engineOutputScanResultSchema (strict, fresh engine only)", () => {
       expect(r.result.methodologyVersion).toBe("engine-test-fixture/v1");
   });
 
+  it("synthesizes prRisk/repositoryHealth from totalScore for legacy engines", () => {
+    const r = safeParseEngineOutputScanResult({
+      ...minimalValid,
+      methodologyVersion: "acme-prod/v1",
+      assessment: minimalAssessment,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.result.prRisk?.score).toBe(42);
+      expect(r.result.repositoryHealth?.totalScore).toBe(42);
+    }
+  });
+
   it("parseEngineOutputScanResultOrThrow throws with validation prefix", () => {
     expect(() => parseEngineOutputScanResultOrThrow(minimalValid)).toThrow(
       /^validation:/,

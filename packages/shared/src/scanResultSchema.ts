@@ -26,6 +26,26 @@ const repositoryHealthSchema = z.object({
 });
 
 /**
+ * Synthesize ABI-4 prRisk/repositoryHealth from legacy totalScore when an engine
+ * has not yet adopted the dual-score wire (transitional bridge).
+ */
+export function normalizeEngineOutputAbi4(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object") return raw;
+  const obj = raw as Record<string, unknown>;
+  const totalScore = obj.totalScore;
+  const layerScores = obj.layerScores;
+  if (typeof totalScore !== "number" || !Number.isFinite(totalScore)) {
+    return raw;
+  }
+  if (!layerScores || typeof layerScores !== "object") return raw;
+  return {
+    ...obj,
+    prRisk: obj.prRisk ?? { score: totalScore, layerScores },
+    repositoryHealth: obj.repositoryHealth ?? { totalScore, layerScores },
+  };
+}
+
+/**
  * Minimum structural invariants for **persisted** `scans.result` JSON and legacy reads.
  * `methodologyVersion` stays optional so historical rows without it remain valid.
  * Unknown top-level keys are preserved (forward-compatible with newer engines).
@@ -96,7 +116,9 @@ export type EngineOutputScanResultParseSuccess = {
 export function safeParseEngineOutputScanResult(
   data: unknown,
 ): EngineOutputScanResultParseSuccess | EngineOutputScanResultParseFailure {
-  const parsed = engineOutputScanResultSchema.safeParse(data);
+  const parsed = engineOutputScanResultSchema.safeParse(
+    normalizeEngineOutputAbi4(data),
+  );
   if (!parsed.success) {
     const issues = parsed.error.issues.map(
       (i) => `${i.path.join(".") || "(root)"}: ${i.message}`,
