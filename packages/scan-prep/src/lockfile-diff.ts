@@ -6,7 +6,7 @@ import type { LockfilePackageDelta } from "@mergesignal/shared";
 
 import { logWarn } from "./log.js";
 
-export type LockfileDiffOptions = {
+type LockfileDiffOptions = {
   changedPackageJsonFiles?: string[];
 };
 
