@@ -1,3 +1,5 @@
+import { scoreToBandLabel } from "../../prRiskBand.js";
+import { resolvePrRiskLayerScores } from "../../prRiskWire.js";
 import {
   buildNarrativeChannels,
   composeHeadline,
@@ -16,10 +18,11 @@ export function presentCliScanSummary(
   ctx: { repoLabel?: string } = {},
 ): CliScanPresentation {
   const { facts, profile, result } = bundle;
-  const layers = result.layerScores;
-  const layerLine = layers
-    ? `security=${layers.security} maintainability=${layers.maintainability} ecosystem=${layers.ecosystem} upgradeImpact=${layers.upgradeImpact}`
+  const layerScores = resolvePrRiskLayerScores(result);
+  const layerLine = layerScores
+    ? `security=${layerScores.security} maintainability=${layerScores.maintainability} ecosystem=${layerScores.ecosystem} upgradeImpact=${layerScores.upgradeImpact}`
     : "";
+  const prRiskScore = facts.riskIndex ?? 0;
 
   return {
     ...projectAssessmentFields(bundle),
@@ -37,7 +40,9 @@ export function presentCliScanSummary(
     keyPoints: projectCompactKeyPoints(buildNarrativeChannels(bundle), 6),
     verificationActions: composeVerificationActions(bundle, 5),
     metrics: {
-      riskIndex: facts.riskIndex ?? result.totalScore ?? 0,
+      prRiskScore,
+      prRiskBandLabel: scoreToBandLabel(prRiskScore) ?? undefined,
+      riskIndex: prRiskScore,
       layerLine,
       findingCount: result.findings?.length ?? 0,
       recommendationCount: result.recommendations?.length ?? 0,

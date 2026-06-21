@@ -13,7 +13,6 @@ export function presentGitHubPrCommentMarkdownFromResult(
     result,
     pipelineStatus: "done",
     decision: result.decision?.recommendation,
-    totalScore: result.totalScore,
   });
   if (!bundle) return "";
   return renderGitHubPrCommentMarkdown(

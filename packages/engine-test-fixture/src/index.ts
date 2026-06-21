@@ -43,30 +43,36 @@ const FIXTURE_ASSESSMENT: Assessment = {
   },
 };
 
-const minimalScan = (repoId: string): ScanResult => ({
-  totalScore: 12,
-  layerScores: {
+const minimalScan = (repoId: string): ScanResult => {
+  const layerScores = {
     security: 10,
     maintainability: 10,
     ecosystem: 15,
     upgradeImpact: 13,
-  },
-  findings: [],
-  recommendations: [],
-  generatedAt: new Date().toISOString(),
-  methodologyVersion: METHODOLOGY_VERSION,
-  confidence: "high",
-  assessment: FIXTURE_ASSESSMENT,
-  decision: {
-    recommendation: "safe",
+  };
+  const totalScore = 12;
+  return {
+    totalScore,
+    layerScores,
+    prRisk: { score: totalScore, layerScores },
+    repositoryHealth: { totalScore, layerScores },
+    findings: [],
+    recommendations: [],
+    generatedAt: new Date().toISOString(),
+    methodologyVersion: METHODOLOGY_VERSION,
     confidence: "high",
-    reasoning: [
-      "No dedicated dependency review required beyond normal engineering process.",
-    ],
-  },
-  insights: [],
-  signals: [],
-});
+    assessment: FIXTURE_ASSESSMENT,
+    decision: {
+      recommendation: "safe",
+      confidence: "high",
+      reasoning: [
+        "No dedicated dependency review required beyond normal engineering process.",
+      ],
+    },
+    insights: [],
+    signals: [],
+  };
+};
 
 export async function analyze(
   req: ScanRequest,

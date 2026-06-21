@@ -297,10 +297,10 @@ describe("deriveScanNarrative", () => {
     expect(apiArea?.verificationFocus).toContain("routes");
   });
 
-  it("derives riskSignals with exposure layers", () => {
+  it("derives riskSignals with PR Risk bands", () => {
     const facts = deriveScanNarrative(baseResult);
     expect(facts.riskSignals?.riskIndex).toBe(10);
-    expect(facts.riskSignals?.exposure).toBe("minimal");
+    expect(facts.riskSignals?.band).toBe("very_low");
     expect(facts.riskSignals?.layers).toHaveLength(4);
     expect(facts.riskIndex).toBe(10);
   });

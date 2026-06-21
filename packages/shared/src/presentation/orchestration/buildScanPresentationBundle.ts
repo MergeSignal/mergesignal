@@ -10,7 +10,6 @@ export type BuildScanPresentationBundleInput = {
   result: ScanResult;
   pipelineStatus: PipelineStatus;
   decision?: string | null;
-  totalScore?: number | null;
 };
 
 /**

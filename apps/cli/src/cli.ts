@@ -8,6 +8,7 @@ import {
   buildScanPresentationBundle,
   presentCliScanSummary,
   renderCliScanSummaryText,
+  resolvePrRiskScore,
   scanSurfaceCopy,
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
@@ -93,7 +94,7 @@ async function main() {
     ? Number(args["--fail-above"])
     : undefined;
   if (typeof failAbove === "number" && Number.isFinite(failAbove)) {
-    const score = result.totalScore;
+    const score = resolvePrRiskScore(result);
     if (
       typeof score === "number" &&
       Number.isFinite(score) &&
@@ -190,7 +191,6 @@ function printSummary(opts: {
     result: opts.result,
     pipelineStatus: "done",
     decision: opts.result.decision?.recommendation,
-    totalScore: opts.result.totalScore,
   });
 
   if (bundle) {

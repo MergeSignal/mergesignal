@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { resolveRepositoryHealthScoreFromRow } from "@mergesignal/shared";
 import { db } from "../db.js";
 import { sendProblem } from "../problem.js";
 
@@ -16,7 +17,6 @@ export async function repoOverviewRoutes(app: FastifyInstance) {
 
     const repoId = `${owner}/${repo}`;
 
-    // Honor org-scoped API keys — must match the repo owner
     if (req.authenticatedOwner && req.authenticatedOwner !== owner) {
       return sendProblem(reply, req, {
         status: 403,
@@ -30,6 +30,8 @@ export async function repoOverviewRoutes(app: FastifyInstance) {
         id: string;
         status: string;
         total_score: number | null;
+        repository_health_score: number | null;
+        github_pr_number: number | null;
         layer_security: number | null;
         layer_maintainability: number | null;
         layer_ecosystem: number | null;
@@ -38,9 +40,9 @@ export async function repoOverviewRoutes(app: FastifyInstance) {
         created_at: Date;
         decision: string | null;
       }>(
-        `SELECT id, status, total_score, layer_security, layer_maintainability,
-                layer_ecosystem, layer_upgrade_impact, methodology_version,
-                created_at, decision
+        `SELECT id, status, total_score, repository_health_score, github_pr_number,
+                layer_security, layer_maintainability, layer_ecosystem, layer_upgrade_impact,
+                methodology_version, created_at, decision
          FROM scans
          WHERE repo_id = $1
          ORDER BY created_at DESC
@@ -70,13 +72,21 @@ export async function repoOverviewRoutes(app: FastifyInstance) {
       }
     }
 
+    const repositoryHealthScore = scan
+      ? resolveRepositoryHealthScoreFromRow({
+          repository_health_score: scan.repository_health_score,
+          total_score: scan.total_score,
+          github_pr_number: scan.github_pr_number,
+        })
+      : null;
+
     return reply.send({
       repoId,
       latestScan: scan
         ? {
             id: scan.id,
             status: scan.status,
-            totalScore: scan.total_score,
+            repositoryHealthScore,
             layerSecurity: scan.layer_security,
             layerMaintainability: scan.layer_maintainability,
             layerEcosystem: scan.layer_ecosystem,

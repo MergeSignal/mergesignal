@@ -10,7 +10,7 @@ import {
 export function buildScanCardForApi(input: {
   pipelineStatus: string;
   decision: string | null;
-  totalScore: number | null;
+  prRiskScore?: number | null;
   result: ScanResult | null;
   scannedAt?: string | null;
   presentationState?: ScanCardPresentationState;
@@ -18,9 +18,10 @@ export function buildScanCardForApi(input: {
   if (input.presentationState === "surfaces_incomplete") {
     return presentSurfacesIncompleteDashboardCard();
   }
+  const prRiskScore = input.prRiskScore ?? null;
   const effectivePipeline = resolvePipelineStatus(input.pipelineStatus, {
     decision: input.decision,
-    totalScore: input.totalScore,
+    prRiskScore,
     hasResult: input.result != null,
     scannedAt: input.scannedAt,
   });
@@ -29,7 +30,7 @@ export function buildScanCardForApi(input: {
     pipelineStatus: effectivePipeline,
     result: input.result,
     decision: input.decision,
-    totalScore: input.totalScore,
+    prRiskScore,
   });
 }
 
@@ -37,15 +38,16 @@ export function buildScanDetailsForApi(input: {
   scanId: string;
   pipelineStatus: string;
   decision: string | null;
-  totalScore: number | null;
+  prRiskScore?: number | null;
   result: ScanResult | null;
   methodologyVersion?: string | null;
   prNumber?: number | null;
   scannedAt?: string | null;
 }) {
+  const prRiskScore = input.prRiskScore ?? null;
   const effectivePipeline = resolvePipelineStatus(input.pipelineStatus, {
     decision: input.decision,
-    totalScore: input.totalScore,
+    prRiskScore,
     hasResult: input.result != null,
     scannedAt: input.scannedAt,
   });
@@ -59,7 +61,7 @@ export function buildScanDetailsForApi(input: {
     methodologyVersion: input.methodologyVersion,
     prNumber: input.prNumber,
     decision: input.decision,
-    totalScore: input.totalScore,
+    prRiskScore,
   });
 }
 
@@ -69,15 +71,16 @@ export function buildScanStatusEventPayload(input: {
   error?: string | null;
   repoId?: string | null;
   decision?: string | null;
-  totalScore?: number | null;
+  prRiskScore?: number | null;
   result?: ScanResult | null;
   methodologyVersion?: string | null;
   githubPrNumber?: number | null;
   scannedAt?: string | null;
 }) {
+  const prRiskScore = input.prRiskScore ?? null;
   const effectivePipeline = resolvePipelineStatus(input.status, {
     decision: input.decision ?? null,
-    totalScore: input.totalScore ?? null,
+    prRiskScore,
     hasResult: input.result != null,
     scannedAt: input.scannedAt ?? null,
   });
@@ -88,7 +91,7 @@ export function buildScanStatusEventPayload(input: {
           scanId: input.id,
           pipelineStatus: input.status,
           decision: input.decision ?? null,
-          totalScore: input.totalScore ?? null,
+          prRiskScore,
           result: input.result,
           methodologyVersion: input.methodologyVersion,
           prNumber: input.githubPrNumber,
@@ -99,7 +102,7 @@ export function buildScanStatusEventPayload(input: {
   const cardPresentation = buildScanCardForApi({
     pipelineStatus: input.status,
     decision: input.decision ?? null,
-    totalScore: input.totalScore ?? null,
+    prRiskScore,
     result: input.result ?? null,
     scannedAt: input.scannedAt ?? null,
   });

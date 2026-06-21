@@ -20,6 +20,9 @@ export type ScanDetailsPresentation = AssessmentPresentationFields & {
     verdictLine: string;
     scopeChip?: string;
     postureLabel: string;
+    prRiskScore?: number | null;
+    prRiskBandLabel?: string;
+    /** @deprecated Use prRiskScore */
     riskIndex?: number | null;
   };
 
@@ -49,12 +52,12 @@ export type ScanDetailsPresentation = AssessmentPresentationFields & {
   };
 
   signalSummary?: {
-    riskIndex: number;
+    prRiskScore: number;
     band: "low" | "medium" | "high";
     layers: Array<{
       layer: ScoreLayer;
       score: number;
-      band: string;
+      band: "low" | "medium" | "high";
       label: string;
     }>;
   };

@@ -1,19 +1,17 @@
-import {
-  deriveCardExposureCategory,
-  type CardExposureCategory,
-} from "./formatCardExposureDisplay.js";
+import { scoreToBand, type PrRiskBand } from "./prRiskBand.js";
+import { resolvePrRiskLayerScores, resolvePrRiskScore } from "./prRiskWire.js";
 import type { LayerScores, ScanResult, ScoreLayer } from "./types.js";
 
 export type RiskSignalLayer = {
   layer: ScoreLayer;
   score: number;
-  exposure: CardExposureCategory;
+  band: PrRiskBand;
 };
 
-/** Canonical exposure classification for totalScore and layerScores. */
+/** Canonical PR Risk classification for prRisk.score and layer scores. */
 export type RiskSignals = {
   riskIndex: number | null;
-  exposure: CardExposureCategory | null;
+  band: PrRiskBand | null;
   layers: RiskSignalLayer[];
 };
 
@@ -25,31 +23,28 @@ const LAYER_ORDER: ScoreLayer[] = [
 ];
 
 /**
- * Single owner for numeric risk index + exposure bucket classification.
- * Surfaces must consume `facts.riskSignals` in future phases — do not re-derive bands.
+ * Single owner for PR risk index + band classification.
+ * Surfaces must consume `facts.riskSignals` — do not re-derive bands.
  */
 export function deriveRiskSignals(result: ScanResult): RiskSignals | null {
-  const riskIndex =
-    typeof result.totalScore === "number" && Number.isFinite(result.totalScore)
-      ? result.totalScore
-      : null;
-  const layerScores: LayerScores | undefined = result.layerScores;
+  const riskIndex = resolvePrRiskScore(result);
+  const layerScores: LayerScores | null = resolvePrRiskLayerScores(result);
 
   if (riskIndex == null && layerScores == null) {
     return null;
   }
 
-  const exposure = deriveCardExposureCategory(riskIndex);
+  const band = scoreToBand(riskIndex);
   const layers: RiskSignalLayer[] = layerScores
     ? LAYER_ORDER.map((layer) => {
         const score = layerScores[layer];
         return {
           layer,
           score,
-          exposure: deriveCardExposureCategory(score) ?? "minimal",
+          band: scoreToBand(score) ?? "very_low",
         };
       })
     : [];
 
-  return { riskIndex, exposure, layers };
+  return { riskIndex, band, layers };
 }

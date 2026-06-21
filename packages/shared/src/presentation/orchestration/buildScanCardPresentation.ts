@@ -16,21 +16,24 @@ export type BuildScanCardPresentationInput = {
   pipelineStatus: PipelineStatus;
   result: ScanResult | null;
   decision?: string | null;
-  totalScore?: number | null;
+  /** Denormalized PR risk score (preferred). */
+  prRiskScore?: number | null;
 };
 
 function minimalResultFromDenormalized(
   decision: string | null | undefined,
-  totalScore: number | null | undefined,
+  prRiskScore: number | null | undefined,
 ): ScanResult | null {
   const posture = mergePostureFromDecision(decision ?? undefined);
-  if (!posture && (totalScore == null || !Number.isFinite(totalScore))) {
+  if (!posture && (prRiskScore == null || !Number.isFinite(prRiskScore))) {
     return null;
   }
 
+  const score = prRiskScore ?? 0;
   const resolvedPosture = posture as MergePosture | undefined;
   return {
-    totalScore: totalScore ?? 0,
+    totalScore: score,
+    prRisk: { score },
     layerScores: {
       security: 0,
       maintainability: 0,
@@ -57,9 +60,9 @@ export function buildScanCardPresentation(
     );
   }
 
+  const prRiskScore = input.prRiskScore ?? null;
   const result =
-    input.result ??
-    minimalResultFromDenormalized(input.decision, input.totalScore);
+    input.result ?? minimalResultFromDenormalized(input.decision, prRiskScore);
 
   if (!result) {
     return presentPipelineDashboardCard("failed");
@@ -69,7 +72,6 @@ export function buildScanCardPresentation(
     result,
     pipelineStatus: input.pipelineStatus,
     decision: input.decision,
-    totalScore: input.totalScore,
   });
 
   if (!bundle) {

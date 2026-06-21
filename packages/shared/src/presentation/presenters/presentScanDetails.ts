@@ -1,6 +1,12 @@
 import { MERGE_CONCERN_LABELS } from "../../assessmentLabels.js";
 import { normalizedPackageUsagePaths } from "../../narrativePresentation.js";
+import {
+  prRiskBandLabel,
+  prRiskBandToGaugeBand,
+  scoreToBandLabel,
+} from "../../prRiskBand.js";
 import { MERGE_POSTURE_LABEL } from "../../riskVocabulary.js";
+import type { ScoreLayer } from "../../types.js";
 import {
   buildNarrativeChannels,
   composeSubheadline,
@@ -22,6 +28,48 @@ export type PresentScanDetailsContext = {
   methodologyVersion?: string | null;
   prNumber?: number | null;
 };
+
+const LAYER_LABEL: Record<ScoreLayer, string> = {
+  security: "Security",
+  maintainability: "Maintainability",
+  ecosystem: "Ecosystem",
+  upgradeImpact: "Upgrade impact",
+};
+
+function gaugeBandToSignalBand(
+  band: ReturnType<typeof prRiskBandToGaugeBand>,
+): "low" | "medium" | "high" {
+  if (band === "high") return "high";
+  if (band === "moderate") return "medium";
+  return "low";
+}
+
+function mapSignalSummary(
+  bundle: ScanPresentationBundle,
+): ScanDetailsPresentation["signalSummary"] {
+  const riskSignals = bundle.facts.riskSignals;
+  const prRiskScore = riskSignals?.riskIndex;
+  if (!riskSignals || prRiskScore == null || !Number.isFinite(prRiskScore)) {
+    return undefined;
+  }
+
+  const band = riskSignals.band;
+  if (!band) return undefined;
+
+  const gaugeBand = prRiskBandToGaugeBand(band);
+  const signalBand = gaugeBandToSignalBand(gaugeBand);
+
+  return {
+    prRiskScore,
+    band: signalBand,
+    layers: riskSignals.layers.map((layer) => ({
+      layer: layer.layer,
+      score: layer.score,
+      band: gaugeBandToSignalBand(prRiskBandToGaugeBand(layer.band)),
+      label: LAYER_LABEL[layer.layer],
+    })),
+  };
+}
 
 function mapUsage(
   bundle: ScanPresentationBundle,
@@ -76,7 +124,7 @@ export function presentScanDetails(
   bundle: ScanPresentationBundle,
   ctx: PresentScanDetailsContext,
 ): ScanDetailsPresentation {
-  const { assessment, facts, profile, result } = bundle;
+  const { assessment, facts, profile } = bundle;
   const assessmentFields = projectAssessmentFields(bundle);
   const channels = buildNarrativeChannels(bundle);
   const keyPoints = projectCompactKeyPoints(channels, 6);
@@ -113,6 +161,12 @@ export function presentScanDetails(
     rationale: action.detail,
   }));
 
+  const prRiskScore = facts.riskSignals?.riskIndex ?? null;
+  const prRiskBandLabelText =
+    facts.riskSignals?.band != null
+      ? prRiskBandLabel(facts.riskSignals.band)
+      : scoreToBandLabel(prRiskScore);
+
   return {
     ...assessmentFields,
     evidenceContext: evidenceContextFromProfile(bundle),
@@ -126,8 +180,11 @@ export function presentScanDetails(
       verdictLine: normalizeGeneratedText(verdictLine),
       scopeChip: channels.reachLabel,
       postureLabel,
-      riskIndex: result.totalScore,
+      prRiskScore,
+      prRiskBandLabel: prRiskBandLabelText ?? undefined,
+      riskIndex: prRiskScore,
     },
+    signalSummary: mapSignalSummary(bundle),
     narrative: {
       keyPoints: keyPoints.map((k) => normalizeGeneratedText(k)),
       changedPackages: facts.changedPackages.all,
@@ -141,7 +198,7 @@ export function presentScanDetails(
     supportingContext,
     metadata: {
       scanId: ctx.scanId,
-      generatedAt: result.generatedAt,
+      generatedAt: bundle.result.generatedAt,
       methodologyVersion: ctx.methodologyVersion,
       changedPackagesSummary:
         facts.changedPackages.primary ?? facts.changedPackages.all.join(", "),

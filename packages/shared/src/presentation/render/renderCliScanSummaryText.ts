@@ -13,8 +13,11 @@ export function renderCliScanSummaryText(p: CliScanPresentation): string {
     `Status: ${p.status} | Density: ${p.density} | Confidence: ${p.confidence}`,
   );
   if (p.metrics) {
+    const bandSuffix = p.metrics.prRiskBandLabel
+      ? ` (${p.metrics.prRiskBandLabel})`
+      : "";
     lines.push(
-      `Risk index: ${p.metrics.riskIndex} (${scanSurfaceCopy.actions.riskIndexDirectionShort})`,
+      `${scanSurfaceCopy.actions.prRiskScoreLabel}: ${p.metrics.prRiskScore}${bandSuffix}`,
       p.metrics.layerLine,
       `Findings: ${p.metrics.findingCount} | Recommendations: ${p.metrics.recommendationCount}`,
     );

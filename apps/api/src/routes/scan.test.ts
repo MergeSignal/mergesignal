@@ -354,6 +354,8 @@ describe("scan routes", () => {
       const now = new Date().toISOString();
       const rawResult = {
         totalScore: 10,
+        prRisk: { score: 10 },
+        repositoryHealth: { totalScore: 10 },
         layerScores: {
           security: 1,
           maintainability: 2,
@@ -407,7 +409,9 @@ describe("scan routes", () => {
         started_at: null,
         finished_at: null,
         heartbeat_at: null,
-        total_score: 72,
+        total_score: null,
+        pr_risk_score: 72,
+        repository_health_score: 72,
         layer_security: null,
         layer_maintainability: null,
         layer_ecosystem: null,
@@ -505,6 +509,8 @@ describe("scan routes", () => {
         finished_at: null,
         heartbeat_at: null,
         total_score: null,
+        pr_risk_score: 55,
+        repository_health_score: 60,
         layer_security: null,
         layer_maintainability: null,
         layer_ecosystem: null,
@@ -516,6 +522,7 @@ describe("scan routes", () => {
         error: null,
         created_at: now,
         updated_at: now,
+        github_pr_number: null,
       };
       const mockScans = [
         {
@@ -529,6 +536,8 @@ describe("scan routes", () => {
           id: "scan_2",
           repo_id: "owner/repo",
           status: "queued" as const,
+          pr_risk_score: null,
+          repository_health_score: null,
         },
       ];
       vi.mocked(queries.scans.findByRepoId).mockResolvedValue(
@@ -543,7 +552,38 @@ describe("scan routes", () => {
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
       expect(body.repoId).toBe("owner/repo");
-      expect(body.scans).toEqual(mockScans);
+      expect(body.scans).toEqual([
+        {
+          id: "scan_1",
+          repoId: "owner/repo",
+          status: "done",
+          prRiskScore: 55,
+          repositoryHealthScore: 60,
+          layerSecurity: null,
+          layerMaintainability: null,
+          layerEcosystem: null,
+          layerUpgradeImpact: null,
+          methodologyVersion: null,
+          resultGeneratedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: "scan_2",
+          repoId: "owner/repo",
+          status: "queued",
+          prRiskScore: null,
+          repositoryHealthScore: null,
+          layerSecurity: null,
+          layerMaintainability: null,
+          layerEcosystem: null,
+          layerUpgradeImpact: null,
+          methodologyVersion: null,
+          resultGeneratedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
       expect(queries.scans.findByRepoId).toHaveBeenCalledWith("owner/repo", 50);
     });
 

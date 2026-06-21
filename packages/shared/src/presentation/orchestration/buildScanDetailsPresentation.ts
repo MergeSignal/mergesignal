@@ -11,7 +11,7 @@ export type BuildScanDetailsPresentationInput = {
   methodologyVersion?: string | null;
   prNumber?: number | null;
   decision?: string | null;
-  totalScore?: number | null;
+  prRiskScore?: number | null;
 };
 
 export function buildScanDetailsPresentation(
@@ -23,7 +23,6 @@ export function buildScanDetailsPresentation(
     result: input.result,
     pipelineStatus: input.pipelineStatus,
     decision: input.decision,
-    totalScore: input.totalScore,
   });
 
   if (!bundle) return null;

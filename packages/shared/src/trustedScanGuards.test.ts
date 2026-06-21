@@ -8,10 +8,11 @@ import {
   validateTrustedEngineScanResult,
 } from "./trustedScanGuards.js";
 import { assessmentStub } from "./fixtures/assessmentFixtures.js";
+import { withAbi4EngineScores } from "./fixtures/engineAbi4Fixtures.js";
 import type { ScanResult } from "./types.js";
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
 
-const baseResult: ScanResult = {
+const baseResult: ScanResult = withAbi4EngineScores({
   totalScore: 10,
   layerScores: {
     security: 10,
@@ -29,7 +30,7 @@ const baseResult: ScanResult = {
     confidence: "low",
     reasoning: ["Stub engine cannot perform real analysis"],
   },
-};
+});
 
 describe("trustedScanGuards", () => {
   it("detects stub methodology", () => {

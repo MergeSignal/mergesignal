@@ -6,13 +6,23 @@ import type { EngineEmittedScanResult, ScanResult } from "./types.js";
 export const SCAN_RESULT_ABI = "2" as const;
 
 /** Bump when strict fresh-engine-output validation rules change materially. */
-export const ENGINE_OUTPUT_SCAN_ABI = "3" as const;
+export const ENGINE_OUTPUT_SCAN_ABI = "4" as const;
 
 const layerScoresSchema = z.object({
   security: z.number(),
   maintainability: z.number(),
   ecosystem: z.number(),
   upgradeImpact: z.number(),
+});
+
+const prRiskSchema = z.object({
+  score: z.number().min(0).max(100),
+  layerScores: layerScoresSchema.optional(),
+});
+
+const repositoryHealthSchema = z.object({
+  totalScore: z.number().min(0).max(100),
+  layerScores: layerScoresSchema.optional(),
 });
 
 /**
@@ -24,6 +34,8 @@ export const scanResultSchema = z
   .object({
     totalScore: z.number().min(0).max(100),
     layerScores: layerScoresSchema,
+    prRisk: prRiskSchema.optional(),
+    repositoryHealth: repositoryHealthSchema.optional(),
     findings: z
       .union([z.array(z.unknown()), z.null()])
       .optional()
@@ -66,6 +78,8 @@ export const engineOutputScanResultSchema = scanResultSchema.extend({
   methodologyVersion: z.string().trim().min(1),
   generatedAt: engineOutputGeneratedAtSchema,
   assessment: assessmentSchema,
+  prRisk: prRiskSchema,
+  repositoryHealth: repositoryHealthSchema,
 });
 
 export type EngineOutputScanResultParseFailure = {

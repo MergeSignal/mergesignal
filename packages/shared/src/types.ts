@@ -7,6 +7,18 @@ export type LayerScores = {
   upgradeImpact: number;
 };
 
+/** Engine-emitted PR-scoped risk score (ABI 4+). */
+export type PrRiskWire = {
+  score: number;
+  layerScores?: LayerScores;
+};
+
+/** Engine-emitted repository health score (ABI 4+). */
+export type RepositoryHealthWire = {
+  totalScore: number;
+  layerScores?: LayerScores;
+};
+
 export type FindingSeverity = "low" | "medium" | "high" | "critical";
 
 /**
@@ -331,8 +343,13 @@ export type EngineeringTrace = {
 };
 
 export type ScanResult = {
+  /** Legacy composite score — historical fallback only; not PR Risk authority on ABI-4 output. */
   totalScore: number;
   layerScores: LayerScores;
+  /** PR Risk authority on ABI-4 engine output. */
+  prRisk?: PrRiskWire;
+  /** Repository health authority on ABI-4 engine output. */
+  repositoryHealth?: RepositoryHealthWire;
   findings: Finding[];
   methodologyVersion?: string;
   /** Assessment Contract — sole authority for posture and presentation intensity. */

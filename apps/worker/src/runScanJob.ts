@@ -90,28 +90,41 @@ async function persistSuccess(
   engineReleaseGitSha: string | null,
 ): Promise<number> {
   const decision = result.decision?.recommendation ?? null;
+  const prRiskScore =
+    typeof result.prRisk?.score === "number" &&
+    Number.isFinite(result.prRisk.score)
+      ? Math.round(result.prRisk.score)
+      : null;
+  const repositoryHealthScore =
+    typeof result.repositoryHealth?.totalScore === "number" &&
+    Number.isFinite(result.repositoryHealth.totalScore)
+      ? Math.round(result.repositoryHealth.totalScore)
+      : null;
   const res = await withPgRetries(() =>
     pool.query(
       `UPDATE scans SET
         status = 'done',
         result = $1::jsonb,
-        total_score = $2,
-        layer_security = $3,
-        layer_maintainability = $4,
-        layer_ecosystem = $5,
-        layer_upgrade_impact = $6,
-        methodology_version = $7,
-        decision = $8,
-        engine_release_version = $9,
-        engine_release_git_sha = $10,
+        total_score = NULL,
+        pr_risk_score = $2,
+        repository_health_score = $3,
+        layer_security = $4,
+        layer_maintainability = $5,
+        layer_ecosystem = $6,
+        layer_upgrade_impact = $7,
+        methodology_version = $8,
+        decision = $9,
+        engine_release_version = $10,
+        engine_release_git_sha = $11,
         result_generated_at = NOW(),
         finished_at = NOW(),
         updated_at = NOW(),
         error = NULL
-      WHERE id = $11 AND status = 'running'`,
+      WHERE id = $12 AND status = 'running'`,
       [
         JSON.stringify(result),
-        Math.round(result.totalScore),
+        prRiskScore,
+        repositoryHealthScore,
         Math.round(result.layerScores.security),
         Math.round(result.layerScores.maintainability),
         Math.round(result.layerScores.ecosystem),
@@ -410,7 +423,7 @@ export async function executeScanJob(
             engineInfo?.releaseVersion ?? engineInfo?.releaseRef ?? null,
           engineReleaseGitSha: engineInfo?.releaseGitSha ?? null,
           methodologyVersion: validated.methodologyVersion,
-          totalScore: validated.totalScore,
+          totalScore: validated.prRisk?.score ?? validated.totalScore,
           decision: validated.decision?.recommendation ?? null,
           codeIntelligenceAvailable,
           warningCodes: prepared.preparationSummary.warningCodes,

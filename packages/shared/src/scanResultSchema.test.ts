@@ -11,6 +11,7 @@ import {
   emptyVerificationScope,
   minimalReviewFocalPoint,
 } from "./fixtures/assessmentScopeFixtures.js";
+import { withAbi4EngineScores } from "./fixtures/engineAbi4Fixtures.js";
 
 const minimalValid = {
   totalScore: 42,
@@ -121,11 +122,11 @@ const minimalAssessment = {
 };
 
 describe("engineOutputScanResultSchema (strict, fresh engine only)", () => {
-  const withMethodology = {
+  const withMethodology = withAbi4EngineScores({
     ...minimalValid,
     methodologyVersion: "engine-test-fixture/v1",
     assessment: minimalAssessment,
-  };
+  });
 
   it("rejects payload that relaxed parser accepts when methodology is missing", () => {
     const r = safeParseEngineOutputScanResult(minimalValid);

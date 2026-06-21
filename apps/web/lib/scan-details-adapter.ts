@@ -22,30 +22,22 @@ export function detailPresentationToViewModel(
   ): ScanDetailSignalSummary["overallBand"] =>
     band === "high" ? "high" : band === "medium" ? "moderate" : "low";
 
-  const toConcernLevel = (
-    band: string,
-  ): ScanDetailSignalSummary["layers"][number]["concernLevel"] => {
-    const lower = band.toLowerCase();
-    if (lower.includes("high")) return "high";
-    if (lower.includes("medium") || lower.includes("moderate")) return "medium";
-    return "low";
-  };
-
   const signalSummary: ScanDetailSignalSummary | null = p.signalSummary
     ? {
-        score: p.signalSummary.riskIndex,
+        score: p.signalSummary.prRiskScore,
         overallBand: toOverallBand(p.signalSummary.band),
-        overallLabel: p.hero.postureLabel,
+        overallLabel: p.hero.prRiskBandLabel ?? p.hero.postureLabel,
         gauge: {
-          fillPercent: p.signalSummary.riskIndex,
+          fillPercent: p.signalSummary.prRiskScore,
           band: toOverallBand(p.signalSummary.band),
-          ariaLabel: `Risk index ${p.signalSummary.riskIndex}`,
+          ariaLabel: `PR Risk score ${p.signalSummary.prRiskScore}`,
         },
         layers: p.signalSummary.layers.map((l) => ({
           layer: l.layer,
           label: l.label,
           score: l.score,
-          concernLevel: toConcernLevel(l.band),
+          concernLevel:
+            l.band === "high" ? "high" : l.band === "medium" ? "medium" : "low",
           concernLabel: l.band,
         })),
       }

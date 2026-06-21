@@ -1,6 +1,10 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { ScanResult } from "@mergesignal/shared";
+import {
+  resolvePrRiskScoreFromRow,
+  resolveRepositoryHealthScoreFromRow,
+} from "@mergesignal/shared";
 import { queries } from "../db.js";
 import { createScanAndEnqueue } from "../services/scanService.js";
 import { buildScanDetailsForApi } from "../services/scanPresentationService.js";
@@ -112,7 +116,7 @@ export async function scanRoutes(app: FastifyInstance) {
       scanId: scan.id,
       pipelineStatus: scan.status,
       decision: scan.decision,
-      totalScore: scan.total_score,
+      prRiskScore: resolvePrRiskScoreFromRow(scan),
       result,
       methodologyVersion: scan.methodology_version,
       prNumber: scan.github_pr_number,
@@ -161,8 +165,25 @@ export async function scanRoutes(app: FastifyInstance) {
     }
 
     const n = Math.max(1, Math.min(200, Number(limit ?? 50)));
-    const scans = await queries.scans.findByRepoId(repoId, n);
+    const rows = await queries.scans.findByRepoId(repoId, n);
 
-    return { repoId, scans };
+    return {
+      repoId,
+      scans: rows.map((s) => ({
+        id: s.id,
+        repoId: s.repo_id,
+        status: s.status,
+        prRiskScore: resolvePrRiskScoreFromRow(s),
+        repositoryHealthScore: resolveRepositoryHealthScoreFromRow(s),
+        layerSecurity: s.layer_security,
+        layerMaintainability: s.layer_maintainability,
+        layerEcosystem: s.layer_ecosystem,
+        layerUpgradeImpact: s.layer_upgrade_impact,
+        methodologyVersion: s.methodology_version,
+        resultGeneratedAt: s.result_generated_at,
+        createdAt: s.created_at,
+        updatedAt: s.updated_at,
+      })),
+    };
   });
 }

@@ -1,4 +1,4 @@
-import { exposureAriaFragment } from "./formatCardExposureDisplay.js";
+import { prRiskBandAriaFragment } from "./prRiskBand.js";
 import type { PRDecisionRecommendation } from "./types.js";
 
 // =============================================================================
@@ -80,8 +80,8 @@ export function ariaLabelForPosture(
   score: number | null | undefined,
 ): string {
   const label = mergePostureLabel(decision);
-  const exposure = exposureAriaFragment(score);
-  if (exposure) return `${label}, ${exposure}`;
+  const bandFragment = prRiskBandAriaFragment(score);
+  if (bandFragment) return `${label}, ${bandFragment}`;
   return label;
 }
 
@@ -93,8 +93,8 @@ export function ariaLabelForCardSummary(
   supportingLine?: string | null,
 ): string {
   const parts = [postureLabel];
-  const exposure = exposureAriaFragment(riskIndex);
-  if (exposure) parts.push(exposure);
+  const bandFragment = prRiskBandAriaFragment(riskIndex);
+  if (bandFragment) parts.push(bandFragment);
   for (const obs of observations ?? []) {
     if (obs?.trim()) parts.push(obs.trim());
   }

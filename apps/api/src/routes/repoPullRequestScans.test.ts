@@ -61,6 +61,7 @@ function makeRow(
     scan_id: string;
     status: string;
     decision: string | null;
+    pr_risk_score: number | null;
     total_score: number | null;
     github_pr_number: number;
     github_head_sha: string | null;
@@ -72,6 +73,12 @@ function makeRow(
   }> = {},
 ) {
   const status = overrides.status ?? "done";
+  const prRiskScore =
+    overrides.pr_risk_score !== undefined
+      ? overrides.pr_risk_score
+      : status === "done"
+        ? 72
+        : null;
   const defaultSurfaced =
     status === "done" && overrides.github_surfaces_published_at === undefined
       ? new Date("2026-01-01T00:02:00Z")
@@ -79,7 +86,9 @@ function makeRow(
   const defaultResult =
     status === "done" && overrides.result === undefined
       ? {
-          totalScore: overrides.total_score ?? 72,
+          totalScore: prRiskScore,
+          prRisk: { score: prRiskScore },
+          repositoryHealth: { totalScore: prRiskScore },
           layerScores: {
             security: 1,
             maintainability: 2,
@@ -115,7 +124,9 @@ function makeRow(
     scan_id: "scan-1",
     status: "done",
     decision: "risky",
-    total_score: 72,
+    pr_risk_score: prRiskScore,
+    repository_health_score: null,
+    total_score: null,
     github_pr_number: 42,
     github_head_sha: "abc123",
     github_base_ref: "main",
@@ -265,6 +276,7 @@ describe("repoPullRequestScansRoutes", () => {
         makeRow({
           result: {
             totalScore: 72,
+            prRisk: { score: 72 },
             layerScores: {
               security: 1,
               maintainability: 2,
@@ -332,6 +344,7 @@ describe("repoPullRequestScansRoutes", () => {
         makeRow({
           result: {
             totalScore: 72,
+            prRisk: { score: 72 },
             layerScores: {
               security: 1,
               maintainability: 2,
@@ -408,6 +421,7 @@ describe("repoPullRequestScansRoutes", () => {
         makeRow({
           status: "running",
           decision: null,
+          pr_risk_score: null,
           total_score: null,
           result_generated_at: null,
           github_surfaces_published_at: null,
@@ -433,10 +447,11 @@ describe("repoPullRequestScansRoutes", () => {
         makeRow({
           status: "done",
           decision: "safe",
-          total_score: 20,
+          pr_risk_score: 20,
           github_surfaces_published_at: null,
           result: {
             totalScore: 20,
+            prRisk: { score: 20 },
             layerScores: {
               security: 1,
               maintainability: 2,

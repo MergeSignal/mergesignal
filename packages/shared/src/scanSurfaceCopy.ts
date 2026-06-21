@@ -57,8 +57,10 @@ export const scanSurfaceCopy = {
       "The engine checkout token was not available to this workflow run. Add it under this repository's Actions secrets, or grant this repository access to an organization secret. Secrets that exist only on a GitHub Environment are not available here unless this job declares that environment.",
     /** Trusted step summary H1 product line (before posture  |  risk index). */
     trustedStepSummaryTitlePrefix: "MergeSignal dependency review",
-    /** GitHub Actions step summary: risk index direction (shared with web/CLI where imported). */
-    riskIndexDirectionShort: "0 = lowest merge risk, 100 = highest merge risk",
+    /** PR Risk score line for CLI / Actions summary. */
+    prRiskScoreLabel: "PR Risk score",
+    /** GitHub Actions step summary: PR risk score direction (shared with web/CLI where imported). */
+    prRiskScoreDirectionShort: "0 = lowest PR risk, 100 = highest PR risk",
     /** When `decision` is missing on scan JSON (legacy output). */
     mergePostureUnavailableShort: "Posture unavailable",
     mergePostureUnavailableDetail:

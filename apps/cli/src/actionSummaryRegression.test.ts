@@ -25,6 +25,24 @@ const stubLikeResult = {
     ecosystem: 10,
     upgradeImpact: 10,
   },
+  prRisk: {
+    score: 10,
+    layerScores: {
+      security: 10,
+      maintainability: 10,
+      ecosystem: 10,
+      upgradeImpact: 10,
+    },
+  },
+  repositoryHealth: {
+    totalScore: 10,
+    layerScores: {
+      security: 10,
+      maintainability: 10,
+      ecosystem: 10,
+      upgradeImpact: 10,
+    },
+  },
   findings: [],
   recommendations: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
@@ -90,18 +108,13 @@ describe("GitHub Actions step summary scripts", () => {
     expect(summary).toContain("MergeSignal (demo output)");
   });
 
-  it("trusted profile renders bundle-based CLI summary with posture and risk index", () => {
+  it("trusted profile renders bundle-based CLI summary with posture and PR Risk score", () => {
     writeFileSync(jsonFile, JSON.stringify(trustedLikeResult));
     const { status, summary } = runRender("trusted", jsonFile);
     expect(status).toBe(0);
-    const demo = JSON.parse(readFileSync(copyJson, "utf8")) as Record<
-      string,
-      string
-    >;
     expect(summary).toContain("MergeSignal -");
     expect(summary).toContain("Status: safe");
-    expect(summary).toContain("Risk index: 10");
-    expect(summary).toContain(demo["actions.riskIndexDirectionShort"]!);
+    expect(summary).toContain("PR Risk score: 10 (Very Low)");
     expect(summary.length).toBeLessThan(1600);
   });
 

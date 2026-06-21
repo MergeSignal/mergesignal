@@ -1,3 +1,4 @@
+import { scoreToBandLabel } from "../../prRiskBand.js";
 import {
   buildNarrativeChannels,
   composeHeadline,
@@ -28,6 +29,15 @@ export function presentGitHubCheckRun(
         : "neutral";
 
   const sections: GitHubCheckRunPresentation["sections"] = [];
+  const prRiskScore = bundle.facts.riskSignals?.riskIndex;
+  const prRiskBandLabelText = scoreToBandLabel(prRiskScore);
+  if (prRiskScore != null && prRiskBandLabelText) {
+    sections.push({
+      id: "why",
+      title: "PR Risk",
+      bullets: [`${prRiskScore} (${prRiskBandLabelText})`],
+    });
+  }
   if (keyPoints.length > 0) {
     sections.push({ id: "why", title: "Why", bullets: keyPoints });
   }

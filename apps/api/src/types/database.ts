@@ -15,6 +15,8 @@ export interface Scan {
   finished_at: Date | null;
   heartbeat_at: Date | null;
   total_score: number | null;
+  pr_risk_score: number | null;
+  repository_health_score: number | null;
   layer_security: number | null;
   layer_maintainability: number | null;
   layer_ecosystem: number | null;

@@ -16,18 +16,18 @@ type Dashboard = {
     repoCount: number;
     scoredRepoCount: number;
     avgScore: number | null;
-    worst: Array<{ repoId: string; totalScore: number }>;
+    worst: Array<{ repoId: string; repositoryHealthScore: number }>;
   };
   repos: Array<{
     repoId: string;
     latest: {
       scanId: string;
       status: string;
-      totalScore: number | null;
+      repositoryHealthScore: number | null;
       methodologyVersion: string | null;
       createdAt: string;
     };
-    deltaTotalScore?: number | null;
+    deltaRepositoryHealthScore?: number | null;
   }>;
 };
 
@@ -77,7 +77,7 @@ export default async function Page({
               {data.summary.worst.map((w) => (
                 <div key={w.repoId} className={styles.worstRepoItem}>
                   <code className={styles.worstRepoName}>{w.repoId}</code>
-                  <ScoreBadge score={w.totalScore} />
+                  <ScoreBadge score={w.repositoryHealthScore} />
                 </div>
               ))}
             </div>
@@ -136,10 +136,10 @@ export default async function Page({
                   <code>{r.repoId}</code>
                 </MSTD>
                 <MSTD>
-                  <ScoreBadge score={r.latest.totalScore} />
+                  <ScoreBadge score={r.latest.repositoryHealthScore} />
                 </MSTD>
                 <MSTD>
-                  <DeltaBadge delta={r.deltaTotalScore} />
+                  <DeltaBadge delta={r.deltaRepositoryHealthScore} />
                 </MSTD>
                 <MSTD>
                   <StatusBadge status={r.latest.status} />

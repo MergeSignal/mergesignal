@@ -16,14 +16,22 @@ type Summary = {
   scope: "global" | "owner";
   owner?: string;
   repoCount: number;
-  avgTotalScore: number | null;
-  medianTotalScore: number | null;
-  p10TotalScore: number | null;
-  p25TotalScore: number | null;
-  p75TotalScore: number | null;
-  p90TotalScore: number | null;
-  worst: Array<{ repoId: string; totalScore: number; createdAt: string }>;
-  best: Array<{ repoId: string; totalScore: number; createdAt: string }>;
+  avgRepositoryHealthScore: number | null;
+  medianRepositoryHealthScore: number | null;
+  p10RepositoryHealthScore: number | null;
+  p25RepositoryHealthScore: number | null;
+  p75RepositoryHealthScore: number | null;
+  p90RepositoryHealthScore: number | null;
+  worst: Array<{
+    repoId: string;
+    repositoryHealthScore: number;
+    createdAt: string;
+  }>;
+  best: Array<{
+    repoId: string;
+    repositoryHealthScore: number;
+    createdAt: string;
+  }>;
 };
 
 export default async function Page({
@@ -56,7 +64,7 @@ export default async function Page({
     <>
       <ShellTitlebar
         title="Benchmark"
-        subtitle="Higher totalScore means higher relative risk."
+        subtitle="Higher repository health score means higher relative risk."
       />
       <h2 className={typo.h2Tight}>Global distribution</h2>
       <SummaryCards s={global} />
@@ -76,12 +84,12 @@ export default async function Page({
 function SummaryCards({ s }: { s: Summary }) {
   const items: Array<[string, string | number]> = [
     ["repos", s.repoCount],
-    ["avg", s.avgTotalScore ?? "n/a"],
-    ["median", s.medianTotalScore ?? "n/a"],
-    ["p10", s.p10TotalScore ?? "n/a"],
-    ["p25", s.p25TotalScore ?? "n/a"],
-    ["p75", s.p75TotalScore ?? "n/a"],
-    ["p90", s.p90TotalScore ?? "n/a"],
+    ["avg", s.avgRepositoryHealthScore ?? "n/a"],
+    ["median", s.medianRepositoryHealthScore ?? "n/a"],
+    ["p10", s.p10RepositoryHealthScore ?? "n/a"],
+    ["p25", s.p25RepositoryHealthScore ?? "n/a"],
+    ["p75", s.p75RepositoryHealthScore ?? "n/a"],
+    ["p90", s.p90RepositoryHealthScore ?? "n/a"],
   ];
 
   return (
@@ -103,7 +111,11 @@ function SummaryCards({ s }: { s: Summary }) {
 function RepoList({
   rows,
 }: {
-  rows: Array<{ repoId: string; totalScore: number; createdAt: string }>;
+  rows: Array<{
+    repoId: string;
+    repositoryHealthScore: number;
+    createdAt: string;
+  }>;
 }) {
   if (!rows.length)
     return <MSCardMuted as="div">No scored repos yet.</MSCardMuted>;
@@ -116,7 +128,7 @@ function RepoList({
             <code>{r.repoId}</code>
           </MSTD>
           <MSTD>
-            <b>{r.totalScore}</b>
+            <b>{r.repositoryHealthScore}</b>
           </MSTD>
           <MSTD>{new Date(r.createdAt).toLocaleString()}</MSTD>
         </tr>

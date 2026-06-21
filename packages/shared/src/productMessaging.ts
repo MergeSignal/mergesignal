@@ -1,4 +1,4 @@
-import { CARD_EXPOSURE_CATEGORY_LABELS } from "./formatCardExposureDisplay.js";
+import { PR_RISK_BAND_LABELS } from "./prRiskBand.js";
 import { MERGE_POSTURE_LABEL } from "./riskVocabulary.js";
 
 /**
@@ -95,9 +95,8 @@ export const productMessaging = {
     posture: `Posture indicates the merge recommendation (${MERGE_POSTURE_LABEL.safe}, ${MERGE_POSTURE_LABEL.needs_review}, ${MERGE_POSTURE_LABEL.risky}).`,
     exposure:
       "Reach indicates how prominently affected application paths are surfaced for this upgrade.",
-    exposureCategoriesLead:
-      "Risk index bands (supporting context) read as one of:",
-    exposureCategories: CARD_EXPOSURE_CATEGORY_LABELS,
+    prRiskBandsLead: "PR Risk bands (supporting context) read as one of:",
+    prRiskBands: PR_RISK_BAND_LABELS,
     cardBody:
       "Below the verdict, scanned cards lead with the changed package, affected areas, verification checks, and blast radius when code intelligence is available - focused on this PR, not the whole repository.",
   },

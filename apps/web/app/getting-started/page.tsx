@@ -217,8 +217,8 @@ export default function GettingStartedPage() {
             {productMessaging.dashboardPrCard.exposure}
           </p>
           <p>
-            {productMessaging.dashboardPrCard.exposureCategoriesLead}{" "}
-            {productMessaging.dashboardPrCard.exposureCategories.join(", ")}.
+            {productMessaging.dashboardPrCard.prRiskBandsLead}{" "}
+            {productMessaging.dashboardPrCard.prRiskBands.join(", ")}.
           </p>
           <p>{productMessaging.dashboardPrCard.cardBody}</p>
         </div>

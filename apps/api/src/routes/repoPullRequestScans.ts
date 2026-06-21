@@ -65,6 +65,8 @@ export async function repoPullRequestScansRoutes(app: FastifyInstance) {
          status,
          decision,
          total_score,
+         pr_risk_score,
+         repository_health_score,
          github_pr_number,
          github_head_sha,
          github_base_ref,

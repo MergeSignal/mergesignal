@@ -110,7 +110,7 @@ export const queries = {
 
     async findByRepoId(repoId: string, limit: number): Promise<Scan[]> {
       const { rows } = await db.query<Scan>(
-        "SELECT id, repo_id, status, total_score, layer_security, layer_maintainability, layer_ecosystem, layer_upgrade_impact, methodology_version, result_generated_at, created_at, updated_at FROM scans WHERE repo_id=$1 ORDER BY created_at DESC LIMIT $2",
+        "SELECT id, repo_id, status, total_score, repository_health_score, pr_risk_score, layer_security, layer_maintainability, layer_ecosystem, layer_upgrade_impact, methodology_version, result_generated_at, created_at, updated_at FROM scans WHERE repo_id=$1 ORDER BY created_at DESC LIMIT $2",
         [repoId, limit],
       );
       return rows;

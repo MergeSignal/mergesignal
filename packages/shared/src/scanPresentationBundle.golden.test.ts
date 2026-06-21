@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveCardExposureCategory } from "./formatCardExposureDisplay.js";
+import { scoreToBand } from "./prRiskBand.js";
 import { buildScanPresentationBundle } from "./presentation/orchestration/buildScanPresentationBundle.js";
 import {
   scanResultBullmq,
@@ -59,7 +59,7 @@ describe("scanPresentationBundle golden — proof model", () => {
     expect(apiArea?.verificationFocus.length).toBeGreaterThan(0);
 
     expect(facts.riskSignals?.riskIndex).toBe(55);
-    expect(facts.riskSignals?.exposure).toBe(deriveCardExposureCategory(55));
+    expect(facts.riskSignals?.band).toBe(scoreToBand(55));
     expect(facts.riskIndex).toBe(facts.riskSignals?.riskIndex);
   });
 
@@ -84,7 +84,7 @@ describe("scanPresentationBundle golden — proof model", () => {
     expect(facts.availability.corpusGateReason).toBe("ok");
     expect(facts.packageSemantics?.dependencyClass).toBe("tooling");
     expect(facts.riskSignals?.riskIndex).toBe(18);
-    expect(facts.riskSignals?.exposure).toBe(deriveCardExposureCategory(18));
+    expect(facts.riskSignals?.band).toBe(scoreToBand(18));
   });
 
   it("affected areas always carry linkage arrays (structure)", () => {

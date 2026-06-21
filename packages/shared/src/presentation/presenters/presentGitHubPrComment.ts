@@ -1,4 +1,5 @@
 import { MERGE_POSTURE_LABEL } from "../../riskVocabulary.js";
+import { scoreToBandLabel } from "../../prRiskBand.js";
 import {
   buildNarrativeChannels,
   composeSubheadline,
@@ -21,6 +22,11 @@ export function presentGitHubPrComment(
   const introLines: string[] = [];
   const changed = formatChangedPackagesShort(facts, 3);
   if (changed) introLines.push(`Changed: ${changed}`);
+  const prRiskScore = bundle.facts.riskSignals?.riskIndex;
+  const prRiskBandLabelText = scoreToBandLabel(prRiskScore);
+  if (prRiskScore != null && prRiskBandLabelText) {
+    introLines.push(`PR Risk: ${prRiskScore} (${prRiskBandLabelText})`);
+  }
   for (const line of assessmentFields.reasoning.slice(0, 2)) {
     introLines.push(line);
   }

@@ -1,6 +1,7 @@
 import {
   presentSurfacesIncompleteDashboardCard,
   resolvePipelineStatus,
+  resolvePrRiskScoreFromRow,
   type ScanCardPresentationState,
   type ScanPipelineStatus,
   type ScanResult,
@@ -12,6 +13,8 @@ export type PrScanDbRow = {
   status: string;
   decision: string | null;
   total_score: number | null;
+  pr_risk_score: number | null;
+  repository_health_score: number | null;
   github_pr_number: number;
   github_head_sha: string | null;
   github_base_ref: string | null;
@@ -34,13 +37,21 @@ function asScanResult(
   return result as ScanResult;
 }
 
+function rowPrRiskScore(row: PrScanDbRow): number | null {
+  return resolvePrRiskScoreFromRow({
+    pr_risk_score: row.pr_risk_score,
+    total_score: row.total_score,
+    result: row.result,
+  });
+}
+
 function rowPipelineStatus(
   row: PrScanDbRow,
   scannedAt: string | null,
 ): ScanPipelineStatus {
   return resolvePipelineStatus(row.status, {
     decision: row.decision,
-    totalScore: row.total_score,
+    prRiskScore: rowPrRiskScore(row),
     hasResult: row.result != null,
     scannedAt,
   });
@@ -180,7 +191,7 @@ export function buildCardForResolvedScan(
   return buildScanCardForApi({
     pipelineStatus: row.status,
     decision: row.decision,
-    totalScore: row.total_score,
+    prRiskScore: rowPrRiskScore(row),
     result: asScanResult(row.result),
     scannedAt,
     presentationState,

@@ -35,14 +35,17 @@ vi.mock("./sentry.js", () => ({
 
 import { analyze } from "@mergesignal/engine";
 
+const layerScores = {
+  security: 10,
+  maintainability: 10,
+  ecosystem: 10,
+  upgradeImpact: 10,
+};
 const validEngineOutput = {
   totalScore: 40,
-  layerScores: {
-    security: 10,
-    maintainability: 10,
-    ecosystem: 10,
-    upgradeImpact: 10,
-  },
+  layerScores,
+  prRisk: { score: 40, layerScores },
+  repositoryHealth: { totalScore: 40, layerScores },
   findings: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
   methodologyVersion: "acme-prod/v1",

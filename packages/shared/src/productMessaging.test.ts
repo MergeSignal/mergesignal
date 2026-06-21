@@ -77,21 +77,21 @@ describe("productMessaging", () => {
     expect(productMessaging.hero.lead).not.toContain("Dependabot");
   });
 
-  it("describes dashboard posture and exposure without scoring jargon", () => {
+  it("describes dashboard posture and PR Risk bands without scoring jargon", () => {
     const d = productMessaging.dashboardPrCard;
     const text = [
       d.intro,
       d.posture,
       d.exposure,
-      d.exposureCategoriesLead,
-      ...d.exposureCategories,
+      d.prRiskBandsLead,
+      ...d.prRiskBands,
       d.cardBody,
     ].join(" ");
     expect(text).toContain("merge recommendation");
     expect(text).toContain("affected application paths");
     expect(text).not.toMatch(/total score|0-100|formula|weight/i);
-    expect(d.exposureCategories).toHaveLength(5);
-    expect(d.exposureCategories).toContain("Elevated exposure");
+    expect(d.prRiskBands).toHaveLength(5);
+    expect(d.prRiskBands).toContain("Medium");
   });
 });
 
@@ -114,9 +114,9 @@ function collectMarketingStrings(): string[] {
     d.intro,
     d.posture,
     d.exposure,
-    d.exposureCategoriesLead,
+    d.prRiskBandsLead,
     d.cardBody,
-    ...d.exposureCategories,
+    ...d.prRiskBands,
   );
   return out;
 }

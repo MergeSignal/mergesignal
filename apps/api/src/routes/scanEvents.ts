@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import type { ScanResult } from "@mergesignal/shared";
+import { resolvePrRiskScoreFromRow } from "@mergesignal/shared";
 import { db } from "../db.js";
 import { problemJsonString } from "../problem.js";
 import { buildScanStatusEventPayload } from "../services/scanPresentationService.js";
@@ -12,6 +13,7 @@ type ScanEventRow = {
   updated_at: Date;
   repo_id: string;
   decision: string | null;
+  pr_risk_score: number | null;
   total_score: number | null;
   methodology_version: string | null;
   github_pr_number: number | null;
@@ -29,7 +31,7 @@ function toEventPayload(row: ScanEventRow) {
     error: row.error,
     repoId: row.repo_id,
     decision: row.decision,
-    totalScore: row.total_score,
+    prRiskScore: resolvePrRiskScoreFromRow(row),
     result: row.result,
     methodologyVersion: row.methodology_version,
     githubPrNumber: row.github_pr_number,
@@ -45,6 +47,7 @@ const SCAN_EVENT_COLUMNS = `
   updated_at,
   repo_id,
   decision,
+  pr_risk_score,
   total_score,
   methodology_version,
   github_pr_number,

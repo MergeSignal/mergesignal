@@ -12,14 +12,18 @@ const METHODOLOGY_VERSION = "engine-stub/v2";
 const STUB_ASSESSMENT = assessmentStub;
 
 function buildMockResult(): ScanResult {
+  const layerScores = {
+    security: 20,
+    maintainability: 15,
+    ecosystem: 30,
+    upgradeImpact: 35,
+  };
+  const totalScore = 25;
   return {
-    totalScore: 25,
-    layerScores: {
-      security: 20,
-      maintainability: 15,
-      ecosystem: 30,
-      upgradeImpact: 35,
-    },
+    totalScore,
+    layerScores,
+    prRisk: { score: totalScore, layerScores },
+    repositoryHealth: { totalScore, layerScores },
     findings: [],
     signals: [
       {
