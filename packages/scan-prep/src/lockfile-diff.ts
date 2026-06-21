@@ -6,6 +6,10 @@ import type { LockfilePackageDelta } from "@mergesignal/shared";
 
 import { logWarn } from "./log.js";
 
+export type LockfileDiffOptions = {
+  changedPackageJsonFiles?: string[];
+};
+
 type ImporterDep = {
   specifier: string;
   version: string;
@@ -208,29 +212,83 @@ function extractPnpmImporterSections(
   return importers;
 }
 
+/** PNPM importer key → package.json path (`.` is workspace root). */
+export function importerManifestPath(importerKey: string): string {
+  return importerKey === "." ? "package.json" : `${importerKey}/package.json`;
+}
+
+function resolveTouchedImporterKeys(
+  importerKeys: Iterable<string>,
+  changedPackageJsonFiles: string[],
+): Set<string> {
+  const touchedManifests = new Set(changedPackageJsonFiles);
+  const touched = new Set<string>();
+  for (const importerKey of importerKeys) {
+    if (touchedManifests.has(importerManifestPath(importerKey))) {
+      touched.add(importerKey);
+    }
+  }
+  return touched;
+}
+
 function unionImporterDeltas(
   baseLockfile: string,
   headLockfile: string,
+  options?: LockfileDiffOptions,
 ): LockfilePackageDelta {
   const baseSections = extractPnpmImporterSections(baseLockfile);
   const headSections = extractPnpmImporterSections(headLockfile);
-  const importerKeys = new Set([
+  const allImporterKeys = new Set([
     ...baseSections.keys(),
     ...headSections.keys(),
   ]);
+
+  const perImporterDelta = new Map<string, LockfilePackageDelta>();
+  for (const importerKey of allImporterKeys) {
+    perImporterDelta.set(
+      importerKey,
+      diffImporterDeps(
+        baseSections.get(importerKey) ?? new Map(),
+        headSections.get(importerKey) ?? new Map(),
+      ),
+    );
+  }
+
+  const useManifestFilter =
+    options?.changedPackageJsonFiles &&
+    options.changedPackageJsonFiles.length > 0;
+
+  const touchedImporterKeys = useManifestFilter
+    ? resolveTouchedImporterKeys(
+        allImporterKeys,
+        options.changedPackageJsonFiles!,
+      )
+    : allImporterKeys;
+
+  const driftPackages = new Set<string>();
+  if (useManifestFilter) {
+    // Packages that change only on untouched importers are branch-skew drift.
+    for (const importerKey of allImporterKeys) {
+      if (touchedImporterKeys.has(importerKey)) continue;
+      const delta = perImporterDelta.get(importerKey)!;
+      for (const name of delta.added) driftPackages.add(name);
+      for (const name of delta.removed) driftPackages.add(name);
+      for (const name of delta.updated) driftPackages.add(name);
+    }
+  }
 
   const added = new Set<string>();
   const removed = new Set<string>();
   const updated = new Set<string>();
 
-  for (const importerKey of importerKeys) {
-    const delta = diffImporterDeps(
-      baseSections.get(importerKey) ?? new Map(),
-      headSections.get(importerKey) ?? new Map(),
-    );
+  for (const importerKey of touchedImporterKeys) {
+    const delta = perImporterDelta.get(importerKey)!;
     for (const name of delta.added) added.add(name);
-    for (const name of delta.removed) removed.add(name);
     for (const name of delta.updated) updated.add(name);
+    for (const name of delta.removed) {
+      // Suppress removals that also appear on untouched importers (cross-workspace drift).
+      if (!driftPackages.has(name)) removed.add(name);
+    }
   }
 
   return sortDelta({
@@ -386,12 +444,17 @@ function resolvePnpmPrFacingDelta(
 function detectPnpmLockfileDiffChannels(
   baseLockfile: string,
   headLockfile: string,
+  options?: LockfileDiffOptions,
 ): {
   merged: LockfilePackageDelta;
   importerDelta: LockfilePackageDelta;
   packagesDelta: LockfilePackageDelta;
 } {
-  const importerDelta = unionImporterDeltas(baseLockfile, headLockfile);
+  const importerDelta = unionImporterDeltas(
+    baseLockfile,
+    headLockfile,
+    options,
+  );
   const packagesDelta = diffPackageVersionSets(
     extractPnpmPackageVersions(baseLockfile),
     extractPnpmPackageVersions(headLockfile),
@@ -408,8 +471,13 @@ function detectPnpmLockfileDiffChannels(
 export function isPnpmLockfileDiffEmpty(
   baseLockfile: string,
   headLockfile: string,
+  options?: LockfileDiffOptions,
 ): boolean {
-  const { merged } = detectPnpmLockfileDiffChannels(baseLockfile, headLockfile);
+  const { merged } = detectPnpmLockfileDiffChannels(
+    baseLockfile,
+    headLockfile,
+    options,
+  );
   return (
     merged.added.length === 0 &&
     merged.removed.length === 0 &&
@@ -421,11 +489,13 @@ export function detectChangedPackages(
   baseLockfile: string,
   headLockfile: string,
   manager: "pnpm" | "npm" | "yarn",
+  options?: LockfileDiffOptions,
 ): string[] {
   if (manager === "pnpm") {
     const { merged } = detectPnpmLockfileDiffChannels(
       baseLockfile,
       headLockfile,
+      options,
     );
     return deltaFromChangedNames(merged);
   }
@@ -439,9 +509,11 @@ export function detectLockfilePackageDelta(
   baseLockfile: string,
   headLockfile: string,
   manager: "pnpm" | "npm" | "yarn",
+  options?: LockfileDiffOptions,
 ): LockfilePackageDelta {
   if (manager === "pnpm") {
-    return detectPnpmLockfileDiffChannels(baseLockfile, headLockfile).merged;
+    return detectPnpmLockfileDiffChannels(baseLockfile, headLockfile, options)
+      .merged;
   }
 
   const basePackages = extractPackages(baseLockfile, manager);

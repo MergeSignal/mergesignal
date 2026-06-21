@@ -16,6 +16,7 @@ export async function createScanAndEnqueue({
   lockfile,
   baseLockfile,
   changedFiles,
+  changedPackageJsonFiles,
   github,
   source,
 }: {
@@ -25,6 +26,7 @@ export async function createScanAndEnqueue({
   lockfile?: ScanLockfileInput;
   baseLockfile?: ScanLockfileInput;
   changedFiles?: string[];
+  changedPackageJsonFiles?: string[];
   github?: ScanQueueGithubContext;
   source?: "manual" | "github";
 }) {
@@ -99,6 +101,7 @@ export async function createScanAndEnqueue({
         baseLockfile,
         repoSource,
         changedFiles,
+        changedPackageJsonFiles,
         github,
       },
       {

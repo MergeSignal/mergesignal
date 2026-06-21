@@ -48,6 +48,10 @@ export async function prepareScanContext(
 ): Promise<PrepareScanContextResult> {
   const warnings: AnalysisContextWarning[] = [];
   const { lockfile, baseLockfile, repoSource, changedFiles, github } = job;
+  const lockfileDiffOptions =
+    job.changedPackageJsonFiles && job.changedPackageJsonFiles.length > 0
+      ? { changedPackageJsonFiles: job.changedPackageJsonFiles }
+      : undefined;
 
   let changedPackages: string[] = [];
   let lockfilePackageDelta: ScanRequest["lockfilePackageDelta"] | undefined;
@@ -67,16 +71,22 @@ export async function prepareScanContext(
         baseLockfile.content,
         lockfile.content,
         lockfile.manager,
+        lockfileDiffOptions,
       );
       lockfilePackageDelta = detectLockfilePackageDelta(
         baseLockfile.content,
         lockfile.content,
         lockfile.manager,
+        lockfileDiffOptions,
       );
 
       const deltaEmpty =
         lockfile.manager === "pnpm"
-          ? isPnpmLockfileDiffEmpty(baseLockfile.content, lockfile.content)
+          ? isPnpmLockfileDiffEmpty(
+              baseLockfile.content,
+              lockfile.content,
+              lockfileDiffOptions,
+            )
           : lockfilePackageDelta.added.length === 0 &&
             lockfilePackageDelta.removed.length === 0 &&
             lockfilePackageDelta.updated.length === 0;

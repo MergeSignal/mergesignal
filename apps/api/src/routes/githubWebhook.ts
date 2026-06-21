@@ -208,6 +208,9 @@ async function handlePullRequest(
   const match = pickLockfilePath(changed);
   if (!match) return { ignored: true, reason: "no_lockfile_change" };
 
+  const changedPackageJsonFiles = changed.filter(
+    (file) => file === "package.json" || file.endsWith("/package.json"),
+  );
   const changedFiles = filterRelevantSourceFiles(changed);
 
   const contents = await octokit.request(
@@ -263,6 +266,7 @@ async function handlePullRequest(
           }
         : undefined,
       changedFiles,
+      changedPackageJsonFiles,
       github: {
         owner,
         repo,

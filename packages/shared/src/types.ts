@@ -500,5 +500,7 @@ export type ScanQueueJob = {
   baseLockfile?: ScanLockfileInput;
   repoSource?: RepoSource;
   changedFiles?: string[];
+  /** PR manifest paths (package.json) for importer-scoped lockfile diff. */
+  changedPackageJsonFiles?: string[];
   github?: ScanQueueGithubContext;
 };

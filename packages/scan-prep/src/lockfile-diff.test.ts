@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   detectChangedPackages,
   detectLockfilePackageDelta,
+  importerManifestPath,
   isPnpmLockfileDiffEmpty,
 } from "./lockfile-diff.js";
 
@@ -346,6 +347,73 @@ packages:
     resolution: {integrity: sha512-lodash}
 `;
 
+/** Cross-importer drift: only apps/api owned; worker removals are lockfile skew */
+const crossImporterDriftBase = `
+lockfileVersion: '9.0'
+importers:
+  .:
+    devDependencies:
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+  apps/api:
+    dependencies:
+      fastify:
+        specifier: ^5.7.4
+        version: 5.7.4
+  apps/worker:
+    dependencies:
+      '@octokit/auth-app':
+        specifier: ^8.2.0
+        version: 8.2.0
+      octokit:
+        specifier: ^3.1.2
+        version: 3.1.2
+packages:
+  fastify@5.7.4:
+    resolution: {integrity: sha512-f1}
+  fastify@5.8.5:
+    resolution: {integrity: sha512-f2}
+`;
+
+const crossImporterDriftHead = `
+lockfileVersion: '9.0'
+importers:
+  .:
+    devDependencies:
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+  apps/api:
+    dependencies:
+      fastify:
+        specifier: ^5.8.5
+        version: 5.8.5
+packages:
+  fastify@5.7.4:
+    resolution: {integrity: sha512-f1}
+  fastify@5.8.5:
+    resolution: {integrity: sha512-f2}
+`;
+
+function loadGitLockfiles(
+  baseSha: string,
+  headSha: string,
+): { baseLockfile: string; headLockfile: string } | null {
+  try {
+    return {
+      baseLockfile: execSync(`git show ${baseSha}:pnpm-lock.yaml`, {
+        encoding: "utf8",
+      }),
+      headLockfile: execSync(`git show ${headSha}:pnpm-lock.yaml`, {
+        encoding: "utf8",
+      }),
+    };
+  } catch {
+    return null;
+  }
+}
+
 describe("detectLockfilePackageDelta", () => {
   it("detects added package", () => {
     const delta = detectLockfilePackageDelta(pnpmBase, pnpmHeadAdded, "pnpm");
@@ -627,5 +695,129 @@ describe("pnpm PR-facing package delta (regression)", () => {
     expect(delta.updated).toContain("typescript");
     expect(changed.length).toBeGreaterThan(0);
     expect(changed.length).toBeLessThan(15);
+  });
+});
+
+describe("pnpm importer ownership filter", () => {
+  it("maps importer keys to manifest paths dynamically", () => {
+    expect(importerManifestPath(".")).toBe("package.json");
+    expect(importerManifestPath("apps/api")).toBe("apps/api/package.json");
+    expect(importerManifestPath("packages/shared")).toBe(
+      "packages/shared/package.json",
+    );
+    expect(importerManifestPath("tools/cli")).toBe("tools/cli/package.json");
+  });
+
+  it("without manifest filter unions all importer deltas (fallback)", () => {
+    const unfiltered = detectChangedPackages(
+      crossImporterDriftBase,
+      crossImporterDriftHead,
+      "pnpm",
+    );
+    expect(unfiltered.sort()).toEqual(
+      ["@octokit/auth-app", "fastify", "octokit"].sort(),
+    );
+  });
+
+  it("filters cross-importer drift when only apps/api manifest is touched", () => {
+    const changed = detectChangedPackages(
+      crossImporterDriftBase,
+      crossImporterDriftHead,
+      "pnpm",
+      { changedPackageJsonFiles: ["apps/api/package.json"] },
+    );
+    expect(changed).toEqual(["fastify"]);
+    expect(changed).not.toContain("octokit");
+    expect(changed).not.toContain("@octokit/auth-app");
+  });
+
+  it("PR #27 production lockfiles emit fastify only with apps/api manifest", () => {
+    const pair = loadGitLockfiles(
+      "96c3563392637e59561633eb2f4996804d3496ea",
+      "ec044b401ad7dbae3c2c9f2a6b21e8370e041d00",
+    );
+    if (!pair) return;
+
+    const changed = detectChangedPackages(
+      pair.baseLockfile,
+      pair.headLockfile,
+      "pnpm",
+      { changedPackageJsonFiles: ["apps/api/package.json"] },
+    );
+
+    expect(changed).toEqual(["fastify"]);
+    expect(changed).not.toContain("@mergesignal/contracts");
+    expect(changed).not.toContain("@octokit/auth-app");
+    expect(changed).not.toContain("octokit");
+  });
+
+  it("PR #28 production lockfiles emit typescript only with root manifest", () => {
+    const pair = loadGitLockfiles(
+      "f993e62c6bbed663dae8aac14e9214a7d883e392",
+      "55d10d73340e23344915b5bce3192b2ef00e633f",
+    );
+    if (!pair) return;
+
+    const changed = detectChangedPackages(
+      pair.baseLockfile,
+      pair.headLockfile,
+      "pnpm",
+      { changedPackageJsonFiles: ["package.json"] },
+    );
+
+    expect(changed).toEqual(["typescript"]);
+    expect(changed).not.toContain("@mergesignal/contracts");
+    expect(changed).not.toContain("@octokit/auth-app");
+    expect(changed).not.toContain("octokit");
+  });
+
+  it("PR #29 production lockfiles emit prettier only with root manifest", () => {
+    const pair = loadGitLockfiles(
+      "f993e62c6bbed663dae8aac14e9214a7d883e392",
+      "9758b87d5410d505112084dbbffb378f996a362a",
+    );
+    if (!pair) return;
+
+    const changed = detectChangedPackages(
+      pair.baseLockfile,
+      pair.headLockfile,
+      "pnpm",
+      { changedPackageJsonFiles: ["package.json"] },
+    );
+
+    expect(changed).toEqual(["prettier"]);
+    expect(changed).not.toContain("@mergesignal/contracts");
+    expect(changed).not.toContain("@octokit/auth-app");
+    expect(changed).not.toContain("octokit");
+  });
+
+  it("includes deltas from every touched importer manifest", () => {
+    const changed = detectChangedPackages(
+      multiWorkspaceBase,
+      multiWorkspaceHead,
+      "pnpm",
+      {
+        changedPackageJsonFiles: [
+          "package.json",
+          "apps/api/package.json",
+          "packages/shared/package.json",
+        ],
+      },
+    );
+
+    expect(changed.sort()).toEqual(["fastify", "zod"].sort());
+    expect(changed).not.toContain("next");
+  });
+
+  it("empty changedPackageJsonFiles retains union-all fallback", () => {
+    const changed = detectChangedPackages(
+      crossImporterDriftBase,
+      crossImporterDriftHead,
+      "pnpm",
+      { changedPackageJsonFiles: [] },
+    );
+    expect(changed.sort()).toEqual(
+      ["@octokit/auth-app", "fastify", "octokit"].sort(),
+    );
   });
 });

@@ -11,6 +11,7 @@
     "content": "lockfileVersion: '9.0'\nimporters:\n  .:\n    devDependencies:\n      typescript:\n        specifier: 5.9.2\n        version: 5.9.2\npackages:\n  typescript@5.9.2:\n    resolution: {integrity: sha512-ts592}\n  typescript@5.9.3:\n    resolution: {integrity: sha512-ts593}\n"
   },
   "changedFiles": ["pnpm-lock.yaml", "package.json"],
+  "changedPackageJsonFiles": ["package.json"],
   "repoSource": {
     "provider": "github",
     "owner": "MergeSignal",
