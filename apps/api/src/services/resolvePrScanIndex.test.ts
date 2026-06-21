@@ -11,6 +11,8 @@ function row(
   return {
     decision: null,
     total_score: null,
+    pr_risk_score: null,
+    repository_health_score: null,
     github_pr_number: 42,
     github_head_sha: "head-a",
     github_base_ref: "main",

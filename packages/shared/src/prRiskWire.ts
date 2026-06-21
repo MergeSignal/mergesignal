@@ -36,16 +36,14 @@ export type ScanScoreRow = {
   /** Historical scans.total_score column — never authoritative for new rows. */
   total_score?: number | null;
   github_pr_number?: number | null;
-  result?: ScanResult | Record<string, unknown> | null;
+  result?: unknown;
 };
 
 function finiteScore(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function asScanResult(
-  result: ScanResult | Record<string, unknown> | null | undefined,
-): ScanResult | null {
+function asScanResult(result: unknown): ScanResult | null {
   if (!result || typeof result !== "object") return null;
   return result as ScanResult;
 }
