@@ -27,7 +27,15 @@ const FIXTURE_ASSESSMENT: Assessment = {
     },
   },
   reachScope: { packages: [], maxBucket: "very_low" },
-  verificationScope: { packages: [], focus: [] },
+  verificationScope: {
+    packages: [],
+    focus: [],
+    artifactGrounded: {
+      packages: ["typescript"],
+      focus: ["typecheck"],
+      artifactPaths: ["package.json"],
+    },
+  },
   posture: "safe",
   confidence: "high",
   primaryConcern: null,

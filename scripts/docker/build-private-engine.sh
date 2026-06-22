@@ -59,7 +59,7 @@ build_engine_in_root() {
 
   if [ -f pnpm-lock.yaml ]; then
     corepack enable
-    corepack prepare pnpm@9.0.0 --activate
+    corepack install
     if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
       pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN"
     fi

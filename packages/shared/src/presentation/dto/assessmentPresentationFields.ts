@@ -4,6 +4,7 @@ import type {
   ReachVisibility,
   VerificationIntensity,
 } from "@mergesignal/contracts";
+import type { VerificationChannel } from "../../assessmentProjection.js";
 
 /** Assessment-aligned fields projected identically across surfaces. */
 export type AssessmentPresentationFields = {
@@ -12,6 +13,7 @@ export type AssessmentPresentationFields = {
   factors: string[];
   reasoning: string[];
   verificationFocus: string[];
+  verificationChannel: VerificationChannel;
   reachVisibility: ReachVisibility;
   narrativeIntensity: NarrativeIntensity;
 };

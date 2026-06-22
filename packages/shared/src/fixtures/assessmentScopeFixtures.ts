@@ -1,4 +1,5 @@
 import type {
+  ArtifactGroundedVerificationScope,
   Assessment,
   FocalElectionDimension,
   ReachScope,
@@ -47,15 +48,32 @@ export function reachScopeFor(
   return { packages, maxBucket };
 }
 
+export function emptyArtifactGrounded(): ArtifactGroundedVerificationScope {
+  return { packages: [], focus: [], artifactPaths: [] };
+}
+
+export function artifactGroundedScopeFor(
+  packages: string[],
+  focus: string[] = [],
+  artifactPaths: string[] = [],
+): ArtifactGroundedVerificationScope {
+  return { packages, focus, artifactPaths };
+}
+
 export function emptyVerificationScope(): VerificationScope {
-  return { packages: [], focus: [] };
+  return {
+    packages: [],
+    focus: [],
+    artifactGrounded: emptyArtifactGrounded(),
+  };
 }
 
 export function verificationScopeFor(
   packages: string[],
   focus: string[] = [],
+  artifactGrounded: ArtifactGroundedVerificationScope = emptyArtifactGrounded(),
 ): VerificationScope {
-  return { packages, focus };
+  return { packages, focus, artifactGrounded };
 }
 
 /** Attach focal/scope fields required by assessmentSchema ABI 2. */

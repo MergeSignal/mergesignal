@@ -8,7 +8,7 @@ import { safeParseRepoIntelligence } from "../../repoIntelligenceSchema.js";
 import { scanSurfaceCopy } from "../../scanSurfaceCopy.js";
 import type { PresentationInterpretation } from "../intent/presentationIntent.js";
 import type { PresentationProfile } from "./presentationProfile.js";
-import { collectVerificationFocus } from "../../assessmentProjection.js";
+import { collectVerificationFocusForPresentation } from "../../assessmentProjection.js";
 
 function focalAnchorPackage(assessment: Assessment): string | null {
   const anchors = assessment.reviewFocalPoint.anchors;
@@ -24,7 +24,10 @@ function buildInterpretation(
   presentation: AssessmentPresentationPublic,
   result: ScanResult,
 ): PresentationInterpretation {
-  const verificationLabels = collectVerificationFocus(result);
+  const { focus: verificationLabels } = collectVerificationFocusForPresentation(
+    presentation,
+    result,
+  );
   const anchorPackage = focalAnchorPackage(assessment);
   const suppressRuntimeNarrative = presentation.reachVisibility === "hidden";
 

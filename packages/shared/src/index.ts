@@ -32,6 +32,8 @@ export * from "./presentation/index.js";
 export {
   emptyReachScope,
   emptyVerificationScope,
+  emptyArtifactGrounded,
+  artifactGroundedScopeFor,
   minimalReviewFocalPoint,
   reachScopeFor,
   verificationScopeFor,

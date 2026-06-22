@@ -100,7 +100,7 @@ Verify `worker_startup_complete` logs show the expected engine version. Queued s
 ## Reproducibility checklist
 
 - Frozen lockfiles: `pnpm install --frozen-lockfile` in engine build
-- Pinned toolchain: Node 22, pnpm 9.0.0 in Docker stages
+- Toolchain: Node 22; pnpm version from root `package.json` `packageManager` via `corepack install` in Docker stages (see [pnpm-version-governance.md](./pnpm-version-governance.md))
 - Engine tag pinned via `MERGESIGNAL_ENGINE_REF` (no silent default to `main`)
 - Manifest records `engineReleaseGitSha`, `distSha256`, `nodeVersion`, `pnpmVersion`
 

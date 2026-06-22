@@ -69,8 +69,8 @@ importers:
         version: 4.4.3
     devDependencies:
       "@mergesignal/contracts":
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: file:../../../mergesignal-engine/packages/contracts
+        version: file:../mergesignal-engine/packages/contracts
       "@repo/eslint-config":
         specifier: workspace:*
         version: link:../../packages/eslint-config
@@ -311,8 +311,8 @@ importers:
   packages/engine-test-fixture:
     dependencies:
       "@mergesignal/contracts":
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: file:../../../mergesignal-engine/packages/contracts
+        version: file:../mergesignal-engine/packages/contracts
       "@mergesignal/shared":
         specifier: workspace:^
         version: link:../shared
@@ -382,8 +382,8 @@ importers:
   packages/shared:
     dependencies:
       "@mergesignal/contracts":
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: file:../../../mergesignal-engine/packages/contracts
+        version: file:../mergesignal-engine/packages/contracts
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -1501,12 +1501,9 @@ packages:
     peerDependencies:
       react: ^19.2.0
 
-  "@mergesignal/contracts@0.1.0":
+  "@mergesignal/contracts@file:../mergesignal-engine/packages/contracts":
     resolution:
-      {
-        integrity: sha512-OMqd2g4MMFZydm8NBYz0MWMrQVr1ZFQHOH4yENAivPozCo4l6wQr0Diq7fNg73TR0e7Yy8xEuwgeJKLuK+Hing==,
-        tarball: https://npm.pkg.github.com/download/@mergesignal/contracts/0.1.0/275d3de096389a6042a04de9fe999671a99f3ffd,
-      }
+      { directory: ../mergesignal-engine/packages/contracts, type: directory }
 
   "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3":
     resolution:
@@ -8422,7 +8419,7 @@ snapshots:
     dependencies:
       react: 19.2.0
 
-  "@mergesignal/contracts@0.1.0":
+  "@mergesignal/contracts@file:../mergesignal-engine/packages/contracts":
     dependencies:
       zod: 4.4.3
 

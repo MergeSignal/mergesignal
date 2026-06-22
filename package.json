@@ -14,6 +14,8 @@
     "precommit": "pnpm build && pnpm check-types && pnpm lint && pnpm test",
     "knip": "knip",
     "ci:verify": "rm -rf node_modules .turbo && pnpm install --frozen-lockfile && pnpm precommit",
+    "check:contracts-catalog": "pnpm -C packages/shared exec tsx ../../scripts/check-contracts-catalog-alignment.ts",
+    "check:pnpm-governance": "pnpm -C packages/shared exec tsx ../../scripts/check-pnpm-version-governance.ts",
     "prepare": "husky",
     "mergesignal": "pnpm -C apps/cli exec -- tsx src/cli.ts",
     "ms": "pnpm -C apps/cli exec -- tsx src/cli.ts"
@@ -50,7 +52,7 @@
       "prettier --write"
     ]
   },
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531",
   "engines": {
     "node": ">=20.19"
   },

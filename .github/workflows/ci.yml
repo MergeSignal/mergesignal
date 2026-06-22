@@ -81,6 +81,12 @@ jobs:
       - name: Forbid duplicated scan-prep modules in workers
         run: bash scripts/ci/forbid-worker-prep-duplication.sh
 
+      - name: Check pnpm version governance
+        run: pnpm check:pnpm-governance
+
+      - name: Check contracts catalog alignment
+        run: pnpm check:contracts-catalog
+
       - name: Run tests
         run: pnpm test
 

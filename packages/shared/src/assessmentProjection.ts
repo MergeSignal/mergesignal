@@ -7,6 +7,7 @@ import type {
   Assessment,
   AssessmentPresentationPublic,
   ReachVisibility,
+  VerificationIntensity,
 } from "@mergesignal/contracts";
 import {
   labelAssessmentFactor,
@@ -15,6 +16,8 @@ import {
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
 import { applyPostureVocabularyGuardHeadline } from "./presentation/intent/applyPostureVocabularyGuard.js";
 import type { PresentationStatus } from "./presentation/dto/types.js";
+
+export type VerificationChannel = "runtime" | "artifact" | "none";
 
 function focalDisplayPackage(assessment: Assessment): string {
   const anchors = assessment.reviewFocalPoint.anchors;
@@ -46,11 +49,10 @@ function surfaceHintFromAssessment(assessment: Assessment): string {
   return "application code";
 }
 
-export function collectVerificationFocus(result: ScanResult): string[] {
-  const scope = result.assessment?.verificationScope;
-  if (scope?.focus?.length) return [...scope.focus];
-  const packages = scope?.packages ?? [];
-  const parsed = safeParseRepoIntelligence(result.repoIntelligence);
+function collectVerificationFocusFromPackages(
+  packages: string[],
+  parsed: { ok: true; value: RepoIntelligence } | { ok: false },
+): string[] {
   if (!parsed.ok) return [];
   const labels: string[] = [];
   const seen = new Set<string>();
@@ -64,6 +66,56 @@ export function collectVerificationFocus(result: ScanResult): string[] {
     }
   }
   return labels;
+}
+
+export function resolveVerificationChannel(
+  intensity: VerificationIntensity,
+): VerificationChannel {
+  if (intensity === "none") return "none";
+  if (intensity === "required") return "runtime";
+  return "artifact";
+}
+
+export function collectRuntimeVerificationFocus(result: ScanResult): string[] {
+  const scope = result.assessment?.verificationScope;
+  if (scope?.focus?.length) return [...scope.focus];
+  const packages = scope?.packages ?? [];
+  return collectVerificationFocusFromPackages(
+    packages,
+    safeParseRepoIntelligence(result.repoIntelligence),
+  );
+}
+
+export function collectArtifactVerificationFocus(result: ScanResult): string[] {
+  const artifactGrounded =
+    result.assessment?.verificationScope?.artifactGrounded;
+  if (!artifactGrounded) return [];
+  if (artifactGrounded.focus.length > 0) return [...artifactGrounded.focus];
+  return collectVerificationFocusFromPackages(
+    artifactGrounded.packages,
+    safeParseRepoIntelligence(result.repoIntelligence),
+  );
+}
+
+export function collectVerificationFocusForPresentation(
+  presentation: AssessmentPresentationPublic,
+  result: ScanResult,
+): { channel: VerificationChannel; focus: string[] } {
+  const channel = resolveVerificationChannel(
+    presentation.verificationIntensity,
+  );
+  if (channel === "none") {
+    return { channel, focus: [] };
+  }
+  if (channel === "runtime") {
+    return { channel, focus: collectRuntimeVerificationFocus(result) };
+  }
+  return { channel, focus: collectArtifactVerificationFocus(result) };
+}
+
+/** @deprecated Use collectVerificationFocusForPresentation or channel-specific collectors. */
+export function collectVerificationFocus(result: ScanResult): string[] {
+  return collectRuntimeVerificationFocus(result);
 }
 
 export function reachVisibilityLabel(
@@ -166,7 +218,10 @@ export function projectVerificationActions(
   max: number,
 ): string[] {
   if (presentation.verificationIntensity === "none") return [];
-  const focus = collectVerificationFocus(result);
+  const { focus } = collectVerificationFocusForPresentation(
+    presentation,
+    result,
+  );
   return focus.slice(0, max);
 }
 

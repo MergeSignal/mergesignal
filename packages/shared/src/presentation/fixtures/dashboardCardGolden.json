@@ -6,7 +6,8 @@
     "reasoning": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verificationFocus": [],
+    "verificationFocus": ["typecheck"],
+    "verificationChannel": "artifact",
     "reachVisibility": "hidden",
     "narrativeIntensity": "minimal",
     "verdict": {
@@ -17,7 +18,7 @@
     "insights": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verification": [],
+    "verification": ["Verify typecheck"],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -38,7 +39,8 @@
     "reasoning": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verificationFocus": [],
+    "verificationFocus": ["lint"],
+    "verificationChannel": "artifact",
     "reachVisibility": "hidden",
     "narrativeIntensity": "minimal",
     "verdict": {
@@ -49,7 +51,7 @@
     "insights": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verification": [],
+    "verification": ["Verify lint"],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -70,7 +72,8 @@
     "reasoning": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verificationFocus": [],
+    "verificationFocus": ["format"],
+    "verificationChannel": "artifact",
     "reachVisibility": "hidden",
     "narrativeIntensity": "minimal",
     "verdict": {
@@ -81,7 +84,7 @@
     "insights": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verification": [],
+    "verification": ["Verify format"],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -102,7 +105,8 @@
     "reasoning": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verificationFocus": [],
+    "verificationFocus": ["test_suite"],
+    "verificationChannel": "artifact",
     "reachVisibility": "hidden",
     "narrativeIntensity": "minimal",
     "verdict": {
@@ -113,7 +117,7 @@
     "insights": [
       "No dedicated dependency review required beyond normal engineering process."
     ],
-    "verification": [],
+    "verification": ["Verify test_suite"],
     "evidenceChips": [
       {
         "label": "Blast radius",
@@ -136,6 +140,7 @@
       "HTTP framework infrastructure"
     ],
     "verificationFocus": ["routes", "middleware"],
+    "verificationChannel": "runtime",
     "reachVisibility": "prominent",
     "narrativeIntensity": "elevated",
     "verdict": {
@@ -171,6 +176,7 @@
       "Changed package has confirmed usage on runtime application paths in this repository."
     ],
     "verificationFocus": ["auth_flow", "session", "routes"],
+    "verificationChannel": "runtime",
     "reachVisibility": "prominent",
     "narrativeIntensity": "elevated",
     "verdict": {
@@ -211,6 +217,7 @@
       "Verification focus required"
     ],
     "verificationFocus": ["workers", "queue", "serialization"],
+    "verificationChannel": "runtime",
     "reachVisibility": "prominent",
     "narrativeIntensity": "elevated",
     "verdict": {
@@ -247,6 +254,7 @@
       "Collection evidence is partial; confidence is reduced but review posture is preserved when runtime signals exist."
     ],
     "verificationFocus": [],
+    "verificationChannel": "none",
     "reachVisibility": "hidden",
     "narrativeIntensity": "minimal",
     "verdict": {
@@ -282,6 +290,7 @@
       "No dedicated dependency review required beyond normal engineering process."
     ],
     "verificationFocus": [],
+    "verificationChannel": "artifact",
     "reachVisibility": "contextual",
     "narrativeIntensity": "standard",
     "verdict": {
@@ -319,6 +328,7 @@
       "Changed package has confirmed usage on runtime application paths in this repository."
     ],
     "verificationFocus": ["workers", "queue", "routes", "middleware"],
+    "verificationChannel": "runtime",
     "reachVisibility": "prominent",
     "narrativeIntensity": "elevated",
     "verdict": {

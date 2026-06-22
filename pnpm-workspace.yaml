@@ -1,3 +1,9 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Single version authority for @mergesignal/contracts (GitHub Packages).
+# Bump only after publishing contracts-vX.Y.Z from mergesignal-engine — keep in sync with
+# scripts/contracts-version-expectations.ts (EXPECTED_CONTRACTS_PACKAGE_VERSION).
+catalog:
+  "@mergesignal/contracts": "0.7.0"

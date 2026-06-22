@@ -1,5 +1,6 @@
 import type { Assessment } from "@mergesignal/contracts";
 import {
+  artifactGroundedScopeFor,
   emptyReachScope,
   emptyVerificationScope,
   minimalReviewFocalPoint,
@@ -37,7 +38,26 @@ export const assessmentTypescriptPatch: Assessment = withAssessmentScope(
   {
     reviewFocalPoint: minimalReviewFocalPoint(["typescript"]),
     reachScope: emptyReachScope(),
-    verificationScope: emptyVerificationScope(),
+    verificationScope: verificationScopeFor(
+      [],
+      [],
+      artifactGroundedScopeFor(["typescript"], ["typecheck"], ["package.json"]),
+    ),
+  },
+);
+
+export const assessmentEslint: Assessment = withAssessmentScope(
+  {
+    ...assessmentTypescriptPatch,
+  },
+  {
+    reviewFocalPoint: minimalReviewFocalPoint(["eslint"]),
+    reachScope: emptyReachScope(),
+    verificationScope: verificationScopeFor(
+      [],
+      [],
+      artifactGroundedScopeFor(["eslint"], ["lint"], [".eslintrc.cjs"]),
+    ),
   },
 );
 
@@ -49,18 +69,11 @@ export const assessmentPrettier: Assessment = withAssessmentScope(
   {
     reviewFocalPoint: minimalReviewFocalPoint(["prettier"]),
     reachScope: emptyReachScope(),
-    verificationScope: emptyVerificationScope(),
-  },
-);
-
-export const assessmentEslint: Assessment = withAssessmentScope(
-  {
-    ...assessmentTypescriptPatch,
-  },
-  {
-    reviewFocalPoint: minimalReviewFocalPoint(["eslint"]),
-    reachScope: emptyReachScope(),
-    verificationScope: emptyVerificationScope(),
+    verificationScope: verificationScopeFor(
+      [],
+      [],
+      artifactGroundedScopeFor(["prettier"], ["format"], [".prettierrc"]),
+    ),
   },
 );
 
@@ -77,7 +90,15 @@ export const assessmentVitest: Assessment = withAssessmentScope(
   {
     reviewFocalPoint: minimalReviewFocalPoint(["vitest"]),
     reachScope: emptyReachScope(),
-    verificationScope: emptyVerificationScope(),
+    verificationScope: verificationScopeFor(
+      [],
+      [],
+      artifactGroundedScopeFor(
+        ["vitest"],
+        ["test_suite"],
+        ["vitest.config.ts"],
+      ),
+    ),
   },
 );
 

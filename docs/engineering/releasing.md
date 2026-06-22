@@ -5,19 +5,21 @@
 Both repositories build and test **independently** with registry-resolved dependencies only.
 
 ```
-@mergesignal/contracts@0.1.0  (GitHub Packages, published from mergesignal-engine)
+@mergesignal/contracts@0.7.0  (GitHub Packages, published from mergesignal-engine)
         ↓
-@mergesignal/shared@0.8.1     (npmjs.org, published from mergesignal)
+@mergesignal/shared           (npmjs.org, published from mergesignal)
         ↓
 mergesignal apps + mergesignal-engine consumers
 ```
 
-| Repo               | Contracts                       | Shared                          | Engine deploy pin               |
-| ------------------ | ------------------------------- | ------------------------------- | ------------------------------- |
-| mergesignal        | GH Packages tarball in lockfile | workspace `0.8.1` + npm publish | `MERGESIGNAL_ENGINE_REF=v2.0.0` |
-| mergesignal-engine | workspace `packages/contracts`  | npm catalog `0.7.0`             | tag `v2.0.0`                    |
+| Repo               | Contracts                          | Shared                  | Engine deploy pin               |
+| ------------------ | ---------------------------------- | ----------------------- | ------------------------------- |
+| mergesignal        | pnpm catalog → GH Packages tarball | workspace + npm publish | `MERGESIGNAL_ENGINE_REF=v2.0.0` |
+| mergesignal-engine | workspace `packages/contracts`     | npm catalog `0.7.0`     | tag `v2.0.0`                    |
 
 No cross-repo workspace paths, `file:` deps, or sibling checkouts are required.
+
+**pnpm toolchain:** single authority in root `package.json` `packageManager`; see [pnpm-version-governance.md](./pnpm-version-governance.md).
 
 ---
 
@@ -26,9 +28,10 @@ No cross-repo workspace paths, `file:` deps, or sibling checkouts are required.
 When bumping contract or shared versions:
 
 1. **Contracts** (if wire shape changes) — bump `packages/contracts`, tag `contracts-vX.Y.Z` on mergesignal-engine, publish via [publish-contracts.yml](https://github.com/MergeSignal/mergesignal-engine/blob/main/.github/workflows/publish-contracts.yml).
-2. **Shared** — bump `packages/shared`, merge to `main`, tag `shared-vX.Y.Z`, publish via [publish-shared.yml](.github/workflows/publish-shared.yml).
-3. **Engine** — bump catalog pin in mergesignal-engine `pnpm-workspace.yaml`, refresh lockfile, tag engine release (e.g. `v2.0.1`), set `MERGESIGNAL_ENGINE_REF` on mergesignal.
-4. **Validate** — fresh-clone checks below on both repos.
+2. **mergesignal catalog** — bump `pnpm-workspace.yaml` `catalog.@mergesignal/contracts` and `scripts/contracts-version-expectations.ts` to the published version; set all consumers to `"catalog:"`; run `pnpm install` (requires `NODE_AUTH_TOKEN` with `read:packages`).
+3. **Shared** — bump `packages/shared`, merge to `main`, tag `shared-vX.Y.Z`, publish via [publish-shared.yml](.github/workflows/publish-shared.yml).
+4. **Engine** — bump catalog pin in mergesignal-engine `pnpm-workspace.yaml`, refresh lockfile, tag engine release (e.g. `v2.0.1`), set `MERGESIGNAL_ENGINE_REF` on mergesignal.
+5. **Validate** — `pnpm check:contracts-catalog` and fresh-clone checks below on both repos.
 
 ### Lockfile refresh
 
@@ -52,7 +55,8 @@ pnpm run check:assessment-authority
 **Verify no cross-repo links:**
 
 ```bash
-rg '../mergesignal|mergesignal-engine' pnpm-workspace.yaml pnpm-lock.yaml   # expect no matches
+rg 'file:.*mergesignal-engine|mergesignal-engine/packages/contracts' pnpm-workspace.yaml package.json packages apps pnpm-lock.yaml
+pnpm check:contracts-catalog
 ```
 
 ### Fresh-clone validation
@@ -73,6 +77,8 @@ pnpm install --frozen-lockfile && pnpm build && pnpm test
 ## `@mergesignal/contracts` (GitHub Packages)
 
 Published from **mergesignal-engine** (`packages/contracts`). Public visibility; auth still required for every install (GitHub Packages npm policy).
+
+**Version authority in mergesignal (public repo):** `pnpm-workspace.yaml` `catalog` entry — consumers use `"@mergesignal/contracts": "catalog:"` only. Bump the catalog and `scripts/contracts-version-expectations.ts` together after publishing `contracts-vX.Y.Z`. CI runs `pnpm check:contracts-catalog` to enforce catalog pins, lockfile registry resolution, and installed version alignment.
 
 **mergesignal contributors (local clone)**
 

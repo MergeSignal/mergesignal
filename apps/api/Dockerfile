@@ -3,11 +3,9 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Enable Corepack for pnpm
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
-
-# Copy workspace configuration
+# Copy workspace configuration (root package.json is the pnpm version authority)
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
+RUN corepack enable && corepack install
 
 # Copy all package.json files for workspace resolution
 COPY apps/api/package.json ./apps/api/
@@ -40,14 +38,12 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Enable Corepack for pnpm
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
-
-# Copy workspace configuration
+# Copy workspace configuration (root package.json is the pnpm version authority)
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 
 # Root has "prepare": "husky"; --prod does not install husky, but prepare still runs — strip it for the image.
 RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));delete p.scripts.prepare;fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');"
+RUN corepack enable && corepack install
 
 # Copy package.json files
 COPY apps/api/package.json ./apps/api/

@@ -110,6 +110,11 @@ describe("surfaceParity guardrail", () => {
       expect(s.details.verificationFocus).toEqual(s.fields.verificationFocus);
       expect(s.check.verificationFocus).toEqual(s.fields.verificationFocus);
       expect(s.comment.verificationFocus).toEqual(s.fields.verificationFocus);
+
+      expect(s.card.verificationChannel).toBe(s.fields.verificationChannel);
+      expect(s.details.verificationChannel).toBe(s.fields.verificationChannel);
+      expect(s.check.verificationChannel).toBe(s.fields.verificationChannel);
+      expect(s.comment.verificationChannel).toBe(s.fields.verificationChannel);
     });
 
     it(`${persona.name}: headline matches across card and details`, () => {
@@ -169,6 +174,8 @@ describe("surfaceParity guardrail", () => {
 
     expect(ch28.reachLabel).toBeUndefined();
     expect(ch29.reachLabel).toBeUndefined();
+    expect(ch28.verification.length).toBeGreaterThan(0);
+    expect(ch29.verification.length).toBeGreaterThan(0);
     expect(ch27.verification.length).toBeGreaterThan(0);
     expect(ch30.verification.length).toBeGreaterThan(0);
     expect(ch27.verification).not.toEqual(ch30.verification);

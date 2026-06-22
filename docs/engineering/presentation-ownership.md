@@ -31,6 +31,31 @@ Assessment → Decision → Narrative → Reach → Verification → Surfaces
 
 `AssessmentPresentationPublic` in `@mergesignal/shared` is a narrow `Pick` of the wire shape. Presenters must not import engine-internal fields.
 
+## Dual-channel verification ownership
+
+Verification guidance is split into two assessment-owned channels under `verificationScope`:
+
+| Channel  | Wire fields                                                                 | Engine authority              | Example labels                     |
+| -------- | --------------------------------------------------------------------------- | ----------------------------- | ---------------------------------- |
+| Runtime  | `verificationScope.packages`, `verificationScope.focus`                     | Runtime upgrade guidance      | `routes`, `middleware`, `handlers` |
+| Artifact | `verificationScope.artifactGrounded` (`packages`, `focus`, `artifactPaths`) | Build/config/tooling guidance | `typecheck`, `format`, `ci`        |
+
+`artifactPaths` is engine-owned evidence linkage — not projected into verification action label strings.
+
+### `verificationIntensity` is the presentation channel selector
+
+This is an **intentional ownership decision**, not a shared implementation detail. Shared must not infer which channel to project from wire shape (e.g. presence of `artifactGrounded`).
+
+| `verificationIntensity` | Channel projected | Source read by shared                       |
+| ----------------------- | ----------------- | ------------------------------------------- |
+| `"none"`                | none              | (no verification actions)                   |
+| `"advisory"`            | artifact          | `verificationScope.artifactGrounded` only   |
+| `"required"`            | runtime           | `verificationScope.packages` / `focus` only |
+
+**Invariant:** Shared projects exactly one channel per scan, selected solely by `verificationIntensity`. Never merge channels. Never fall back across channels (e.g. advisory must not read `verificationScope.focus`).
+
+Projected surfaces expose `verificationChannel` (`"runtime"` \| `"artifact"` \| `"none"`) alongside `verificationFocus` for provenance parity.
+
 ## Pipeline rule
 
 ```
@@ -58,7 +83,9 @@ If a projection disagrees with assessment, **assessment wins**. Fix or bypass th
 
 ## Guardrails
 
-- `surfaceParity.test.ts` — PR validation personas must project identical posture, primary concern, reasoning, verification focus, reach visibility, and narrative intensity across dashboard, detail, check run, and PR comment.
+- `surfaceParity.test.ts` — PR validation personas must project identical posture, primary concern, reasoning, verification focus, verification channel, reach visibility, and narrative intensity across dashboard, detail, check run, and PR comment.
+- `verificationChannelParity.test.ts` — provenance parity for `verificationChannel` and `verificationFocus` across surfaces.
+- `assessmentProjection.verificationChannel.test.ts` — channel routing unit tests (runtime vs artifact vs conflict fixtures).
 - `dashboardCardGolden.json` — golden dashboard cards for fixture personas.
 
 ## Related

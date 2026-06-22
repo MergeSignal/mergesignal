@@ -3,9 +3,8 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
-
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
+RUN corepack enable && corepack install
 
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/shared/package.json ./packages/shared/
@@ -80,11 +79,10 @@ FROM node:22-alpine AS runtime
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
-
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 
 RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));delete p.scripts.prepare;fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');"
+RUN corepack enable && corepack install
 
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/shared/package.json ./packages/shared/
