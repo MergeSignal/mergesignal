@@ -1,7 +1,7 @@
 import type { LayerScores, ScanResult } from "../types.js";
 import { normalizeEngineOutputAbi4 } from "../scanResultSchema.js";
 
-export type Abi4SplitScores = {
+type Abi4SplitScores = {
   prRiskScore: number;
   repositoryHealthScore: number;
   layerScores?: LayerScores;
