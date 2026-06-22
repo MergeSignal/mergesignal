@@ -84,8 +84,9 @@ export function presentDashboardCard(
   const channels = buildNarrativeChannels(bundle);
   const posture = profile.status;
   const riskIndex =
-    facts.riskIndex != null && Number.isFinite(facts.riskIndex)
-      ? facts.riskIndex
+    facts.riskSignals?.riskIndex != null &&
+    Number.isFinite(facts.riskSignals.riskIndex)
+      ? facts.riskSignals.riskIndex
       : -1;
 
   const insights = channels.insights.slice(0, INSIGHTS_CAP);

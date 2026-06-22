@@ -17,6 +17,7 @@ import {
   fixtureRepoIntelligenceFastify,
   fixtureRepoIntelligenceTypescript,
 } from "../../fixtures/repoIntelligenceFixtures.js";
+import { withAbi4SplitScores } from "../../fixtures/engineAbi4Fixtures.js";
 import { analysisPreparationWithValidRepoIntel } from "../../fixtures/repoIntelligenceTestHelpers.js";
 import {
   scanResultFastifyRuntime,
@@ -202,10 +203,16 @@ export const scanResultEslint: ScanResult = scanBase(assessmentEslint, {
   repoIntelligence: fixtureRepoIntelligenceEslint,
 });
 
-export const scanResultPrettier: ScanResult = scanBase(assessmentPrettier, {
-  changedPackages: ["prettier"],
-  repoIntelligence: fixtureRepoIntelligencePrettier,
-});
+export const scanResultPrettier: ScanResult = withAbi4SplitScores(
+  scanBase(assessmentPrettier, {
+    changedPackages: ["prettier"],
+    repoIntelligence: fixtureRepoIntelligencePrettier,
+  }),
+  {
+    prRiskScore: 30,
+    repositoryHealthScore: 61,
+  },
+);
 
 export const scanResultVitest: ScanResult = scanBase(assessmentVitest, {
   changedPackages: ["vitest"],

@@ -83,8 +83,8 @@ describe("scanPresentationBundle golden — proof model", () => {
 
     expect(facts.availability.corpusGateReason).toBe("ok");
     expect(facts.packageSemantics?.dependencyClass).toBe("tooling");
-    expect(facts.riskSignals?.riskIndex).toBe(18);
-    expect(facts.riskSignals?.band).toBe(scoreToBand(18));
+    expect(facts.riskSignals?.riskIndex).toBe(30);
+    expect(facts.riskSignals?.band).toBe(scoreToBand(30));
   });
 
   it("affected areas always carry linkage arrays (structure)", () => {

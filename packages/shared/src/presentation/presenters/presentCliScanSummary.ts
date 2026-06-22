@@ -22,7 +22,7 @@ export function presentCliScanSummary(
   const layerLine = layerScores
     ? `security=${layerScores.security} maintainability=${layerScores.maintainability} ecosystem=${layerScores.ecosystem} upgradeImpact=${layerScores.upgradeImpact}`
     : "";
-  const prRiskScore = facts.riskIndex ?? 0;
+  const prRiskScore = facts.riskSignals?.riskIndex ?? facts.riskIndex ?? 0;
 
   return {
     ...projectAssessmentFields(bundle),

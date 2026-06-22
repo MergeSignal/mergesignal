@@ -28,7 +28,7 @@
     "detailActionLabel": "Review scan",
     "sortKey": {
       "postureRank": 0,
-      "riskIndex": 18
+      "riskIndex": 30
     }
   },
   "eslint": {
@@ -92,7 +92,7 @@
     "detailActionLabel": "Review scan",
     "sortKey": {
       "postureRank": 0,
-      "riskIndex": 18
+      "riskIndex": 30
     }
   },
   "vitest": {
