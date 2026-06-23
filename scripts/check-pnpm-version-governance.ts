@@ -12,8 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const AUTHORITY_FILE = path.join(ROOT, "package.json");
 
-const PACKAGE_MANAGER_RE =
-  /^pnpm@(\d+\.\d+\.\d+)\+sha512\.[A-Za-z0-9+/]+=*$/;
+const PACKAGE_MANAGER_RE = /^pnpm@(\d+\.\d+\.\d+)\+sha512\.[A-Za-z0-9+/]+=*$/;
 
 const SCAN_ROOTS = [
   path.join(ROOT, "apps"),
@@ -22,13 +21,7 @@ const SCAN_ROOTS = [
   path.join(ROOT, "docs"),
 ];
 
-const SCAN_EXTENSIONS = new Set([
-  ".yml",
-  ".yaml",
-  ".sh",
-  ".Dockerfile",
-  ".md",
-]);
+const SCAN_EXTENSIONS = new Set([".yml", ".yaml", ".sh", ".Dockerfile", ".md"]);
 
 const FORBIDDEN_PATTERNS: Array<{ name: string; re: RegExp }> = [
   {
@@ -102,7 +95,9 @@ async function readAuthority(violations: string[]): Promise<Authority | null> {
     AUTHORITY_FILE,
   );
   if (!pkg.packageManager) {
-    violations.push("root package.json must declare packageManager (pnpm authority)");
+    violations.push(
+      "root package.json must declare packageManager (pnpm authority)",
+    );
     return null;
   }
   const authority = parseAuthority(pkg.packageManager);

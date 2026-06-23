@@ -2,7 +2,7 @@
 /**
  * CI guard: @mergesignal/contracts must resolve from GitHub Packages via pnpm catalog only.
  */
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -59,9 +59,7 @@ async function checkWorkspaceCatalog(violations: string[]): Promise<void> {
     return;
   }
   const workspace = await readFile(WORKSPACE_FILE, "utf8");
-  const match = workspace.match(
-    /['"]@mergesignal\/contracts['"]:\s*([^\s#]+)/,
-  );
+  const match = workspace.match(/['"]@mergesignal\/contracts['"]:\s*([^\s#]+)/);
   if (!match) {
     violations.push(
       "pnpm-workspace.yaml must declare catalog @mergesignal/contracts — single version authority",
@@ -130,9 +128,15 @@ async function checkLockfileResolution(violations: string[]): Promise<void> {
       "pnpm-lock.yaml must not resolve @mergesignal/contracts from file: — use GitHub Packages via catalog",
     );
   }
-  const pkgKey = `'@mergesignal/contracts@${EXPECTED_CONTRACTS_PACKAGE_VERSION}':`;
-  const keyIndex = lock.indexOf(pkgKey);
-  if (keyIndex === -1) {
+  const version = EXPECTED_CONTRACTS_PACKAGE_VERSION;
+  const pkgKeyPatterns = [
+    `'@mergesignal/contracts@${version}':`,
+    `"@mergesignal/contracts@${version}":`,
+  ];
+  const keyIndex = pkgKeyPatterns
+    .map((key) => lock.indexOf(key))
+    .find((index) => index !== -1);
+  if (keyIndex === undefined) {
     violations.push(
       `pnpm-lock.yaml does not resolve @mergesignal/contracts@${EXPECTED_CONTRACTS_PACKAGE_VERSION}`,
     );
@@ -151,15 +155,39 @@ async function checkLockfileResolution(violations: string[]): Promise<void> {
   }
 }
 
+function resolveInstalledContractsPackageJson(): string | null {
+  let dir = path.dirname(require.resolve("@mergesignal/contracts"));
+  for (let depth = 0; depth < 6; depth++) {
+    const candidate = path.join(dir, "package.json");
+    if (existsSync(candidate)) {
+      const pkg = parseJson<{ name?: string }>(
+        readFileSync(candidate, "utf8"),
+        candidate,
+      );
+      if (pkg.name === "@mergesignal/contracts") {
+        return candidate;
+      }
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
 async function checkInstalledContractsPackage(
   violations: string[],
 ): Promise<void> {
   let contractsPkgPath: string;
   try {
-    contractsPkgPath = path.join(
-      path.dirname(require.resolve("@mergesignal/contracts")),
-      "package.json",
-    );
+    const resolved = resolveInstalledContractsPackageJson();
+    if (!resolved) {
+      violations.push(
+        "Could not resolve @mergesignal/contracts package.json — run pnpm install before check:contracts-catalog",
+      );
+      return;
+    }
+    contractsPkgPath = resolved;
   } catch {
     violations.push(
       "Could not resolve @mergesignal/contracts — run pnpm install before check:contracts-catalog",
