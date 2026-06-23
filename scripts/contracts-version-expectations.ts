@@ -3,4 +3,4 @@
  * Bump only after publishing contracts-vX.Y.Z from mergesignal-engine — keep in sync with
  * pnpm-workspace.yaml catalog entry.
  */
-export const EXPECTED_CONTRACTS_PACKAGE_VERSION = "0.7.0" as const;
+export const EXPECTED_CONTRACTS_PACKAGE_VERSION = "0.7.1" as const;
