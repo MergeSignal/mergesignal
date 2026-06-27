@@ -105,7 +105,8 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ steps.version.outputs.version }}"
-          if npm view "@mergesignal/shared@${VERSION}" version 2>/dev/null; then
+          # Repo .npmrc routes @mergesignal to GitHub Packages; shared is published to npmjs.org.
+          if npm view "@mergesignal/shared@${VERSION}" version --registry https://registry.npmjs.org/ 2>/dev/null; then
             echo "::error::@mergesignal/shared@${VERSION} is already on npm. Published versions are immutable — bump packages/shared/package.json and push a new shared-v* tag (see docs/engineering/releasing.md)." >&2
             exit 1
           fi
@@ -150,7 +151,8 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ steps.version.outputs.version }}"
-          PUBLISHED=$(npm view "@mergesignal/shared@${VERSION}" version 2>/dev/null || true)
+          # Repo .npmrc routes @mergesignal to GitHub Packages; shared is published to npmjs.org.
+          PUBLISHED=$(npm view "@mergesignal/shared@${VERSION}" version --registry https://registry.npmjs.org/ 2>/dev/null || true)
           if [ "$PUBLISHED" != "$VERSION" ]; then
             echo "::error::Expected @mergesignal/shared@${VERSION} on npm, got: ${PUBLISHED:-<none>}" >&2
             exit 1
