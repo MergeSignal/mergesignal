@@ -10,7 +10,7 @@ import type { ScanResult } from "./types.js";
 import type { BlastRadiusLevel } from "./scanNarrativeFacts.js";
 
 /** Bump when wire schema changes incompatibly. */
-export const REPO_INTELLIGENCE_ABI = "2" as const;
+export const REPO_INTELLIGENCE_ABI = "3" as const;
 
 const surfaceKindSchema = z.enum(["runtime", "build", "test", "unknown"]);
 
@@ -102,6 +102,28 @@ const semanticDiagnosticSchema = z.object({
   reason: z.string().min(1),
 });
 
+const structuralRoleWireSchema = z.enum([
+  "http_surface",
+  "auth_surface",
+  "orm_surface",
+  "queue_surface",
+  "type_surface",
+  "build_surface",
+  "testing_surface",
+]);
+
+const wireLifecycleStageProjectionSchema = z.object({
+  stage: z.string().min(1),
+  fileCount: z.number().int().nonnegative(),
+  evidenceRefs: z.array(z.string()),
+});
+
+const wirePromotedAreaProjectionSchema = z.object({
+  area: z.string().min(1),
+  structuralAnchor: structuralRoleWireSchema.optional(),
+  evidenceRefs: z.array(z.string()),
+});
+
 const packageIntelWireSchema = z.object({
   runtimeSurface: surfaceKindSchema,
   reachability: reachabilityKindSchema,
@@ -117,6 +139,8 @@ const packageIntelWireSchema = z.object({
   verificationFocus: z.array(z.string()).optional(),
   suppressRuntimeNarrative: z.boolean().optional(),
   classificationProvenance: classificationProvenanceSchema.optional(),
+  lifecycleStages: z.array(wireLifecycleStageProjectionSchema).optional(),
+  promotedAreas: z.array(wirePromotedAreaProjectionSchema).optional(),
 });
 
 const areaSchema = z.object({
