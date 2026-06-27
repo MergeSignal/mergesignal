@@ -140,6 +140,8 @@ jobs:
             echo "::error::npm EOTP: recreate NPM_TOKEN with Bypass 2FA enabled (org enforces 2FA), or configure npm trusted publishing for this workflow. See docs/engineering/releasing.md."
           elif grep -q ENEEDAUTH /tmp/npm-publish.log; then
             echo "::error::npm auth failed: check NPM_TOKEN or configure trusted publishing (publish-shared.yml) on the @mergesignal/shared package."
+          elif grep -q 'cannot publish over the previously published versions' /tmp/npm-publish.log; then
+            echo "::error::@mergesignal/shared@${{ steps.version.outputs.version }} is already on npm. Re-run this workflow with notify_only=true to verify and send the engine dispatch (see docs/engineering/releasing.md)."
           else
             echo "::error::npm publish failed; see the Publish to npm step log above."
             tail -30 /tmp/npm-publish.log >&2 || true
