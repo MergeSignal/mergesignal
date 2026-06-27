@@ -29,8 +29,8 @@ When bumping contract or shared versions:
 
 1. **Contracts** (if wire shape changes) — bump `packages/contracts`, tag `contracts-vX.Y.Z` on mergesignal-engine, publish via [publish-contracts.yml](https://github.com/MergeSignal/mergesignal-engine/blob/main/.github/workflows/publish-contracts.yml).
 2. **mergesignal catalog** — bump `pnpm-workspace.yaml` `catalog.@mergesignal/contracts` and `scripts/contracts-version-expectations.ts` to the published version; set all consumers to `"catalog:"`; run `pnpm install` (requires `NODE_AUTH_TOKEN` with `read:packages`).
-3. **Shared** — bump `packages/shared`, merge to `main`, tag `shared-vX.Y.Z`, publish via [publish-shared.yml](.github/workflows/publish-shared.yml).
-4. **Engine** — bump catalog pin in mergesignal-engine `pnpm-workspace.yaml`, refresh lockfile, tag engine release (e.g. `v2.0.1`), set `MERGESIGNAL_ENGINE_REF` on mergesignal.
+3. **Shared** — bump `packages/shared`, merge to `main`, tag `shared-vX.Y.Z`, publish via [publish-shared.yml](.github/workflows/publish-shared.yml). On success, the publish workflow sends `shared-package-released` to mergesignal-engine (see [Engine notification](#engine-notification-after-shared-publish)).
+4. **Engine** — consume the dispatch (or bump manually if the listener is not yet deployed): bump catalog pin in mergesignal-engine `pnpm-workspace.yaml`, refresh lockfile, tag engine release (e.g. `v2.0.1`), set `MERGESIGNAL_ENGINE_REF` on mergesignal.
 5. **Validate** — `pnpm check:contracts-catalog` and fresh-clone checks below on both repos.
 
 ### Lockfile refresh
@@ -105,9 +105,54 @@ The canonical contract and presentation package lives in `packages/shared` and i
 2. Merge to `main`.
 3. Tag: `git tag shared-v0.2.3` (prefix must match `shared-v*`).
 4. Push the tag: `git push origin shared-v0.2.3`.
-5. GitHub Actions workflow [`.github/workflows/publish-shared.yml`](.github/workflows/publish-shared.yml) runs build, tests, and `npm publish` (requires `NPM_TOKEN` with **Bypass 2FA** when org 2FA is on).
+5. GitHub Actions workflow [`.github/workflows/publish-shared.yml`](.github/workflows/publish-shared.yml) runs build, tests, `npm publish`, and notifies mergesignal-engine (requires `NPM_TOKEN` with **Bypass 2FA** when org 2FA is on, plus `MERGESIGNAL_ENGINE_DISPATCH_TOKEN` — see [Engine notification](#engine-notification-after-shared-publish)).
 
 **Consumers (e.g. `mergesignal-engine`)** use an **exact** semver pin in `package.json` (e.g. `"@mergesignal/shared": "0.2.3"`, not `^0.2.3`) plus a frozen `pnpm-lock.yaml` — do not copy `packages/shared` source or vendor tarballs.
+
+### Engine notification after shared publish
+
+After a successful `npm publish`, [publish-shared.yml](.github/workflows/publish-shared.yml) verifies the version on the registry and sends a `repository_dispatch` event to mergesignal-engine. The public repo **does not** modify the engine repository — it only publishes release metadata. The engine repo owns how to consume the event (bump pin, open PR, run tests, tag, deploy).
+
+**Event type:** `shared-package-released`
+
+**Payload (`client_payload`):**
+
+| Field        | Type   | Description                                                             |
+| ------------ | ------ | ----------------------------------------------------------------------- |
+| `package`    | string | Always `@mergesignal/shared`                                            |
+| `version`    | string | Published semver (e.g. `0.11.0`)                                        |
+| `tag`        | string | Release tag (e.g. `shared-v0.11.0`) or empty for manual / recovery runs |
+| `commit_sha` | string | Git commit SHA checked out when the publish workflow ran                |
+
+**Required secret (mergesignal repo):** `MERGESIGNAL_ENGINE_DISPATCH_TOKEN`
+
+Do **not** reuse `MERGESIGNAL_ENGINE_REPO_TOKEN` (read-only engine checkout). Dispatch needs write access on the target repository.
+
+**Create the dispatch token (fine-grained PAT — preferred):**
+
+1. GitHub → Settings → Developer settings → Fine-grained personal access tokens → Generate.
+2. Resource owner: `MergeSignal` org.
+3. Repository access: **Only** `mergesignal-engine`.
+4. Permissions: **Contents → Read and write** (Metadata read-only is included automatically).
+5. Store the token in `MergeSignal/mergesignal` → Settings → Secrets and variables → Actions → **`MERGESIGNAL_ENGINE_DISPATCH_TOKEN`**.
+
+**Classic PAT alternative:** `repo` scope on a machine user with access to `mergesignal-engine` (broader than fine-grained — avoid when possible).
+
+**Target repository:** repo variable `MERGESIGNAL_ENGINE_REPOSITORY` (default `MergeSignal/mergesignal-engine` when unset).
+
+**Failure behavior:** If dispatch fails, the publish workflow fails (red). npm publish is not rolled back — treat a failed run as “published but not notified.”
+
+**Recovery:** Actions → **Publish @mergesignal/shared** → **Run workflow** → enable **notify_only**. This skips build/publish, confirms the version from `packages/shared/package.json` exists on npm, and resends the dispatch. The engine consumer should dedupe on `version` if it already processed the release.
+
+**Engine consumer (mergesignal-engine):** Add a workflow on the default branch, for example:
+
+```yaml
+on:
+  repository_dispatch:
+    types: [shared-package-released]
+```
+
+Validate `github.event.client_payload` fields, dedupe by `version`, then bump the shared pin and run your release pipeline.
 
 **Prerequisites (first publish / token rotation)**
 
@@ -153,8 +198,8 @@ If local publish succeeds but CI still shows `EOTP`, the GitHub **`NPM_TOKEN` se
 **Two-repo release order**
 
 1. Publish `@mergesignal/contracts@X.Y.Z` from mergesignal-engine (`contracts-vX.Y.Z`); confirm GitHub Packages visibility + Actions access.
-2. Bump shared in mergesignal if needed; tag `shared-vX.Y.Z` and push; confirm [publish workflow](.github/workflows/publish-shared.yml) succeeds.
-3. In `mergesignal-engine`: bump catalog pin if needed, refresh lockfile, tag engine release, set `MERGESIGNAL_ENGINE_REF` on mergesignal.
+2. Bump shared in mergesignal if needed; tag `shared-vX.Y.Z` and push; confirm [publish workflow](.github/workflows/publish-shared.yml) succeeds (publish + engine dispatch).
+3. In `mergesignal-engine`: respond to `shared-package-released` or bump catalog pin manually, refresh lockfile, tag engine release, set `MERGESIGNAL_ENGINE_REF` on mergesignal.
 4. Run fresh-clone validation on both repos (see top of this doc).
 
 **Rollback**
@@ -171,6 +216,7 @@ Published npm versions are immutable; do not rely on `npm unpublish`.
 
 - `npm view @mergesignal/shared@X.Y.Z`
 - `npm pack @mergesignal/shared@X.Y.Z` — tarball should contain `dist/` only
+- Publish workflow log shows **Engine dispatch sent successfully**
 - Engine: `pnpm why @mergesignal/shared` resolves from `registry.npmjs.org`, not `file:`
 
 **Semver for shared**
