@@ -35,11 +35,13 @@ export function presentGitHubPrComment(
   const verify = channels.verification[0];
   if (verify) introLines.push(`Verify: ${verify}`);
 
-  const guidanceBlocks = channels.verification.slice(0, 3).map((action) => ({
-    message: assessmentFields.reasoning[0] ?? action,
-    where: changed ?? "See scan detail for affected paths.",
-    action,
-  }));
+  const guidanceBlocks = channels.verification
+    .slice(0, 3)
+    .map((action, index) => ({
+      message: assessmentFields.reasoning[index] ?? action,
+      where: changed ?? "See scan detail for affected paths.",
+      action,
+    }));
 
   return {
     ...assessmentFields,
