@@ -9,8 +9,10 @@ import type {
 
 const METHODOLOGY_VERSION = "engine-test-fixture/v1";
 
-/** Self-contained ABI-2 assessment — no runtime @mergesignal/shared import (Docker fixture engine). */
+/** Self-contained ABI-3 assessment — no runtime @mergesignal/shared import (Docker fixture engine). */
 const FIXTURE_ASSESSMENT: Assessment = {
+  reasoning: [],
+  confidenceRationale: "",
   reviewFocalPoint: {
     episodeShape: "single_anchor",
     anchors: ["typescript"],

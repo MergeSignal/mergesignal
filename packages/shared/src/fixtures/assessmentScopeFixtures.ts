@@ -76,12 +76,16 @@ export function verificationScopeFor(
   return { packages, focus, artifactGrounded };
 }
 
-/** Attach focal/scope fields required by assessmentSchema ABI 2. */
+/** Attach focal/scope fields required by assessmentSchema ABI 3. */
 export function withAssessmentScope(
   assessment: Omit<
     Assessment,
-    "reviewFocalPoint" | "reachScope" | "verificationScope"
-  >,
+    | "reviewFocalPoint"
+    | "reachScope"
+    | "verificationScope"
+    | "reasoning"
+    | "confidenceRationale"
+  > & { reasoning?: string[]; confidenceRationale?: string },
   scope: {
     reviewFocalPoint: ReviewFocalPoint;
     reachScope?: ReachScope;
@@ -89,6 +93,8 @@ export function withAssessmentScope(
   },
 ): Assessment {
   return {
+    reasoning: [],
+    confidenceRationale: "",
     ...assessment,
     reviewFocalPoint: scope.reviewFocalPoint,
     reachScope: scope.reachScope ?? emptyReachScope(),

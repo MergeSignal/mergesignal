@@ -7,8 +7,8 @@ settings:
 catalogs:
   default:
     "@mergesignal/contracts":
-      specifier: 0.7.1
-      version: 0.7.1
+      specifier: 0.9.0
+      version: 0.9.0
 
 importers:
   .:
@@ -76,7 +76,7 @@ importers:
     devDependencies:
       "@mergesignal/contracts":
         specifier: "catalog:"
-        version: 0.7.1
+        version: 0.9.0
       "@repo/eslint-config":
         specifier: workspace:*
         version: link:../../packages/eslint-config
@@ -318,7 +318,7 @@ importers:
     dependencies:
       "@mergesignal/contracts":
         specifier: "catalog:"
-        version: 0.7.1
+        version: 0.9.0
       "@mergesignal/shared":
         specifier: workspace:^
         version: link:../shared
@@ -389,7 +389,7 @@ importers:
     dependencies:
       "@mergesignal/contracts":
         specifier: "catalog:"
-        version: 0.7.1
+        version: 0.9.0
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -1507,11 +1507,11 @@ packages:
     peerDependencies:
       react: ^19.2.0
 
-  "@mergesignal/contracts@0.7.1":
+  "@mergesignal/contracts@0.9.0":
     resolution:
       {
-        integrity: sha512-Nw7gtxrZuBAUzq5cXVzDossYtPcfBnH82CNcgJzh69i6kIehFCQphxM7BVm22p+cx/KLZtdz9TwUbLDts9SQ/g==,
-        tarball: https://npm.pkg.github.com/download/@mergesignal/contracts/0.7.1/121e179991f8db5dc10e3888677bdea9e894a6e5,
+        integrity: sha512-+txKoC1j94+m++h37/gDpo0pN6TZYSGLq2Hqcs/hLlkIqYUNLdzBHS1AxaCVnJzU77DNoy1uIqpYlsciREQGUw==,
+        tarball: https://npm.pkg.github.com/download/@mergesignal/contracts/0.9.0/7fe11303e08cee1a4c8396c86b8b07cb0d58f735,
       }
 
   "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3":
@@ -8360,7 +8360,7 @@ snapshots:
     dependencies:
       react: 19.2.0
 
-  "@mergesignal/contracts@0.7.1":
+  "@mergesignal/contracts@0.9.0":
     dependencies:
       zod: 4.4.3
 

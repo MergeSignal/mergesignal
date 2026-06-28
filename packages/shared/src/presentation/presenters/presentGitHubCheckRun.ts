@@ -17,7 +17,7 @@ export function presentGitHubCheckRun(
 ): GitHubCheckRunPresentation {
   const { profile } = bundle;
   const headline = composeHeadline(bundle);
-  const keyPoints = projectCompactKeyPoints(buildNarrativeChannels(bundle), 3);
+  const assessmentFields = projectAssessmentFields(bundle);
   const actions = composeVerificationActions(bundle, 3);
   const detailsUrl = `${ctx.webAppOrigin.replace(/\/$/, "")}/scan/${ctx.scanId}`;
 
@@ -38,8 +38,15 @@ export function presentGitHubCheckRun(
       bullets: [`${prRiskScore} (${prRiskBandLabelText})`],
     });
   }
-  if (keyPoints.length > 0) {
-    sections.push({ id: "why", title: "Why", bullets: keyPoints });
+  // Use assessment.reasoning directly for the Why section (ABI 3).
+  // Fall back to compact key points for pre-ABI-3 scan results.
+  const reasoningLines = assessmentFields.reasoning.slice(0, 3);
+  const whyBullets =
+    reasoningLines.length > 0
+      ? reasoningLines
+      : projectCompactKeyPoints(buildNarrativeChannels(bundle), 3);
+  if (whyBullets.length > 0) {
+    sections.push({ id: "why", title: "Why", bullets: whyBullets });
   }
   if (actions.length > 0) {
     sections.push({ id: "actions", title: "What to verify", bullets: actions });
@@ -47,7 +54,7 @@ export function presentGitHubCheckRun(
   sections.push({ id: "footer", bullets: [`Full scan: ${detailsUrl}`] });
 
   return {
-    ...projectAssessmentFields(bundle),
+    ...assessmentFields,
     status: profile.status,
     density: profile.density,
     confidence: profile.confidence,

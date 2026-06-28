@@ -188,9 +188,11 @@ export function formatAssessmentHeadline(
 }
 
 export function projectReasoningLines(result: ScanResult): string[] {
-  const fromDecision = result.decision?.reasoning?.filter(Boolean) ?? [];
-  if (fromDecision.length > 0) return fromDecision.slice(0, 3);
-  return [];
+  // ABI 3: assessment.reasoning is the authoritative source for repository-specific prose
+  const fromAssessment = result.assessment?.reasoning?.filter(Boolean) ?? [];
+  if (fromAssessment.length > 0) return fromAssessment;
+  // Fallback for pre-ABI-3 scan results still in the database
+  return result.decision?.reasoning?.filter(Boolean) ?? [];
 }
 
 export function projectInsightLines(
@@ -218,6 +220,10 @@ export function projectVerificationActions(
   max: number,
 ): string[] {
   if (presentation.verificationIntensity === "none") return [];
+  // ABI 3: use actionable prose guidance when present
+  const guidance = assessment.verificationScope?.guidance;
+  if (guidance && guidance.length > 0) return guidance.slice(0, max);
+  // Fallback: focus tokens from legacy scope or repoIntelligence
   const { focus } = collectVerificationFocusForPresentation(
     presentation,
     result,

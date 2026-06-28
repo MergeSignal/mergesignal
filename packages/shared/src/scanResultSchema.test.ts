@@ -112,6 +112,8 @@ const minimalAssessment = {
   concerns: [] as [],
   factors: ["tooling_maintenance"],
   changeClasses: ["tooling_maintenance" as const],
+  reasoning: [],
+  confidenceRationale: "",
   presentation: {
     narrativeIntensity: "minimal" as const,
     reachVisibility: "hidden" as const,

@@ -27,6 +27,8 @@ export function presentGitHubPrComment(
   if (prRiskScore != null && prRiskBandLabelText) {
     introLines.push(`PR Risk: ${prRiskScore} (${prRiskBandLabelText})`);
   }
+  const electionSummary = bundle.assessment.reviewFocalPoint.electionSummary;
+  if (electionSummary) introLines.push(electionSummary);
   for (const line of assessmentFields.reasoning.slice(0, 2)) {
     introLines.push(line);
   }
