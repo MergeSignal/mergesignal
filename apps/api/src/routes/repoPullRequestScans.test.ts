@@ -45,8 +45,12 @@ function testAssessment(
   anchor: string,
   body: Omit<
     Assessment,
-    "reviewFocalPoint" | "reachScope" | "verificationScope"
-  >,
+    | "reviewFocalPoint"
+    | "reachScope"
+    | "verificationScope"
+    | "reasoning"
+    | "confidenceRationale"
+  > & { reasoning?: string[]; confidenceRationale?: string },
 ): Assessment {
   return withAssessmentScope(body, {
     reviewFocalPoint: minimalReviewFocalPoint([anchor]),
