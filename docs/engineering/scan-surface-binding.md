@@ -5,7 +5,7 @@ Production invariant: one PR event → one `scans.id` → one persisted `ScanRes
 ## Worker (`apps/worker`)
 
 1. `prepareScanContext` → `analyze` → validate → `persistSuccess(scanId)`
-2. When `MERGESIGNAL_PUBLISH_GITHUB_SURFACES=1` and job has `github` context: `publishGitHubCheckRun` (same in-memory result, same `scanId`)
+2. When job has `github` context and result has `decision`: `publishGitHubCheckRun` (same in-memory result, same `scanId`)
 3. Success → `github_surfaces_published_at = NOW()`; failure → `github_surfaces_publish_error`, job still completes
 
 Check Run markdown is built via `@mergesignal/shared` `buildGitHubCheckRunOutput` (Assessment bundle → `presentGitHubCheckRun` → `renderGitHubCheckRunMarkdown`).
@@ -29,6 +29,5 @@ Migration `017_github_surfaces_published.sql`: `github_surfaces_published_at`, `
 
 ## Rollback
 
-1. Redeploy last OSS worker image on `mergesignal-worker`
-2. Set `MERGESIGNAL_PUBLISH_GITHUB_SURFACES=0` (persist without publish)
-3. Never deploy `mergesignal-engine` to production `mergesignal-worker`
+1. Redeploy last OSS worker image on `mergesignal-worker` (see [fly-worker-engine.md](./fly-worker-engine.md))
+2. Never deploy `mergesignal-engine` to production `mergesignal-worker`

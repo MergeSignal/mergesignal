@@ -17,10 +17,7 @@ import {
   parseScanResultOrThrow,
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
-import {
-  isPublishGitHubSurfacesEnabled,
-  publishGitHubCheckRun,
-} from "./githubSurfaces.js";
+import { publishGitHubCheckRun } from "./githubSurfaces.js";
 import { withPgRetries } from "./pgRetry.js";
 import { captureWorkerException } from "./sentry.js";
 
@@ -429,11 +426,7 @@ export async function executeScanJob(
           warningCodes: prepared.preparationSummary.warningCodes,
         });
 
-        if (
-          isPublishGitHubSurfacesEnabled() &&
-          job.data.github &&
-          validated.decision
-        ) {
+        if (job.data.github && validated.decision) {
           try {
             await publishGitHubCheckRun(job.data.github, scanId, resultToStore);
             const surfaced = await markSurfacesPublished(pool, scanId);

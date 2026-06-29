@@ -11,16 +11,5 @@ Run after merging dogfood workflow / docs updates. Record outcomes in the PR des
 7. **Engine traceability** — after worker deploy, confirm `scans.engine_release_version` is populated and distinct from `methodology_version` (see [production-engine-verification.md](./production-engine-verification.md)).
 8. **Worker startup logs** — confirm `worker_startup_complete` precedes queue consumption and includes `engineReleaseVersion` (not `Starting MergeSignal worker` from `mergesignal-engine`).
 9. **Scan surface binding** — for lockfile PRs #26, #28, #29, #30: card `scanId` === Check Run footer `/scan/{id}`; `github_surfaces_published_at` set when card is `ready`; see [scan-surface-binding.md](./scan-surface-binding.md).
-10. **`MERGESIGNAL_PUBLISH_GITHUB_SURFACES`** — production worker should run with `=1` until flag removal criteria below are met.
 
-### Flag removal criteria (`MERGESIGNAL_PUBLISH_GITHUB_SURFACES`)
-
-Remove the env var branch from code only when **all** are true:
-
-1. Integration test proves persist `scanId` === Check Run `scanId` === details URL `scanId`.
-2. Manual checklist passes for PRs #26, #28, #29, #30 (headline parity; details load).
-3. Fly logs show `worker_startup_complete` (OSS worker), not engine harness fingerprint.
-4. At least **5 consecutive** successful PR lockfile scans with `github_surfaces_published_at` set and matching card `scanId`.
-5. No rollback for **7 calendar days** after criteria 1–4.
-
-**Rollback:** revert the merge commit and restore previous GitHub required-check configuration if merges were blocked. For production worker incidents, prefer immutable image rollback — see [fly-worker-engine.md](./fly-worker-engine.md). Set `MERGESIGNAL_PUBLISH_GITHUB_SURFACES=0` to persist without GitHub publish.
+**Rollback:** revert the merge commit and restore previous GitHub required-check configuration if merges were blocked. For production worker incidents, prefer immutable image rollback — see [fly-worker-engine.md](./fly-worker-engine.md).

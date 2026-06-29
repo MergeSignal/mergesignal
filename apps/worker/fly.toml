@@ -11,9 +11,6 @@
 #   MERGESIGNAL_ENGINE_REPO_TOKEN (Actions secret)
 #
 # Do NOT set MERGESIGNAL_ALLOW_STUB in production.
-#
-# GitHub Check Run publish (after persist): set Fly secret MERGESIGNAL_PUBLISH_GITHUB_SURFACES=1
-# Remove only after criteria in docs/engineering/post-change-e2e-checklist.md
 
 app = "mergesignal-worker"
 primary_region = "iad"

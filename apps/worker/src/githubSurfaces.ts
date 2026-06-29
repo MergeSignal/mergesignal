@@ -6,11 +6,6 @@ import {
   type ScanResult,
 } from "@mergesignal/shared";
 
-export function isPublishGitHubSurfacesEnabled(): boolean {
-  const raw = process.env.MERGESIGNAL_PUBLISH_GITHUB_SURFACES?.trim();
-  return raw === "1" || raw?.toLowerCase() === "true";
-}
-
 function buildOctokit(installationId: number): Octokit {
   const appId = process.env.GITHUB_APP_ID;
   const privateKey = process.env.GITHUB_PRIVATE_KEY;

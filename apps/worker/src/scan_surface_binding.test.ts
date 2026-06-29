@@ -30,7 +30,6 @@ vi.mock("@mergesignal/engine", async (importOriginal) => {
 });
 
 vi.mock("./githubSurfaces.js", () => ({
-  isPublishGitHubSurfacesEnabled: vi.fn(() => true),
   publishGitHubCheckRun: vi.fn(),
 }));
 
@@ -39,10 +38,7 @@ vi.mock("./sentry.js", () => ({
 }));
 
 import { analyze } from "@mergesignal/engine";
-import {
-  isPublishGitHubSurfacesEnabled,
-  publishGitHubCheckRun,
-} from "./githubSurfaces.js";
+import { publishGitHubCheckRun } from "./githubSurfaces.js";
 
 const validEngineOutput = {
   totalScore: 40,
@@ -92,22 +88,42 @@ const githubContext = {
   installationId: 99,
 };
 
-function makeJob(): Job<ScanQueueJob> {
+function makeJob(overrides: Partial<ScanQueueJob> = {}): Job<ScanQueueJob> {
   const data: ScanQueueJob = {
     scanId: "scan-binding-1",
     repoId: "acme/app",
     dependencyGraph: {},
     github: githubContext,
+    ...overrides,
   };
   return { id: data.scanId, data } as Job<ScanQueueJob>;
+}
+
+function makePool(onQuery?: (sql: string, params?: unknown[]) => void): Pool {
+  return {
+    query: vi.fn(async (sql: string, params?: unknown[]) => {
+      onQuery?.(sql, params);
+      if (sql.includes("status = 'running'") && sql.includes("UPDATE scans")) {
+        return { rowCount: 1, rows: [] };
+      }
+      if (sql.includes("status = 'done'") && sql.includes("result = $1")) {
+        return { rowCount: 1, rows: [] };
+      }
+      if (sql.includes("github_surfaces_published_at = NOW()")) {
+        return { rowCount: 1, rows: [] };
+      }
+      if (sql.startsWith("SELECT status")) {
+        return { rows: [{ status: "queued" }], rowCount: 1 };
+      }
+      return { rowCount: 1, rows: [] };
+    }),
+  } as unknown as Pool;
 }
 
 describe("scan surface binding", () => {
   beforeEach(() => {
     vi.mocked(analyze).mockReset();
     vi.mocked(publishGitHubCheckRun).mockReset();
-    vi.mocked(isPublishGitHubSurfacesEnabled).mockReturnValue(true);
-    process.env.MERGESIGNAL_PUBLISH_GITHUB_SURFACES = "1";
     process.env.GITHUB_APP_ID = "1";
     process.env.GITHUB_PRIVATE_KEY = "fake";
   });
@@ -117,27 +133,11 @@ describe("scan surface binding", () => {
     vi.mocked(publishGitHubCheckRun).mockResolvedValue(undefined);
 
     let surfacedUpdate: unknown[] | null = null;
-    const pool = {
-      query: vi.fn(async (sql: string, params?: unknown[]) => {
-        if (
-          sql.includes("status = 'running'") &&
-          sql.includes("UPDATE scans")
-        ) {
-          return { rowCount: 1, rows: [] };
-        }
-        if (sql.includes("status = 'done'") && sql.includes("result = $1")) {
-          return { rowCount: 1, rows: [] };
-        }
-        if (sql.includes("github_surfaces_published_at = NOW()")) {
-          surfacedUpdate = params ?? null;
-          return { rowCount: 1, rows: [] };
-        }
-        if (sql.startsWith("SELECT status")) {
-          return { rows: [{ status: "queued" }], rowCount: 1 };
-        }
-        return { rowCount: 1, rows: [] };
-      }),
-    } as unknown as Pool;
+    const pool = makePool((sql, params) => {
+      if (sql.includes("github_surfaces_published_at = NOW()")) {
+        surfacedUpdate = params ?? null;
+      }
+    });
 
     await executeScanJob(pool, makeJob(), "worker-1");
 
@@ -179,5 +179,21 @@ describe("scan surface binding", () => {
     expect(
       sqlCalls.some((s) => s.includes("github_surfaces_publish_error")),
     ).toBe(true);
+  });
+
+  it("skips publish when job has no github context", async () => {
+    vi.mocked(analyze).mockResolvedValue(validEngineOutput);
+
+    const sqlCalls: string[] = [];
+    const pool = makePool((sql) => {
+      sqlCalls.push(sql);
+    });
+
+    await executeScanJob(pool, makeJob({ github: undefined }), "worker-1");
+
+    expect(publishGitHubCheckRun).not.toHaveBeenCalled();
+    expect(
+      sqlCalls.some((s) => s.includes("github_surfaces_published_at = NOW()")),
+    ).toBe(false);
   });
 });
