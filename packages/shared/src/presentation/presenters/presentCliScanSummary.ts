@@ -1,11 +1,9 @@
-import { scoreToBandLabel } from "../../prRiskBand.js";
+import { formatPrRiskSummary } from "../../prRiskBand.js";
 import { resolvePrRiskLayerScores } from "../../prRiskWire.js";
 import {
   buildNarrativeChannels,
-  composeHeadline,
   composeSubheadline,
   composeSupportingContext,
-  composeVerificationActions,
   evidenceContextFromProfile,
   projectCompactKeyPoints,
 } from "../compose/narrativeCompose.js";
@@ -18,11 +16,13 @@ export function presentCliScanSummary(
   ctx: { repoLabel?: string } = {},
 ): CliScanPresentation {
   const { facts, profile, result } = bundle;
+  const channels = buildNarrativeChannels(bundle);
   const layerScores = resolvePrRiskLayerScores(result);
   const layerLine = layerScores
     ? `security=${layerScores.security} maintainability=${layerScores.maintainability} ecosystem=${layerScores.ecosystem} upgradeImpact=${layerScores.upgradeImpact}`
     : "";
-  const prRiskScore = facts.riskSignals?.riskIndex ?? facts.riskIndex ?? 0;
+  const prRisk = formatPrRiskSummary(facts);
+  const prRiskScore = prRisk?.prRiskScore ?? facts.riskIndex ?? 0;
 
   return {
     ...projectAssessmentFields(bundle),
@@ -35,13 +35,13 @@ export function presentCliScanSummary(
     density: profile.density,
     confidence: profile.confidence,
     evidenceContext: evidenceContextFromProfile(bundle),
-    headline: composeHeadline(bundle),
+    headline: channels.headline,
     subheadline: composeSubheadline(bundle),
-    keyPoints: projectCompactKeyPoints(buildNarrativeChannels(bundle), 6),
-    verificationActions: composeVerificationActions(bundle, 5),
+    keyPoints: projectCompactKeyPoints(channels, 6),
+    verificationActions: channels.verification.slice(0, 5),
     metrics: {
       prRiskScore,
-      prRiskBandLabel: scoreToBandLabel(prRiskScore) ?? undefined,
+      prRiskBandLabel: prRisk?.prRiskBandLabel ?? undefined,
       riskIndex: prRiskScore,
       layerLine,
       findingCount: result.findings?.length ?? 0,

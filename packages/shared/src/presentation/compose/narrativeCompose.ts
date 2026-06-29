@@ -1,10 +1,4 @@
 import { formatCardAreaLabels } from "../../formatCardAreaLabels.js";
-import {
-  formatChangedPackagesShort,
-  labelBlastRadiusLevel,
-  labelReachabilityKind,
-  labelRuntimeSurface,
-} from "../../narrativePresentation.js";
 import { scanSurfaceCopy } from "../../scanSurfaceCopy.js";
 import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
 import {
@@ -61,30 +55,6 @@ export function composeAffectedAreaLabels(
     if (labels.length >= max) break;
   }
   return labels;
-}
-
-export function composeEvidenceRows(
-  bundle: ScanPresentationBundle,
-  max: number,
-): Array<{ label: string; value: string }> {
-  const { facts, profile } = bundle;
-  const rows: Array<{ label: string; value: string }> = [];
-
-  if (!profile.interpretation.suppressRuntimeNarrative) {
-    const runtime = labelRuntimeSurface(facts);
-    if (runtime) rows.push({ label: "Runtime", value: runtime });
-
-    const reach = labelReachabilityKind(facts);
-    if (reach) rows.push({ label: "Reachability", value: reach });
-  }
-
-  const blast = labelBlastRadiusLevel(facts);
-  if (blast) rows.push({ label: "Blast radius", value: blast });
-
-  const changed = formatChangedPackagesShort(facts, 3);
-  if (changed) rows.push({ label: "Changed", value: changed });
-
-  return rows.slice(0, max);
 }
 
 export function composeSupportingContext(

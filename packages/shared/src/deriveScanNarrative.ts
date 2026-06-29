@@ -440,6 +440,10 @@ function guidanceFromRecommendation(
   };
 }
 
+/**
+ * Legacy insight/finding/recommendation synthesis for narrative availability tiers.
+ * Not presentation authority — shared surfaces use assessment expression fields instead.
+ */
 function collectReviewerGuidance(
   result: ScanResult,
 ): ScanNarrativeFacts["reviewerGuidance"] {

@@ -115,6 +115,16 @@ describe("surfaceParity guardrail", () => {
       expect(s.details.verificationChannel).toBe(s.fields.verificationChannel);
       expect(s.check.verificationChannel).toBe(s.fields.verificationChannel);
       expect(s.comment.verificationChannel).toBe(s.fields.verificationChannel);
+
+      expect(s.card.confidenceRationale).toBe(s.fields.confidenceRationale);
+      expect(s.details.confidenceRationale).toBe(s.fields.confidenceRationale);
+      expect(s.check.confidenceRationale).toBe(s.fields.confidenceRationale);
+      expect(s.comment.confidenceRationale).toBe(s.fields.confidenceRationale);
+
+      expect(s.card.electionSummary).toBe(s.fields.electionSummary);
+      expect(s.details.electionSummary).toBe(s.fields.electionSummary);
+      expect(s.check.electionSummary).toBe(s.fields.electionSummary);
+      expect(s.comment.electionSummary).toBe(s.fields.electionSummary);
     });
 
     it(`${persona.name}: headline matches across card and details`, () => {

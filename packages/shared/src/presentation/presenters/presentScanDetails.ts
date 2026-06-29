@@ -1,9 +1,8 @@
 import { MERGE_CONCERN_LABELS } from "../../assessmentLabels.js";
 import { normalizedPackageUsagePaths } from "../../narrativePresentation.js";
 import {
-  prRiskBandLabel,
+  formatPrRiskSummary,
   prRiskBandToGaugeBand,
-  scoreToBandLabel,
 } from "../../prRiskBand.js";
 import { MERGE_POSTURE_LABEL } from "../../riskVocabulary.js";
 import type { ScoreLayer } from "../../types.js";
@@ -124,7 +123,7 @@ export function presentScanDetails(
   bundle: ScanPresentationBundle,
   ctx: PresentScanDetailsContext,
 ): ScanDetailsPresentation {
-  const { assessment, facts, profile } = bundle;
+  const { facts, profile } = bundle;
   const assessmentFields = projectAssessmentFields(bundle);
   const channels = buildNarrativeChannels(bundle);
   const keyPoints = projectCompactKeyPoints(channels, 6);
@@ -140,8 +139,8 @@ export function presentScanDetails(
   const postureLabel = MERGE_POSTURE_LABEL[profile.status];
   const verdictLine =
     assessmentFields.reasoning[0] ??
-    (assessment.primaryConcern
-      ? MERGE_CONCERN_LABELS[assessment.primaryConcern]
+    (assessmentFields.primaryConcern
+      ? MERGE_CONCERN_LABELS[assessmentFields.primaryConcern]
       : postureLabel);
 
   const verificationActions = channels.verification.map((title, index) => ({
@@ -161,11 +160,7 @@ export function presentScanDetails(
     rationale: action.detail,
   }));
 
-  const prRiskScore = facts.riskSignals?.riskIndex ?? null;
-  const prRiskBandLabelText =
-    facts.riskSignals?.band != null
-      ? prRiskBandLabel(facts.riskSignals.band)
-      : scoreToBandLabel(prRiskScore);
+  const prRisk = formatPrRiskSummary(facts);
 
   return {
     ...assessmentFields,
@@ -180,9 +175,9 @@ export function presentScanDetails(
       verdictLine: normalizeGeneratedText(verdictLine),
       scopeChip: channels.reachLabel,
       postureLabel,
-      prRiskScore,
-      prRiskBandLabel: prRiskBandLabelText ?? undefined,
-      riskIndex: prRiskScore,
+      prRiskScore: prRisk?.prRiskScore ?? null,
+      prRiskBandLabel: prRisk?.prRiskBandLabel,
+      riskIndex: prRisk?.prRiskScore ?? null,
     },
     signalSummary: mapSignalSummary(bundle),
     narrative: {

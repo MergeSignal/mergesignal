@@ -1,9 +1,7 @@
-import { scoreToBandLabel } from "../../prRiskBand.js";
+import { formatPrRiskSummary } from "../../prRiskBand.js";
 import {
   buildNarrativeChannels,
-  composeHeadline,
   composeSubheadline,
-  composeVerificationActions,
   evidenceContextFromProfile,
   projectCompactKeyPoints,
 } from "../compose/narrativeCompose.js";
@@ -15,10 +13,10 @@ export function presentGitHubCheckRun(
   bundle: ScanPresentationBundle,
   ctx: { scanId: string; webAppOrigin: string; baseline?: boolean },
 ): GitHubCheckRunPresentation {
-  const { profile } = bundle;
-  const headline = composeHeadline(bundle);
+  const { facts, profile } = bundle;
+  const channels = buildNarrativeChannels(bundle);
   const assessmentFields = projectAssessmentFields(bundle);
-  const actions = composeVerificationActions(bundle, 3);
+  const actions = channels.verification.slice(0, 3);
   const detailsUrl = `${ctx.webAppOrigin.replace(/\/$/, "")}/scan/${ctx.scanId}`;
 
   const conclusion =
@@ -29,13 +27,12 @@ export function presentGitHubCheckRun(
         : "neutral";
 
   const sections: GitHubCheckRunPresentation["sections"] = [];
-  const prRiskScore = bundle.facts.riskSignals?.riskIndex;
-  const prRiskBandLabelText = scoreToBandLabel(prRiskScore);
-  if (prRiskScore != null && prRiskBandLabelText) {
+  const prRisk = formatPrRiskSummary(facts);
+  if (prRisk) {
     sections.push({
       id: "why",
       title: "PR Risk",
-      bullets: [`${prRiskScore} (${prRiskBandLabelText})`],
+      bullets: [`${prRisk.prRiskScore} (${prRisk.prRiskBandLabel})`],
     });
   }
   // Use assessment.reasoning directly for the Why section (ABI 3).
@@ -44,7 +41,7 @@ export function presentGitHubCheckRun(
   const whyBullets =
     reasoningLines.length > 0
       ? reasoningLines
-      : projectCompactKeyPoints(buildNarrativeChannels(bundle), 3);
+      : projectCompactKeyPoints(channels, 3);
   if (whyBullets.length > 0) {
     sections.push({ id: "why", title: "Why", bullets: whyBullets });
   }
@@ -59,9 +56,9 @@ export function presentGitHubCheckRun(
     density: profile.density,
     confidence: profile.confidence,
     evidenceContext: evidenceContextFromProfile(bundle),
-    title: headline,
+    title: channels.headline,
     conclusion,
-    summaryLead: composeSubheadline(bundle) ?? headline,
+    summaryLead: composeSubheadline(bundle) ?? channels.headline,
     sections,
     detailsUrl,
   };

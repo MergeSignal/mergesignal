@@ -2,6 +2,14 @@
 
 MergeSignal surfaces (dashboard, scan detail, GitHub check run, PR comment, CLI, Actions summary) are **projections** of engine output. The public repository does not re-evaluate merge risk.
 
+## Public contract boundary
+
+> **Presentation Foundation consumes the engine's public contract exactly as published.**
+>
+> It may normalize, organize, and format information, but it must **never** require internal engine knowledge or depend on implementation details outside the public `ScanResult` contract.
+
+Published inputs: `ScanResult` wire JSON, `Assessment` as validated by `@mergesignal/contracts`, and strict fresh output via `engineOutputScanResultSchema`. See [presentation-foundation.md](./presentation-foundation.md).
+
 ## Authority chain
 
 ```
@@ -18,16 +26,24 @@ Assessment → Decision → Narrative → Reach → Verification → Surfaces
 
 ## Public vs internal assessment fields
 
-**Consumed by presenters (public contract):**
+**Consumed by presenters (public contract, via projection only):**
 
 - `assessment.reviewFocalPoint`, `reachScope`, `verificationScope` — identity, reach, and verification ownership (ABI 2)
 - `assessment.posture`, `confidence`, `primaryConcern`, `factors`
 - `assessment.presentation`: `narrativeIntensity`, `reachVisibility`, `verificationIntensity`, `reportMode`
+- `assessment.reasoning` — canonical "why" prose (ABI 3 expression)
+- `assessment.confidenceRationale` — confidence explanation (ABI 3 expression)
+- `assessment.reviewFocalPoint.electionSummary` — focal-election narrative (ABI 3 expression)
+- `assessment.verificationScope.guidance` — verification action prose (ABI 3 expression)
+
+Presenters must read expression fields through `projectAssessmentFields` / `assessmentProjection.ts`, not ad hoc from `bundle.assessment`.
 
 **Parsed on wire but not exposed to presenters:**
 
 - `assessment.concerns`, `changeClasses`
 - `assessment.presentation.insightEmissionFloor` (engine emission policy)
+
+Reviewer-facing prose must not depend on internal fields above. Expression must surface explanation on the public ABI-3 fields.
 
 `AssessmentPresentationPublic` in `@mergesignal/shared` is a narrow `Pick` of the wire shape. Presenters must not import engine-internal fields.
 
@@ -90,5 +106,6 @@ If a projection disagrees with assessment, **assessment wins**. Fix or bypass th
 
 ## Related
 
+- [presentation-foundation.md](./presentation-foundation.md) — foundation architecture and public contract rule
 - [scanresult-debug.md](./scanresult-debug.md) — reading stored `ScanResult`
 - [architecture.md](../architecture.md) — component overview

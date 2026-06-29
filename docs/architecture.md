@@ -33,7 +33,7 @@ The public repository ships an **OSS stub engine** for local development and dem
 
 All user-facing surfaces read `ScanResult.assessment` as the sole authority for merge posture and presentation policy. The shared package builds a `ScanPresentationBundle` and presenters project fields to DTOs without re-interpreting scores or repo intelligence for posture.
 
-See [presentation-ownership.md](./engineering/presentation-ownership.md) for the authority chain, public vs internal assessment fields, and CI guardrails.
+See [presentation-foundation.md](./engineering/presentation-foundation.md) for the public contract rule and foundation pipeline, and [presentation-ownership.md](./engineering/presentation-ownership.md) for assessment authority and CI guardrails.
 
 ## Diagram
 

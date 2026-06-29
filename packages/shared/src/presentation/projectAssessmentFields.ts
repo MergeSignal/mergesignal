@@ -5,6 +5,11 @@ import {
 import type { AssessmentPresentationFields } from "./dto/assessmentPresentationFields.js";
 import type { ScanPresentationBundle } from "./orchestration/scanPresentationBundle.js";
 
+function trimOptionalExpression(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 export function projectAssessmentFields(
   bundle: ScanPresentationBundle,
 ): AssessmentPresentationFields {
@@ -22,5 +27,9 @@ export function projectAssessmentFields(
     verificationChannel: channel,
     reachVisibility: presentation.reachVisibility,
     narrativeIntensity: presentation.narrativeIntensity,
+    confidenceRationale: trimOptionalExpression(assessment.confidenceRationale),
+    electionSummary: trimOptionalExpression(
+      assessment.reviewFocalPoint.electionSummary,
+    ),
   };
 }

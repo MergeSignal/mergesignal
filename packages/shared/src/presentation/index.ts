@@ -62,7 +62,6 @@ export {
   composeKeyPoints,
   composeVerificationActions,
   composeAffectedAreaLabels,
-  composeEvidenceRows,
   composeSupportingContext,
   evidenceContextFromProfile,
 } from "./compose/narrativeCompose.js";

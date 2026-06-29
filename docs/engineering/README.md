@@ -14,6 +14,7 @@ These documents support MergeSignal maintainers and operators: releases, product
 | [production-engine-verification.md](./production-engine-verification.md) | Post-deploy worker/engine checklist                                |
 | [post-change-e2e-checklist.md](./post-change-e2e-checklist.md)           | Dogfood workflow verification                                      |
 | [scanresult-debug.md](./scanresult-debug.md)                             | Reading stored ScanResult                                          |
+| [presentation-foundation.md](./presentation-foundation.md)               | Presentation Foundation architecture and public contract rule      |
 | [presentation-ownership.md](./presentation-ownership.md)                 | Assessment authority and surface projection rules                  |
 | [pnpm-version-governance.md](./pnpm-version-governance.md)               | Single pnpm version authority and enforcement                      |
 

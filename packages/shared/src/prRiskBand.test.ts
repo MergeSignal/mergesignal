@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   PR_RISK_BAND_ABI,
   PR_RISK_BAND_THRESHOLDS,
+  formatPrRiskSummary,
   prRiskBandAriaFragment,
   prRiskBandLabel,
   prRiskBandToGaugeBand,
@@ -59,6 +60,23 @@ describe("prRiskBandLabel", () => {
 describe("prRiskBandAriaFragment", () => {
   it("prefixes PR Risk", () => {
     expect(prRiskBandAriaFragment(55)).toBe("PR Risk: Medium");
+  });
+});
+
+describe("formatPrRiskSummary", () => {
+  it("returns score and band label from riskSignals", () => {
+    expect(
+      formatPrRiskSummary({
+        riskSignals: { riskIndex: 55, band: "medium", layers: [] },
+        riskIndex: 55,
+      }),
+    ).toEqual({ prRiskScore: 55, prRiskBandLabel: "Medium" });
+  });
+
+  it("returns undefined when risk index is missing", () => {
+    expect(
+      formatPrRiskSummary({ riskSignals: null, riskIndex: null }),
+    ).toBeUndefined();
   });
 });
 

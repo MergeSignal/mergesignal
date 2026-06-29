@@ -16,4 +16,8 @@ export type AssessmentPresentationFields = {
   verificationChannel: VerificationChannel;
   reachVisibility: ReachVisibility;
   narrativeIntensity: NarrativeIntensity;
+  /** ABI 3 expression — optional confidence explanation. */
+  confidenceRationale?: string;
+  /** ABI 3 expression — optional focal-election narrative. */
+  electionSummary?: string;
 };

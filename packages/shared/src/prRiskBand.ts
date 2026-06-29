@@ -1,3 +1,5 @@
+import type { ScanNarrativeFacts } from "./scanNarrativeFacts.js";
+
 /**
  * Canonical PR Risk band contract — sole authority for PR Risk band derivation.
  * Independent from legacy exposure presentation and merge verdict (`assessment.posture`).
@@ -73,6 +75,27 @@ export function prRiskBandAriaFragment(
   const label = scoreToBandLabel(score);
   if (!label) return null;
   return `PR Risk: ${label}`;
+}
+
+export type PrRiskSummary = {
+  prRiskScore: number;
+  prRiskBandLabel: string;
+};
+
+/** Format PR Risk score + band from narrative facts (not assessment projection). */
+export function formatPrRiskSummary(
+  facts: Pick<ScanNarrativeFacts, "riskSignals" | "riskIndex">,
+): PrRiskSummary | undefined {
+  const prRiskScore = facts.riskSignals?.riskIndex;
+  if (prRiskScore == null || !Number.isFinite(prRiskScore)) return undefined;
+
+  const prRiskBandLabelText =
+    facts.riskSignals?.band != null
+      ? prRiskBandLabel(facts.riskSignals.band)
+      : scoreToBandLabel(prRiskScore);
+  if (!prRiskBandLabelText) return undefined;
+
+  return { prRiskScore, prRiskBandLabel: prRiskBandLabelText };
 }
 
 /** Project 5-band PR Risk to 3-bucket scan-detail gauge band. */

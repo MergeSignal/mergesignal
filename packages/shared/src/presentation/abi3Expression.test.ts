@@ -24,6 +24,7 @@ import {
   projectVerificationActions,
 } from "../assessmentProjection.js";
 import { toPublicPresentation } from "../assessmentPresentationUtils.js";
+import { projectAssessmentFields } from "./projectAssessmentFields.js";
 import { buildScanPresentationBundle } from "./orchestration/buildScanPresentationBundle.js";
 import { presentGitHubPrComment } from "./presenters/presentGitHubPrComment.js";
 import { presentGitHubCheckRun } from "./presenters/presentGitHubCheckRun.js";
@@ -254,6 +255,57 @@ describe("projectVerificationActions — ABI 3 guidance", () => {
       6,
     );
     expect(actions).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// projectAssessmentFields — ABI 3 expression projection
+// ---------------------------------------------------------------------------
+
+describe("projectAssessmentFields — ABI 3 expression", () => {
+  it("projects confidenceRationale and electionSummary from assessment", () => {
+    const result = scanResultWithAssessment(assessmentExpressAbi3);
+    const bundle = buildScanPresentationBundle({
+      result,
+      pipelineStatus: "done",
+    })!;
+    const fields = projectAssessmentFields(bundle);
+    expect(fields.confidenceRationale).toBe(
+      "Confidence is high: propagation from express to application entry points was directly observed.",
+    );
+    expect(fields.electionSummary).toBe(expressElectionSummary);
+    expect(fields.reasoning).toEqual(expressReasoning);
+  });
+
+  it("omits empty confidenceRationale and electionSummary after trim", () => {
+    const assessment: Assessment = {
+      ...assessmentExpressAbi3,
+      confidenceRationale: "   ",
+      reviewFocalPoint: {
+        ...assessmentExpressAbi3.reviewFocalPoint,
+        electionSummary: "",
+      },
+    };
+    const result = scanResultWithAssessment(assessment);
+    const bundle = buildScanPresentationBundle({
+      result,
+      pipelineStatus: "done",
+    })!;
+    const fields = projectAssessmentFields(bundle);
+    expect(fields.confidenceRationale).toBeUndefined();
+    expect(fields.electionSummary).toBeUndefined();
+  });
+
+  it("projects reasoning when assessment has concerns", () => {
+    const result = scanResultWithAssessment(assessmentExpressAbi3);
+    const bundle = buildScanPresentationBundle({
+      result,
+      pipelineStatus: "done",
+    })!;
+    const fields = projectAssessmentFields(bundle);
+    expect(assessmentExpressAbi3.concerns.length).toBeGreaterThan(0);
+    expect(fields.reasoning.length).toBeGreaterThan(0);
+    expect(fields.reasoning).toEqual(expressReasoning);
   });
 });
 
