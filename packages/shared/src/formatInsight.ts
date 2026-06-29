@@ -1,29 +1,12 @@
 import { MERGE_POSTURE_LABEL } from "./riskVocabulary.js";
-import type {
-  PRInsight,
-  PRDecision,
-  PRDecisionRecommendation,
-} from "./types.js";
+import type { PRInsight, PRDecision } from "./types.js";
 
 // Per-insight structured data — no title (title is per-comment, not per-insight)
-export type FormattedInsight = {
+type FormattedInsight = {
   message: string;
   where: string;
   action: string;
 };
-
-const DECISION_TITLES: Record<PRDecisionRecommendation, string> = {
-  safe: "No significant dependency risks detected",
-  needs_review: "Elevated dependency merge risk",
-  risky: "Merge blocked - critical dependency risk",
-};
-
-// Title rendered once per PR comment, not per insight
-export function decisionTitle(
-  recommendation: PRDecisionRecommendation,
-): string {
-  return DECISION_TITLES[recommendation];
-}
 
 /**
  * Normalizes typographic punctuation to ASCII equivalents so that LLM output
