@@ -1,111 +1,28 @@
 # Presentation ownership
 
-MergeSignal surfaces (dashboard, scan detail, GitHub check run, PR comment, CLI, Actions summary) are **projections** of engine output. The public repository does not re-evaluate merge risk.
+MergeSignal surfaces (dashboard, scan detail, GitHub check run, PR comment, CLI) are **projections** of engine output. The public repository does not re-evaluate merge risk.
 
-## Public contract boundary
+## Authority
 
-> **Presentation Foundation consumes the engine's public contract exactly as published.**
->
-> It may normalize, organize, and format information, but it must **never** require internal engine knowledge or depend on implementation details outside the public `ScanResult` contract.
+`ScanResult.assessment` is the sole authority for merge posture, confidence, primary concern, and presentation policy. `buildScanPresentationBundle()` in `@mergesignal/shared` builds shared presentation output from a scan result. Presenters format and layout that output — they do not infer posture, reach, or verification policy from scores or wire-shape heuristics.
 
-Published inputs: `ScanResult` wire JSON, `Assessment` as validated by `@mergesignal/contracts`, and strict fresh output via `engineOutputScanResultSchema`. See [presentation-foundation.md](./presentation-foundation.md).
+If presentation output disagrees with assessment, assessment wins.
 
-## Authority chain
+## Public contract
 
-```
-Assessment → Decision → Narrative → Reach → Verification → Surfaces
-```
+Presentation code uses only the published `ScanResult` and `Assessment` shapes from `@mergesignal/contracts` and `@mergesignal/shared`. It may normalize and format published fields. It must not depend on engine-internal assessment fields or re-derive merge decisions in presenters.
 
-| Layer                           | Role                                                                                      |
-| ------------------------------- | ----------------------------------------------------------------------------------------- |
-| `ScanResult.assessment`         | Sole authority for posture, confidence, primary concern, factors, and presentation policy |
-| `ScanResult.decision`           | Reasoning bullets and recommendation alignment (render only)                              |
-| `ScanResult.repoIntelligence`   | Evidence layout — usage paths, verification focus, blast radius                           |
-| `buildScanPresentationBundle()` | Attaches assessment, public presentation pick, thin profile, narrative facts              |
-| Presenters                      | Format, truncate, order, group, style — **no inference**                                  |
+Reviewer-facing explanation belongs on public assessment expression fields, not on internal engine fields such as `concerns` or `changeClasses`.
 
-## Public vs internal assessment fields
+## Verification
 
-**Consumed by presenters (public contract, via projection only):**
-
-- `assessment.reviewFocalPoint`, `reachScope`, `verificationScope` — identity, reach, and verification ownership (ABI 2)
-- `assessment.posture`, `confidence`, `primaryConcern`, `factors`
-- `assessment.presentation`: `narrativeIntensity`, `reachVisibility`, `verificationIntensity`, `reportMode`
-- `assessment.reasoning` — canonical "why" prose (ABI 3 expression)
-- `assessment.confidenceRationale` — confidence explanation (ABI 3 expression)
-- `assessment.reviewFocalPoint.electionSummary` — focal-election narrative (ABI 3 expression)
-- `assessment.verificationScope.guidance` — verification action prose (ABI 3 expression)
-
-Presenters must read expression fields through `projectAssessmentFields` / `assessmentProjection.ts`, not ad hoc from `bundle.assessment`.
-
-**Parsed on wire but not exposed to presenters:**
-
-- `assessment.concerns`, `changeClasses`
-- `assessment.presentation.insightEmissionFloor` (engine emission policy)
-
-Reviewer-facing prose must not depend on internal fields above. Expression must surface explanation on the public ABI-3 fields.
-
-`AssessmentPresentationPublic` in `@mergesignal/shared` is a narrow `Pick` of the wire shape. Presenters must not import engine-internal fields.
-
-## Dual-channel verification ownership
-
-Verification guidance is split into two assessment-owned channels under `verificationScope`:
-
-| Channel  | Wire fields                                                                 | Engine authority              | Example labels                     |
-| -------- | --------------------------------------------------------------------------- | ----------------------------- | ---------------------------------- |
-| Runtime  | `verificationScope.packages`, `verificationScope.focus`                     | Runtime upgrade guidance      | `routes`, `middleware`, `handlers` |
-| Artifact | `verificationScope.artifactGrounded` (`packages`, `focus`, `artifactPaths`) | Build/config/tooling guidance | `typecheck`, `format`, `ci`        |
-
-`artifactPaths` is engine-owned evidence linkage — not projected into verification action label strings.
-
-### `verificationIntensity` is the presentation channel selector
-
-This is an **intentional ownership decision**, not a shared implementation detail. Shared must not infer which channel to project from wire shape (e.g. presence of `artifactGrounded`).
-
-| `verificationIntensity` | Channel projected | Source read by shared                       |
-| ----------------------- | ----------------- | ------------------------------------------- |
-| `"none"`                | none              | (no verification actions)                   |
-| `"advisory"`            | artifact          | `verificationScope.artifactGrounded` only   |
-| `"required"`            | runtime           | `verificationScope.packages` / `focus` only |
-
-**Invariant:** Shared projects exactly one channel per scan, selected solely by `verificationIntensity`. Never merge channels. Never fall back across channels (e.g. advisory must not read `verificationScope.focus`).
-
-Projected surfaces expose `verificationChannel` (`"runtime"` \| `"artifact"` \| `"none"`) alongside `verificationFocus` for provenance parity.
-
-## Pipeline rule
-
-```
-Assessment → Projection → Rendering   ✅
-Assessment → Transformation → Interpretation → Rendering   ❌
-```
-
-If a projection disagrees with assessment, **assessment wins**. Fix or bypass the projection; do not weaken assessment authority in the public repo.
+Verification guidance is owned by assessment. Shared code selects one verification channel per scan from `assessment.presentation.verificationIntensity` — not from heuristics over the wire shape.
 
 ## Historical scans
 
-**Current (no external users):** Fresh engine output requires ABI-2 `assessment` validated by `@mergesignal/contracts`. Rows without a valid assessment get **degraded presentation** (failed dashboard card, empty scan detail, empty PR comment) — not silent coercion.
-
-**Post–Phase 2 behavior:**
-
-- **Persisted JSON** — `scanResultSchema` does not validate `assessment` shape on DB read; raw JSON remains available.
-- **Presentation** — `buildScanPresentationBundle` calls `parseAssessmentOrThrow` from `@mergesignal/contracts`. Invalid or ABI-1 assessments fail parse → bundle is `null` → existing degraded UI paths apply. **No ABI-1 → ABI-2 upgrade.**
-- **Fresh engine boundary** — `engineOutputScanResultSchema` requires strict ABI-2 assessment; ABI-1 engine output is rejected at the worker.
-- **Remedy** — re-scan with current engine to restore full presentation surfaces.
-
-**Future compatibility (design note — not implemented):**
-
-1. **Presentation snapshot** — optional persisted DTO at scan completion; historical reads serve the snapshot without re-derivation.
-2. **Degraded legacy banner** — explicit “legacy scan” banner with read-only fields; no silent score-based fallbacks.
-
-## Guardrails
-
-- `surfaceParity.test.ts` — PR validation personas must project identical posture, primary concern, reasoning, verification focus, verification channel, reach visibility, and narrative intensity across dashboard, detail, check run, and PR comment.
-- `verificationChannelParity.test.ts` — provenance parity for `verificationChannel` and `verificationFocus` across surfaces.
-- `assessmentProjection.verificationChannel.test.ts` — channel routing unit tests (runtime vs artifact vs conflict fixtures).
-- `dashboardCardGolden.json` — golden dashboard cards for fixture personas.
+Scans stored without a valid `assessment` receive degraded presentation (failed dashboard card, empty scan detail, empty PR comment). Re-scan with the current engine to restore full surfaces.
 
 ## Related
 
-- [presentation-foundation.md](./presentation-foundation.md) — foundation architecture and public contract rule
 - [scanresult-debug.md](./scanresult-debug.md) — reading stored `ScanResult`
 - [architecture.md](../architecture.md) — component overview

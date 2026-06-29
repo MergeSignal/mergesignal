@@ -15,7 +15,7 @@ export type BuildScanPresentationBundleInput = {
 /**
  * Mandatory orchestration entrypoint for completed-scan presentation.
  * Assessment is the sole authority; profile is a thin projection.
- * Consumes only the public ScanResult contract — see docs/engineering/presentation-foundation.md.
+ * Consumes only the public ScanResult contract — see docs/engineering/presentation-ownership.md.
  */
 export function buildScanPresentationBundle(
   input: BuildScanPresentationBundleInput,

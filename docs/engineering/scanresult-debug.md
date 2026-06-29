@@ -23,4 +23,4 @@ Authority and field classification: [presentation-ownership.md](./presentation-o
 
 ## Assessment on the wire
 
-Fresh engine `ScanResult` JSON includes top-level `assessment` (posture, confidence, primary concern, factors, presentation policy) and projections such as `decision.reasoning`. Historical rows may lack `assessment`; the UI treats those as incomplete until re-scanned (see presentation-ownership for future compatibility notes).
+Fresh engine `ScanResult` JSON includes top-level `assessment` (posture, confidence, primary concern, factors, presentation policy) and projections such as `decision.reasoning`. Historical rows may lack `assessment`; the UI treats those as incomplete until re-scanned (see [Historical scans](./presentation-ownership.md#historical-scans)).
