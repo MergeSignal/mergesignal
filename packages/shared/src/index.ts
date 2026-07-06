@@ -18,7 +18,6 @@ export * from "./extractRepositoryContextFacts.js";
 export * from "./narrativePresentation.js";
 export * from "./normalizeGeneratedText.js";
 export { presentGitHubPrCommentMarkdownFromResult } from "./presentGitHubPrComment.js";
-export * from "./scanDetailViewModelTypes.js";
 export * from "./scanCardPresentationState.js";
 export * from "./scanResultSchema.js";
 export * from "./scanSurfaceCopy.js";

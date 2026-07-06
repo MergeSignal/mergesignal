@@ -1,10 +1,9 @@
-import type { ScanDetailViewModel } from "@mergesignal/shared";
-import { scanSurfaceCopy } from "@mergesignal/shared";
+import type { ScanDetailsPresentation } from "@mergesignal/shared";
 import { formatRelativeTime } from "../../../../lib/formatRelativeTime";
 import styles from "../ScanDetail.module.css";
 
 type Props = {
-  metadata: ScanDetailViewModel["metadata"];
+  metadata: ScanDetailsPresentation["metadata"];
 };
 
 export function ScanMetadataFooter({ metadata }: Props) {
@@ -14,12 +13,6 @@ export function ScanMetadataFooter({ metadata }: Props) {
   }
   if (metadata.changedPackagesSummary) {
     parts.push(metadata.changedPackagesSummary);
-  }
-  if (metadata.codeAnalysisTimedOut) {
-    parts.push(scanSurfaceCopy.scanDetail.codeAnalysisTimeout);
-  }
-  if (metadata.codeIntelligenceAvailable === false) {
-    parts.push(scanSurfaceCopy.scanDetail.codeIntelligenceUnavailable);
   }
 
   return (

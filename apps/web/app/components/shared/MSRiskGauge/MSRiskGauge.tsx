@@ -1,5 +1,11 @@
-import type { RiskScoreGaugeModel } from "@mergesignal/shared";
 import styles from "./MSRiskGauge.module.css";
+
+export type RiskScoreGaugeModel = {
+  fillPercent: number;
+  /** CSS band identifier. "moderate" maps to the mid-range CSS class. */
+  band: "low" | "moderate" | "high";
+  ariaLabel: string;
+};
 
 export type MSRiskGaugeProps = {
   gauge: RiskScoreGaugeModel;

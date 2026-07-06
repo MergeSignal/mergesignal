@@ -1,16 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import type { ScanDetailOperationalImpact } from "@mergesignal/shared";
-import {
-  scanSurfaceCopy,
-  TIER1_MAX_VISIBLE_IMPACTS,
-} from "@mergesignal/shared";
+import type { ScanDetailsPresentation } from "@mergesignal/shared";
+import { scanSurfaceCopy } from "@mergesignal/shared";
 import { MSCard, MSCardMuted } from "../../../components/shared/MSCard/MSCard";
 import styles from "../ScanDetail.module.css";
 
+const TIER1_MAX_VISIBLE_IMPACTS = 3;
+
+type OperationalImpact = ScanDetailsPresentation["operationalImpact"];
+
 type Props = {
-  operationalImpact: ScanDetailOperationalImpact;
+  operationalImpact: OperationalImpact;
 };
 
 function OperationalImpactFallback({ message }: { message: string }) {
@@ -24,7 +25,7 @@ function OperationalImpactFallback({ message }: { message: string }) {
 function OperationalImpactRich({
   items,
 }: {
-  items: ScanDetailOperationalImpact["items"];
+  items: OperationalImpact["items"];
 }) {
   const [expanded, setExpanded] = useState(false);
   const copy = scanSurfaceCopy.scanDetail;
@@ -114,7 +115,7 @@ export function OperationalImpactPanel({ operationalImpact }: Props) {
       padding={true}
       data-prominence="signature"
     >
-      {operationalImpact.status === "fallback" &&
+      {operationalImpact.status === "compact" &&
       operationalImpact.fallbackMessage ? (
         <OperationalImpactFallback
           message={operationalImpact.fallbackMessage}

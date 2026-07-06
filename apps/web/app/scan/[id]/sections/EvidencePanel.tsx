@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import type { FindingSeverity, ScanDetailViewModel } from "@mergesignal/shared";
-import {
-  ACT3_EVIDENCE_COLLAPSE_THRESHOLD,
-  scanSurfaceCopy,
+import type {
+  FindingSeverity,
+  ScanDetailsPresentation,
 } from "@mergesignal/shared";
+import { scanSurfaceCopy } from "@mergesignal/shared";
 import {
   MSBadge,
   type MSBadgeTone,
@@ -13,8 +13,10 @@ import {
 import { MSCard, MSCardMuted } from "../../../components/shared/MSCard/MSCard";
 import styles from "../ScanDetail.module.css";
 
+const ACT3_EVIDENCE_COLLAPSE_THRESHOLD = 10;
+
 type Props = {
-  evidence: NonNullable<ScanDetailViewModel["evidence"]>;
+  evidence: ScanDetailsPresentation["evidence"];
 };
 
 function findingSeverityLabel(severity: FindingSeverity): string {
@@ -95,12 +97,7 @@ export function EvidencePanel({ evidence }: Props) {
                     <p className={styles.findingPackage}>
                       <code>{f.packageName}</code>
                     </p>
-                    {f.coveredByRecommendationRank ? (
-                      <p className={styles.findingRec}>
-                        {copy.recommendationDetail.coveredByRecommendation}{" "}
-                        {f.coveredByRecommendationRank}
-                      </p>
-                    ) : f.recommendation ? (
+                    {f.recommendation ? (
                       <p className={styles.findingRec}>{f.recommendation}</p>
                     ) : null}
                   </div>

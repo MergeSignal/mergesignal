@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { ScanDetailsPresentation } from "@mergesignal/shared";
 import { scanSurfaceCopy } from "@mergesignal/shared";
-import { detailPresentationToViewModel } from "../../../lib/scan-details-adapter";
 import layoutStyles from "./ScanClientLayout.module.css";
 import detailStyles from "./ScanDetail.module.css";
 import {
@@ -147,11 +146,6 @@ export default function ScanClient({
     };
   }, [showDebug, data?.status, data?.rawResult, id]);
 
-  const viewModel = useMemo(() => {
-    if (!data?.detailPresentation) return null;
-    return detailPresentationToViewModel(data.detailPresentation);
-  }, [data?.detailPresentation]);
-
   const { owner, repo } = parseRepoParts(data?.repoId);
 
   if (err) return <MSCard title="Error">{err}</MSCard>;
@@ -165,6 +159,8 @@ export default function ScanClient({
         : data.status === "done"
           ? detailStyles.dotDone
           : detailStyles.dotFailed;
+
+  const dp = data.detailPresentation;
 
   return (
     <div className={layoutStyles.pageStack}>
@@ -208,26 +204,26 @@ export default function ScanClient({
           </MSCardNote>
         )}
 
-      {viewModel ? (
+      {dp ? (
         <>
           <SignalSummaryPanel
-            verdict={viewModel.verdict}
-            signalSummary={viewModel.signalSummary}
-            followUpBridgeNote={viewModel.followUpBridgeNote}
-            narrativeContext={viewModel.narrativeContext}
-            becauseThemes={viewModel.because?.themes}
-            confidenceCaveat={viewModel.because?.confidenceCaveat}
+            status={dp.status}
+            hero={dp.hero}
+            narrative={dp.narrative}
+            evidenceContext={dp.evidenceContext}
+            signalSummary={dp.signalSummary}
+            usage={dp.usage}
+            confidenceRationale={dp.confidenceRationale}
+            electionSummary={dp.electionSummary}
+            supportingContext={dp.supportingContext}
           />
-          <RecommendedActionsPanel
-            recommendedActions={viewModel.recommendedActions}
-          />
-          <OperationalImpactPanel
-            operationalImpact={viewModel.operationalImpact}
-          />
-          {viewModel.evidence ? (
-            <EvidencePanel evidence={viewModel.evidence} />
+          <RecommendedActionsPanel recommendations={dp.recommendations} />
+          <OperationalImpactPanel operationalImpact={dp.operationalImpact} />
+          {dp.evidence.attentionAreas.length > 0 ||
+          dp.evidence.findings.length > 0 ? (
+            <EvidencePanel evidence={dp.evidence} />
           ) : null}
-          <ScanMetadataFooter metadata={viewModel.metadata} />
+          <ScanMetadataFooter metadata={dp.metadata} />
         </>
       ) : data.status === "done" ? (
         <MSCard title="Scan complete">

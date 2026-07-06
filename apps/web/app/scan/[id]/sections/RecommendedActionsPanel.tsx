@@ -1,55 +1,52 @@
 "use client";
 
 import { useState } from "react";
-import type { ScanDetailRecommendationCenter } from "@mergesignal/shared";
+import type { ScanDetailsPresentation } from "@mergesignal/shared";
 import { scanSurfaceCopy } from "@mergesignal/shared";
 import { MSCard, MSCardMuted } from "../../../components/shared/MSCard/MSCard";
 import styles from "../ScanDetail.module.css";
 
+type RecommendationItem =
+  ScanDetailsPresentation["recommendations"]["items"][number];
+
 type Props = {
-  recommendedActions: ScanDetailRecommendationCenter;
+  recommendations: ScanDetailsPresentation["recommendations"];
 };
 
-function priorityLabel(
-  priority: ScanDetailRecommendationCenter["items"][number]["priority"],
-): string {
+function priorityLabel(priority: RecommendationItem["priority"]): string {
   const copy = scanSurfaceCopy.scanDetail.recommendationPriority;
   if (priority === "high") return copy.high;
   if (priority === "medium") return copy.medium;
   return copy.low;
 }
 
-export function RecommendedActionsPanel({ recommendedActions }: Props) {
+export function RecommendedActionsPanel({ recommendations }: Props) {
   const copy = scanSurfaceCopy.scanDetail;
   const detailCopy = copy.recommendationDetail;
-  const items = recommendedActions.items;
+  const items = recommendations.items;
 
-  const [selectedId, setSelectedId] = useState(
-    recommendedActions.defaultSelectedId || items[0]?.id || "",
-  );
+  const [selectedRank, setSelectedRank] = useState(items[0]?.rank ?? 0);
 
   if (items.length === 0) return null;
 
-  const selected = items.find((item) => item.id === selectedId) ?? items[0]!;
+  const selected =
+    items.find((item) => item.rank === selectedRank) ?? items[0]!;
 
   return (
     <MSCard
       className={styles.scanSectionCard}
-      title={recommendedActions.heading}
+      title="Recommended actions"
       padding={true}
       data-prominence="recommendations"
     >
       <div className={styles.recommendationLayout}>
-        <nav
-          className={styles.actionRail}
-          aria-label={recommendedActions.heading}
-        >
+        <nav className={styles.actionRail} aria-label="Recommended actions">
           <p className={styles.actionRailHint}>{detailCopy.selectPrompt}</p>
           <ol className={styles.actionRailList}>
             {items.map((item) => {
-              const isSelected = item.id === selected.id;
+              const isSelected = item.rank === selected.rank;
               return (
-                <li key={item.id} className={styles.actionRailItem}>
+                <li key={item.rank} className={styles.actionRailItem}>
                   <button
                     type="button"
                     className={[
@@ -59,7 +56,7 @@ export function RecommendedActionsPanel({ recommendedActions }: Props) {
                       .filter(Boolean)
                       .join(" ")}
                     aria-selected={isSelected}
-                    onClick={() => setSelectedId(item.id)}
+                    onClick={() => setSelectedRank(item.rank)}
                   >
                     <span className={styles.actionRailIndex}>{item.rank}</span>
                     <span className={styles.actionRailTitle}>{item.title}</span>
@@ -81,71 +78,18 @@ export function RecommendedActionsPanel({ recommendedActions }: Props) {
         <div
           className={styles.recommendationDetailPane}
           aria-live="polite"
-          key={selected.id}
+          key={selected.rank}
         >
-          {recommendedActions.scanContext ? (
-            <p
-              className={[styles.sectionBody, styles.recommendationScanContext]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              {recommendedActions.scanContext}
-            </p>
-          ) : null}
-
-          <div className={styles.detailBlock}>
-            <h3 className={styles.sectionSubheading}>{detailCopy.whyLabel}</h3>
-            <p className={styles.sectionBody}>{selected.detail.why}</p>
-          </div>
-
-          <div className={styles.detailBlock}>
-            <h3 className={styles.sectionSubheading}>
-              {detailCopy.whyNowLabel}
-            </h3>
-            <p className={styles.sectionLead}>{selected.detail.whyNow}</p>
-          </div>
-
-          {selected.detail.signals.length > 0 ? (
+          {selected.rationale ? (
             <div className={styles.detailBlock}>
               <h3 className={styles.sectionSubheading}>
-                {detailCopy.signalsLabel}
+                {detailCopy.whyLabel}
               </h3>
-              <ul className={styles.signalList}>
-                {selected.detail.signals.map((signal) => (
-                  <li key={signal}>{signal}</li>
-                ))}
-              </ul>
+              <p className={styles.sectionBody}>{selected.rationale}</p>
             </div>
-          ) : null}
-
-          {selected.detail.affectedPackages ? (
-            <div className={styles.detailBlock}>
-              <h3 className={styles.sectionSubheading}>
-                {detailCopy.affectedPackagesLabel}
-              </h3>
-              <div className={styles.packageChipRow}>
-                {selected.detail.affectedPackages.names.map((pkg) => (
-                  <code key={pkg} className={styles.packageChip}>
-                    {pkg}
-                  </code>
-                ))}
-                {selected.detail.affectedPackages.overflowCount > 0 ? (
-                  <MSCardMuted as="span" className={styles.packageOverflow}>
-                    +{selected.detail.affectedPackages.overflowCount} more
-                  </MSCardMuted>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-
-          <div className={styles.detailBlock}>
-            <h3 className={styles.sectionSubheading}>
-              {detailCopy.expectedBenefitLabel}
-            </h3>
-            <p className={styles.sectionLead}>
-              {selected.detail.expectedBenefit}
-            </p>
-          </div>
+          ) : (
+            <MSCardMuted as="p">{detailCopy.selectPrompt}</MSCardMuted>
+          )}
         </div>
       </div>
     </MSCard>
