@@ -6,4 +6,4 @@ packages:
 # Bump only after publishing contracts-vX.Y.Z from mergesignal-engine — keep in sync with
 # scripts/contracts-version-expectations.ts (EXPECTED_CONTRACTS_PACKAGE_VERSION).
 catalog:
-  "@mergesignal/contracts": "0.9.0"
+  "@mergesignal/contracts": "0.12.0"

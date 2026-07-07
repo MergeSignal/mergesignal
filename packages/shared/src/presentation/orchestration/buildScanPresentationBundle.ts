@@ -1,4 +1,7 @@
-import { parseAssessmentOrThrow } from "@mergesignal/contracts";
+import {
+  extractAuthoredCommunication,
+  parseAssessmentOrThrow,
+} from "@mergesignal/contracts";
 import { toPublicPresentation } from "../../assessmentPresentationUtils.js";
 import { deriveScanNarrative } from "../../deriveScanNarrative.js";
 import type { ScanResult } from "../../types.js";
@@ -39,6 +42,7 @@ export function buildScanPresentationBundle(
     input.result,
   );
   const facts = deriveScanNarrative(input.result);
+  const authored = extractAuthoredCommunication(normalized);
 
   return {
     assessment: normalized,
@@ -46,5 +50,6 @@ export function buildScanPresentationBundle(
     profile,
     facts,
     result: input.result,
+    ...authored,
   };
 }
