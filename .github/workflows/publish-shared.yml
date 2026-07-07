@@ -100,13 +100,23 @@ jobs:
           pnpm -F @mergesignal/shared build
           pnpm -F @mergesignal/shared test
 
+      # setup-node writes NPM_CONFIG_USERCONFIG with @mergesignal → GitHub Packages (for
+      # contracts install). Override userconfig before any npmjs publish/view of @mergesignal/shared.
+      - name: Configure npm for registry.npmjs.org
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.notify_only != true }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: bash scripts/ci/configure-npmjs-userconfig.sh
+
+      - name: Configure npm for registry.npmjs.org (notify-only)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.notify_only == true }}
+        run: bash scripts/ci/configure-npmjs-userconfig.sh
+
       - name: Verify version not already on registry
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.notify_only != true }}
         run: |
           set -euo pipefail
           VERSION="${{ steps.version.outputs.version }}"
-          # Repo .npmrc routes @mergesignal to GitHub Packages; --registry alone does not override scope.
-          npm config set @mergesignal:registry https://registry.npmjs.org/ --location=project
           if npm view "@mergesignal/shared@${VERSION}" version 2>/dev/null; then
             echo "::error::@mergesignal/shared@${VERSION} is already on npm. Published versions are immutable — bump packages/shared/package.json and push a new shared-v* tag, or re-run with notify_only=true if only the engine dispatch is missing (see docs/engineering/releasing.md)." >&2
             exit 1
@@ -122,9 +132,6 @@ jobs:
           NPM_CONFIG_PROVENANCE: "true"
         run: |
           set -euo pipefail
-          # Re-point @mergesignal scope to npmjs for publish (repo .npmrc routes it to GH Packages).
-          npm config set @mergesignal:registry https://registry.npmjs.org/ --location=project
-          npm config set //registry.npmjs.org/:_authToken "$NODE_AUTH_TOKEN"
           npm whoami
           npm publish --access public 2>&1 | tee /tmp/npm-publish.log
           exit "${PIPESTATUS[0]}"
@@ -151,17 +158,7 @@ jobs:
 
       - name: Verify published version on registry
         if: steps.publish.outcome == 'success' || (github.event_name == 'workflow_dispatch' && inputs.notify_only == true)
-        run: |
-          set -euo pipefail
-          VERSION="${{ steps.version.outputs.version }}"
-          # Repo .npmrc routes @mergesignal to GitHub Packages; --registry alone does not override scope.
-          npm config set @mergesignal:registry https://registry.npmjs.org/ --location=project
-          PUBLISHED=$(npm view "@mergesignal/shared@${VERSION}" version 2>/dev/null || true)
-          if [ "$PUBLISHED" != "$VERSION" ]; then
-            echo "::error::Expected @mergesignal/shared@${VERSION} on npm, got: ${PUBLISHED:-<none>}" >&2
-            exit 1
-          fi
-          echo "Confirmed @mergesignal/shared@${VERSION} is on npm."
+        run: bash scripts/ci/verify-shared-on-npmjs.sh "${{ steps.version.outputs.version }}"
 
       - name: Notify engine repository
         if: steps.publish.outcome == 'success' || (github.event_name == 'workflow_dispatch' && inputs.notify_only == true)

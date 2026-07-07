@@ -191,6 +191,13 @@ If local publish succeeds but CI still shows `EOTP`, the GitHub **`NPM_TOKEN` se
 
 **After first publish:** Optionally add [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) on the package (`publish-shared.yml`, repo `MergeSignal/mergesignal`) to drop the long-lived publish token.
 
+**Publish succeeded but verify step failed (`Expected @mergesignal/shared@X.Y.Z on npm, got: <none>`)**
+
+The package is often **already on npm** — `npm publish` completed, but post-publish `npm view` queried the wrong registry. `actions/setup-node` sets `NPM_CONFIG_USERCONFIG` with `@mergesignal` → GitHub Packages (for `@mergesignal/contracts` install); that userconfig overrides repo `.npmrc` `--location=project`, so verify looked at GitHub Packages instead of registry.npmjs.org.
+
+1. Confirm: `npm view @mergesignal/shared@X.Y.Z version --registry https://registry.npmjs.org/`
+2. Recovery: Actions → **Publish @mergesignal/shared** → **Run workflow** → enable **notify_only** (resends engine dispatch without republishing).
+
 - Re-run: Actions → **Publish @mergesignal/shared** → **Run workflow**, or re-push `shared-v*`.
 - Verify: `npm view @mergesignal/shared@X.Y.Z`
 - Pack check: `npm pack @mergesignal/shared@X.Y.Z --dry-run` — tarball should list `dist/` only
