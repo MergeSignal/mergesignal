@@ -119,7 +119,8 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ steps.version.outputs.version }}"
-          if npm view "@mergesignal/shared@${VERSION}" version 2>/dev/null; then
+          if npm view "@mergesignal/shared@${VERSION}" version \
+            --@mergesignal:registry=https://registry.npmjs.org/ 2>/dev/null; then
             echo "::error::@mergesignal/shared@${VERSION} is already on npm. Published versions are immutable — bump packages/shared/package.json and push a new shared-v* tag, or re-run with notify_only=true if only the engine dispatch is missing (see docs/engineering/releasing.md)." >&2
             exit 1
           fi

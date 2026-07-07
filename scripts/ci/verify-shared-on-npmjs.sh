@@ -8,7 +8,8 @@ SLEEP_SECONDS="${3:-5}"
 
 PUBLISHED=""
 for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
-  PUBLISHED=$(npm view "@mergesignal/shared@${VERSION}" version 2>/dev/null || true)
+  PUBLISHED=$(npm view "@mergesignal/shared@${VERSION}" version \
+    --@mergesignal:registry=https://registry.npmjs.org/ 2>/dev/null || true)
   if [ "$PUBLISHED" = "$VERSION" ]; then
     echo "Confirmed @mergesignal/shared@${VERSION} on npm (attempt ${attempt}/${MAX_ATTEMPTS})."
     exit 0

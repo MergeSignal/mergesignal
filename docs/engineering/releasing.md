@@ -193,7 +193,7 @@ If local publish succeeds but CI still shows `EOTP`, the GitHub **`NPM_TOKEN` se
 
 **Publish succeeded but verify step failed (`Expected @mergesignal/shared@X.Y.Z on npm, got: <none>`)**
 
-The package is often **already on npm** — `npm publish` completed, but post-publish `npm view` queried the wrong registry. `actions/setup-node` sets `NPM_CONFIG_USERCONFIG` with `@mergesignal` → GitHub Packages (for `@mergesignal/contracts` install); that userconfig overrides repo `.npmrc` `--location=project`, so verify looked at GitHub Packages instead of registry.npmjs.org.
+The package is often **already on npm** — `npm publish` completed, but post-publish `npm view` queried the wrong registry. Root `.npmrc` routes `@mergesignal` to GitHub Packages (for `@mergesignal/contracts`); that project config overrides `NPM_CONFIG_USERCONFIG` for scoped `npm view`, so verify must pass `--@mergesignal:registry=https://registry.npmjs.org/` (see `scripts/ci/verify-shared-on-npmjs.sh`).
 
 1. Confirm: `npm view @mergesignal/shared@X.Y.Z version --registry https://registry.npmjs.org/`
 2. Recovery: Actions → **Publish @mergesignal/shared** → **Run workflow** → enable **notify_only** (resends engine dispatch without republishing).
