@@ -1,17 +1,21 @@
 /**
- * V1 cross-repo bundle parity — engine OutcomePresentationBundle vs public ScanPresentationBundle.
+ * V1 public bundle transport — ScanPresentationBundle vs contracts extractor.
  *
- * Requires sibling checkout: ventures/mergesignal-engine alongside ventures/mergesignal.
- * Both bundle builders must produce identical AuthoredCommunicationAccessors for the same Assessment.
+ * Engine OutcomePresentationBundle uses the same `extractAuthoredCommunication()`
+ * from `@mergesignal/contracts`; engine-side accessor transport is covered in
+ * mergesignal-engine `packages/worker/src/outcome-presentation.test.ts`.
  */
 
 import type {
   Assessment,
   AuthoredCommunicationAccessors,
 } from "@mergesignal/contracts";
+import {
+  extractAuthoredCommunication,
+  parseAssessmentOrThrow,
+} from "@mergesignal/contracts";
 import { describe, expect, it } from "vitest";
 import type { ScanResult } from "../types.js";
-import { buildOutcomePresentationBundle } from "../../../../../mergesignal-engine/packages/worker/src/outcome-presentation.js";
 import { buildScanPresentationBundle } from "./orchestration/buildScanPresentationBundle.js";
 
 function scanResultWith(assessment: Assessment): ScanResult {
@@ -78,12 +82,12 @@ function pickAccessors(
   };
 }
 
-function assertEnginePublicAccessorParity(
+function assertPublicBundleMatchesContractsExtractor(
   assessment: Assessment,
   label: string,
 ): void {
-  const engineBundle = buildOutcomePresentationBundle(assessment);
-  expect(engineBundle, `${label}: engine bundle`).not.toBeNull();
+  const normalized = parseAssessmentOrThrow(assessment);
+  const expected = extractAuthoredCommunication(normalized);
 
   const publicBundle = buildScanPresentationBundle({
     result: scanResultWith(assessment),
@@ -91,14 +95,12 @@ function assertEnginePublicAccessorParity(
   });
   expect(publicBundle, `${label}: public bundle`).not.toBeNull();
 
-  expect(pickAccessors(engineBundle!), label).toEqual(
-    pickAccessors(publicBundle!),
-  );
+  expect(pickAccessors(publicBundle!), label).toEqual(pickAccessors(expected));
 }
 
-describe("V1 bundle transport: engine/public accessor parity", () => {
+describe("V1 bundle transport: public bundle matches contracts extractor", () => {
   it("cleared: identical AuthoredCommunicationAccessors", () => {
-    assertEnginePublicAccessorParity(
+    assertPublicBundleMatchesContractsExtractor(
       {
         ...baseAssessment(),
         outcome: "cleared",
@@ -116,7 +118,7 @@ describe("V1 bundle transport: engine/public accessor parity", () => {
   });
 
   it("bounded_verify: identical AuthoredCommunicationAccessors", () => {
-    assertEnginePublicAccessorParity(
+    assertPublicBundleMatchesContractsExtractor(
       {
         ...baseAssessment(),
         outcome: "bounded_verify",
@@ -143,7 +145,7 @@ describe("V1 bundle transport: engine/public accessor parity", () => {
   });
 
   it("abstain: identical AuthoredCommunicationAccessors", () => {
-    assertEnginePublicAccessorParity(
+    assertPublicBundleMatchesContractsExtractor(
       {
         ...baseAssessment(),
         outcome: "abstain",
