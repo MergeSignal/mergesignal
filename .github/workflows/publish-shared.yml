@@ -105,11 +105,13 @@ jobs:
       - name: Configure npm for registry.npmjs.org
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.notify_only != true }}
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_PUBLISH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: bash scripts/ci/configure-npmjs-userconfig.sh
 
       - name: Configure npm for registry.npmjs.org (notify-only)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.notify_only == true }}
+        env:
+          NODE_AUTH_TOKEN: ""
         run: bash scripts/ci/configure-npmjs-userconfig.sh
 
       - name: Verify version not already on registry
@@ -128,7 +130,7 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.notify_only != true }}
         working-directory: packages/shared
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_PUBLISH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
         run: |
           set -euo pipefail
@@ -158,6 +160,9 @@ jobs:
 
       - name: Verify published version on registry
         if: steps.publish.outcome == 'success' || (github.event_name == 'workflow_dispatch' && inputs.notify_only == true)
+        env:
+          NODE_AUTH_TOKEN: ""
+          NPM_PUBLISH_TOKEN: ""
         run: bash scripts/ci/verify-shared-on-npmjs.sh "${{ steps.version.outputs.version }}"
 
       - name: Notify engine repository

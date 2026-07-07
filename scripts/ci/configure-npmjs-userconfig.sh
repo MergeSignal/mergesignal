@@ -9,8 +9,9 @@ set -euo pipefail
 NPMRC="${RUNNER_TEMP}/npmrc-npmjs-publish"
 {
   echo "@mergesignal:registry=https://registry.npmjs.org/"
-  if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
-    echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}"
+  # Use NPM_PUBLISH_TOKEN only — not NODE_AUTH_TOKEN (setup-node sets that for GitHub Packages).
+  if [ -n "${NPM_PUBLISH_TOKEN:-}" ]; then
+    echo "//registry.npmjs.org/:_authToken=${NPM_PUBLISH_TOKEN}"
   fi
 } >"$NPMRC"
 
