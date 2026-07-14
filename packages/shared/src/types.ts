@@ -97,10 +97,7 @@ export type AnalysisContextWarningCode =
   | "code_fetch_timeout"
   | "code_fetch_rate_limit"
   | "code_corpus_empty"
-  | "repo_intelligence_contract_invalid"
-  | "package_change_ingress_rejected"
-  | "package_change_code_analysis_dropped"
-  | "package_change_ambiguous_transition";
+  | "repo_intelligence_contract_invalid";
 
 export type AnalysisContextWarning = {
   code: AnalysisContextWarningCode;
