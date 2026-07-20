@@ -1,5 +1,9 @@
 /**
  * Lockfile diff — detects changed packages between base and head lockfiles.
+ *
+ * Authority: `@mergesignal/scan-prep` is the sole source of upgraded-package identity
+ * for PR scans. Importer comparisons normalize PNPM peer-instantiation suffixes so
+ * peer-context rewrites are not reported as independent package upgrades.
  */
 
 import type { LockfilePackageDelta } from "@mergesignal/shared";
@@ -23,6 +27,21 @@ const PNPM_IMPORTER_DEP_SECTIONS = new Set([
   "devDependencies",
   "optionalDependencies",
 ]);
+
+/** Strip PNPM peer-instantiation suffixes from importer `version:` strings. */
+export function normalizePnpmResolvedVersion(version: string): string {
+  const trimmed = String(version).trim();
+  const base = trimmed.split("(")[0] ?? "";
+  if (
+    !base ||
+    base.startsWith("link:") ||
+    base.startsWith("workspace:") ||
+    base.startsWith("file:")
+  ) {
+    return trimmed;
+  }
+  return base;
+}
 
 function setsEqual(a: Set<string>, b: Set<string>): boolean {
   if (a.size !== b.size) return false;
@@ -49,6 +68,17 @@ function deltaFromChangedNames(delta: LockfilePackageDelta): string[] {
   return Array.from(changed).sort();
 }
 
+function importerDepChanged(
+  baseDep: ImporterDep,
+  headDep: ImporterDep,
+): boolean {
+  if (baseDep.specifier !== headDep.specifier) return true;
+  return (
+    normalizePnpmResolvedVersion(baseDep.version) !==
+    normalizePnpmResolvedVersion(headDep.version)
+  );
+}
+
 function diffImporterDeps(
   base: Map<string, ImporterDep>,
   head: Map<string, ImporterDep>,
@@ -61,10 +91,7 @@ function diffImporterDeps(
     const baseDep = base.get(name);
     if (!baseDep) {
       added.push(name);
-    } else if (
-      baseDep.version !== headDep.version ||
-      baseDep.specifier !== headDep.specifier
-    ) {
+    } else if (importerDepChanged(baseDep, headDep)) {
       updated.push(name);
     }
   }

@@ -16,6 +16,7 @@
     "ci:verify": "rm -rf node_modules .turbo && pnpm install --frozen-lockfile && pnpm precommit",
     "check:contracts-catalog": "pnpm -C packages/shared exec tsx ../../scripts/check-contracts-catalog-alignment.ts",
     "check:pnpm-governance": "pnpm -C packages/shared exec tsx ../../scripts/check-pnpm-version-governance.ts",
+    "check:scan-prep-authority": "pnpm -C packages/shared exec tsx ../../scripts/check-scan-prep-authority.ts",
     "prepare": "husky",
     "mergesignal": "pnpm -C apps/cli exec -- tsx src/cli.ts",
     "ms": "pnpm -C apps/cli exec -- tsx src/cli.ts"
