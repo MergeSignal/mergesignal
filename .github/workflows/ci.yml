@@ -87,6 +87,9 @@ jobs:
       - name: Check contracts catalog alignment
         run: pnpm check:contracts-catalog
 
+      - name: Check scan preparation authority
+        run: pnpm check:scan-prep-authority
+
       - name: Run tests
         run: pnpm test
 

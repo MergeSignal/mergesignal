@@ -14,6 +14,9 @@
     "scripts/docker/write-fixture-engine-manifest.mjs"
   ],
   "workspaces": {
+    ".": {
+      "entry": ["scripts/check-scan-prep-authority.ts"]
+    },
     "apps/cli": {
       "ignoreDependencies": ["@mergesignal/engine-test-fixture"]
     },

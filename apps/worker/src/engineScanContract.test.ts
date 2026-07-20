@@ -5,6 +5,11 @@ import { __resetEngineLoaderCacheForTests } from "@mergesignal/engine";
 import { executeScanJob } from "./runScanJob.js";
 import type { Job } from "bullmq";
 import type { Pool } from "pg";
+import {
+  PEER_CONTEXT_CHURN_MANIFESTS,
+  peerContextChurnBaseLockfile,
+  peerContextChurnHeadLockfile,
+} from "../../../packages/scan-prep/src/__fixtures__/pnpm-peer-context-churn.fixture.js";
 
 vi.mock("@mergesignal/scan-prep", async (importOriginal) => {
   const actual =
@@ -168,6 +173,28 @@ describe("worker → engine scan contract", () => {
     expect(prepared.scanRequest.baseLockfile).toEqual({
       manager: "pnpm",
       content: pnpmBase,
+    });
+  });
+
+  it("prepareScanContext excludes knip for peer-context-only churn", async () => {
+    const prepared = await prepareScanContext({
+      scanId: "peer-context-worker",
+      repoId: "MergeSignal/mergesignal",
+      dependencyGraph: {},
+      lockfile: { manager: "pnpm", content: peerContextChurnHeadLockfile },
+      baseLockfile: {
+        manager: "pnpm",
+        content: peerContextChurnBaseLockfile,
+      },
+      changedFiles: ["pnpm-lock.yaml", "package.json"],
+      changedPackageJsonFiles: [...PEER_CONTEXT_CHURN_MANIFESTS],
+    });
+
+    expect(prepared.scanRequest.changedPackages).toEqual(["typescript"]);
+    expect(prepared.scanRequest.lockfilePackageDelta).toEqual({
+      added: [],
+      removed: [],
+      updated: ["typescript"],
     });
   });
 
