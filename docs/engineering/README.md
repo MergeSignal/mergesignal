@@ -16,5 +16,7 @@ These documents support MergeSignal maintainers and operators: releases, product
 | [scanresult-debug.md](./scanresult-debug.md)                             | Reading stored ScanResult                                          |
 | [presentation-ownership.md](./presentation-ownership.md)                 | Assessment authority and surface projection rules                  |
 | [pnpm-version-governance.md](./pnpm-version-governance.md)               | Single pnpm version authority and enforcement                      |
+| [scan-prep-api.md](./scan-prep-api.md)                                   | Permanent `@mergesignal/scan-prep` public contract authority       |
+| [scan-prep-migration.md](./scan-prep-migration.md)                       | Current dual-repo Scan Preparation sync (manual port)              |
 
 User and self-host documentation: [docs/README.md](../README.md).
