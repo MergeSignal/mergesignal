@@ -76,32 +76,33 @@ Scan Preparation **produces prepared evidence and uncertainties**. It does **not
 | `PrepareScanContextResult` | Result type                          |
 | `ScanPreparationSummary`   | Preparation metadata / observability |
 
-**Note:** Today's workspace `package.json` exports additional symbols. The table above is the **approved published surface** at freeze. Convergence to this surface occurs in later implementation work; this document records the freeze authority only.
+The workspace root entry (`@mergesignal/scan-prep`) exports **only** the symbols in the table above. Lockfile ingress symbols are available exclusively from `@mergesignal/scan-prep/lockfile`. Authentication, corpus cache controls, and raw GitHub fetch helpers remain internal implementation details.
 
 ---
 
 ## Approved `./lockfile` exports (`@mergesignal/scan-prep/lockfile`)
 
-| Symbol                                     | Role                           |
-| ------------------------------------------ | ------------------------------ |
-| `prepareLockfileContext`                   | Engine worker lockfile ingress |
-| `LockfileContextResult`                    | Result type                    |
-| `detectChangedPackages`                    | Changed-package authority      |
-| `detectLockfilePackageDelta`               | Lockfile delta authority       |
-| `resolvePnpmPackageTransitionCollapse`     | Upgrade Episode Scope collapse |
-| `collectPnpmImporterTransitionFacts`       | Transition facts               |
-| `collapsePnpmImporterTransitions`          | Collapse helper                |
-| `packageJsonManifestPathsFromChangedFiles` | Manifest path derivation       |
-| `normalizePnpmResolvedVersion`             | Peer-context normalization     |
-| `importerManifestPath`                     | Importer mapping               |
-| `isPnpmLockfileDiffEmpty`                  | Empty-delta detection          |
-| `LockfileDiffOptions`                      | Options type                   |
-| `PnpmImporterTransitionFact`               | Fact type                      |
-| `PnpmPackageTransitionCollapse`            | Collapse union type            |
-| `CollapsedPackageTransition`               | Collapsed transition type      |
-| `ImporterTransitionChangeKind`             | Change kind type               |
+| Symbol                                     | Role                                              |
+| ------------------------------------------ | ------------------------------------------------- |
+| `prepareLockfileContext`                   | Engine worker lockfile ingress                    |
+| `LockfileContextResult`                    | Result type                                       |
+| `LockfileEvidenceStatus`                   | Wire evidence status (from `@mergesignal/shared`) |
+| `detectChangedPackages`                    | Changed-package authority                         |
+| `detectLockfilePackageDelta`               | Lockfile delta authority                          |
+| `resolvePnpmPackageTransitionCollapse`     | Upgrade Episode Scope collapse                    |
+| `collectPnpmImporterTransitionFacts`       | Transition facts                                  |
+| `collapsePnpmImporterTransitions`          | Collapse helper                                   |
+| `packageJsonManifestPathsFromChangedFiles` | Manifest path derivation                          |
+| `normalizePnpmResolvedVersion`             | Peer-context normalization                        |
+| `importerManifestPath`                     | Importer mapping                                  |
+| `isPnpmLockfileDiffEmpty`                  | Empty-delta detection                             |
+| `LockfileDiffOptions`                      | Options type                                      |
+| `PnpmImporterTransitionFact`               | Fact type                                         |
+| `PnpmPackageTransitionCollapse`            | Collapse union type                               |
+| `CollapsedPackageTransition`               | Collapsed transition type                         |
+| `ImporterTransitionChangeKind`             | Change kind type                                  |
 
-**Note:** The `./lockfile` subpath is **approved but not yet published**. Engine continues to import from its local workspace copy today.
+**Note:** The `./lockfile` subpath is configured in `packages/scan-prep/package.json`. Engine continues to import from its local workspace copy until registry consumption graduates.
 
 ---
 
@@ -145,10 +146,24 @@ Privacy review is required before first publication. Published tarball inspectio
 Scan Preparation must preserve evidence honesty:
 
 - Missing or incomplete lockfile or corpus inputs produce **explicit uncertainty or abstention**, not silent “no change” or false completeness.
+- A **verified complete** lockfile comparison with zero dependency transitions is represented by `lockfileEvidenceStatus: { kind: 'verified', delta: 'empty' }` — not a preparation warning.
+- `lockfile_diff_empty` is retired; use structured evidence status instead.
 - Fetch and classification failures surface as preparation uncertainties consumable downstream.
 - Preparation must not fabricate changed-package lists or lockfile deltas.
 
 This aligns with [ENGINEERING-DOCTRINE](https://github.com/MergeSignal/mergesignal-engine/blob/main/docs/engine/ENGINEERING-DOCTRINE.md) epistemic requirements. Downstream Assessment Decision remains the sole merge-decision authority.
+
+### pnpm importer-direct evidence channel
+
+When both base and head lockfiles contain an `importers:` section, Scan Preparation evaluates completeness on the **importer channel** and derives the PR-facing delta from **importer-direct dependency transitions** only. This matches Upgrade Episode Scope authority: direct dependency upgrades appear in importer sections; the `packages:` section may change due to transitive resolution churn without a direct upgrade episode.
+
+| Situation                                             | Evidence status       | Upgrade episode                |
+| ----------------------------------------------------- | --------------------- | ------------------------------ |
+| Importer-direct transitions present                   | `verified.changed`    | eligible when ingress verifies |
+| Importer-direct delta empty, packages section differs | `verified.empty`      | none                           |
+| Importers absent on either side                       | packages channel used | per packages delta             |
+
+`verified.empty` in the importer-channel case means **no direct dependency transition was verified**, not that the entire repository is unchanged. It does not certify universal repository equivalence. Transitive or resolution-only churn remains visible in the lockfile but is outside the canonical upgrade-episode evidence channel.
 
 ---
 
@@ -207,8 +222,9 @@ This section is the lifecycle authority for Scan Preparation documentation. Temp
 | Item                                             | Status                                                      |
 | ------------------------------------------------ | ----------------------------------------------------------- |
 | Public API freeze (this document)                | **Recorded**                                                |
-| `./lockfile` subpath in published `package.json` | **Not yet implemented**                                     |
+| `./lockfile` subpath in published `package.json` | **Implemented** (unpublished)                               |
 | npm publication of `@mergesignal/scan-prep`      | **Not yet implemented**                                     |
 | Artifact-identity enforcement                    | **`NOT_YET_ENFORCED`**                                      |
 | Engine registry consumption                      | **Not yet active** — engine uses local `packages/scan-prep` |
-| Private collection relocation to worker boundary | **Target (not yet implemented)**                            |
+| Private collection relocation to worker boundary | **Implemented in engine** (not in this package)             |
+| Public corpus-fetch bounded alignment            | **Deferred** — engine-governed; unchanged by public core    |

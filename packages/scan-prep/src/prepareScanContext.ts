@@ -8,12 +8,8 @@ import type {
 
 import { getCachedFiles, setCachedFiles } from "./file-cache.js";
 import { classifyFetchError, fetchGitHubFiles } from "./github-files.js";
-import {
-  detectChangedPackages,
-  detectLockfilePackageDelta,
-  isPnpmLockfileDiffEmpty,
-} from "./lockfile-diff.js";
 import { logInfo, logWarn } from "./log.js";
+import { prepareLockfileContext } from "./prepare-lockfile-context.js";
 
 export type PrepareScanContextResult = {
   scanRequest: ScanRequest;
@@ -47,82 +43,13 @@ export async function prepareScanContext(
   job: ScanQueueJob,
 ): Promise<PrepareScanContextResult> {
   const warnings: AnalysisContextWarning[] = [];
-  const { lockfile, baseLockfile, repoSource, changedFiles, github } = job;
-  const lockfileDiffOptions =
-    job.changedPackageJsonFiles && job.changedPackageJsonFiles.length > 0
-      ? { changedPackageJsonFiles: job.changedPackageJsonFiles }
-      : undefined;
+  const { repoSource, changedFiles, github } = job;
 
-  let changedPackages: string[] = [];
-  let lockfilePackageDelta: ScanRequest["lockfilePackageDelta"] | undefined;
-
-  if (lockfile && !baseLockfile && github) {
-    warn(
-      warnings,
-      "base_lockfile_missing",
-      "PR scan has head lockfile but no base lockfile for package diff",
-      { repoId: job.repoId, pr: github.prNumber },
-    );
-  }
-
-  if (baseLockfile && lockfile && baseLockfile.manager === lockfile.manager) {
-    try {
-      changedPackages = detectChangedPackages(
-        baseLockfile.content,
-        lockfile.content,
-        lockfile.manager,
-        lockfileDiffOptions,
-      );
-      lockfilePackageDelta = detectLockfilePackageDelta(
-        baseLockfile.content,
-        lockfile.content,
-        lockfile.manager,
-        lockfileDiffOptions,
-      );
-
-      const deltaEmpty =
-        lockfile.manager === "pnpm"
-          ? isPnpmLockfileDiffEmpty(
-              baseLockfile.content,
-              lockfile.content,
-              lockfileDiffOptions,
-            )
-          : lockfilePackageDelta.added.length === 0 &&
-            lockfilePackageDelta.removed.length === 0 &&
-            lockfilePackageDelta.updated.length === 0;
-
-      if (deltaEmpty && github) {
-        warn(
-          warnings,
-          "lockfile_diff_empty",
-          "Lockfile diff produced no package changes despite base and head lockfiles",
-          { repoId: job.repoId, manager: lockfile.manager },
-        );
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      warn(
-        warnings,
-        "lockfile_diff_failed",
-        "Failed to detect changed packages",
-        {
-          error: message,
-        },
-      );
-      logWarn({ error: message, repoId: job.repoId }, "lockfile_diff_failed");
-    }
-  } else if (
-    baseLockfile &&
-    lockfile &&
-    baseLockfile.manager !== lockfile.manager
-  ) {
-    warn(
-      warnings,
-      "lockfile_diff_skipped",
-      "Base and head lockfile managers differ; skipping package diff",
-      { base: baseLockfile.manager, head: lockfile.manager },
-    );
-  }
+  const lockfileCtx = prepareLockfileContext(job);
+  warnings.push(...lockfileCtx.warnings);
+  const changedPackages = lockfileCtx.changedPackages;
+  const lockfilePackageDelta = lockfileCtx.lockfilePackageDelta;
+  const lockfileEvidenceStatus = lockfileCtx.evidenceStatus;
 
   let codeAnalysis: CodeAnalysisInput | undefined;
   const codeAnalysisMetrics: CodeAnalysisMetrics = {
@@ -235,6 +162,7 @@ export async function prepareScanContext(
     changedFiles,
     changedPackages,
     lockfilePackageDelta,
+    lockfileEvidenceStatus,
     codeAnalysisMetrics:
       codeAnalysisMetrics.filesAnalyzed > 0 ||
       warnings.some((w) => w.code.startsWith("code_"))

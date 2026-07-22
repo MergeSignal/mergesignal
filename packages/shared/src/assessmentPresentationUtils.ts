@@ -2,7 +2,7 @@ import type {
   AssessmentPresentationPublic,
   AssessmentPresentationWire,
   NarrativeIntensity,
-} from "@mergesignal/contracts";
+} from "./assessment/types.js";
 
 /** Public presentation subset — excludes engine policy fields. */
 export function toPublicPresentation(

@@ -387,9 +387,6 @@ importers:
 
   packages/shared:
     dependencies:
-      "@mergesignal/contracts":
-        specifier: "catalog:"
-        version: 0.12.0
       zod:
         specifier: ^4.4.3
         version: 4.4.3

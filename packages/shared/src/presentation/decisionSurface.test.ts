@@ -1,5 +1,5 @@
-import type { Assessment } from "@mergesignal/contracts";
-import { extractAuthoredCommunication } from "@mergesignal/contracts";
+import type { Assessment } from "../assessment/types.js";
+import { extractAuthoredCommunication } from "../assessment/authoredCommunication.js";
 import { describe, expect, it } from "vitest";
 import type { ScanResult } from "../types.js";
 import {

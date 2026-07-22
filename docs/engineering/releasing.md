@@ -1,23 +1,32 @@
 # Releasing (GitHub Actions integration)
 
-## Current architecture (Phase 2 complete — 2026-06-15)
+## Current architecture
 
-Both repositories build and test **independently** with registry-resolved dependencies only.
+Public `@mergesignal/shared` (npmjs.org) is the canonical owner of the public Assessment wire and other shared public contracts. Private `@mergesignal/contracts` (GitHub Packages, published from mergesignal-engine) depends on and re-exports Shared public wire types for engine compatibility. Public packages install from npmjs without private registry authentication.
 
 ```
-@mergesignal/contracts@0.7.0  (GitHub Packages, published from mergesignal-engine)
-        ↓
-@mergesignal/shared           (npmjs.org, published from mergesignal)
-        ↓
-mergesignal apps + mergesignal-engine consumers
+@mergesignal/shared  (npmjs.org — public Assessment wire and shared public contracts)
+        ↑                         ↑
+@mergesignal/scan-prep      @mergesignal/contracts
+   (public npmjs)           (private GitHub Packages)
+        ↑                         ↑
+        └──────── private mergesignal-engine consumers ────────┘
 ```
+
+Dependency direction:
+
+- `@mergesignal/scan-prep` → `@mergesignal/shared`
+- `@mergesignal/contracts` → `@mergesignal/shared`
+- private engine → `@mergesignal/contracts` and `@mergesignal/shared`
+
+When a private Contracts release depends on a new Shared version, **publish `@mergesignal/shared` to npmjs first**, then publish the matching `@mergesignal/contracts` version to GitHub Packages.
 
 | Repo               | Contracts                          | Shared                  | Engine deploy pin               |
 | ------------------ | ---------------------------------- | ----------------------- | ------------------------------- |
 | mergesignal        | pnpm catalog → GH Packages tarball | workspace + npm publish | `MERGESIGNAL_ENGINE_REF=v2.0.0` |
-| mergesignal-engine | workspace `packages/contracts`     | npm catalog `0.7.0`     | tag `v2.0.0`                    |
+| mergesignal-engine | workspace `packages/contracts`     | npm catalog pin         | tag `v2.0.0`                    |
 
-No cross-repo workspace paths, `file:` deps, or sibling checkouts are required.
+No cross-repo workspace paths, `file:` deps, or sibling checkouts are required for production consumption.
 
 **pnpm toolchain:** single authority in root `package.json` `packageManager`; see [pnpm-version-governance.md](./pnpm-version-governance.md).
 
@@ -25,13 +34,36 @@ No cross-repo workspace paths, `file:` deps, or sibling checkouts are required.
 
 ## Routine release order
 
-When bumping contract or shared versions:
+Release order follows **dependency direction**: a package must not publish while depending on an unpublished downstream artifact. `@mergesignal/contracts` remains private on GitHub Packages; `@mergesignal/shared` is public on npmjs. Public packages install without GitHub Packages access.
 
-1. **Contracts** (if wire shape changes) — bump `packages/contracts`, tag `contracts-vX.Y.Z` on mergesignal-engine, publish via [publish-contracts.yml](https://github.com/MergeSignal/mergesignal-engine/blob/main/.github/workflows/publish-contracts.yml).
-2. **mergesignal catalog** — bump `pnpm-workspace.yaml` `catalog.@mergesignal/contracts` and `scripts/contracts-version-expectations.ts` to the published version; set all consumers to `"catalog:"`; run `pnpm install` (requires `NODE_AUTH_TOKEN` with `read:packages`).
-3. **Shared** — bump `packages/shared`, merge to `main`, tag `shared-vX.Y.Z`, publish via [publish-shared.yml](.github/workflows/publish-shared.yml). On success, the publish workflow sends `shared-package-released` to mergesignal-engine (see [Engine notification](#engine-notification-after-shared-publish)).
-4. **Engine** — consume the dispatch (or bump manually if the listener is not yet deployed): bump catalog pin in mergesignal-engine `pnpm-workspace.yaml`, refresh lockfile, tag engine release (e.g. `v2.0.1`), set `MERGESIGNAL_ENGINE_REF` on mergesignal.
-5. **Validate** — `pnpm check:contracts-catalog` and fresh-clone checks below on both repos.
+Choose the sequence that matches **which contract domain changed**.
+
+### Shared-owned public wire change
+
+When a public Shared contract changes and private Contracts consumes or re-exports it:
+
+1. **Validate and graduate Shared** — build, test, and pack-artifact checks in mergesignal (`pnpm run check:shared-pack-artifact` and CI gates).
+2. **Commit** the reviewed Shared source to `main`.
+3. **Tag and publish** the immutable Shared version to npmjs (`shared-vX.Y.Z` → [publish-shared.yml](.github/workflows/publish-shared.yml)).
+4. **Verify** the npmjs artifact (publish workflow registry check; optional local `npm view` / `npm pack`).
+5. **Update private Contracts** in mergesignal-engine to consume the **published** Shared version (catalog pin, expectations, lockfile).
+6. **Graduate and publish** the private Contracts version to GitHub Packages (`contracts-vX.Y.Z` → [publish-contracts.yml](https://github.com/MergeSignal/mergesignal-engine/blob/main/.github/workflows/publish-contracts.yml)).
+7. **Update remaining consumers** — bump mergesignal `catalog.@mergesignal/contracts` and `scripts/contracts-version-expectations.ts` after Contracts publish; respond to `shared-package-released` or bump engine Shared pins manually; refresh lockfiles; run immutable validation (`pnpm check:contracts-catalog`, fresh-clone checks below, engine `validate:shared-consumption` when applicable).
+
+### Contracts-only private change
+
+When a change affects only private Contracts domains and does **not** require a new Shared version:
+
+1. **Validate and graduate** private Contracts in mergesignal-engine.
+2. **Publish** Contracts to GitHub Packages (`contracts-vX.Y.Z`).
+3. **Update consumers** — bump mergesignal catalog and expectations to the published Contracts version; update private engine consumers and lockfiles as required; run validation on both repos.
+
+### Cross-boundary rules
+
+- Dependency release order follows dependency direction (`scan-prep` → `shared`, `contracts` → `shared`, engine → both).
+- **Public Shared changes publish before** private Contracts versions that consume them.
+- Do not publish Contracts with a Shared dependency pin that is not yet on npmjs.
+- Public users and public packages require no GitHub Packages authentication.
 
 ### Lockfile refresh
 
@@ -96,6 +128,18 @@ Published from **mergesignal-engine** (`packages/contracts`). Public visibility;
 ## `@mergesignal/shared` (npm)
 
 The canonical contract and presentation package lives in `packages/shared` and is published to the **public npm registry** as `@mergesignal/shared`.
+
+### Release candidate `0.13.0` (lockfile evidence contract — not yet published)
+
+**Minor** semver (per § Semver for shared below):
+
+- optional `ScanRequest.lockfileEvidenceStatus`
+- new `LockfileEvidenceStatus` type and lockfile/preparation uncertainty helpers
+- warning-code union changes (`lockfile_evidence_incomplete`, `lockfile_head_missing`; retirement of `lockfile_diff_empty`)
+- intentional shared presentation behavior: informational preparation warnings (e.g. `code_fetch_skipped`) no longer trigger limited-context degradation; verified no-transition Safe suppresses degraded messaging
+- **public Assessment wire ownership:** `@mergesignal/shared` is the canonical owner of the public `Assessment` wire, parsers, `ASSESSMENT_ABI`, and presentation accessors; the published package depends only on `zod` (no `@mergesignal/contracts`)
+
+**Graduation sequence:** merge public changes → tag `shared-v0.13.0` → publish → publish private `@mergesignal/contracts` if its Shared dependency changed → engine bumps catalog pins and regenerates lockfile → remove any local `link:` validation override → run `pnpm run validate:shared-consumption`.
 
 **`0.3.0`+:** strict `repoIntelligence` wire (`REPO_INTELLIGENCE_ABI`), `safeParseRepoIntelligence`, and `applyRepoIntelligenceValidation`. Publish shared before bumping the engine’s exact pin.
 
@@ -202,12 +246,14 @@ The package is often **already on npm** — `npm publish` completed, but post-pu
 - Verify: `npm view @mergesignal/shared@X.Y.Z`
 - Pack check: `npm pack @mergesignal/shared@X.Y.Z --dry-run` — tarball should list `dist/` only
 
-**Two-repo release order**
+**Coordinated two-repo release**
 
-1. Publish `@mergesignal/contracts@X.Y.Z` from mergesignal-engine (`contracts-vX.Y.Z`); confirm GitHub Packages visibility + Actions access.
-2. Bump shared in mergesignal if needed; tag `shared-vX.Y.Z` and push; confirm [publish workflow](.github/workflows/publish-shared.yml) succeeds (publish + engine dispatch).
-3. In `mergesignal-engine`: respond to `shared-package-released` or bump catalog pin manually, refresh lockfile, tag engine release, set `MERGESIGNAL_ENGINE_REF` on mergesignal.
-4. Run fresh-clone validation on both repos (see top of this doc).
+Follow [Routine release order](#routine-release-order) above:
+
+- **Shared-owned wire change** — publish `@mergesignal/shared` to npmjs first, then publish `@mergesignal/contracts` to GitHub Packages when it must consume the new Shared version, then bump pins and validate on both repos.
+- **Contracts-only private change** — publish `@mergesignal/contracts` from mergesignal-engine, then bump the mergesignal catalog and any engine consumers that need the new Contracts version.
+
+On Shared publish success, [publish-shared.yml](.github/workflows/publish-shared.yml) sends `shared-package-released` to mergesignal-engine (see [Engine notification](#engine-notification-after-shared-publish)). Set `MERGESIGNAL_ENGINE_REF` on mergesignal after the engine release tag. Run fresh-clone validation on both repos (see top of this doc).
 
 **Rollback**
 

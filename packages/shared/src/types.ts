@@ -1,4 +1,6 @@
-import type { Assessment } from "@mergesignal/contracts";
+import type { Assessment } from "./assessment/types.js";
+
+import type { LockfileEvidenceStatus } from "./lockfileEvidence.js";
 
 export type LayerScores = {
   security: number;
@@ -89,7 +91,8 @@ export type CodeAnalysisInput = {
 export type AnalysisContextWarningCode =
   | "lockfile_diff_skipped"
   | "lockfile_diff_failed"
-  | "lockfile_diff_empty"
+  | "lockfile_evidence_incomplete"
+  | "lockfile_head_missing"
   | "base_lockfile_missing"
   | "code_fetch_skipped"
   | "code_fetch_failed"
@@ -132,6 +135,8 @@ export type ScanRequestGithubContext = {
   prNumber: number;
 };
 
+export type { LockfileEvidenceStatus } from "./lockfileEvidence.js";
+
 export type ScanRequest = {
   repoId: string;
   dependencyGraph: unknown;
@@ -144,6 +149,8 @@ export type ScanRequest = {
   changedPackages?: string[];
   /** When both base and head lockfiles were compared in the worker. */
   lockfilePackageDelta?: LockfilePackageDelta;
+  /** Set when Scan Preparation performed lockfile evidence preparation. */
+  lockfileEvidenceStatus?: LockfileEvidenceStatus;
   changedFiles?: string[];
   codeAnalysisMetrics?: CodeAnalysisMetrics;
 };

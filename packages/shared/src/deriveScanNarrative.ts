@@ -29,6 +29,7 @@ import {
   type ScanNarrativeFacts,
 } from "./scanNarrativeFacts.js";
 import { mergePostureFromDecision } from "./riskVocabulary.js";
+import { hasPreparationUncertaintyWarnings } from "./lockfileEvidence.js";
 import { selectTopAffectedAreas } from "./selectTopAffectedAreas.js";
 import type {
   AnalysisContextWarning,
@@ -584,7 +585,7 @@ function limitedContextDiagnostic(input: {
 }): boolean {
   return (
     input.corpusGateReason !== "ok" ||
-    input.preparationWarnings.length > 0 ||
+    hasPreparationUncertaintyWarnings(input.preparationWarnings) ||
     input.assessmentConfidence === "low"
   );
 }

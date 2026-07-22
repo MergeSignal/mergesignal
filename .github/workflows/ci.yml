@@ -56,15 +56,7 @@ jobs:
         run: pnpm build
 
       - name: Shared package pack smoke
-        run: |
-          set -euo pipefail
-          cd packages/shared
-          npm pack --dry-run 2>&1 | tee /tmp/shared-pack.log
-          grep -q 'dist/' /tmp/shared-pack.log
-          if grep -E 'npm notice.*[[:space:]]src/' /tmp/shared-pack.log; then
-            echo "::error::@mergesignal/shared pack must not include src/"
-            exit 1
-          fi
+        run: pnpm run check:shared-pack-artifact
 
       - name: Run type checking
         run: pnpm check-types
@@ -89,6 +81,9 @@ jobs:
 
       - name: Check scan preparation authority
         run: pnpm check:scan-prep-authority
+
+      - name: Check scan preparation export surface
+        run: pnpm check:scan-prep-export-surface
 
       - name: Run tests
         run: pnpm test

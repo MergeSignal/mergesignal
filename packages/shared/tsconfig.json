@@ -9,5 +9,16 @@
     "outDir": "dist",
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/__fixtures__/**",
+    "src/presentation/fixtures/**",
+    "src/fixtures/legacyEngineRepoIntelligence.ts",
+    "src/fixtures/repoIntelligenceFixtures.ts",
+    "src/fixtures/repoIntelligenceTestHelpers.ts",
+    "src/fixtures/engineAbi4Fixtures.ts"
+  ]
 }

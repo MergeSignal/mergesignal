@@ -26,9 +26,15 @@ Public API freeze: [scan-prep-api.md](./scan-prep-api.md). Registry consumption 
 
 ## This monorepo (mergesignal)
 
-- `packages/scan-prep` remains the canonical package for `apps/worker` (`workspace:^`).
+- `packages/scan-prep` is the **canonical public** Scan Preparation source for `apps/worker` (`workspace:^`).
+- The canonical public core (root API minimization, `./lockfile` subpath, lockfile authority reconciliation) is **implemented** in this repository.
 - `@mergesignal/scan-prep` is **not yet published** to npm. Publication and artifact-identity enforcement are planned — see [scan-prep-api.md](./scan-prep-api.md).
 - Run `scripts/ci/forbid-worker-prep-duplication.sh` in CI to block duplicated prep modules under worker apps.
+- Run `pnpm run check:scan-prep-export-surface` to verify the frozen export surface (also enforced in CI and `pnpm precommit` after build).
+
+## Temporary engine duplication
+
+The public repository is canonical for the approved public Scan Preparation core. `mergesignal-engine/packages/scan-prep` remains a **temporary workspace copy** until public graduation, npm publication, registry consumption, and the atomic engine migration described in [scan-prep-api.md](./scan-prep-api.md). Do not port from engine to public during public-core work; port **from public to engine** after public changes graduate.
 
 ## Release / sync
 
@@ -36,4 +42,16 @@ When changing scan-prep behavior:
 
 1. Update and test in `mergesignal/packages/scan-prep`
 2. Port the same changes to `mergesignal-engine/packages/scan-prep`
-3. Deploy public worker (`apps/worker`) and engine worker on compatible versions
+3. Keep `lockfileEvidenceStatus` and lockfile warning semantics synchronized between repositories
+4. Port `packages/scan-prep/src/lockfile-evidence-comparison.test.ts` and related contract tests together with behavioral modules
+5. Deploy public worker (`apps/worker`) and engine worker on compatible versions
+
+## Temporary semantic parity (until registry consumption)
+
+There is no raw-source hash parity gate. Synchronization is enforced by:
+
+1. Porting from public to engine after public changes graduate
+2. Running the same lockfile evidence contract tests in both copies (`lockfile-evidence-comparison.test.ts`, `prepareScanContext.lockfile-evidence.test.ts`)
+3. Engine `check:scan-prep-authority` and `check:scan-prep-consumption`
+
+Registry consumption of `@mergesignal/scan-prep` (see `PACKAGE_CONSUMPTION_RELEASE_ORDER.md`, `IMPLEMENTATION_STATUS: not_yet_active`) removes the duplicate copy and replaces manual porting with immutable version pins.

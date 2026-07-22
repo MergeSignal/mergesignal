@@ -1,7 +1,5 @@
-import {
-  extractAuthoredCommunication,
-  parseAssessmentOrThrow,
-} from "@mergesignal/contracts";
+import { extractAuthoredCommunication } from "../../assessment/authoredCommunication.js";
+import { parseAssessmentOrThrow } from "../../assessment/schema.js";
 import { toPublicPresentation } from "../../assessmentPresentationUtils.js";
 import { deriveScanNarrative } from "../../deriveScanNarrative.js";
 import type { ScanResult } from "../../types.js";

@@ -3,7 +3,7 @@ import type {
   NarrativeIntensity,
   ReachVisibility,
   VerificationIntensity,
-} from "@mergesignal/contracts";
+} from "../../assessment/types.js";
 import type { VerificationChannel } from "../../assessmentProjection.js";
 
 /** Assessment-aligned fields projected identically across surfaces. */

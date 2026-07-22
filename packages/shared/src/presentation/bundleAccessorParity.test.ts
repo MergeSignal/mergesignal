@@ -2,18 +2,14 @@
  * V1 public bundle transport — ScanPresentationBundle vs contracts extractor.
  *
  * Engine OutcomePresentationBundle uses the same `extractAuthoredCommunication()`
- * from `@mergesignal/contracts`; engine-side accessor transport is covered in
+ * from `@mergesignal/shared`; engine-side accessor transport is covered in
  * mergesignal-engine `packages/worker/src/outcome-presentation.test.ts`.
  */
 
-import type {
-  Assessment,
-  AuthoredCommunicationAccessors,
-} from "@mergesignal/contracts";
-import {
-  extractAuthoredCommunication,
-  parseAssessmentOrThrow,
-} from "@mergesignal/contracts";
+import type { Assessment } from "../assessment/types.js";
+import type { AuthoredCommunicationAccessors } from "../assessment/authoredCommunication.js";
+import { extractAuthoredCommunication } from "../assessment/authoredCommunication.js";
+import { parseAssessmentOrThrow } from "../assessment/schema.js";
 import { describe, expect, it } from "vitest";
 import type { ScanResult } from "../types.js";
 import { buildScanPresentationBundle } from "./orchestration/buildScanPresentationBundle.js";

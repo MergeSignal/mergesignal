@@ -9,5 +9,6 @@
     "declaration": true,
     "declarationMap": false
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/__fixtures__/**"]
 }

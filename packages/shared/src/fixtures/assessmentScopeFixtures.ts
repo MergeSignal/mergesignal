@@ -6,7 +6,7 @@ import type {
   ReviewEpisodeShape,
   ReviewFocalPoint,
   VerificationScope,
-} from "@mergesignal/contracts";
+} from "../assessment/types.js";
 
 export function minimalReviewFocalPoint(
   anchors: string[],

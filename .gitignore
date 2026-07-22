@@ -26,6 +26,8 @@ coverage
 out/
 build
 dist
+packages/shared/package.json.publish-backup.json
+packages/shared/mergesignal-shared-*.tgz
 
 # Debug
 npm-debug.log*

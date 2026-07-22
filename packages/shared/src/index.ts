@@ -1,4 +1,6 @@
 export * from "./types.js";
+export * from "./assessment/index.js";
+export * from "./lockfileEvidence.js";
 export * from "./assessmentLabels.js";
 export * from "./assessmentProjection.js";
 export * from "./riskVocabulary.js";

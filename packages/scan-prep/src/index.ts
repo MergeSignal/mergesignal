@@ -1,21 +1,7 @@
-export {
-  detectChangedPackages,
-  detectLockfilePackageDelta,
-} from "./lockfile-diff.js";
-export { getInstallationToken, clearTokenCache } from "./github-auth.js";
-export {
-  fetchGitHubFiles,
-  classifyFetchError,
-  type FetchOptions,
-  type FetchResult,
-} from "./github-files.js";
-export {
-  getCachedFiles,
-  setCachedFiles,
-  clearCache,
-  cleanupExpiredEntries,
-  __resetFileCacheForTests,
-} from "./file-cache.js";
+/**
+ * Approved root surface for `@mergesignal/scan-prep`.
+ * Authority: docs/engineering/scan-prep-api.md
+ */
 export {
   prepareScanContext,
   type PrepareScanContextResult,

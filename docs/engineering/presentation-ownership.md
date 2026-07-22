@@ -10,7 +10,7 @@ If presentation output disagrees with assessment, assessment wins.
 
 ## Public contract
 
-Presentation code uses only the published `ScanResult` and `Assessment` shapes from `@mergesignal/contracts` and `@mergesignal/shared`. It may normalize and format published fields. It must not depend on engine-internal assessment fields or re-derive merge decisions in presenters.
+Presentation code uses only the published `ScanResult` and `Assessment` shapes from `@mergesignal/shared`. It may normalize and format published fields. It must not depend on engine-internal assessment fields or re-derive merge decisions in presenters.
 
 Reviewer-facing explanation belongs on public assessment expression fields, not on internal engine fields such as `concerns` or `changeClasses`.
 

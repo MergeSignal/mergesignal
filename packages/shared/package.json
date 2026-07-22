@@ -1,6 +1,6 @@
 {
   "name": "@mergesignal/shared",
-  "version": "0.12.3",
+  "version": "0.13.0",
   "description": "MergeSignal shared scan contract, presentation policy, and trusted validation",
   "type": "module",
   "main": "./dist/index.js",
@@ -38,7 +38,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@mergesignal/contracts": "catalog:",
     "zod": "^4.4.3"
   },
   "devDependencies": {

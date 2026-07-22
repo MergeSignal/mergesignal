@@ -21,6 +21,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./lockfile": {
+      "types": "./dist/lockfile.d.ts",
+      "import": "./dist/lockfile.js",
+      "default": "./dist/lockfile.js"
     }
   },
   "scripts": {

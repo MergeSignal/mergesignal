@@ -1,4 +1,4 @@
-import { parseAssessmentOrThrow } from "@mergesignal/contracts";
+import { parseAssessmentOrThrow } from "../../assessment/schema.js";
 import { describe, expect, it } from "vitest";
 import {
   emptyReachScope,

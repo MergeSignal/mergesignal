@@ -1,4 +1,4 @@
-import type { Assessment } from "@mergesignal/contracts";
+import type { Assessment } from "../assessment/types.js";
 import {
   artifactGroundedScopeFor,
   emptyReachScope,

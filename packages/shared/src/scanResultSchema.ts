@@ -1,4 +1,4 @@
-import { assessmentSchema } from "@mergesignal/contracts";
+import { assessmentSchema } from "./assessment/schema.js";
 import { z } from "zod";
 import type { EngineEmittedScanResult, ScanResult } from "./types.js";
 

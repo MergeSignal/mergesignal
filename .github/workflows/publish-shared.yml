@@ -100,6 +100,14 @@ jobs:
           pnpm -F @mergesignal/shared build
           pnpm -F @mergesignal/shared test
 
+      - name: Validate shared pack artifact
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.notify_only != true }}
+        run: pnpm run check:shared-pack-artifact
+        env:
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
+          NPM_PUBLISH_TOKEN: ""
+
       # setup-node writes NPM_CONFIG_USERCONFIG with @mergesignal → GitHub Packages (for
       # contracts install). Override userconfig before any npmjs publish/view of @mergesignal/shared.
       - name: Configure npm for registry.npmjs.org

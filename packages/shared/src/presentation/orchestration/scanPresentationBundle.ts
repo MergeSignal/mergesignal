@@ -1,8 +1,8 @@
+import type { AuthoredCommunicationAccessors } from "../../assessment/authoredCommunication.js";
 import type {
   Assessment,
   AssessmentPresentationPublic,
-  AuthoredCommunicationAccessors,
-} from "@mergesignal/contracts";
+} from "../../assessment/types.js";
 import type { ScanNarrativeFacts } from "../../scanNarrativeFacts.js";
 import type { ScanResult } from "../../types.js";
 import type { PresentationProfile } from "../profile/presentationProfile.js";

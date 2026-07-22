@@ -10,7 +10,7 @@ import type { LockfilePackageDelta } from "@mergesignal/shared";
 
 import { logWarn } from "./log.js";
 
-type LockfileDiffOptions = {
+export type LockfileDiffOptions = {
   changedPackageJsonFiles?: string[];
 };
 
@@ -182,7 +182,7 @@ function extractPnpmImporterSections(
         break;
       }
 
-      const importerMatch = line.match(/^  ([^\s][^:]*):$/);
+      const importerMatch = line.match(/^ {2}([^\s][^:]*):$/);
       if (importerMatch?.[1]) {
         flush();
         currentImporter = importerMatch[1];
@@ -190,7 +190,7 @@ function extractPnpmImporterSections(
         continue;
       }
 
-      const sectionMatch = line.match(/^    ([^:]+):$/);
+      const sectionMatch = line.match(/^ {4}([^:]+):$/);
       if (
         sectionMatch?.[1] &&
         PNPM_IMPORTER_DEP_SECTIONS.has(sectionMatch[1])
@@ -202,7 +202,7 @@ function extractPnpmImporterSections(
 
       if (!inDepSection) continue;
 
-      const pkgMatch = line.match(/^      ([^:]+):$/);
+      const pkgMatch = line.match(/^ {6}([^:]+):$/);
       if (pkgMatch?.[1]) {
         flush();
         currentName = normalizePnpmPackageName(pkgMatch[1]);
@@ -294,7 +294,6 @@ function unionImporterDeltas(
 
   const driftPackages = new Set<string>();
   if (useManifestFilter) {
-    // Packages that change only on untouched importers are branch-skew drift.
     for (const importerKey of allImporterKeys) {
       if (touchedImporterKeys.has(importerKey)) continue;
       const delta = perImporterDelta.get(importerKey)!;
@@ -313,7 +312,6 @@ function unionImporterDeltas(
     for (const name of delta.added) added.add(name);
     for (const name of delta.updated) updated.add(name);
     for (const name of delta.removed) {
-      // Suppress removals that also appear on untouched importers (cross-workspace drift).
       if (!driftPackages.has(name)) removed.add(name);
     }
   }
@@ -323,6 +321,27 @@ function unionImporterDeltas(
     removed: [...removed],
     updated: [...updated],
   });
+}
+
+export {
+  collectPnpmImporterTransitionFacts,
+  collapsePnpmImporterTransitions,
+  resolvePnpmPackageTransitionCollapse,
+  type CollapsedPackageTransition,
+  type ImporterTransitionChangeKind,
+  type PnpmImporterTransitionFact,
+  type PnpmPackageTransitionCollapse,
+} from "./pnpm-importer-transitions.js";
+
+/** Derive manifest paths from a PR changed-file list for workspace importer filtering. */
+export function packageJsonManifestPathsFromChangedFiles(
+  changedFiles: readonly string[] | undefined,
+): string[] | undefined {
+  if (!changedFiles?.length) return undefined;
+  const manifests = changedFiles.filter(
+    (path) => path === "package.json" || path.endsWith("/package.json"),
+  );
+  return manifests.length > 0 ? manifests : undefined;
 }
 
 function extractPnpmPackageVersions(

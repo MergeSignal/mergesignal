@@ -1,20 +1,46 @@
 # @mergesignal/scan-prep
 
-Single source of truth for **scan job preparation** before the analysis engine runs.
+Canonical public Scan Preparation package — lockfile ingress authority and public-safe scan job preparation before intelligence domains run.
 
 ## Responsibilities
 
-- Lockfile diff → `changedPackages`, `lockfilePackageDelta`
-- GitHub source corpus fetch (when `repoSource` + changed packages)
-- `prepareScanContext(job)` → `{ scanRequest, codeAnalysis?, warnings, preparationSummary }`
+| Surface                                          | Responsibility                                                                         |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| Root (`@mergesignal/scan-prep`)                  | `prepareScanContext(job)` for the public worker ingress contract                       |
+| `./lockfile` (`@mergesignal/scan-prep/lockfile`) | Lockfile transition context, changed-package discovery, pnpm importer collapse helpers |
+
+Public-safe preparation includes:
+
+- deterministic lockfile diff and changed-package discovery;
+- optional GitHub source corpus fetch **inside** `prepareScanContext` (not exported);
+- explicit preparation warnings when inputs are missing or incomplete.
+
+## Explicit exclusions
+
+The published package must **not** contain:
+
+- Worker Evidence Collection orchestration or tiered repository acquisition;
+- collection-plan execution, private tree/blob batching, or tier-three corpus collection;
+- Assessment Decision or merge-recommendation logic;
+- Package Intelligence registry or tarball behavior.
+
+Permanent contract authority: [docs/engineering/scan-prep-api.md](../../docs/engineering/scan-prep-api.md).
+
+## Approved exports
+
+**Root:** `prepareScanContext`, `PrepareScanContextResult`, `ScanPreparationSummary`
+
+**`./lockfile`:** `prepareLockfileContext`, `LockfileContextResult`, `detectChangedPackages`, `detectLockfilePackageDelta`, `resolvePnpmPackageTransitionCollapse`, `collectPnpmImporterTransitionFacts`, `collapsePnpmImporterTransitions`, `packageJsonManifestPathsFromChangedFiles`, `normalizePnpmResolvedVersion`, `importerManifestPath`, `isPnpmLockfileDiffEmpty`, and related lockfile types.
+
+Low-level GitHub authentication, corpus cache controls, and raw fetch helpers are internal implementation details.
 
 ## Workers must NOT
 
-Reimplement `lockfile-diff`, `github-files`, `github-auth`, or `file-cache` under `apps/worker` or `mergesignal-engine/packages/worker`. Import `prepareScanContext` from this package only.
+Reimplement lockfile diff or GitHub corpus preparation under `apps/worker`. Import `prepareScanContext` from this package only.
 
-CI enforces this via `scripts/ci/forbid-worker-prep-duplication.sh`.
+CI enforces duplication guards via `scripts/ci/forbid-worker-prep-duplication.sh` and export-surface checks.
 
-`mergesignal-engine` also maintains an in-repo workspace copy at `packages/scan-prep` — keep behavior in sync when changing this package. See [scan-prep-migration.md](../../docs/engineering/scan-prep-migration.md).
+`mergesignal-engine` maintains a separate workspace copy for private engine deployment until registry consumption graduates. Port lockfile authority changes here first; see [scan-prep-migration.md](../../docs/engineering/scan-prep-migration.md).
 
 ## Environment
 
@@ -27,6 +53,6 @@ CI enforces this via `scripts/ci/forbid-worker-prep-duplication.sh`.
 
 ## Publication
 
-`@mergesignal/scan-prep` is **not yet published** to npm. Publication, registry consumption, and artifact-identity enforcement are **target (not yet implemented)**.
+`@mergesignal/scan-prep` is **not yet published** to npm. The canonical public core is implemented in this repository; publication, registry consumption, and artifact-identity enforcement remain later governed work.
 
-Permanent public contract authority: [docs/engineering/scan-prep-api.md](../../docs/engineering/scan-prep-api.md). Current dual-repo sync procedure: [docs/engineering/scan-prep-migration.md](../../docs/engineering/scan-prep-migration.md).
+Pre-publication checklist: [docs/engineering/scan-prep-version-selection-checklist.md](../../docs/engineering/scan-prep-version-selection-checklist.md).

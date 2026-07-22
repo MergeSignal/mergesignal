@@ -1,7 +1,7 @@
 import type {
   Assessment,
   AssessmentPresentationPublic,
-} from "@mergesignal/contracts";
+} from "../../assessment/types.js";
 import { narrativeIntensityToDensity } from "../../assessmentPresentationUtils.js";
 import type { ScanResult } from "../../types.js";
 import { safeParseRepoIntelligence } from "../../repoIntelligenceSchema.js";
@@ -9,6 +9,7 @@ import { scanSurfaceCopy } from "../../scanSurfaceCopy.js";
 import type { PresentationInterpretation } from "../intent/presentationIntent.js";
 import type { PresentationProfile } from "./presentationProfile.js";
 import { collectVerificationFocusForPresentation } from "../../assessmentProjection.js";
+import { hasPreparationUncertaintyWarnings } from "../../lockfileEvidence.js";
 
 function focalAnchorPackage(assessment: Assessment): string | null {
   const anchors = assessment.reviewFocalPoint.anchors;
@@ -65,14 +66,22 @@ export function buildProfileFromAssessment(
   result: ScanResult,
 ): PresentationProfile {
   const riParse = safeParseRepoIntelligence(result.repoIntelligence);
+  const preparationWarnings = result.analysisPreparation?.warnings ?? [];
+  const verifiedNoTransitionSafe =
+    assessment.posture === "safe" &&
+    assessment.outcome === "cleared" &&
+    (result.changedPackages?.length ?? 0) === 0;
+
   const priority =
     riParse.ok && (result.changedPackages?.length ?? 0) > 0
       ? "pr_intelligence"
       : "limited";
 
-  const degradedMessage =
-    assessment.primaryConcern === "insufficient_evidence" ||
-    assessment.confidence === "low"
+  const degradedMessage = verifiedNoTransitionSafe
+    ? undefined
+    : assessment.primaryConcern === "insufficient_evidence" ||
+        assessment.confidence === "low" ||
+        hasPreparationUncertaintyWarnings(preparationWarnings)
       ? scanSurfaceCopy.presentation.limitedContextMessage
       : priority === "limited"
         ? scanSurfaceCopy.presentation.limitedContextMessage
