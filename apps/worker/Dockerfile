@@ -15,10 +15,8 @@ COPY packages/engine-test-fixture/package.json ./packages/engine-test-fixture/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 
-RUN --mount=type=secret,id=gh_packages_token \
-    export NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
-    pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN" && \
-    pnpm install --frozen-lockfile --filter @mergesignal/worker...
+# Install dependencies (workspace packages only; no private engine contracts)
+RUN pnpm install --frozen-lockfile --filter @mergesignal/worker...
 
 COPY apps/worker ./apps/worker
 COPY packages/shared ./packages/shared
@@ -56,16 +54,13 @@ RUN if [ "$MERGESIGNAL_ENGINE_FIXTURE" = "1" ]; then \
     fi
 
 RUN --mount=type=secret,id=engine_repo_token \
-    --mount=type=secret,id=gh_packages_token \
     if [ "$MERGESIGNAL_ENGINE_FIXTURE" != "1" ]; then \
       chmod +x /scripts/build-private-engine.sh && \
       apk add --no-cache git bash && \
       test -n "$MERGESIGNAL_ENGINE_REF" || (echo "MERGESIGNAL_ENGINE_REF is required" >&2; exit 1) && \
       ENGINE_REPO_TOKEN="$(cat /run/secrets/engine_repo_token)" && \
-      NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
       test -n "$ENGINE_REPO_TOKEN" || (echo "engine_repo_token build secret is required" >&2; exit 1) && \
       ENGINE_REPO_TOKEN="$ENGINE_REPO_TOKEN" \
-      NODE_AUTH_TOKEN="$NODE_AUTH_TOKEN" \
       ENGINE_ROOT=/engine-src \
       MERGESIGNAL_ENGINE_REPOSITORY="$MERGESIGNAL_ENGINE_REPOSITORY" \
       MERGESIGNAL_ENGINE_REF="$MERGESIGNAL_ENGINE_REF" \
@@ -92,10 +87,7 @@ COPY packages/engine-stub/package.json ./packages/engine-stub/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 
-RUN --mount=type=secret,id=gh_packages_token \
-    export NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
-    pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN" && \
-    pnpm install --frozen-lockfile --prod --filter @mergesignal/worker...
+RUN pnpm install --frozen-lockfile --prod --filter @mergesignal/worker...
 
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/

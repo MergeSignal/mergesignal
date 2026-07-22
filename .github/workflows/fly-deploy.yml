@@ -15,7 +15,6 @@ on:
 
 permissions:
   contents: read
-  packages: read
 
 concurrency:
   group: fly-deploy-${{ github.workflow }}-${{ github.ref }}
@@ -36,7 +35,6 @@ jobs:
             if flyctl deploy . \
               --config apps/web/fly.toml \
               --dockerfile apps/web/Dockerfile \
-              --build-secret gh_packages_token="${{ secrets.GITHUB_TOKEN }}" \
               --depot=false; then
               exit 0
             fi
@@ -64,7 +62,6 @@ jobs:
             if flyctl deploy . \
               --config apps/api/fly.toml \
               --dockerfile apps/api/Dockerfile \
-              --build-secret gh_packages_token="${{ secrets.GITHUB_TOKEN }}" \
               --depot=false; then
               exit 0
             fi
@@ -107,7 +104,6 @@ jobs:
               --config apps/worker/fly.toml \
               --dockerfile apps/worker/Dockerfile \
               --build-secret engine_repo_token="${{ secrets.MERGESIGNAL_ENGINE_REPO_TOKEN }}" \
-              --build-secret gh_packages_token="${{ secrets.GITHUB_TOKEN }}" \
               --build-arg MERGESIGNAL_ENGINE_REF="${{ vars.MERGESIGNAL_ENGINE_REF }}" \
               --depot=false; then
               break

@@ -14,11 +14,8 @@ COPY packages/engine/package.json ./packages/engine/
 COPY packages/engine-stub/package.json ./packages/engine-stub/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 
-# Install dependencies (@mergesignal/contracts from GitHub Packages)
-RUN --mount=type=secret,id=gh_packages_token \
-    export NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
-    pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN" && \
-    pnpm install --frozen-lockfile --filter @mergesignal/api...
+# Install dependencies (workspace packages only)
+RUN pnpm install --frozen-lockfile --filter @mergesignal/api...
 
 # Copy source code
 COPY apps/api ./apps/api
@@ -53,10 +50,7 @@ COPY packages/engine-stub/package.json ./packages/engine-stub/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 
 # Install production dependencies only
-RUN --mount=type=secret,id=gh_packages_token \
-    export NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
-    pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN" && \
-    pnpm install --frozen-lockfile --prod --filter @mergesignal/api...
+RUN pnpm install --frozen-lockfile --prod --filter @mergesignal/api...
 
 # Copy built artifacts from builder (full shared package: exports point at src; include dist for compiled consumers)
 COPY --from=builder /app/apps/api/dist ./apps/api/dist

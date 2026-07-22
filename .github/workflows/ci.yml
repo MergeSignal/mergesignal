@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  packages: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -26,9 +25,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          registry-url: https://npm.pkg.github.com
-          scope: "@mergesignal"
-          always-auth: true
 
       - name: Enable pnpm via Corepack
         run: |
@@ -49,8 +45,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build packages (generates type definitions)
         run: pnpm build
@@ -76,8 +70,8 @@ jobs:
       - name: Check pnpm version governance
         run: pnpm check:pnpm-governance
 
-      - name: Check contracts catalog alignment
-        run: pnpm check:contracts-catalog
+      - name: Check no private contracts dependency
+        run: pnpm check:no-private-contracts
 
       - name: Check scan preparation authority
         run: pnpm check:scan-prep-authority
@@ -93,7 +87,6 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      packages: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -102,9 +95,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          registry-url: https://npm.pkg.github.com
-          scope: "@mergesignal"
-          always-auth: true
 
       - name: Enable pnpm via Corepack
         run: |
@@ -112,20 +102,15 @@ jobs:
           corepack install
 
       - name: Build worker runtime image (fixture engine)
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           : > /tmp/empty-engine-secret
-          printf '%s' "$NODE_AUTH_TOKEN" > /tmp/gh-packages-token
           docker build \
             -f apps/worker/Dockerfile \
             --build-arg MERGESIGNAL_ENGINE_FIXTURE=1 \
             --secret id=engine_repo_token,src=/tmp/empty-engine-secret \
-            --secret id=gh_packages_token,src=/tmp/gh-packages-token \
             -t mergesignal-worker:ci-verify \
             .
-          rm -f /tmp/gh-packages-token
           SIZE_MB="$(docker inspect -f '{{.Size}}' mergesignal-worker:ci-verify | awk '{printf "%.0f", $1/1024/1024}')"
           echo "Runtime image size: ${SIZE_MB}MB"
           if [ "$SIZE_MB" -gt 600 ]; then

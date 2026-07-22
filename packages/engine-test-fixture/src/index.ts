@@ -1,5 +1,5 @@
-import type { Assessment } from "@mergesignal/contracts";
 import type {
+  Assessment,
   CodeAnalysisInput,
   ScanRequest,
   ScanResult,

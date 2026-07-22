@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: read
-  packages: read
 
 concurrency:
   group: trusted-engine-verification-${{ github.workflow }}-${{ github.ref }}
@@ -28,9 +27,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          registry-url: https://npm.pkg.github.com
-          scope: "@mergesignal"
-          always-auth: true
 
       - name: Enable pnpm via Corepack
         run: |
@@ -51,8 +47,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build CLI
         run: pnpm turbo run build --filter=@mergesignal/cli...

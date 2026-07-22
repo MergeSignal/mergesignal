@@ -13,11 +13,8 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 
-# Install dependencies (@mergesignal/contracts from GitHub Packages)
-RUN --mount=type=secret,id=gh_packages_token \
-    export NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
-    pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN" && \
-    pnpm install --frozen-lockfile --filter web...
+# Install dependencies (workspace packages only)
+RUN pnpm install --frozen-lockfile --filter web...
 
 # Copy source code
 COPY apps/web ./apps/web
@@ -50,10 +47,7 @@ COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 
 # Install production dependencies only
-RUN --mount=type=secret,id=gh_packages_token \
-    export NODE_AUTH_TOKEN="$(cat /run/secrets/gh_packages_token)" && \
-    pnpm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN" && \
-    pnpm install --frozen-lockfile --prod --filter web...
+RUN pnpm install --frozen-lockfile --prod --filter web...
 
 # Copy built Next.js artifacts from builder
 COPY --from=builder /app/apps/web/.next ./apps/web/.next

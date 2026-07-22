@@ -4,12 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-catalogs:
-  default:
-    "@mergesignal/contracts":
-      specifier: 0.12.0
-      version: 0.12.0
-
 importers:
   .:
     devDependencies:
@@ -74,9 +68,6 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      "@mergesignal/contracts":
-        specifier: "catalog:"
-        version: 0.12.0
       "@repo/eslint-config":
         specifier: workspace:*
         version: link:../../packages/eslint-config
@@ -316,9 +307,6 @@ importers:
 
   packages/engine-test-fixture:
     dependencies:
-      "@mergesignal/contracts":
-        specifier: "catalog:"
-        version: 0.12.0
       "@mergesignal/shared":
         specifier: workspace:^
         version: link:../shared
@@ -1503,13 +1491,6 @@ packages:
       }
     peerDependencies:
       react: ^19.2.0
-
-  "@mergesignal/contracts@0.12.0":
-    resolution:
-      {
-        integrity: sha512-jF7sLcM7Zp80skI/IitdNSosMR6065rcgPTxS/D76vb+OSmJUG5Y8Ojss7+UiQLlIylDirtttmmdZrNy0Vj0mQ==,
-        tarball: https://npm.pkg.github.com/download/@mergesignal/contracts/0.12.0/59645a8b242a98ac601c28e6174a077e843f870f,
-      }
 
   "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3":
     resolution:
@@ -8356,10 +8337,6 @@ snapshots:
   "@mantine/hooks@9.1.1(react@19.2.0)":
     dependencies:
       react: 19.2.0
-
-  "@mergesignal/contracts@0.12.0":
-    dependencies:
-      zod: 4.4.3
 
   "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3":
     optional: true

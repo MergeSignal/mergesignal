@@ -8,14 +8,14 @@
     "scripts/ci/render-mergesignal-step-summary.mjs",
     "scripts/ci/render-mergesignal-failure-summary.mjs",
     "scripts/ci/audit-trusted-actions-output.mjs",
-    "scripts/check-contracts-catalog-alignment.ts",
+    "scripts/check-no-private-contracts-dependency.ts",
     "scripts/check-pnpm-version-governance.ts",
-    "scripts/contracts-version-expectations.ts",
     "scripts/docker/write-fixture-engine-manifest.mjs"
   ],
   "workspaces": {
     ".": {
       "entry": [
+        "scripts/check-no-private-contracts-dependency.ts",
         "scripts/check-scan-prep-authority.ts",
         "scripts/check-scan-prep-export-surface.ts",
         "scripts/ci/check-shared-pack-artifact.ts"

@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 # Point npm @mergesignal scope at registry.npmjs.org for publish/verify steps.
 #
-# actions/setup-node sets NPM_CONFIG_USERCONFIG with @mergesignal → GitHub Packages
-# (needed for pnpm install of @mergesignal/contracts). That userconfig overrides
-# repo .npmrc --location=project, so npm view after publish falsely queries GH Packages.
+# actions/setup-node may set NPM_CONFIG_USERCONFIG that overrides repo .npmrc.
+# This helper ensures scoped npm view/publish targets npmjs for @mergesignal packages.
 set -euo pipefail
 
 NPMRC="${RUNNER_TEMP}/npmrc-npmjs-publish"
 {
+  echo "registry=https://registry.npmjs.org/"
   echo "@mergesignal:registry=https://registry.npmjs.org/"
-  # Use NPM_PUBLISH_TOKEN only — not NODE_AUTH_TOKEN (setup-node sets that for GitHub Packages).
   if [ -n "${NPM_PUBLISH_TOKEN:-}" ]; then
     echo "//registry.npmjs.org/:_authToken=${NPM_PUBLISH_TOKEN}"
+  elif [ -n "${NPM_TOKEN:-}" ]; then
+    echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}"
   fi
 } >"$NPMRC"
 

@@ -10,7 +10,6 @@
     "check-types": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@mergesignal/contracts": "catalog:",
     "@mergesignal/shared": "workspace:^"
   },
   "devDependencies": {
