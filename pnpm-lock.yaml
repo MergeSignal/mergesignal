@@ -18,7 +18,7 @@ importers:
         version: 9.1.7
       knip:
         specifier: ^5.88.1
-        version: 5.88.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.7.1)(@types/node@22.15.3)(typescript@5.9.2)
+        version: 5.88.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.7.1)(@types/node@22.15.3)(typescript@5.9.3)
       lint-staged:
         specifier: ^16.4.0
         version: 16.4.0
@@ -29,8 +29,8 @@ importers:
         specifier: ^2.8.11
         version: 2.8.11
       typescript:
-        specifier: 5.9.2
-        version: 5.9.2
+        specifier: 5.9.3
+        version: 5.9.3
 
   apps/api:
     dependencies:
@@ -7819,12 +7819,6 @@ packages:
       }
     engines: { node: ">=10" }
 
-  zod@4.3.6:
-    resolution:
-      {
-        integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==,
-      }
-
   zod@4.4.3:
     resolution:
       {
@@ -10940,7 +10934,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  knip@5.88.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.7.1)(@types/node@22.15.3)(typescript@5.9.2):
+  knip@5.88.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.7.1)(@types/node@22.15.3)(typescript@5.9.3):
     dependencies:
       "@nodelib/fs.walk": 1.2.8
       "@types/node": 22.15.3
@@ -10953,10 +10947,10 @@ snapshots:
       picomatch: 4.0.3
       smol-toml: 1.6.1
       strip-json-comments: 5.0.3
-      typescript: 5.9.2
+      typescript: 5.9.3
       unbash: 2.2.0
       yaml: 2.8.3
-      zod: 4.3.6
+      zod: 4.4.3
     transitivePeerDependencies:
       - "@emnapi/core"
       - "@emnapi/runtime"
@@ -12802,8 +12796,6 @@ snapshots:
   yaml@2.8.3: {}
 
   yocto-queue@0.1.0: {}
-
-  zod@4.3.6: {}
 
   zod@4.4.3: {}
 
