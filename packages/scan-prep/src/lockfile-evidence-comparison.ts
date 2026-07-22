@@ -266,7 +266,7 @@ function isDeltaEmpty(delta: LockfilePackageDelta): boolean {
   );
 }
 
-export type LockfileComparisonResult = {
+type LockfileComparisonResult = {
   evidenceStatus: LockfileEvidenceStatus;
   changedPackages: string[];
   lockfilePackageDelta?: LockfilePackageDelta;
@@ -337,9 +337,3 @@ export function lockfileComparisonExpected(input: {
   if (input.github && (input.lockfile || input.baseLockfile)) return true;
   return false;
 }
-
-export const EMPTY_LOCKFILE_DELTA: LockfilePackageDelta = {
-  added: [],
-  removed: [],
-  updated: [],
-};

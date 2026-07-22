@@ -15,7 +15,11 @@
   ],
   "workspaces": {
     ".": {
-      "entry": ["scripts/check-scan-prep-authority.ts"]
+      "entry": [
+        "scripts/check-scan-prep-authority.ts",
+        "scripts/check-scan-prep-export-surface.ts",
+        "scripts/ci/check-shared-pack-artifact.ts"
+      ]
     },
     "apps/cli": {
       "ignoreDependencies": ["@mergesignal/engine-test-fixture"]

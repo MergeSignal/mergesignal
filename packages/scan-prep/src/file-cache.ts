@@ -63,29 +63,3 @@ export function setCachedFiles(
     "Cached files",
   );
 }
-
-export function clearCache(repoSource?: RepoSource): void {
-  if (repoSource) {
-    cache.delete(getCacheKey(repoSource));
-  } else {
-    cache.clear();
-  }
-}
-
-export function cleanupExpiredEntries(): number {
-  const now = Date.now();
-  const ttl = cacheTtlMs();
-  let removed = 0;
-  for (const [key, cached] of cache.entries()) {
-    if (now - cached.fetchedAt.getTime() > ttl) {
-      cache.delete(key);
-      removed++;
-    }
-  }
-  return removed;
-}
-
-/** @internal test helper */
-export function __resetFileCacheForTests(): void {
-  cache.clear();
-}

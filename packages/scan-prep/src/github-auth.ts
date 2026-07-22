@@ -58,11 +58,3 @@ export async function getInstallationToken(
     throw new Error(`Failed to authenticate with GitHub App: ${message}`);
   }
 }
-
-export function clearTokenCache(installationId?: number): void {
-  if (installationId !== undefined) {
-    tokenCache.delete(installationId);
-  } else {
-    tokenCache.clear();
-  }
-}

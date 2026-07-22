@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { Assessment } from "../../assessment/types.js";
+import type { Assessment } from "../assessment/types.js";
 import type { ScanResult } from "../types.js";
 import {
   minimalReviewFocalPoint,
