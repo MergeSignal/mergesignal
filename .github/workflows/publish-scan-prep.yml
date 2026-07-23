@@ -38,7 +38,7 @@ jobs:
           corepack enable
           corepack install
 
-      - name: Verify Node and npm versions for OIDC
+      - name: Verify Node version for OIDC
         run: |
           set -euo pipefail
           NODE_VERSION="$(node -v | sed 's/^v//')"
@@ -56,23 +56,7 @@ jobs:
               process.exit(1);
             }
           "
-          REQUIRED_NPM='11.5.1'
-          NPM_VERSION="$(npm -v)"
-          if ! NPM_VERSION="$NPM_VERSION" REQUIRED_NPM="$REQUIRED_NPM" node -e "
-            const current = process.env.NPM_VERSION.split('.').map(Number);
-            const required = process.env.REQUIRED_NPM.split('.').map(Number);
-            const ok =
-              current[0] > required[0] ||
-              (current[0] === required[0] &&
-                (current[1] > required[1] ||
-                  (current[1] === required[1] && current[2] >= required[2])));
-            process.exit(ok ? 0 : 1);
-          "; then
-            echo "Activating npm@${REQUIRED_NPM} via Corepack for OIDC support"
-            corepack prepare "npm@${REQUIRED_NPM}" --activate
-          fi
           echo "Node: $(node -v)"
-          echo "npm: $(npm -v)"
 
       - name: Resolve version from tag
         id: version
@@ -167,9 +151,33 @@ jobs:
       - name: Configure npmjs registry for OIDC publish
         uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
+          # Node 24 ships npm >= 11.5.1, required for npm Trusted Publishing OIDC.
+          node-version: "24"
           registry-url: https://registry.npmjs.org
           scope: "@mergesignal"
+
+      - name: Verify npm version for OIDC publish
+        run: |
+          set -euo pipefail
+          REQUIRED_NPM='11.5.1'
+          NPM_VERSION="$(npm -v)"
+          if ! NPM_VERSION="$NPM_VERSION" REQUIRED_NPM="$REQUIRED_NPM" node -e "
+            const current = process.env.NPM_VERSION.split('.').map(Number);
+            const required = process.env.REQUIRED_NPM.split('.').map(Number);
+            const ok =
+              current[0] > required[0] ||
+              (current[0] === required[0] &&
+                (current[1] > required[1] ||
+                  (current[1] === required[1] && current[2] >= required[2])));
+            if (!ok) {
+              console.error('npm must be >= ' + process.env.REQUIRED_NPM + ' for OIDC publish (got: ' + process.env.NPM_VERSION + ')');
+              process.exit(1);
+            }
+          "; then
+            exit 1
+          fi
+          echo "Node: $(node -v)"
+          echo "npm: $(npm -v)"
 
       - name: Verify release candidate integrity before publication
         run: |
