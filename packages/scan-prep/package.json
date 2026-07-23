@@ -1,6 +1,6 @@
 {
   "name": "@mergesignal/scan-prep",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Scan job preparation: lockfile diff, GitHub source corpus, prepareScanContext",
   "type": "module",
   "main": "./dist/index.js",
