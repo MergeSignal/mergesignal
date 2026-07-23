@@ -7,9 +7,7 @@ import { execSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { assertPublishedRegistryConsumerLockfile } from "./lib/scan-prep-published-registry-lockfile.ts";
 const PACKAGE_NAME = "@mergesignal/scan-prep";
 const EXPECTED_SHARED_VERSION = "0.13.0";
 const NPMJS_REGISTRY = "https://registry.npmjs.org/";
@@ -108,28 +106,11 @@ function verifyIsolatedInstall(version: string): void {
 
     run("pnpm install", consumerDir, cleanEnv);
     const lock = readFileSync(path.join(consumerDir, "pnpm-lock.yaml"), "utf8");
-    if (/npm\.pkg\.github\.com/i.test(lock)) {
-      throw new Error("lockfile must not reference GitHub Packages");
-    }
-    if (/link:|file:/i.test(lock)) {
-      throw new Error("lockfile must not use link:/file: dependencies");
-    }
-    if (!lock.includes(`${PACKAGE_NAME}@${version}`)) {
-      throw new Error(`lockfile missing ${PACKAGE_NAME}@${version}`);
-    }
-    if (!lock.includes(`@mergesignal/shared@${EXPECTED_SHARED_VERSION}`)) {
-      throw new Error(
-        `lockfile missing @mergesignal/shared@${EXPECTED_SHARED_VERSION}`,
-      );
-    }
-    if (/link:|file:.*shared/i.test(lock)) {
-      throw new Error(
-        "lockfile must not use link:/file: for @mergesignal/shared",
-      );
-    }
-    if (!/integrity:\s*sha512-/i.test(lock)) {
-      throw new Error("lockfile missing npmjs integrity metadata");
-    }
+    assertPublishedRegistryConsumerLockfile(lock, {
+      scanPrepPackageName: PACKAGE_NAME,
+      scanPrepVersion: version,
+      sharedVersion: EXPECTED_SHARED_VERSION,
+    });
 
     run(
       `node --input-type=module -e "import('${PACKAGE_NAME}').then((m)=>{if(typeof m.prepareScanContext!=='function')throw new Error('root')})"`,
