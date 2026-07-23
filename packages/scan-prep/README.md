@@ -30,7 +30,7 @@ Permanent contract authority: [docs/engineering/scan-prep-api.md](../../docs/eng
 
 **Root:** `prepareScanContext`, `PrepareScanContextResult`, `ScanPreparationSummary`
 
-**`./lockfile`:** `prepareLockfileContext`, `LockfileContextResult`, `detectChangedPackages`, `detectLockfilePackageDelta`, `resolvePnpmPackageTransitionCollapse`, `collectPnpmImporterTransitionFacts`, `collapsePnpmImporterTransitions`, `packageJsonManifestPathsFromChangedFiles`, `normalizePnpmResolvedVersion`, `importerManifestPath`, `isPnpmLockfileDiffEmpty`, and related lockfile types.
+**`./lockfile`:** `prepareLockfileContext`, `hasVerifiedLockfileIngress`, `hasVerifiedEmptyLockfileIngress`, `detectChangedPackages`, `detectLockfilePackageDelta`, `resolvePnpmPackageTransitionCollapse`, and related lockfile types.
 
 Low-level GitHub authentication, corpus cache controls, and raw fetch helpers are internal implementation details.
 
@@ -53,6 +53,49 @@ CI enforces duplication guards via `scripts/ci/forbid-worker-prep-duplication.sh
 
 ## Publication
 
-`@mergesignal/scan-prep` is **not yet published** to npm. The canonical public core is implemented in this repository; publication, registry consumption, and artifact-identity enforcement remain later governed work.
+`@mergesignal/scan-prep` is **not yet published** to npmjs. Graduation validation is implemented in this repository.
 
-Pre-publication checklist: [docs/engineering/scan-prep-version-selection-checklist.md](../../docs/engineering/scan-prep-version-selection-checklist.md).
+### CI and pre-tag validation
+
+These commands may independently pack candidates to validate repository readiness before the release tag:
+
+- `pnpm run check:scan-prep-pack-artifact`
+- `pnpm run check:scan-prep-isolated-install`
+- `pnpm run check:scan-prep-export-surface`
+- `pnpm run check:scan-prep-authority`
+
+They do **not** produce the tarball used for manual publication.
+
+### Manual publication candidate
+
+The only command used to create the artifact later published is:
+
+```bash
+pnpm run pack:scan-prep-release-candidate -- --output-dir=<fresh-external-directory>
+```
+
+This command packs once, validates that exact candidate, runs isolated external-consumer installation on those exact bytes, verifies digest stability, and writes the final report only on success.
+
+Use a fresh external output directory. The command rejects an existing target candidate or report for the same version.
+
+Always use the exact resolved candidate and report paths printed by `pack:scan-prep-release-candidate`. Filesystem canonicalization may normalize paths internally (for example `/tmp/...` to `/private/tmp/...` on macOS). Do not reconstruct, convert, or guess either path.
+
+Before publication, compare the reported `integrity` digest with an independently calculated SHA-512 of the reported candidate file immediately before publication.
+
+```bash
+npm publish "<reported-resolved-candidate-path>" --access public
+```
+
+Do not rebuild, repack, or rerun a validator that creates another tarball.
+
+Read-only published verification: `pnpm run check:scan-prep-published-registry` or `.github/workflows/verify-scan-prep-registry.yml`
+
+**First publication (`0.1.0`):** manual interactive `npm login` + 2FA on registry.npmjs.org. Publish the exact validated candidate tarball from `pack:scan-prep-release-candidate`. **No GitHub secret. No npm write token.**
+
+**Permanent publication (`0.1.1+`):** GitHub Trusted Publishing / OIDC via `.github/workflows/publish-scan-prep.yml` (Release Group B — add only after `0.1.0` exists and Trusted Publishing is configured).
+
+Shared’s existing `NPM_TOKEN` is for `@mergesignal/shared` only — do not use it for Scan Preparation.
+
+Public consumer installation requires **no npm authentication**. See [releasing.md](../../docs/engineering/releasing.md).
+
+Permanent contract authority: [docs/engineering/scan-prep-api.md](../../docs/engineering/scan-prep-api.md).

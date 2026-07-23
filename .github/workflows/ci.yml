@@ -79,6 +79,12 @@ jobs:
       - name: Check scan preparation export surface
         run: pnpm check:scan-prep-export-surface
 
+      - name: Validate scan-prep pack artifact
+        run: pnpm run check:scan-prep-pack-artifact
+
+      - name: Validate scan-prep isolated candidate install
+        run: pnpm run check:scan-prep-isolated-install
+
       - name: Run tests
         run: pnpm test
 

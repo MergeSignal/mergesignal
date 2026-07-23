@@ -10,23 +10,23 @@
 
 Record evidence for each item before first publication. Do not publish, pack, tag, or bump versions until all required items pass review.
 
-| #   | Check                                             | Evidence required                                                                                                                                 | Status  |
-| --- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| 1   | **npm name availability**                         | `npm view @mergesignal/scan-prep versions --registry https://registry.npmjs.org/` — confirm unpublished or document existing versions             | Pending |
-| 2   | **Workspace version recorded**                    | Record `mergesignal/packages/scan-prep/package.json` `version` at selection time                                                                  | Pending |
-| 3   | **Registry publish permissions**                  | Confirm `@mergesignal/*` npm org publish rights (same identity as `@mergesignal/shared`)                                                          | Pending |
-| 4   | **API stability class**                           | First public release of reconciled lockfile ingress + public `prepareScanContext` — document as initial published baseline                        | Pending |
-| 5   | **Semver decision**                               | Choose exact initial version (`0.1.0` or bump) at API-minimization review — not preselected here                                                  | Pending |
-| 6   | **Export surface confirmation**                   | Published `exports` match [scan-prep-api.md](./scan-prep-api.md) root + `./lockfile` tables                                                       | Pending |
-| 7   | **Rejected exports absent**                       | No rejected symbols in published `exports` or distributable `dist/`                                                                               | Pending |
-| 8   | **Published `@mergesignal/shared` compatibility** | Catalog-resolved shared version is published on npm; `pnpm pack` transforms `workspace:^` to published-compatible semver in packed `dependencies` | Pending |
-| 9   | **Workspace dependency transformation**           | Inspect **packed** `package.json` inside `.tgz` — no `workspace:`, `catalog:`, `file:`, or `link:` in runtime `dependencies`                      | Pending |
-| 10  | **Privacy review**                                | Tarball dry-run passes architectural invariants; no private implementation in distributable artifact                                              | Pending |
-| 11  | **Release tag naming**                            | Tag pattern `scan-prep-vX.Y.Z` matches `package.json` version                                                                                     | Pending |
-| 12  | **Artifact-identity readiness**                   | Normalized content-comparison pipeline operational; enforcement configured before public worker deploy depends on publish                         | Pending |
-| 13  | **Distributable path change review**              | If `package.json`, `tsconfig.json`, or non-test `src/**` changed since last publish, version bump required                                        | Pending |
-| 14  | **Version-bump reasoning documented**             | Record why chosen semver reflects API / distributable changes                                                                                     | Pending |
-| 15  | **Engine consumption coordination**               | Engine publication consumption PR planned atomically with duplicate removal — not active until registry publish completes                         | Pending |
+| #   | Check                                             | Evidence required                                                                                                                                   | Status  |
+| --- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1   | **npm name availability**                         | `npm view @mergesignal/scan-prep versions --registry https://registry.npmjs.org/` — confirm unpublished or document existing versions               | Pending |
+| 2   | **Workspace version recorded**                    | Record `mergesignal/packages/scan-prep/package.json` `version` at selection time                                                                    | Pending |
+| 3   | **Registry publish permissions**                  | Confirm `@mergesignal/*` npm org publish rights (same identity as `@mergesignal/shared`)                                                            | Pending |
+| 4   | **API stability class**                           | First public release of reconciled lockfile ingress + public `prepareScanContext` — document as initial published baseline                          | Pending |
+| 5   | **Semver decision**                               | Choose exact initial version (`0.1.0` or bump) at API-minimization review — not preselected here                                                    | Pending |
+| 6   | **Export surface confirmation**                   | Published `exports` match [scan-prep-api.md](./scan-prep-api.md) root + `./lockfile` tables                                                         | Pending |
+| 7   | **Rejected exports absent**                       | No rejected symbols in published `exports` or distributable `dist/`                                                                                 | Pending |
+| 8   | **Published `@mergesignal/shared` compatibility** | Exact `@mergesignal/shared` `0.13.0` in source and packed `dependencies`; isolated install resolves Shared from public npmjs without authentication | Pending |
+| 9   | **Workspace dependency transformation**           | Inspect **packed** `package.json` inside `.tgz` — no `workspace:`, `catalog:`, `file:`, or `link:` in runtime `dependencies`                        | Pending |
+| 10  | **Privacy review**                                | Tarball dry-run passes architectural invariants; no private implementation in distributable artifact                                                | Pending |
+| 11  | **Release tag naming**                            | Tag pattern `scan-prep-vX.Y.Z` matches `package.json` version                                                                                       | Pending |
+| 12  | **Artifact-identity readiness**                   | Normalized content-comparison pipeline operational; enforcement configured before public worker deploy depends on publish                           | Pending |
+| 13  | **Distributable path change review**              | If `package.json`, `tsconfig.json`, or non-test `src/**` changed since last publish, version bump required                                          | Pending |
+| 14  | **Version-bump reasoning documented**             | Record why chosen semver reflects API / distributable changes                                                                                       | Pending |
+| 15  | **Engine consumption coordination**               | Engine publication consumption PR planned atomically with duplicate removal — not active until registry publish completes                           | Pending |
 
 ---
 

@@ -12,6 +12,8 @@ export const APPROVED_ROOT_TYPES = [
 ] as const;
 
 export const APPROVED_LOCKFILE_RUNTIME = [
+  "hasVerifiedLockfileIngress",
+  "hasVerifiedEmptyLockfileIngress",
   "prepareLockfileContext",
   "detectChangedPackages",
   "detectLockfilePackageDelta",

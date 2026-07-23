@@ -40,7 +40,7 @@ describe("public export surface", () => {
       "PrepareScanContextResult",
       "ScanPreparationSummary",
     ]);
-    expect(APPROVED_LOCKFILE_RUNTIME).toHaveLength(10);
+    expect(APPROVED_LOCKFILE_RUNTIME).toHaveLength(12);
     expect(APPROVED_LOCKFILE_TYPES).toHaveLength(7);
     expect(APPROVED_PACKAGE_EXPORTS).toEqual([".", "./lockfile"]);
   });

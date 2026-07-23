@@ -23,3 +23,7 @@ export {
   type LockfileContextResult,
   type LockfileEvidenceStatus,
 } from "./prepare-lockfile-context.js";
+export {
+  hasVerifiedEmptyLockfileIngress,
+  hasVerifiedLockfileIngress,
+} from "./lockfile-evidence-ingress.js";

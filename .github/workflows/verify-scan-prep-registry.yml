@@ -1,0 +1,55 @@
+# Verify a published @mergesignal/scan-prep version on npmjs (read-only, no token).
+#
+# Recovery path when post-publication verification failed after a successful publish.
+#
+# Maintainer flow:
+#   Actions → Verify @mergesignal/scan-prep registry → Run workflow → version: X.Y.Z
+
+name: Verify @mergesignal/scan-prep registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published @mergesignal/scan-prep version to verify
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack install
+
+      - name: Validate version input
+        id: version
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.event.inputs.version }}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::version must be semver (got: $VERSION)" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Verifying published package: @mergesignal/scan-prep@${VERSION}"
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify published registry artifact
+        env:
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
+          SCAN_PREP_PUBLISH_VERSION: ${{ steps.version.outputs.version }}
+        run: pnpm run check:scan-prep-published-registry -- --version=${{ steps.version.outputs.version }}
