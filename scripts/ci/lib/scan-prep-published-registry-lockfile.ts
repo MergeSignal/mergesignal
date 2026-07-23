@@ -12,17 +12,37 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function extractIndentedBlock(lock: string, entryKey: string): string {
-  const marker = `${entryKey}:\n`;
-  const start = lock.indexOf(marker);
+function quotedPackageKey(packageName: string): string {
+  const escaped = escapeRegExp(packageName);
+  return `(?:'${escaped}'|"${escaped}")`;
+}
+
+function findEntryMarker(lock: string, entryLabel: string): number {
+  for (const quote of ["'", '"'] as const) {
+    const marker = `${quote}${entryLabel}${quote}:\n`;
+    const start = lock.indexOf(marker);
+    if (start !== -1) {
+      return start;
+    }
+  }
+  return -1;
+}
+
+function extractIndentedBlock(lock: string, entryLabel: string): string {
+  const start = findEntryMarker(lock, entryLabel);
   if (start === -1) {
-    throw new Error(`lockfile missing ${entryKey}`);
+    throw new Error(`lockfile missing '${entryLabel}'`);
   }
 
-  const lines = lock.slice(start + marker.length).split("\n");
+  const markerEnd = lock.indexOf(":\n", start);
+  if (markerEnd === -1) {
+    throw new Error(`lockfile missing '${entryLabel}'`);
+  }
+
+  const lines = lock.slice(markerEnd + 2).split("\n");
   const blockLines: string[] = [];
   for (const line of lines) {
-    if (blockLines.length > 0 && /^  '[^']+':\s*$/.test(line)) {
+    if (blockLines.length > 0 && /^  (?:'[^']+'|"[^"]+"):\s*$/.test(line)) {
       break;
     }
     blockLines.push(line);
@@ -36,7 +56,7 @@ function assertImporterRegistryVersion(
   version: string,
 ): void {
   const pattern = new RegExp(
-    `'${escapeRegExp(packageName)}':\\s*\\n\\s+specifier:[^\\n]*\\n\\s+version:\\s*([^\\n]+)`,
+    `${quotedPackageKey(packageName)}:\\s*\\n\\s+specifier:[^\\n]*\\n\\s+version:\\s*([^\\n]+)`,
     "m",
   );
   const match = lock.match(pattern);
@@ -62,15 +82,18 @@ function assertPackagesRegistryResolution(
   packageName: string,
   version: string,
 ): void {
-  const packageKey = `'${packageName}@${version}'`;
-  const block = extractIndentedBlock(lock, packageKey);
+  const entryLabel = `${packageName}@${version}`;
+  const block = extractIndentedBlock(lock, entryLabel);
 
   if (/npm\.pkg\.github\.com/i.test(block)) {
     throw new Error(
       `lockfile must not reference GitHub Packages for ${packageName}`,
     );
   }
-  if (/(?:^|\n)\s+resolution:\s*\{[^}]*\b(?:link|file):/m.test(block)) {
+  if (
+    /(?:^|\n)\s+resolution:\s*\{[^}]*\b(?:link|file):/m.test(block) ||
+    /(?:^|\n)\s+resolution:\s*\n[\s\S]*?\b(?:link|file):/m.test(block)
+  ) {
     throw new Error(`lockfile must not use link:/file: for ${packageName}`);
   }
   if (!/integrity:\s*sha512-/i.test(block)) {
@@ -84,8 +107,9 @@ function assertNoLocalProtocolPackageKeys(
   lock: string,
   packageName: string,
 ): void {
+  const escaped = escapeRegExp(packageName);
   const pattern = new RegExp(
-    `'${escapeRegExp(packageName)}@(?:link|file):`,
+    `(?:'${escaped}@(?:link|file):|"${escaped}@(?:link|file):)`,
     "i",
   );
   if (pattern.test(lock)) {

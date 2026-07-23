@@ -43,11 +43,11 @@ describe("published-registry consumer lockfile validation", () => {
 
   it("rejects a real link: resolution for @mergesignal/scan-prep", () => {
     const lock = VALID_LOCKFILE.replace(
-      "'@mergesignal/scan-prep@0.1.0':",
-      "'@mergesignal/scan-prep@link:../../packages/scan-prep':",
+      '"@mergesignal/scan-prep@0.1.0":',
+      '"@mergesignal/scan-prep@link:../../packages/scan-prep":',
     ).replace(
-      "version: 0.1.0\n      '@mergesignal/shared':",
-      "version: link:../../packages/scan-prep\n      '@mergesignal/shared':",
+      'version: 0.1.0\n      "@mergesignal/shared":',
+      'version: link:../../packages/scan-prep\n      "@mergesignal/shared":',
     );
 
     expectLockfileFail(lock, /link:\/file:|local or workspace protocol/);
@@ -55,8 +55,8 @@ describe("published-registry consumer lockfile validation", () => {
 
   it("rejects a real file: resolution for @mergesignal/shared", () => {
     const lock = VALID_LOCKFILE.replace(
-      "'@mergesignal/shared@0.13.0':",
-      "'@mergesignal/shared@file:../shared':",
+      '"@mergesignal/shared@0.13.0":',
+      '"@mergesignal/shared@file:../shared":',
     ).replace(
       "version: 0.13.0\n    devDependencies:",
       "version: file:../shared\n    devDependencies:",
@@ -76,8 +76,8 @@ describe("published-registry consumer lockfile validation", () => {
 
   it("rejects registry packages missing integrity metadata", () => {
     const lock = VALID_LOCKFILE.replace(
-      "resolution: {integrity: sha512-Oijj2VwquFKy8j3r1XgN0Jvt0RqVnUcHLGznOh8nt4L5ukP9MrCVpEKo6r7dvVIL49ZylE6NfI5NgP/44pajEw==}",
-      "resolution: {}",
+      "integrity: sha512-Oijj2VwquFKy8j3r1XgN0Jvt0RqVnUcHLGznOh8nt4L5ukP9MrCVpEKo6r7dvVIL49ZylE6NfI5NgP/44pajEw==",
+      "",
     );
 
     expectLockfileFail(lock, /missing registry integrity/);

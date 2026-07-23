@@ -270,16 +270,16 @@ Published npm versions are immutable; do not rely on `npm unpublish`.
 
 ## Publishing `@mergesignal/scan-prep` (public)
 
-**Status:** graduation framework implemented; **first npmjs publication (`0.1.0`) pending manual interactive publish**.
+**Status:** `@mergesignal/scan-prep@0.1.0` was published manually to npmjs and verified. Future Scan Preparation versions use permanent GitHub Trusted Publishing via [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml). Do not republish `0.1.0` or move `scan-prep-v0.1.0`. Private-engine registry consumption remains a separate later operation.
 
-| Item                        | Authority                                                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Source                      | `mergesignal/packages/scan-prep`                                                                                    |
-| Registry                    | `registry.npmjs.org` (public)                                                                                       |
-| First publication (`0.1.0`) | Manual interactive `npm login` + 2FA — **no GitHub secret, no npm write token**                                     |
-| Permanent publication       | GitHub Trusted Publishing / OIDC via [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml) (`0.1.1+`) |
-| Published verification      | [verify-scan-prep-registry.yml](../.github/workflows/verify-scan-prep-registry.yml)                                 |
-| API contract                | [scan-prep-api.md](./scan-prep-api.md)                                                                              |
+| Item                        | Authority                                                                                                |
+| --------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Source                      | `mergesignal/packages/scan-prep`                                                                         |
+| Registry                    | `registry.npmjs.org` (public)                                                                            |
+| First publication (`0.1.0`) | Manual interactive `npm login` + 2FA — completed and verified on npmjs                                   |
+| Permanent publication       | GitHub Trusted Publishing / OIDC via [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml) |
+| Published verification      | [verify-scan-prep-registry.yml](../.github/workflows/verify-scan-prep-registry.yml)                      |
+| API contract                | [scan-prep-api.md](./scan-prep-api.md)                                                                   |
 
 ### Authentication model
 
@@ -293,25 +293,11 @@ Published npm versions are immutable; do not rely on `npm unpublish`.
 
 Do **not** use Shared’s `NPM_TOKEN` for Scan Preparation. There is no Scan Preparation bootstrap GitHub secret and no bootstrap token to revoke.
 
-### Two release groups (atomic commits)
+### Bootstrap public publication (`0.1.0`) — completed historical record
 
-**Release Group A — manual `0.1.0` baseline** (commit and tag first; **exclude** the OIDC publish workflow):
+`@mergesignal/scan-prep@0.1.0` was published manually with interactive `npm login` + 2FA, verified on npmjs, and tagged `scan-prep-v0.1.0`. That tag is immutable. Do not republish `0.1.0` or move the tag.
 
-- `packages/scan-prep/**` (implementation, export surface, tests)
-- `scripts/ci/check-scan-prep-*.ts`, `scripts/ci/pack-scan-prep-release-candidate.ts`, `scripts/ci/lib/scan-prep-pack-artifact.ts`, `scripts/ci/lib/scan-prep-isolated-install.ts`
-- `.github/workflows/verify-scan-prep-registry.yml`
-- `.github/workflows/ci.yml` (candidate validation gates)
-- `package.json` scripts, `pnpm-lock.yaml`
-- `docs/engineering/releasing.md`, `scan-prep-api.md`, `scan-prep-version-selection-checklist.md`, `packages/scan-prep/README.md`
-
-**Must not be in Group A:** `.github/workflows/publish-scan-prep.yml` — pushing tag `scan-prep-v0.1.0` while this workflow exists would attempt unconfigured OIDC.
-
-**Release Group B — OIDC proof (`0.1.1+`)** (after `0.1.0` is on npmjs and Trusted Publishing is configured):
-
-- `.github/workflows/publish-scan-prep.yml` (OIDC-only)
-- Final OIDC documentation updates in `releasing.md` if needed
-- `packages/scan-prep/package.json` version bump to `0.1.1` (separate reviewed commit when authority requires)
-- Tag `scan-prep-v0.1.1` to prove OIDC
+For all future versions, use the permanent Trusted Publishing procedure below.
 
 ### Pre-publish validation (local / CI)
 
@@ -349,49 +335,35 @@ Always use the exact resolved candidate and report paths printed by `pack:scan-p
 
 Before publication, compare the reported `integrity` digest with an independently calculated SHA-512 of the reported candidate file on disk immediately before publication.
 
-### Manual first publication (`@mergesignal/scan-prep@0.1.0`)
+### Permanent Scan Preparation publication (Trusted Publishing)
 
-After independent review, executable validation, and final graduation review:
+Prerequisites:
 
-1. Commit and push **Release Group A** only.
-2. Verify public CI is green.
-3. Create annotated tag on the Group A commit:
+1. `@mergesignal/scan-prep@0.1.0` is already published and registry-verified on npmjs.
+2. npm Trusted Publishing is configured for:
 
-   ```bash
-   git tag -a scan-prep-v0.1.0 -m "Publish @mergesignal/scan-prep@0.1.0"
-   ```
+| Field             | Value                    |
+| ----------------- | ------------------------ |
+| npm package       | `@mergesignal/scan-prep` |
+| Provider          | GitHub Actions           |
+| Organization      | `MergeSignal`            |
+| Repository        | `mergesignal`            |
+| Workflow filename | `publish-scan-prep.yml`  |
+| Allowed operation | `npm publish`            |
 
-4. Push the tag **only** when the tagged commit does not contain `publish-scan-prep.yml`.
-5. Check out the exact tagged commit in a clean working tree.
-6. Run `pnpm install --frozen-lockfile`.
-7. Build and test Scan Preparation.
-8. Produce the canonical release candidate (packs once, then validates artifact hygiene and isolated external-consumer install against that exact tarball):
+Publication properties:
 
-   ```bash
-   pnpm run pack:scan-prep-release-candidate -- --output-dir=/tmp/ms-scan-prep-0.1.0
-   ```
-
-   Use a fresh external output directory. The command fails if a prior target candidate or `.report.json` already exists in that directory.
-
-   Record the reported `candidate` path, `report` path, `integrity`, `artifactValidation`, `isolatedInstall`, and report JSON. Always use the exact resolved `candidate` and `report` paths printed by the command; do not reconstruct, convert, or guess them.
-
-9. Compare the candidate digest immediately before publication when practical. Independently calculate SHA-512 for the reported candidate file and confirm it matches the reported `integrity`.
-
-10. Confirm npm identity interactively (`npm whoami` after `npm login` on registry.npmjs.org).
-11. Publish the **exact** validated candidate tarball (do not rebuild, repack, edit, or pass through tooling that changes bytes):
-
-    ```bash
-    npm publish "<reported-resolved-candidate-path>" --access public
-    ```
-
-12. Complete npm’s interactive 2FA challenge in the terminal. Never place OTPs, passwords, or session tokens in source, scripts, workflows, or logs.
-13. Run read-only published verification:
-
-    ```bash
-    pnpm run check:scan-prep-published-registry -- --version=0.1.0
-    ```
-
-    Or dispatch [verify-scan-prep-registry.yml](../.github/workflows/verify-scan-prep-registry.yml).
+- Trigger: governed `scan-prep-vX.Y.Z` tag push only.
+- Authentication: GitHub OIDC only — **no stored npm write token**.
+- Candidate: `pack:scan-prep-release-candidate` produces the exact tarball and structured evidence report.
+- Evidence handoff: `assert:scan-prep-release-candidate-ready` writes structured publication evidence to a JSON file inside the fresh release output directory; the workflow parses that file structurally (not from `pnpm run` stdout).
+- Publication: `npm publish` uses that exact validated candidate tarball with `--access public`.
+- Pre-publication: version availability must be proven absent on npmjs; registry ambiguity fails closed.
+- Pre-publication: candidate integrity is re-checked from the structured report immediately before `npm publish`.
+- Post-publication: `check:scan-prep-published-registry` runs unauthenticated for the released version.
+- Recovery: if publication succeeds but registry verification fails, rerun [verify-scan-prep-registry.yml](../.github/workflows/verify-scan-prep-registry.yml) — read-only, never republish the same version.
+- Never move or recreate an existing Scan Preparation release tag.
+- Private-engine registry consumption is a separate operation.
 
 ### Trusted Publishing configuration (after `0.1.0`)
 
@@ -413,24 +385,14 @@ Configuration paths:
 - npmjs package **Settings → Trusted Publisher**; or
 - `npm trust github` when supported by the installed npm CLI (see `npm trust --help`).
 
-### OIDC proof release (`0.1.1`)
+### Maintainer release (Trusted Publishing)
 
-1. Confirm `0.1.0` published and externally verified.
-2. Configure Trusted Publishing (above).
-3. Commit and push **Release Group B** (includes OIDC workflow).
-4. Verify public CI.
-5. Bump version to `0.1.1` in a reviewed release commit when authority requires.
-6. Tag `scan-prep-v0.1.1` and push.
-7. Confirm [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml) publishes via OIDC with no npm token.
-8. Verify `0.1.1` via `check:scan-prep-published-registry` or verify workflow.
-9. Confirm no Scan Preparation write secret exists in GitHub or npm.
-
-### Maintainer release (`0.1.1+`)
-
-1. Bump `packages/scan-prep/package.json` version when release authority requires it.
-2. Commit reviewed source to `main` (with OIDC workflow present).
-3. Tag: `git tag scan-prep-vX.Y.Z` and `git push origin scan-prep-vX.Y.Z`.
-4. Workflow validates artifact, publishes from `pnpm pack` tarball with OIDC, then runs unauthenticated post-publish verification.
+1. Configure npm Trusted Publishing (above) before the first OIDC publication.
+2. Bump `packages/scan-prep/package.json` version when release authority requires it.
+3. Commit reviewed source to `main` (with [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml) present).
+4. Tag: `git tag scan-prep-vX.Y.Z` and `git push origin scan-prep-vX.Y.Z`.
+5. The workflow proves npmjs version availability, produces the governed release candidate (`pack:scan-prep-release-candidate`), writes structured publication evidence to a JSON file, re-validates candidate integrity from the structured report immediately before `npm publish`, publishes that exact tarball with OIDC, then runs unauthenticated post-publication verification.
+6. Confirm no Scan Preparation write secret exists in GitHub or npm.
 
 ### Post-publish recovery
 

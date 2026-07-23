@@ -3,7 +3,7 @@
 **Package:** `@mergesignal/scan-prep`  
 **Owning repository:** `MergeSignal/mergesignal`  
 **Architectural owner:** Scan Preparation (public ingress domain)  
-**Implementation status:** Public API freeze recorded. The public-package graduation and first-publication framework is **implemented and validated** (executable validation passed). `@mergesignal/scan-prep@0.1.0` is **not yet published** to npmjs. First publication remains pending: Group A commit, public CI, annotated tag, exact tagged candidate generation, manual interactive npm publication, and unauthenticated registry verification. GitHub OIDC publication is deferred to Group B after Trusted Publishing is configured. Engine registry consumption and private mirror removal remain deferred.
+**Implementation status:** Public API freeze recorded. The public-package graduation and first-publication framework is **implemented and validated**. `@mergesignal/scan-prep@0.1.0` is **published and registry-verified** on npmjs. Future Scan Preparation versions use permanent GitHub Trusted Publishing via [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml). Tag `scan-prep-v0.1.0` is immutable — do not move or republish `0.1.0`. Engine registry consumption and private mirror removal remain deferred separate operations.
 
 This document is the permanent public contract authority for `@mergesignal/scan-prep`. It does not describe private engine acquisition internals beyond the minimum ownership boundary required to establish privacy separation.
 
@@ -31,13 +31,13 @@ Scan Preparation **produces prepared evidence and uncertainties**. It does **not
 
 ## Ownership
 
-| Responsibility                                                             | Owner                                                                                    |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Canonical `@mergesignal/scan-prep` source                                  | `mergesignal/packages/scan-prep`                                                         |
-| Public worker consumption (today)                                          | `mergesignal/apps/worker` via `workspace:^`                                              |
-| Published npm artifact (target)                                            | `registry.npmjs.org` — **not yet published**                                             |
-| Private GitHub acquisition, tiered collection, installation-token handling | `mergesignal-engine` (Evidence Collection) — **private, engine-owned**                   |
-| Engine Scan Preparation copy (today)                                       | `mergesignal-engine/packages/scan-prep` — **local workspace copy; manual port required** |
+| Responsibility                                                             | Owner                                                                                                                                                                                                             |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Canonical `@mergesignal/scan-prep` source                                  | `mergesignal/packages/scan-prep`                                                                                                                                                                                  |
+| Public worker consumption (today)                                          | `mergesignal/apps/worker` via `workspace:^`                                                                                                                                                                       |
+| Published npm artifact                                                     | `registry.npmjs.org` — `@mergesignal/scan-prep@0.1.0` **published and registry-verified**; future versions via permanent Trusted Publishing ([publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml)) |
+| Private GitHub acquisition, tiered collection, installation-token handling | `mergesignal-engine` (Evidence Collection) — **private, engine-owned**                                                                                                                                            |
+| Engine Scan Preparation copy (today)                                       | `mergesignal-engine/packages/scan-prep` — **local workspace copy; manual port required**                                                                                                                          |
 
 **Dependency direction:**
 
@@ -139,7 +139,7 @@ The following categories are **explicitly rejected** from the published package:
 - Evidence planner coupling and collection-budget behavior.
 - Engine-private module names, heuristics, and restricted acquisition strategy.
 
-Privacy review is required before first publication. Published tarball inspection enforces architectural invariants at publication time via `check:scan-prep-pack-artifact` and `check:scan-prep-isolated-install`: no private implementation in distributable paths, approved exports only, and registry-compatible dependency declarations (no `workspace:`, `catalog:`, `file:`, or `link:` protocols in the packed manifest). Published registry parity verification activates after first npmjs publication (`check:scan-prep-published-registry`).
+Privacy review was required before the `0.1.0` bootstrap publication. Published tarball inspection enforces architectural invariants at publication time via `check:scan-prep-pack-artifact` and `check:scan-prep-isolated-install`: no private implementation in distributable paths, approved exports only, and registry-compatible dependency declarations (no `workspace:`, `catalog:`, `file:`, or `link:` protocols in the packed manifest). Published registry parity verification for `0.1.0` is complete (`check:scan-prep-published-registry`).
 
 ---
 
@@ -201,7 +201,7 @@ This section is the lifecycle authority for Scan Preparation documentation. Temp
 | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [scan-prep-api.md](./scan-prep-api.md) (this document)                                                                                                 | Permanent            | —                                                                                         | —                                                                                                                                                                              |
 | [scan-prep-migration.md](./scan-prep-migration.md)                                                                                                     | Temporary            | Engine registry consumption complete and `mergesignal-engine/packages/scan-prep/` removed | [PACKAGE_CONSUMPTION_RELEASE_ORDER.md](https://github.com/MergeSignal/mergesignal-engine/blob/main/docs/PACKAGE_CONSUMPTION_RELEASE_ORDER.md) + [releasing.md](./releasing.md) |
-| [scan-prep-version-selection-checklist.md](./scan-prep-version-selection-checklist.md)                                                                 | Temporary            | First `@mergesignal/scan-prep` npm publish completed                                      | `releasing.md` scan-prep section                                                                                                                                               |
+| [scan-prep-version-selection-checklist.md](./scan-prep-version-selection-checklist.md)                                                                 | Temporary            | First `@mergesignal/scan-prep` npm publish completed (**trigger satisfied** for `0.1.0`)  | `releasing.md` scan-prep section                                                                                                                                               |
 | [PACKAGE_CONSUMPTION_RELEASE_ORDER.md](https://github.com/MergeSignal/mergesignal-engine/blob/main/docs/PACKAGE_CONSUMPTION_RELEASE_ORDER.md)          | Skeleton → permanent | `IMPLEMENTATION_STATUS: active` after engine atomic migration                             | Operational consumption authority                                                                                                                                              |
 | [SHARED_PACKAGE_RELEASE_ORDER.md](https://github.com/MergeSignal/mergesignal-engine/blob/main/docs/SHARED_PACKAGE_RELEASE_ORDER.md) transition pointer | Temporary            | Generalized consumption doc becomes `active`                                              | [PACKAGE_CONSUMPTION_RELEASE_ORDER.md](https://github.com/MergeSignal/mergesignal-engine/blob/main/docs/PACKAGE_CONSUMPTION_RELEASE_ORDER.md)                                  |
 
@@ -221,12 +221,13 @@ This section is the lifecycle authority for Scan Preparation documentation. Temp
 
 ## Implementation status summary
 
-| Item                                             | Status                                                                                |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| Public API freeze (this document)                | **Recorded**                                                                          |
-| `./lockfile` subpath in published `package.json` | **Implemented** (unpublished)                                                         |
-| npm publication of `@mergesignal/scan-prep`      | **Framework ready** — manual `0.1.0` + OIDC `0.1.1+`; first publish pending           |
-| Artifact-identity enforcement                    | **Candidate pack + isolated install checks** — published parity pending first release |
-| Engine registry consumption                      | **Not yet active** — engine uses local `packages/scan-prep`                           |
-| Private collection relocation to worker boundary | **Implemented in engine** (not in this package)                                       |
-| Public corpus-fetch bounded alignment            | **Deferred** — engine-governed; unchanged by public core                              |
+| Item                                             | Status                                                                                                                                                                                                                                              |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public API freeze (this document)                | **Recorded**                                                                                                                                                                                                                                        |
+| `./lockfile` subpath in published `package.json` | **Published in `0.1.0`** on npmjs (included in the published package)                                                                                                                                                                               |
+| npm publication of `@mergesignal/scan-prep`      | **`0.1.0` complete** — manual bootstrap published and registry-verified on npmjs; do not republish `0.1.0` or move `scan-prep-v0.1.0`; future versions via permanent Trusted Publishing (**OIDC configuration and first proof pending**)            |
+| Artifact-identity enforcement                    | **Validated for `0.1.0`** — candidate pack, isolated install, and published-registry parity checks complete; normalized workspace-vs-registry comparison per [Artifact-identity doctrine](#artifact-identity-doctrine) remains **not yet enforced** |
+| npm Trusted Publishing (OIDC)                    | **Pending** — configure on npmjs; first future-version publication not yet executed                                                                                                                                                                 |
+| Engine registry consumption                      | **Not yet active** — engine uses local `packages/scan-prep` (separate operation)                                                                                                                                                                    |
+| Private collection relocation to worker boundary | **Implemented in engine** (not in this package)                                                                                                                                                                                                     |
+| Public corpus-fetch bounded alignment            | **Deferred** — engine-governed; unchanged by public core                                                                                                                                                                                            |

@@ -1,0 +1,202 @@
+# Publish @mergesignal/scan-prep to npmjs (public) on scan-prep-v* tags via GitHub OIDC.
+#
+# Prerequisites:
+#   1. @mergesignal/scan-prep@0.1.0 was published manually and verified on npmjs
+#   2. npm Trusted Publishing is configured for this workflow filename
+#
+# First publication (@0.1.0) is manual — see docs/engineering/releasing.md.
+#
+# Maintainer flow (subsequent versions):
+#   git tag scan-prep-vX.Y.Z
+#   git push origin scan-prep-vX.Y.Z
+#
+# Recovery: if publish succeeded but verification failed, run verify-scan-prep-registry.yml.
+
+name: Publish @mergesignal/scan-prep
+
+on:
+  push:
+    tags:
+      - "scan-prep-v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-scan-prep-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack install
+
+      - name: Verify Node and npm versions for OIDC
+        run: |
+          set -euo pipefail
+          NODE_VERSION="$(node -v | sed 's/^v//')"
+          REQUIRED_NODE='22.14.0'
+          NODE_VERSION="$NODE_VERSION" REQUIRED_NODE="$REQUIRED_NODE" node -e "
+            const current = process.env.NODE_VERSION.split('.').map(Number);
+            const required = process.env.REQUIRED_NODE.split('.').map(Number);
+            const ok =
+              current[0] > required[0] ||
+              (current[0] === required[0] &&
+                (current[1] > required[1] ||
+                  (current[1] === required[1] && current[2] >= required[2])));
+            if (!ok) {
+              console.error('Node must be >= ' + process.env.REQUIRED_NODE);
+              process.exit(1);
+            }
+          "
+          REQUIRED_NPM='11.5.1'
+          NPM_VERSION="$(npm -v)"
+          if ! NPM_VERSION="$NPM_VERSION" REQUIRED_NPM="$REQUIRED_NPM" node -e "
+            const current = process.env.NPM_VERSION.split('.').map(Number);
+            const required = process.env.REQUIRED_NPM.split('.').map(Number);
+            const ok =
+              current[0] > required[0] ||
+              (current[0] === required[0] &&
+                (current[1] > required[1] ||
+                  (current[1] === required[1] && current[2] >= required[2])));
+            process.exit(ok ? 0 : 1);
+          "; then
+            echo "Installing npm@${REQUIRED_NPM} for OIDC support"
+            npm install -g "npm@${REQUIRED_NPM}"
+          fi
+          echo "Node: $(node -v)"
+          echo "npm: $(npm -v)"
+
+      - name: Resolve version from tag
+        id: version
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#scan-prep-v}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$TAG" ]; then
+            echo "Tag must match scan-prep-vX.Y.Z (got: $TAG)" >&2
+            exit 1
+          fi
+          PKG_VERSION=$(node -p "require('./packages/scan-prep/package.json').version")
+          if [ "$PKG_VERSION" != "$VERSION" ]; then
+            echo "packages/scan-prep/package.json version ($PKG_VERSION) must match tag ($VERSION)" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Publishing version: $VERSION"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and test scan-prep package
+        run: |
+          pnpm -F @mergesignal/scan-prep build
+          pnpm -F @mergesignal/scan-prep test
+
+      - name: Validate scan-prep export surface
+        run: pnpm run check:scan-prep-export-surface
+
+      - name: Verify target version availability on npmjs
+        env:
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
+        run: |
+          set -euo pipefail
+          unset NODE_AUTH_TOKEN
+          unset NPM_CONFIG_USERCONFIG
+          pnpm run check:scan-prep-npmjs-version-availability -- --version=${{ steps.version.outputs.version }}
+
+      - name: Produce governed release candidate
+        id: candidate
+        run: |
+          set -euo pipefail
+          OUTPUT_DIR="$(mktemp -d)"
+          VERSION="${{ steps.version.outputs.version }}"
+          EVIDENCE_FILE="$OUTPUT_DIR/mergesignal-scan-prep-${VERSION}.tgz.publication-evidence.json"
+          pnpm run pack:scan-prep-release-candidate -- --output-dir="$OUTPUT_DIR"
+          pnpm run assert:scan-prep-release-candidate-ready -- \
+            --output-dir="$OUTPUT_DIR" \
+            --version="$VERSION" \
+            --json-output="$EVIDENCE_FILE"
+          EVIDENCE_FILE="$EVIDENCE_FILE" node <<'NODE'
+            const fs = require("node:fs");
+            const evidencePath = process.env.EVIDENCE_FILE;
+            if (!evidencePath || !fs.existsSync(evidencePath)) {
+              console.error("Publication evidence file missing:", evidencePath);
+              process.exit(1);
+            }
+            const raw = fs.readFileSync(evidencePath, "utf8");
+            let evidence;
+            try {
+              evidence = JSON.parse(raw);
+            } catch (error) {
+              console.error("Publication evidence file is not valid JSON:", evidencePath);
+              process.exit(1);
+            }
+            const required = [
+              "candidatePath",
+              "reportPath",
+              "package",
+              "version",
+              "digestSha512",
+              "integrity",
+            ];
+            for (const key of required) {
+              const value = evidence[key];
+              if (typeof value !== "string" || value.length === 0) {
+                console.error(`Publication evidence missing field: ${key}`);
+                process.exit(1);
+              }
+              if (value.includes("\n") || value.includes("\r")) {
+                console.error(`Publication evidence field contains newline: ${key}`);
+                process.exit(1);
+              }
+            }
+            const outputPath = process.env.GITHUB_OUTPUT;
+            fs.appendFileSync(outputPath, `candidate=${evidence.candidatePath}\n`);
+            fs.appendFileSync(outputPath, `report=${evidence.reportPath}\n`);
+          NODE
+
+      - name: Configure npmjs registry for OIDC publish
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          scope: "@mergesignal"
+
+      - name: Verify release candidate integrity before publication
+        run: |
+          set -euo pipefail
+          pnpm run assert:scan-prep-release-candidate-ready -- \
+            --report="${{ steps.candidate.outputs.report }}" \
+            --version=${{ steps.version.outputs.version }}
+
+      - name: Publish to npmjs (public) via OIDC
+        env:
+          NPM_CONFIG_PROVENANCE: "true"
+        run: |
+          set -euo pipefail
+          CANDIDATE="${{ steps.candidate.outputs.candidate }}"
+          if [ ! -f "$CANDIDATE" ]; then
+            echo "::error::Candidate tarball missing: $CANDIDATE" >&2
+            exit 1
+          fi
+          npm publish "$CANDIDATE" --access public
+
+      - name: Verify published registry artifact
+        env:
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
+          SCAN_PREP_PUBLISH_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          unset NODE_AUTH_TOKEN
+          unset NPM_CONFIG_USERCONFIG
+          pnpm run check:scan-prep-published-registry -- --version=${{ steps.version.outputs.version }}

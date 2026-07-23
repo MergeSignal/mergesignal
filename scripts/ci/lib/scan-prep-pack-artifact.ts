@@ -614,6 +614,183 @@ export function assertPackedScanPrepArtifactValid(
   }
 }
 
+export function expectedReleaseCandidateReportPath(
+  outputDir: string,
+  version: string,
+): string {
+  return releaseCandidateReportPath(
+    outputDir,
+    releaseCandidateTarballName(version),
+  );
+}
+
+type ReleaseCandidatePublicationEvidence = {
+  candidatePath: string;
+  reportPath: string;
+  package: string;
+  version: string;
+  digestSha512: string;
+  integrity: string;
+};
+
+const PUBLICATION_EVIDENCE_SUFFIX = ".publication-evidence.json";
+
+export function expectedReleaseCandidatePublicationEvidencePath(
+  outputDir: string,
+  version: string,
+): string {
+  return path.join(
+    outputDir,
+    `${releaseCandidateTarballName(version)}${PUBLICATION_EVIDENCE_SUFFIX}`,
+  );
+}
+
+function resolveContainedOutputFilePath(input: {
+  outputDir: string;
+  targetPath: string;
+  label: string;
+}): string {
+  const resolvedOutputDir = realpathSync(path.resolve(input.outputDir));
+  const absoluteTarget = path.resolve(input.targetPath);
+  const targetParent = path.dirname(absoluteTarget);
+  const resolvedParent = existsSync(targetParent)
+    ? realpathSync(targetParent)
+    : resolvedOutputDir;
+  const canonicalTarget = path.join(
+    resolvedParent,
+    path.basename(absoluteTarget),
+  );
+  const relative = path.relative(resolvedOutputDir, canonicalTarget);
+  if (
+    relative.startsWith("..") ||
+    path.isAbsolute(relative) ||
+    relative === ""
+  ) {
+    throw new Error(
+      `${input.label} must be a regular file inside the release output directory (${resolvedOutputDir})`,
+    );
+  }
+
+  if (existsSync(canonicalTarget)) {
+    const stat = lstatSync(canonicalTarget);
+    if (stat.isSymbolicLink()) {
+      throw new Error(`${input.label} must not be a symbolic link`);
+    }
+    if (!stat.isFile()) {
+      throw new Error(`${input.label} must be a regular file`);
+    }
+    throw new Error(`${input.label} already exists: ${canonicalTarget}`);
+  }
+
+  return canonicalTarget;
+}
+
+export function writeReleaseCandidatePublicationEvidence(input: {
+  evidencePath: string;
+  evidence: ReleaseCandidatePublicationEvidence;
+  outputDir?: string;
+}): void {
+  const evidencePath =
+    input.outputDir === undefined
+      ? path.resolve(input.evidencePath)
+      : resolveContainedOutputFilePath({
+          outputDir: input.outputDir,
+          targetPath: input.evidencePath,
+          label: "publication evidence file",
+        });
+
+  const payload = `${JSON.stringify(input.evidence)}\n`;
+  const tempEvidencePath = `${evidencePath}.tmp-${process.pid}`;
+  try {
+    writeFileSync(tempEvidencePath, payload);
+    renameSync(tempEvidencePath, evidencePath);
+  } catch (error) {
+    if (existsSync(evidencePath)) {
+      rmSync(evidencePath);
+    }
+    throw error;
+  } finally {
+    if (existsSync(tempEvidencePath)) {
+      rmSync(tempEvidencePath);
+    }
+  }
+}
+
+export function readReleaseCandidatePublicationEvidence(
+  evidencePath: string,
+): ReleaseCandidatePublicationEvidence {
+  const canonicalPath = resolveCanonicalReportPath(evidencePath);
+  const parsed = JSON.parse(
+    readFileSync(canonicalPath, "utf8"),
+  ) as ReleaseCandidatePublicationEvidence;
+
+  const requiredFields = [
+    "candidatePath",
+    "reportPath",
+    "package",
+    "version",
+    "digestSha512",
+    "integrity",
+  ] as const;
+  for (const field of requiredFields) {
+    const value = parsed[field];
+    if (typeof value !== "string" || value.trim() === "") {
+      throw new Error(`publication evidence missing or empty field: ${field}`);
+    }
+  }
+
+  return parsed;
+}
+
+export function assertReleaseCandidateReadyForPublication(input: {
+  reportPath: string;
+  expectedVersion: string;
+}): ReleaseCandidatePublicationEvidence {
+  const canonicalReportPath = resolveCanonicalReportPath(input.reportPath);
+  const report = readReleaseCandidateReport(canonicalReportPath);
+
+  if (report.package !== PACKAGE_NAME) {
+    throw new Error(
+      `release candidate report package must be ${PACKAGE_NAME} (got ${report.package})`,
+    );
+  }
+  if (report.version !== input.expectedVersion) {
+    throw new Error(
+      `release candidate report version must be ${input.expectedVersion} (got ${report.version})`,
+    );
+  }
+  if (report.artifactValidation !== "pass") {
+    throw new Error("release candidate report artifactValidation is not pass");
+  }
+  if (report.isolatedInstall !== "pass") {
+    throw new Error("release candidate report isolatedInstall is not pass");
+  }
+
+  const resolvedCandidatePath = resolveReleaseCandidatePath(
+    report.candidatePath,
+  );
+  if (report.candidatePath !== resolvedCandidatePath) {
+    throw new Error("release candidate report path mismatch");
+  }
+
+  const digestSha512 = digestSha512OfFile(resolvedCandidatePath);
+  if (report.digestSha512 !== digestSha512) {
+    throw new Error("release candidate report digest mismatch");
+  }
+  if (report.integrity !== `sha512-${digestSha512}`) {
+    throw new Error("release candidate report integrity mismatch");
+  }
+
+  return {
+    candidatePath: resolvedCandidatePath,
+    reportPath: canonicalReportPath,
+    package: report.package,
+    version: report.version,
+    digestSha512,
+    integrity: report.integrity,
+  };
+}
+
 export function writeReleaseCandidateReport(
   reportPath: string,
   result: ScanPrepPackResult,

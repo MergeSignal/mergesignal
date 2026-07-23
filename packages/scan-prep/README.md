@@ -53,7 +53,7 @@ CI enforces duplication guards via `scripts/ci/forbid-worker-prep-duplication.sh
 
 ## Publication
 
-`@mergesignal/scan-prep` is **not yet published** to npmjs. Graduation validation is implemented in this repository.
+`@mergesignal/scan-prep@0.1.0` is **published and registry-verified** on npmjs. Tag `scan-prep-v0.1.0` is immutable — do not republish `0.1.0` or move the tag. Future versions use permanent Trusted Publishing via [publish-scan-prep.yml](../../.github/workflows/publish-scan-prep.yml). npm Trusted Publisher configuration and the first OIDC-based future-version publication remain pending. Private-engine registry consumption is a separate operation.
 
 ### CI and pre-tag validation
 
@@ -64,11 +64,11 @@ These commands may independently pack candidates to validate repository readines
 - `pnpm run check:scan-prep-export-surface`
 - `pnpm run check:scan-prep-authority`
 
-They do **not** produce the tarball used for manual publication.
+They do **not** produce the governed release candidate used for publication.
 
-### Manual publication candidate
+### Governed release candidate
 
-The only command used to create the artifact later published is:
+The only command that creates the tarball published to npmjs is:
 
 ```bash
 pnpm run pack:scan-prep-release-candidate -- --output-dir=<fresh-external-directory>
@@ -88,14 +88,14 @@ npm publish "<reported-resolved-candidate-path>" --access public
 
 Do not rebuild, repack, or rerun a validator that creates another tarball.
 
-Read-only published verification: `pnpm run check:scan-prep-published-registry` or `.github/workflows/verify-scan-prep-registry.yml`
+Public registry verification (mandatory after publication): `pnpm run check:scan-prep-published-registry` or [verify-scan-prep-registry.yml](../../.github/workflows/verify-scan-prep-registry.yml). If publication succeeds but verification fails, rerun the read-only workflow — never republish the same version.
 
-**First publication (`0.1.0`):** manual interactive `npm login` + 2FA on registry.npmjs.org. Publish the exact validated candidate tarball from `pack:scan-prep-release-candidate`. **No GitHub secret. No npm write token.**
+**Bootstrap public publication (`0.1.0`):** completed manually with interactive `npm login` + 2FA on registry.npmjs.org. **No GitHub secret. No npm write token.**
 
-**Permanent publication (`0.1.1+`):** GitHub Trusted Publishing / OIDC via `.github/workflows/publish-scan-prep.yml` (Release Group B — add only after `0.1.0` exists and Trusted Publishing is configured).
+**Permanent publication (`0.1.1+`):** GitHub Trusted Publishing / OIDC via `.github/workflows/publish-scan-prep.yml` — publishes the governed release candidate with **no stored npm write token**. Configure npm Trusted Publishing before the first OIDC release.
 
 Shared’s existing `NPM_TOKEN` is for `@mergesignal/shared` only — do not use it for Scan Preparation.
 
-Public consumer installation requires **no npm authentication**. See [releasing.md](../../docs/engineering/releasing.md).
+Public consumer installation requires **no npm authentication**. Maintainer procedures: [releasing.md](../../docs/engineering/releasing.md).
 
 Permanent contract authority: [docs/engineering/scan-prep-api.md](../../docs/engineering/scan-prep-api.md).

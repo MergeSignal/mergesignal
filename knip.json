@@ -21,6 +21,8 @@
         "scripts/ci/check-scan-prep-pack-artifact.ts",
         "scripts/ci/check-scan-prep-isolated-install.ts",
         "scripts/ci/check-scan-prep-published-registry.ts",
+        "scripts/ci/check-scan-prep-npmjs-version-availability.ts",
+        "scripts/ci/assert-scan-prep-release-candidate-ready.ts",
         "scripts/ci/pack-scan-prep-release-candidate.ts"
       ]
     },

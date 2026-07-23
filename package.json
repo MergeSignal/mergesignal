@@ -21,6 +21,8 @@
     "check:scan-prep-pack-artifact": "pnpm -C packages/shared exec tsx ../../scripts/ci/check-scan-prep-pack-artifact.ts",
     "check:scan-prep-isolated-install": "pnpm -C packages/shared exec tsx ../../scripts/ci/check-scan-prep-isolated-install.ts",
     "check:scan-prep-published-registry": "pnpm -C packages/shared exec tsx ../../scripts/ci/check-scan-prep-published-registry.ts",
+    "check:scan-prep-npmjs-version-availability": "pnpm -C packages/shared exec tsx ../../scripts/ci/check-scan-prep-npmjs-version-availability.ts",
+    "assert:scan-prep-release-candidate-ready": "pnpm -C packages/shared exec tsx ../../scripts/ci/assert-scan-prep-release-candidate-ready.ts",
     "pack:scan-prep-release-candidate": "pnpm -C packages/shared exec tsx ../../scripts/ci/pack-scan-prep-release-candidate.ts",
     "check:shared-pack-artifact": "pnpm -C packages/shared exec tsx ../../scripts/ci/check-shared-pack-artifact.ts",
     "prepare": "husky",
