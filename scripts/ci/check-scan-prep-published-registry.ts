@@ -8,6 +8,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { assertPublishedRegistryConsumerLockfile } from "./lib/scan-prep-published-registry-lockfile.ts";
+import { cleanNpmEnv } from "./lib/scan-prep-npmjs-version-availability.ts";
 const PACKAGE_NAME = "@mergesignal/scan-prep";
 const EXPECTED_SHARED_VERSION = "0.13.0";
 const NPMJS_REGISTRY = "https://registry.npmjs.org/";
@@ -38,16 +39,44 @@ function run(command: string, cwd: string, env?: NodeJS.ProcessEnv): string {
   }).trim();
 }
 
-function view(version: string, field: string): string {
+function sleep(seconds: number): void {
+  execSync(`sleep ${seconds}`);
+}
+
+function viewOnce(version: string, field: string): string {
   return run(
-    `npm view ${PACKAGE_NAME}@${version} ${field} --registry=${NPMJS_REGISTRY}`,
+    `npm view ${PACKAGE_NAME}@${version} ${field} --registry=${NPMJS_REGISTRY} --prefer-online`,
     process.cwd(),
-    {
-      ...process.env,
-      NODE_AUTH_TOKEN: undefined,
-      NPM_TOKEN: undefined,
-    },
+    cleanNpmEnv(),
   );
+}
+
+function viewWithRetry(
+  version: string,
+  field: string,
+  maxAttempts = 12,
+): string {
+  let lastError: Error | undefined;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return viewOnce(version, field);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt < maxAttempts) {
+        process.stderr.write(
+          `  metadata lookup attempt ${attempt}/${maxAttempts} failed; retrying in 5s...\n`,
+        );
+        sleep(5);
+      }
+    }
+  }
+  throw (
+    lastError ?? new Error(`npm view failed for ${PACKAGE_NAME}@${version}`)
+  );
+}
+
+function view(version: string, field: string): string {
+  return viewWithRetry(version, field);
 }
 
 function verifyMetadata(version: string): void {
@@ -74,9 +103,7 @@ function verifyIsolatedInstall(version: string): void {
     path.join(tmpdir(), "ms-scan-prep-published-consumer-"),
   );
   const cleanEnv = {
-    ...process.env,
-    NODE_AUTH_TOKEN: undefined,
-    NPM_TOKEN: undefined,
+    ...cleanNpmEnv(),
     NPM_CONFIG_USERCONFIG: path.join(consumerDir, ".npmrc"),
   };
   try {
