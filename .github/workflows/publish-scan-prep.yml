@@ -68,8 +68,8 @@ jobs:
                   (current[1] === required[1] && current[2] >= required[2])));
             process.exit(ok ? 0 : 1);
           "; then
-            echo "Installing npm@${REQUIRED_NPM} for OIDC support"
-            npm install -g "npm@${REQUIRED_NPM}"
+            echo "Activating npm@${REQUIRED_NPM} via Corepack for OIDC support"
+            corepack prepare "npm@${REQUIRED_NPM}" --activate
           fi
           echo "Node: $(node -v)"
           echo "npm: $(npm -v)"
