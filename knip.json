@@ -8,7 +8,6 @@
     "scripts/ci/render-mergesignal-step-summary.mjs",
     "scripts/ci/render-mergesignal-failure-summary.mjs",
     "scripts/ci/audit-trusted-actions-output.mjs",
-    "scripts/check-no-private-contracts-dependency.ts",
     "scripts/check-pnpm-version-governance.ts",
     "scripts/docker/write-fixture-engine-manifest.mjs"
   ],
@@ -18,7 +17,11 @@
         "scripts/check-no-private-contracts-dependency.ts",
         "scripts/check-scan-prep-authority.ts",
         "scripts/check-scan-prep-export-surface.ts",
-        "scripts/ci/check-shared-pack-artifact.ts"
+        "scripts/ci/check-shared-pack-artifact.ts",
+        "scripts/ci/check-scan-prep-pack-artifact.ts",
+        "scripts/ci/check-scan-prep-isolated-install.ts",
+        "scripts/ci/check-scan-prep-published-registry.ts",
+        "scripts/ci/pack-scan-prep-release-candidate.ts"
       ]
     },
     "apps/cli": {

@@ -48,7 +48,7 @@ export type PackedScanPrepManifest = {
   publishConfig?: { registry?: string; access?: string };
 };
 
-export type ScanPrepArtifactValidationMode = "release" | "fixture";
+type ScanPrepArtifactValidationMode = "release" | "fixture";
 
 export type ScanPrepPackResult = {
   tarballPath: string;
@@ -88,7 +88,7 @@ export function readSourceManifest(): PackedScanPrepManifest {
   return JSON.parse(readSourcePackageJsonRaw()) as PackedScanPrepManifest;
 }
 
-export function resolveReleaseCandidatePath(candidatePath: string): string {
+function resolveReleaseCandidatePath(candidatePath: string): string {
   const absPath = path.resolve(candidatePath);
   if (!existsSync(absPath)) {
     throw new Error(`candidate tarball not found: ${absPath}`);
@@ -131,7 +131,7 @@ export function releaseCandidateReportPath(
   return path.join(outputDir, `${tarballName}.report.json`);
 }
 
-export function releaseCandidatePathsForVersion(
+function releaseCandidatePathsForVersion(
   outputDir: string,
   version: string,
 ): {
@@ -278,7 +278,7 @@ export function assertReleaseCandidateEvidenceCoherent(input: {
   }
 }
 
-export function removeReleaseCandidateReport(reportPath: string): void {
+function removeReleaseCandidateReport(reportPath: string): void {
   if (existsSync(reportPath)) {
     rmSync(reportPath);
   }

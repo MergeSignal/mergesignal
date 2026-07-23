@@ -24,7 +24,7 @@ function run(command: string, cwd: string, env?: NodeJS.ProcessEnv): string {
   }).trim();
 }
 
-export type IsolatedInstallResult = {
+type IsolatedInstallResult = {
   candidatePath: string;
   version: string;
   digestSha512: string;
