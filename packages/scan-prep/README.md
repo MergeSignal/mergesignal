@@ -53,7 +53,7 @@ CI enforces duplication guards via `scripts/ci/forbid-worker-prep-duplication.sh
 
 ## Publication
 
-`@mergesignal/scan-prep@0.1.0` is **published and registry-verified** on npmjs. Tag `scan-prep-v0.1.0` is immutable — do not republish `0.1.0` or move the tag. Future versions use permanent Trusted Publishing via [publish-scan-prep.yml](../../.github/workflows/publish-scan-prep.yml). npm Trusted Publisher configuration and the first OIDC-based future-version publication remain pending. Private-engine registry consumption is a separate operation.
+`@mergesignal/scan-prep@0.1.0` is **published and registry-verified** on npmjs (manual bootstrap). `@mergesignal/scan-prep@0.1.4` is the **OIDC Trusted Publishing proof release** — published and registry-verified via [publish-scan-prep.yml](../../.github/workflows/publish-scan-prep.yml) with no stored npm write token. Tag `scan-prep-v0.1.0` is immutable — do not republish `0.1.0` or move the tag. Private-engine registry consumption is a separate operation.
 
 ### CI and pre-tag validation
 
@@ -92,7 +92,7 @@ Public registry verification (mandatory after publication): `pnpm run check:scan
 
 **Bootstrap public publication (`0.1.0`):** completed manually with interactive `npm login` + 2FA on registry.npmjs.org. **No GitHub secret. No npm write token.**
 
-**Permanent publication (`0.1.1+`):** GitHub Trusted Publishing / OIDC via `.github/workflows/publish-scan-prep.yml` — publishes the governed release candidate with **no stored npm write token**. Configure npm Trusted Publishing before the first OIDC release.
+**Permanent publication (`0.1.1+`):** GitHub Trusted Publishing / OIDC via `.github/workflows/publish-scan-prep.yml` — publishes the governed release candidate with **no stored npm write token**. OIDC proof completed at `@mergesignal/scan-prep@0.1.4` (`scan-prep-v0.1.4`).
 
 Shared’s existing `NPM_TOKEN` is for `@mergesignal/shared` only — do not use it for Scan Preparation.
 

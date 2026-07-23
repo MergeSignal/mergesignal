@@ -270,7 +270,7 @@ Published npm versions are immutable; do not rely on `npm unpublish`.
 
 ## Publishing `@mergesignal/scan-prep` (public)
 
-**Status:** `@mergesignal/scan-prep@0.1.0` was published manually to npmjs and verified. Future Scan Preparation versions use permanent GitHub Trusted Publishing via [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml). Do not republish `0.1.0` or move `scan-prep-v0.1.0`. Private-engine registry consumption remains a separate later operation.
+**Status:** `@mergesignal/scan-prep@0.1.0` was published manually to npmjs and verified. `@mergesignal/scan-prep@0.1.4` is the **OIDC Trusted Publishing proof release** — published and registry-verified via [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml) with no stored npm write token. Future Scan Preparation versions use that same workflow. Do not republish `0.1.0` or move `scan-prep-v0.1.0`. Private-engine registry consumption remains a separate later operation.
 
 | Item                        | Authority                                                                                                |
 | --------------------------- | -------------------------------------------------------------------------------------------------------- |
@@ -340,7 +340,7 @@ Before publication, compare the reported `integrity` digest with an independentl
 Prerequisites:
 
 1. `@mergesignal/scan-prep@0.1.0` is already published and registry-verified on npmjs.
-2. npm Trusted Publishing is configured for:
+2. npm Trusted Publishing is configured and **proven** at `@mergesignal/scan-prep@0.1.4` (`scan-prep-v0.1.4`):
 
 | Field             | Value                    |
 | ----------------- | ------------------------ |
@@ -360,14 +360,14 @@ Publication properties:
 - Publication: `npm publish` uses that exact validated candidate tarball with `--access public`.
 - Pre-publication: version availability must be proven absent on npmjs; registry ambiguity fails closed.
 - Pre-publication: candidate integrity is re-checked from the structured report immediately before `npm publish`.
-- Post-publication: `check:scan-prep-published-registry` runs unauthenticated for the released version.
+- Post-publication: `check:scan-prep-published-registry` runs unauthenticated for the released version, with a clean npm environment and bounded retry for npm metadata propagation.
 - Recovery: if publication succeeds but registry verification fails, rerun [verify-scan-prep-registry.yml](../.github/workflows/verify-scan-prep-registry.yml) — read-only, never republish the same version.
 - Never move or recreate an existing Scan Preparation release tag.
 - Private-engine registry consumption is a separate operation.
 
-### Trusted Publishing configuration (after `0.1.0`)
+### Trusted Publishing configuration — proven at `0.1.4`
 
-Configure npm Trusted Publishing for:
+npm Trusted Publishing is configured for:
 
 | Field             | Value                    |
 | ----------------- | ------------------------ |
@@ -387,7 +387,7 @@ Configuration paths:
 
 ### Maintainer release (Trusted Publishing)
 
-1. Configure npm Trusted Publishing (above) before the first OIDC publication.
+1. npm Trusted Publishing is configured (above); first OIDC proof completed at `@mergesignal/scan-prep@0.1.4`.
 2. Bump `packages/scan-prep/package.json` version when release authority requires it.
 3. Commit reviewed source to `main` (with [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml) present).
 4. Tag: `git tag scan-prep-vX.Y.Z` and `git push origin scan-prep-vX.Y.Z`.
