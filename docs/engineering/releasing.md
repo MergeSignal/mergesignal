@@ -361,7 +361,9 @@ Publication properties:
 - Pre-publication: version availability must be proven absent on npmjs; registry ambiguity fails closed.
 - Pre-publication: candidate integrity is re-checked from the structured report immediately before `npm publish`.
 - Post-publication: `check:scan-prep-published-registry` runs unauthenticated for the released version, with a clean npm environment and bounded retry for npm metadata propagation.
+- Post-publication: verified releases emit `scan-prep-package-released` to mergesignal-engine (requires `MERGESIGNAL_ENGINE_DISPATCH_TOKEN` — see [Engine notification after Scan Preparation publish](#engine-notification-after-scan-preparation-publish)).
 - Recovery: if publication succeeds but registry verification fails, rerun [verify-scan-prep-registry.yml](../.github/workflows/verify-scan-prep-registry.yml) — read-only, never republish the same version.
+- Recovery: if publication and registry verification succeed but dispatch fails, rerun [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml) with **dispatch_only** and the exact published version — read-only, never republish the same version.
 - Never move or recreate an existing Scan Preparation release tag.
 - Private-engine registry consumption is a separate operation.
 
@@ -397,6 +399,33 @@ Configuration paths:
 ### Post-publish recovery
 
 If publication succeeds but verification fails, rerun [verify-scan-prep-registry.yml](../.github/workflows/verify-scan-prep-registry.yml) with the published version — read-only, no publish capability.
+
+If publication and registry verification succeed but engine dispatch fails, rerun [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml) with **dispatch_only** enabled and `version` set to the exact published semver (for example `0.1.4`). This re-verifies the immutable public tag and npm artifact, then resends the governed release event without republishing.
+
+### Engine notification after Scan Preparation publish
+
+After successful publication and registry verification, [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml) sends a `repository_dispatch` event to mergesignal-engine. The public repo **does not** modify the engine repository — it only publishes release metadata.
+
+**Event type:** `scan-prep-package-released`
+
+**Payload (`client_payload`):**
+
+| Field        | Type   | Description                             |
+| ------------ | ------ | --------------------------------------- |
+| `package`    | string | Always `@mergesignal/scan-prep`         |
+| `version`    | string | Published semver (e.g. `0.1.4`)         |
+| `tag`        | string | Release tag (e.g. `scan-prep-v0.1.4`)   |
+| `commit_sha` | string | Full git commit SHA for the release tag |
+
+**Required secret (mergesignal repo):** `MERGESIGNAL_ENGINE_DISPATCH_TOKEN`
+
+Do **not** reuse `MERGESIGNAL_ENGINE_REPO_TOKEN` (read-only engine checkout). Dispatch needs write access on the target repository.
+
+**Target repository:** repo variable `MERGESIGNAL_ENGINE_REPOSITORY` (default `MergeSignal/mergesignal-engine` when unset).
+
+**Failure behavior:** If dispatch fails, the publish workflow fails (red). npm publish is not rolled back — treat a failed run as “published but not notified.”
+
+**Dispatch-only recovery:** Actions → **Publish @mergesignal/scan-prep** → **Run workflow** → enable **dispatch_only** and set **version** to the exact published semver (for example `0.1.4` for the OIDC proof release). Recovery identity comes from the immutable `scan-prep-v<version>` tag, `packages/scan-prep/package.json` at the tagged commit, and the exact npm registry artifact — not from the current `main` workspace package version. Recovery verifies tag-backed full commit SHA and registry evidence before resending dispatch. Safe to repeat — payload identity (`package`, `version`, `tag`, `commit_sha`) remains immutable.
 
 ---
 

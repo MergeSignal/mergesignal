@@ -23,7 +23,9 @@
         "scripts/ci/check-scan-prep-published-registry.ts",
         "scripts/ci/check-scan-prep-npmjs-version-availability.ts",
         "scripts/ci/assert-scan-prep-release-candidate-ready.ts",
-        "scripts/ci/pack-scan-prep-release-candidate.ts"
+        "scripts/ci/pack-scan-prep-release-candidate.ts",
+        "scripts/ci/dispatch-scan-prep-package-released.ts",
+        "scripts/ci/verify-scan-prep-dispatch-recovery-evidence.ts"
       ]
     },
     "apps/cli": {

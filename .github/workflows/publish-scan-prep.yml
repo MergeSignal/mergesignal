@@ -1,16 +1,16 @@
 # Publish @mergesignal/scan-prep to npmjs (public) on scan-prep-v* tags via GitHub OIDC.
 #
-# Prerequisites:
-#   1. @mergesignal/scan-prep@0.1.0 was published manually and verified on npmjs
-#   2. npm Trusted Publishing is configured for this workflow filename
-#
-# First publication (@0.1.0) is manual — see docs/engineering/releasing.md.
+# After verified publication, sends repository_dispatch event `scan-prep-package-released`
+# to mergesignal-engine (see docs/engineering/releasing.md). Requires secret
+# MERGESIGNAL_ENGINE_DISPATCH_TOKEN. The workflow fails if dispatch cannot be sent.
 #
 # Maintainer flow (subsequent versions):
 #   git tag scan-prep-vX.Y.Z
 #   git push origin scan-prep-vX.Y.Z
 #
-# Recovery: if publish succeeded but verification failed, run verify-scan-prep-registry.yml.
+# Recovery: if publish succeeded but dispatch failed, run workflow_dispatch with
+# dispatch_only=true and version=X.Y.Z to verify the immutable release and resend
+# dispatch without republishing.
 
 name: Publish @mergesignal/scan-prep
 
@@ -18,18 +18,37 @@ on:
   push:
     tags:
       - "scan-prep-v*"
-
-permissions:
-  contents: read
-  id-token: write
+  workflow_dispatch:
+    inputs:
+      dispatch_only:
+        description: "Skip build/publish; verify published release and send engine dispatch (recovery)"
+        type: boolean
+        default: false
+      version:
+        description: "Published @mergesignal/scan-prep version (required when dispatch_only is true)"
+        required: false
+        type: string
 
 concurrency:
-  group: publish-scan-prep-${{ github.ref }}
+  group: publish-scan-prep-${{ github.event_name == 'workflow_dispatch' && format('dispatch-{0}', inputs.version) || github.ref }}
   cancel-in-progress: false
 
 jobs:
-  publish:
+  reject-manual-publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.dispatch_only != true
     runs-on: ubuntu-latest
+    steps:
+      - name: Reject unsupported manual publication
+        run: |
+          echo "::error::Manual workflow_dispatch supports dispatch_only recovery only. Push scan-prep-v* for publication."
+          exit 1
+
+  publish:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -74,6 +93,7 @@ jobs:
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Publishing version: $VERSION"
 
       - name: Install dependencies
@@ -151,7 +171,6 @@ jobs:
       - name: Configure npmjs registry for OIDC publish
         uses: actions/setup-node@v4
         with:
-          # Node 24 ships npm >= 11.5.1, required for npm Trusted Publishing OIDC.
           node-version: "24"
           registry-url: https://registry.npmjs.org
           scope: "@mergesignal"
@@ -187,6 +206,7 @@ jobs:
             --version=${{ steps.version.outputs.version }}
 
       - name: Publish to npmjs (public) via OIDC
+        id: publish
         env:
           NPM_CONFIG_PROVENANCE: "true"
         run: |
@@ -199,6 +219,8 @@ jobs:
           npm publish "$CANDIDATE" --access public
 
       - name: Verify published registry artifact
+        id: verify_registry
+        if: steps.publish.outcome == 'success'
         env:
           NODE_AUTH_TOKEN: ""
           NPM_TOKEN: ""
@@ -208,3 +230,89 @@ jobs:
           unset NODE_AUTH_TOKEN
           unset NPM_CONFIG_USERCONFIG
           pnpm run check:scan-prep-published-registry -- --version=${{ steps.version.outputs.version }}
+
+      - name: Notify engine repository
+        if: ${{ success() && steps.publish.outcome == 'success' && steps.verify_registry.outcome == 'success' }}
+        env:
+          MERGESIGNAL_ENGINE_DISPATCH_TOKEN: ${{ secrets.MERGESIGNAL_ENGINE_DISPATCH_TOKEN }}
+          MERGESIGNAL_ENGINE_REPOSITORY: ${{ vars.MERGESIGNAL_ENGINE_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${MERGESIGNAL_ENGINE_DISPATCH_TOKEN}" ]; then
+            echo "::error::MERGESIGNAL_ENGINE_DISPATCH_TOKEN secret is not set."
+            exit 1
+          fi
+          pnpm -C packages/shared exec tsx ../../scripts/ci/dispatch-scan-prep-package-released.ts \
+            --version="${{ steps.version.outputs.version }}" \
+            --tag="${{ steps.version.outputs.tag }}" \
+            --commit-sha="${{ github.sha }}"
+
+  dispatch-only:
+    if: github.event_name == 'workflow_dispatch' && inputs.dispatch_only == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack install
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate recovery version input
+        id: version
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            echo "::error::version input is required when dispatch_only is true." >&2
+            exit 1
+          fi
+          pnpm -C packages/shared exec tsx ../../scripts/ci/verify-scan-prep-dispatch-recovery-evidence.ts \
+            --version="$VERSION" >/tmp/scan-prep-recovery-evidence.log
+          TAG="scan-prep-v${VERSION}"
+          COMMIT_SHA="$(git rev-list -n 1 "${TAG}^{commit}")"
+          if [ "${#COMMIT_SHA}" -ne 40 ]; then
+            echo "::error::resolved commit SHA must be 40 characters (got: ${COMMIT_SHA})" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+          cat /tmp/scan-prep-recovery-evidence.log
+
+      - name: Verify published registry artifact
+        env:
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
+          SCAN_PREP_PUBLISH_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          unset NODE_AUTH_TOKEN
+          unset NPM_CONFIG_USERCONFIG
+          pnpm run check:scan-prep-published-registry -- --version=${{ steps.version.outputs.version }}
+
+      - name: Notify engine repository
+        env:
+          MERGESIGNAL_ENGINE_DISPATCH_TOKEN: ${{ secrets.MERGESIGNAL_ENGINE_DISPATCH_TOKEN }}
+          MERGESIGNAL_ENGINE_REPOSITORY: ${{ vars.MERGESIGNAL_ENGINE_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${MERGESIGNAL_ENGINE_DISPATCH_TOKEN}" ]; then
+            echo "::error::MERGESIGNAL_ENGINE_DISPATCH_TOKEN secret is not set."
+            exit 1
+          fi
+          pnpm -C packages/shared exec tsx ../../scripts/ci/dispatch-scan-prep-package-released.ts \
+            --version="${{ steps.version.outputs.version }}" \
+            --tag="${{ steps.version.outputs.tag }}" \
+            --commit-sha="${{ steps.version.outputs.commit_sha }}"
