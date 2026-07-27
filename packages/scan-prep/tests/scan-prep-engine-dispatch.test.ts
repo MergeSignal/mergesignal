@@ -93,27 +93,79 @@ function writeScanPrepPackageManifest(
   return packageJsonPath;
 }
 
+function initHermeticRepository(tempPrefix: string): string {
+  const repoDir = mkdtempSync(path.join(tmpdir(), tempPrefix));
+  runInRepository(repoDir, "git init");
+  runInRepository(repoDir, 'git config user.email "scan-prep@test.local"');
+  runInRepository(repoDir, 'git config user.name "Scan Prep Recovery Test"');
+  return repoDir;
+}
+
+function commitScanPrepPackageVersion(
+  repoDir: string,
+  version: string,
+  commitMessage: string,
+): string {
+  writeScanPrepPackageManifest(repoDir, version);
+  runInRepository(repoDir, "git add .");
+  runInRepository(repoDir, `git commit -m ${JSON.stringify(commitMessage)}`);
+  return runInRepository(repoDir, "git rev-parse HEAD");
+}
+
+function tagAnnotatedRelease(repoDir: string, version: string): void {
+  runInRepository(
+    repoDir,
+    `git tag -a scan-prep-v${version} -m ${JSON.stringify(`scan-prep ${version}`)}`,
+  );
+}
+
+function createAnnotatedReleaseRepository(version: string): {
+  repoDir: string;
+  releaseCommitSha: string;
+} {
+  const repoDir = initHermeticRepository("scan-prep-release-repo-");
+  const releaseCommitSha = commitScanPrepPackageVersion(
+    repoDir,
+    version,
+    `release scan-prep ${version}`,
+  );
+  tagAnnotatedRelease(repoDir, version);
+  return { repoDir, releaseCommitSha };
+}
+
 function createDivergentRecoveryRepository(): {
   repoDir: string;
   releaseCommitSha: string;
 } {
-  const repoDir = mkdtempSync(path.join(tmpdir(), "scan-prep-recovery-repo-"));
-
-  runInRepository(repoDir, "git init");
-  runInRepository(repoDir, 'git config user.email "scan-prep@test.local"');
-  runInRepository(repoDir, 'git config user.name "Scan Prep Recovery Test"');
-
-  writeScanPrepPackageManifest(repoDir, "0.1.4");
-  runInRepository(repoDir, "git add .");
-  runInRepository(repoDir, 'git commit -m "release scan-prep 0.1.4"');
-  const releaseCommitSha = runInRepository(repoDir, "git rev-parse HEAD");
-  runInRepository(repoDir, 'git tag -a scan-prep-v0.1.4 -m "scan-prep 0.1.4"');
-
-  writeScanPrepPackageManifest(repoDir, "0.1.5");
-  runInRepository(repoDir, "git add .");
-  runInRepository(repoDir, 'git commit -m "advance workspace to 0.1.5"');
-
+  const repoDir = initHermeticRepository("scan-prep-recovery-repo-");
+  const releaseCommitSha = commitScanPrepPackageVersion(
+    repoDir,
+    "0.1.4",
+    "release scan-prep 0.1.4",
+  );
+  tagAnnotatedRelease(repoDir, "0.1.4");
+  commitScanPrepPackageVersion(repoDir, "0.1.5", "advance workspace to 0.1.5");
   return { repoDir, releaseCommitSha };
+}
+
+function createTaggedVersionMismatchRepository(): { repoDir: string } {
+  const repoDir = initHermeticRepository("scan-prep-mismatch-repo-");
+  commitScanPrepPackageVersion(
+    repoDir,
+    "0.1.5",
+    "tagged commit package version mismatch",
+  );
+  tagAnnotatedRelease(repoDir, "0.1.4");
+  return { repoDir };
+}
+
+function verifyRecoveryEvidenceInRepository(
+  repoDir: string,
+  version: string,
+): ReturnType<typeof verifyScanPrepDispatchRecoveryEvidence> {
+  return verifyScanPrepDispatchRecoveryEvidence(version, {
+    run: (command, cwd) => runInRepository(repoDir, command, cwd),
+  });
 }
 
 function readRecoveryEvidenceModuleSource(): string {
@@ -252,10 +304,32 @@ describe("scan-prep engine dispatch payload", () => {
 
 describe("scan-prep dispatch recovery evidence", () => {
   it("verifies tag-backed evidence for the published 0.1.4 release", () => {
-    const evidence = verifyScanPrepDispatchRecoveryEvidence("0.1.4");
-    expect(evidence.version).toBe("0.1.4");
-    expect(evidence.tag).toBe("scan-prep-v0.1.4");
-    expect(evidence.commitSha).toMatch(/^[0-9a-f]{40}$/);
+    const { repoDir, releaseCommitSha } =
+      createAnnotatedReleaseRepository("0.1.4");
+
+    try {
+      expect(runInRepository(repoDir, "git cat-file -t scan-prep-v0.1.4")).toBe(
+        "tag",
+      );
+
+      const evidence = verifyRecoveryEvidenceInRepository(repoDir, "0.1.4");
+
+      expect(evidence.version).toBe("0.1.4");
+      expect(evidence.tag).toBe("scan-prep-v0.1.4");
+      expect(evidence.commitSha).toBe(releaseCommitSha);
+      expect(evidence.commitSha).toMatch(/^[0-9a-f]{40}$/);
+
+      const taggedCommitManifest = JSON.parse(
+        runInRepository(
+          repoDir,
+          `git show ${evidence.commitSha}:packages/scan-prep/package.json`,
+        ),
+      ) as { name: string; version: string };
+      expect(taggedCommitManifest.name).toBe(SCAN_PREP_PACKAGE_NAME);
+      expect(taggedCommitManifest.version).toBe("0.1.4");
+    } finally {
+      rmSync(repoDir, { recursive: true, force: true });
+    }
   });
 
   it("recovers 0.1.4 when the workspace package version has advanced to 0.1.5", () => {
@@ -282,9 +356,7 @@ describe("scan-prep dispatch recovery evidence", () => {
       ) as { name: string; version: string };
       expect(headManifest.version).toBe("0.1.5");
 
-      const evidence = verifyScanPrepDispatchRecoveryEvidence("0.1.4", {
-        run: (command, cwd) => runInRepository(repoDir, command, cwd),
-      });
+      const evidence = verifyRecoveryEvidenceInRepository(repoDir, "0.1.4");
 
       expect(evidence.version).toBe("0.1.4");
       expect(evidence.tag).toBe("scan-prep-v0.1.4");
@@ -316,22 +388,15 @@ describe("scan-prep dispatch recovery evidence", () => {
   });
 
   it("rejects package version mismatch at the tagged commit", () => {
-    expect(() =>
-      verifyScanPrepDispatchRecoveryEvidence("0.1.4", {
-        run: (command) => {
-          if (
-            command.includes("git show") &&
-            command.includes("package.json")
-          ) {
-            return JSON.stringify({
-              name: SCAN_PREP_PACKAGE_NAME,
-              version: "0.1.5",
-            });
-          }
-          return realRun(command);
-        },
-      }),
-    ).toThrow(/must match requested version/);
+    const { repoDir } = createTaggedVersionMismatchRepository();
+
+    try {
+      expect(() =>
+        verifyRecoveryEvidenceInRepository(repoDir, "0.1.4"),
+      ).toThrow(/must match requested version/);
+    } finally {
+      rmSync(repoDir, { recursive: true, force: true });
+    }
   });
 });
 
