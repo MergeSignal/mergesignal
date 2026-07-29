@@ -369,6 +369,8 @@ export const scanSurfaceCopy = {
     toolingPatchHeadline: "{package} patch upgrade",
     toolingUpgradeHeadline: "{package} tooling upgrade",
     runtimeUpgradeHeadline: "{package} runtime upgrade affects {surface}",
+    unresolvedRuntimeExposureHeadline:
+      "{package} upgrade leaves unresolved exposure on {surface}",
     safeNeutralHeadline: "{package} dependency upgrade",
     defaultUpgradeHeadline: "{package} dependency upgrade needs review",
     changedPackageKeyPoint: "Changed package: {package}",

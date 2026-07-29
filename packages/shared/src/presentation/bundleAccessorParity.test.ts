@@ -128,7 +128,7 @@ describe("V1 bundle transport: public bundle matches contracts extractor", () =>
           "A passing automated verification for this dimension would make this deterministic.",
         concerns: [
           {
-            kind: "confirmed_runtime_usage",
+            kind: "unresolved_runtime_exposure",
             rank: 1,
             packages: ["pkg-a"],
             evidenceRefs: [],

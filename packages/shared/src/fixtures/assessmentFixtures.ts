@@ -106,16 +106,16 @@ export const assessmentFastifyRuntime: Assessment = withAssessmentScope(
   {
     posture: "needs_review",
     confidence: "medium",
-    primaryConcern: "confirmed_runtime_usage",
+    primaryConcern: "unresolved_runtime_exposure",
     concerns: [
       {
-        kind: "confirmed_runtime_usage",
+        kind: "unresolved_runtime_exposure",
         rank: 1,
         packages: ["fastify"],
         evidenceRefs: ["fixture:fastify"],
       },
     ],
-    factors: ["confirmed_runtime_usage", "http_framework_infrastructure"],
+    factors: ["unresolved_runtime_exposure", "http_framework_infrastructure"],
     changeClasses: ["runtime_upgrade"],
     presentation: runtimeReviewPresentation,
   },
@@ -133,17 +133,17 @@ export const assessmentBullmq: Assessment = withAssessmentScope(
   {
     posture: "needs_review",
     confidence: "medium",
-    primaryConcern: "confirmed_runtime_usage",
+    primaryConcern: "unresolved_runtime_exposure",
     concerns: [
       {
-        kind: "confirmed_runtime_usage",
+        kind: "unresolved_runtime_exposure",
         rank: 1,
         packages: ["bullmq"],
         evidenceRefs: ["fixture:bullmq"],
       },
     ],
     factors: [
-      "confirmed_runtime_usage",
+      "unresolved_runtime_exposure",
       "queue_infrastructure",
       "verification_required",
     ],
@@ -164,16 +164,16 @@ export const assessmentNextAuth: Assessment = withAssessmentScope(
   {
     posture: "needs_review",
     confidence: "medium",
-    primaryConcern: "confirmed_runtime_usage",
+    primaryConcern: "unresolved_runtime_exposure",
     concerns: [
       {
-        kind: "confirmed_runtime_usage",
+        kind: "unresolved_runtime_exposure",
         rank: 1,
         packages: ["next-auth"],
         evidenceRefs: ["fixture:nextauth"],
       },
     ],
-    factors: ["confirmed_runtime_usage", "auth_infrastructure"],
+    factors: ["unresolved_runtime_exposure", "auth_infrastructure"],
     changeClasses: ["runtime_upgrade"],
     presentation: runtimeReviewPresentation,
   },
@@ -192,17 +192,17 @@ export const assessmentMixedTypescriptFastify: Assessment = withAssessmentScope(
   {
     posture: "needs_review",
     confidence: "medium",
-    primaryConcern: "confirmed_runtime_usage",
+    primaryConcern: "unresolved_runtime_exposure",
     concerns: [
       {
-        kind: "confirmed_runtime_usage",
+        kind: "unresolved_runtime_exposure",
         rank: 1,
         packages: ["fastify"],
         evidenceRefs: ["fixture:fastify"],
       },
     ],
     factors: [
-      "confirmed_runtime_usage",
+      "unresolved_runtime_exposure",
       "queue_infrastructure",
       "http_framework_infrastructure",
     ],

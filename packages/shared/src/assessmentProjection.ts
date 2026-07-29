@@ -164,9 +164,9 @@ export function formatAssessmentHeadline(
     return applyPostureVocabularyGuardHeadline(headline, status, primaryPkg);
   }
 
-  if (assessment.primaryConcern === "confirmed_runtime_usage") {
+  if (assessment.primaryConcern === "unresolved_runtime_exposure") {
     const surface = surfaceHintFromAssessment(assessment);
-    const headline = copy.runtimeUpgradeHeadline
+    const headline = copy.unresolvedRuntimeExposureHeadline
       .replace("{package}", primaryPkg)
       .replace("{surface}", surface);
     return applyPostureVocabularyGuardHeadline(headline, status, primaryPkg);

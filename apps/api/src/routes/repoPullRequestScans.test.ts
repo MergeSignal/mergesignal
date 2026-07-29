@@ -292,16 +292,16 @@ describe("repoPullRequestScansRoutes", () => {
             assessment: testAssessment("lodash", {
               posture: "risky",
               confidence: "medium",
-              primaryConcern: "confirmed_runtime_usage",
+              primaryConcern: "unresolved_runtime_exposure",
               concerns: [
                 {
-                  kind: "confirmed_runtime_usage",
+                  kind: "unresolved_runtime_exposure",
                   rank: 1,
                   packages: ["lodash"],
                   evidenceRefs: ["test"],
                 },
               ],
-              factors: ["confirmed_runtime_usage"],
+              factors: ["unresolved_runtime_exposure"],
               changeClasses: ["runtime_upgrade"],
               presentation: {
                 narrativeIntensity: "elevated",
@@ -361,16 +361,16 @@ describe("repoPullRequestScansRoutes", () => {
             assessment: testAssessment("auth-lib", {
               posture: "needs_review",
               confidence: "medium",
-              primaryConcern: "confirmed_runtime_usage",
+              primaryConcern: "unresolved_runtime_exposure",
               concerns: [
                 {
-                  kind: "confirmed_runtime_usage",
+                  kind: "unresolved_runtime_exposure",
                   rank: 1,
                   packages: ["auth-lib"],
                   evidenceRefs: ["test"],
                 },
               ],
-              factors: ["confirmed_runtime_usage"],
+              factors: ["unresolved_runtime_exposure"],
               changeClasses: ["runtime_upgrade"],
               presentation: {
                 narrativeIntensity: "elevated",

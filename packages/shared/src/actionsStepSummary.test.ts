@@ -22,7 +22,7 @@ const sampleResult: ScanResult = {
     recommendation: "needs_review",
     confidence: "medium",
     reasoning: [
-      "Changed package has confirmed usage on runtime application paths in this repository.",
+      "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge.",
     ],
   },
 };

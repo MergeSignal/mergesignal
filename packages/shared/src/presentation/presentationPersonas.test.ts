@@ -80,7 +80,7 @@ const personas: PersonaExpectation[] = [
     intent: "runtime_upgrade",
     status: "needs_review",
     density: "rich",
-    headlineMatch: /runtime upgrade affects/i,
+    headlineMatch: /leaves unresolved exposure/i,
     verificationIncludes: ["routes", "middleware"],
   },
   {
@@ -89,7 +89,7 @@ const personas: PersonaExpectation[] = [
     intent: "auth_runtime_upgrade",
     status: "needs_review",
     density: "rich",
-    headlineMatch: /runtime upgrade affects/i,
+    headlineMatch: /leaves unresolved exposure/i,
     verificationIncludes: ["auth_flow"],
   },
   {
@@ -98,7 +98,7 @@ const personas: PersonaExpectation[] = [
     intent: "queue_runtime_upgrade",
     status: "needs_review",
     density: "rich",
-    headlineMatch: /runtime upgrade affects/i,
+    headlineMatch: /leaves unresolved exposure/i,
     verificationIncludes: ["workers", "queue"],
   },
   {

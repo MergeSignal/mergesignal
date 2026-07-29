@@ -98,17 +98,17 @@ function assessmentWithElectionSummary(): Assessment {
     {
       posture: "needs_review",
       confidence: "medium",
-      primaryConcern: "confirmed_runtime_usage",
+      primaryConcern: "unresolved_runtime_exposure",
       concerns: [
         {
-          kind: "confirmed_runtime_usage",
+          kind: "unresolved_runtime_exposure",
           rank: 1,
           packages: ["fastify"],
           evidenceRefs: [],
           context: "Runtime usage: `fastify` — used in HTTP request handling.",
         },
       ],
-      factors: ["confirmed_runtime_usage"],
+      factors: ["unresolved_runtime_exposure"],
       changeClasses: ["runtime_upgrade"],
       presentation: {
         narrativeIntensity: "standard",
@@ -161,9 +161,9 @@ function assessmentUncontestedElection(): Assessment {
     {
       posture: "needs_review",
       confidence: "medium",
-      primaryConcern: "confirmed_runtime_usage",
+      primaryConcern: "unresolved_runtime_exposure",
       concerns: [],
-      factors: ["confirmed_runtime_usage"],
+      factors: ["unresolved_runtime_exposure"],
       changeClasses: ["runtime_upgrade"],
       presentation: {
         narrativeIntensity: "standard",
@@ -189,9 +189,9 @@ function assessmentWithQ8Q9(): Assessment {
     {
       posture: "needs_review",
       confidence: "medium",
-      primaryConcern: "confirmed_runtime_usage",
+      primaryConcern: "unresolved_runtime_exposure",
       concerns: [],
-      factors: ["confirmed_runtime_usage"],
+      factors: ["unresolved_runtime_exposure"],
       changeClasses: ["runtime_upgrade"],
       outcome: "bounded_verify",
       presentation: {

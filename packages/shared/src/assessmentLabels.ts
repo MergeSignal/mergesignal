@@ -2,7 +2,7 @@ import type { MergeConcernKind } from "./assessment/types.js";
 
 /** Display labels for factor tokens (mirrors engine factor-registry labels). */
 export const ASSESSMENT_FACTOR_LABELS: Record<string, string> = {
-  confirmed_runtime_usage: "Confirmed runtime usage",
+  unresolved_runtime_exposure: "Unresolved runtime exposure",
   queue_infrastructure: "Queue infrastructure",
   http_framework_infrastructure: "HTTP framework infrastructure",
   auth_infrastructure: "Authentication infrastructure",
@@ -23,8 +23,8 @@ export const ASSESSMENT_FACTOR_LABELS: Record<string, string> = {
 };
 
 export const MERGE_CONCERN_LABELS: Record<MergeConcernKind, string> = {
-  confirmed_runtime_usage:
-    "Changed package has confirmed usage on runtime application paths in this repository.",
+  unresolved_runtime_exposure:
+    "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge.",
   security_finding:
     "Security advisory or vulnerability finding affects changed dependencies.",
   breaking_or_major:

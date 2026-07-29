@@ -169,9 +169,9 @@ function decisionForAssessment(assessment: Assessment): ScanResult["decision"] {
         ? [
             "No dedicated dependency review required beyond normal engineering process.",
           ]
-        : assessment.primaryConcern === "confirmed_runtime_usage"
+        : assessment.primaryConcern === "unresolved_runtime_exposure"
           ? [
-              "Changed package has confirmed usage on runtime application paths in this repository.",
+              "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge.",
             ]
           : ["Explicit human review warranted before merge."],
   };
@@ -233,7 +233,7 @@ export const scanResultBullmq: ScanResult = scanBase(assessmentBullmq, {
     recommendation: "needs_review",
     confidence: "medium",
     reasoning: [
-      "Changed package has confirmed usage on runtime application paths in this repository.",
+      "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge.",
       "Queue infrastructure",
       "Verification focus required",
     ],

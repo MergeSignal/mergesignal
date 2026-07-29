@@ -43,7 +43,7 @@ describe("engine wire regression (canonical fixtures)", () => {
         recommendation: "needs_review" as const,
         confidence: "medium" as const,
         reasoning: [
-          "Changed package has confirmed usage on runtime application paths in this repository.",
+          "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge.",
         ],
       },
     } satisfies ScanResult;

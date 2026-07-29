@@ -35,16 +35,16 @@ const minimalAbi3Assessment = {
   },
   posture: "needs_review" as const,
   confidence: "medium" as const,
-  primaryConcern: "confirmed_runtime_usage" as const,
+  primaryConcern: "unresolved_runtime_exposure" as const,
   concerns: [
     {
-      kind: "confirmed_runtime_usage" as const,
+      kind: "unresolved_runtime_exposure" as const,
       rank: 1,
       packages: ["fastify"],
       evidenceRefs: ["semantics:fastify"],
     },
   ],
-  factors: ["confirmed_runtime_usage"],
+  factors: ["unresolved_runtime_exposure"],
   changeClasses: ["runtime_upgrade" as const],
   presentation: {
     narrativeIntensity: "standard" as const,
@@ -86,6 +86,47 @@ describe("assessmentSchema (ABI 4 — backward-compatible)", () => {
   it("accepts a minimal valid ABI 3 Assessment", () => {
     const parsed = assessmentSchema.safeParse(minimalAbi3Assessment);
     expect(parsed.success).toBe(true);
+  });
+
+  it("rejects removed confirmed_runtime_usage in primaryConcern", () => {
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      primaryConcern: "confirmed_runtime_usage",
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("rejects removed confirmed_runtime_usage in concerns[].kind", () => {
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      concerns: [
+        {
+          kind: "confirmed_runtime_usage",
+          rank: 1,
+          packages: ["fastify"],
+          evidenceRefs: ["semantics:fastify"],
+        },
+      ],
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("parseAssessmentOrThrow rejects removed confirmed_runtime_usage in primaryConcern", () => {
+    expect(() =>
+      parseAssessmentOrThrow({
+        ...minimalAbi3Assessment,
+        primaryConcern: "confirmed_runtime_usage",
+      }),
+    ).toThrow();
+  });
+
+  it("accepts unresolved_runtime_exposure in primaryConcern and concerns", () => {
+    const parsed = assessmentSchema.safeParse(minimalAbi3Assessment);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.primaryConcern).toBe("unresolved_runtime_exposure");
+      expect(parsed.data.concerns[0]?.kind).toBe("unresolved_runtime_exposure");
+    }
   });
 
   it("rejects ABI 3 payload missing required reasoning field", () => {
@@ -180,7 +221,7 @@ function minimalAssessment(overrides: Partial<Assessment> = {}): Assessment {
     primaryConcern: null,
     concerns: [
       {
-        kind: "confirmed_runtime_usage",
+        kind: "unresolved_runtime_exposure",
         rank: 1,
         packages: ["pkg-a"],
         evidenceRefs: [],
@@ -226,7 +267,7 @@ describe("extractAuthoredCommunication", () => {
     const assessment = minimalAssessment({
       concerns: [
         {
-          kind: "confirmed_runtime_usage",
+          kind: "unresolved_runtime_exposure",
           rank: 1,
           packages: ["pkg-a"],
           evidenceRefs: [],

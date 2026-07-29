@@ -19,7 +19,7 @@ export const CHANGE_CLASSES = [
 
 /** Structured merge concern kinds. */
 export const MERGE_CONCERN_KINDS = [
-  "confirmed_runtime_usage",
+  "unresolved_runtime_exposure",
   "security_finding",
   "breaking_or_major",
   "behavioral_change",

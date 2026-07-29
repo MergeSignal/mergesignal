@@ -133,10 +133,10 @@
   },
   "fastifyRuntime": {
     "posture": "needs_review",
-    "primaryConcern": "confirmed_runtime_usage",
-    "factors": ["confirmed_runtime_usage", "http_framework_infrastructure"],
+    "primaryConcern": "unresolved_runtime_exposure",
+    "factors": ["unresolved_runtime_exposure", "http_framework_infrastructure"],
     "reasoning": [
-      "Changed package has confirmed usage on runtime application paths in this repository.",
+      "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge.",
       "HTTP framework infrastructure"
     ],
     "verificationFocus": ["routes", "middleware"],
@@ -148,9 +148,9 @@
       "postureLabel": "Needs review",
       "scopeLabel": "Moderate reach"
     },
-    "headline": "fastify runtime upgrade affects application code",
+    "headline": "fastify upgrade leaves unresolved exposure on application code",
     "insights": [
-      "Changed package has confirmed usage on runtime application paths in this repository.",
+      "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge.",
       "HTTP framework infrastructure"
     ],
     "scopeAreas": ["API request handling", "Auth middleware"],
@@ -170,10 +170,10 @@
   },
   "nextAuth": {
     "posture": "needs_review",
-    "primaryConcern": "confirmed_runtime_usage",
-    "factors": ["confirmed_runtime_usage", "auth_infrastructure"],
+    "primaryConcern": "unresolved_runtime_exposure",
+    "factors": ["unresolved_runtime_exposure", "auth_infrastructure"],
     "reasoning": [
-      "Changed package has confirmed usage on runtime application paths in this repository."
+      "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge."
     ],
     "verificationFocus": ["auth_flow", "session", "routes"],
     "verificationChannel": "runtime",
@@ -184,9 +184,9 @@
       "postureLabel": "Needs review",
       "scopeLabel": "Moderate reach"
     },
-    "headline": "next-auth runtime upgrade affects authentication flows",
+    "headline": "next-auth upgrade leaves unresolved exposure on authentication flows",
     "insights": [
-      "Changed package has confirmed usage on runtime application paths in this repository."
+      "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge."
     ],
     "scopeAreas": ["authentication flows"],
     "verification": ["Verify auth_flow", "Verify session"],
@@ -205,14 +205,14 @@
   },
   "bullmq": {
     "posture": "needs_review",
-    "primaryConcern": "confirmed_runtime_usage",
+    "primaryConcern": "unresolved_runtime_exposure",
     "factors": [
-      "confirmed_runtime_usage",
+      "unresolved_runtime_exposure",
       "queue_infrastructure",
       "verification_required"
     ],
     "reasoning": [
-      "Changed package has confirmed usage on runtime application paths in this repository.",
+      "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge.",
       "Queue infrastructure",
       "Verification focus required"
     ],
@@ -225,9 +225,9 @@
       "postureLabel": "Needs review",
       "scopeLabel": "Moderate reach"
     },
-    "headline": "bullmq runtime upgrade affects workers and queues",
+    "headline": "bullmq upgrade leaves unresolved exposure on workers and queues",
     "insights": [
-      "Changed package has confirmed usage on runtime application paths in this repository.",
+      "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge.",
       "Queue infrastructure",
       "Verification focus required"
     ],
@@ -318,14 +318,14 @@
   },
   "mixedTypescriptFastify": {
     "posture": "needs_review",
-    "primaryConcern": "confirmed_runtime_usage",
+    "primaryConcern": "unresolved_runtime_exposure",
     "factors": [
-      "confirmed_runtime_usage",
+      "unresolved_runtime_exposure",
       "queue_infrastructure",
       "http_framework_infrastructure"
     ],
     "reasoning": [
-      "Changed package has confirmed usage on runtime application paths in this repository."
+      "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge."
     ],
     "verificationFocus": ["workers", "queue", "routes", "middleware"],
     "verificationChannel": "runtime",
@@ -336,9 +336,9 @@
       "postureLabel": "Needs review",
       "scopeLabel": "Moderate reach"
     },
-    "headline": "fastify runtime upgrade affects workers and queues",
+    "headline": "fastify upgrade leaves unresolved exposure on workers and queues",
     "insights": [
-      "Changed package has confirmed usage on runtime application paths in this repository."
+      "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge."
     ],
     "scopeAreas": ["API request handling", "Auth middleware"],
     "verification": ["Verify workers", "Verify queue"],

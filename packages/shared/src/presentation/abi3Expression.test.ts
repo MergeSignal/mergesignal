@@ -32,7 +32,7 @@ import { buildGitHubCheckRunOutput } from "./buildGitHubCheckRunOutput.js";
 import { presentGitHubPrCommentMarkdownFromResult } from "../presentGitHubPrComment.js";
 
 // ---------------------------------------------------------------------------
-// ABI 3 — Canonical express/confirmed_runtime_usage fixture
+// ABI 3 — Canonical express/unresolved_runtime_exposure fixture
 // ---------------------------------------------------------------------------
 
 const expressReasoning = [
@@ -47,16 +47,16 @@ const expressGuidance = [
 ];
 
 const expressElectionSummary =
-  "express was selected as the primary review anchor because it has the highest repository reach among changed packages and confirmed runtime usage in HTTP request handling.";
+  "express was selected as the primary review anchor because it has the highest repository reach among changed packages and unresolved runtime exposure in HTTP request handling.";
 
 const assessmentExpressAbi3: Assessment = withAssessmentScope(
   {
     posture: "needs_review",
     confidence: "high",
-    primaryConcern: "confirmed_runtime_usage",
+    primaryConcern: "unresolved_runtime_exposure",
     concerns: [
       {
-        kind: "confirmed_runtime_usage",
+        kind: "unresolved_runtime_exposure",
         rank: 1,
         packages: ["express"],
         evidenceRefs: ["fixture:express"],
@@ -64,7 +64,7 @@ const assessmentExpressAbi3: Assessment = withAssessmentScope(
           "express participates in HTTP request handling across 12 files.",
       },
     ],
-    factors: ["confirmed_runtime_usage", "http_framework_infrastructure"],
+    factors: ["unresolved_runtime_exposure", "http_framework_infrastructure"],
     changeClasses: ["runtime_upgrade"],
     presentation: {
       narrativeIntensity: "elevated",

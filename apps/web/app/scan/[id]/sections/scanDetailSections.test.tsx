@@ -16,7 +16,7 @@ function makePresentation(
     posture: "needs_review",
     primaryConcern: "behavioral_change",
     factors: [
-      "Changed package has confirmed usage on runtime application paths.",
+      "Changed package upgrade leaves unresolved runtime exposure that requires review.",
     ],
     reasoning: ["HTTP framework infrastructure detected."],
     verificationFocus: ["Run integration tests"],

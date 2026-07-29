@@ -306,7 +306,7 @@ const status: LockfileEvidenceStatus = { kind: "verified", delta: "empty" };
 const code: LockfileUncertaintyWarningCode = "lockfile_evidence_incomplete";
 const prep: PreparationUncertaintyWarningCode = "code_fetch_failed";
 const request: ScanRequest = { repoId: "r1", dependencyGraph: {} };
-const concern: MergeConcernKind = "confirmed_runtime_usage";
+const concern: MergeConcernKind = "unresolved_runtime_exposure";
 const assessment: Assessment = {
   reviewFocalPoint: {
     episodeShape: "single_anchor",

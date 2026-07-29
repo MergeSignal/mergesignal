@@ -368,16 +368,16 @@ describe("scan routes", () => {
           {
             posture: "risky",
             confidence: "medium",
-            primaryConcern: "confirmed_runtime_usage",
+            primaryConcern: "unresolved_runtime_exposure",
             concerns: [
               {
-                kind: "confirmed_runtime_usage",
+                kind: "unresolved_runtime_exposure",
                 rank: 1,
                 packages: ["pkg"],
                 evidenceRefs: ["test"],
               },
             ],
-            factors: ["confirmed_runtime_usage"],
+            factors: ["unresolved_runtime_exposure"],
             changeClasses: ["runtime_upgrade"],
             presentation: {
               narrativeIntensity: "standard",

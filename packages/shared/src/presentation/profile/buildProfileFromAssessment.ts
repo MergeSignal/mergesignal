@@ -37,7 +37,7 @@ function buildInterpretation(
     intent = "limited_context";
   } else if (assessment.changeClasses.includes("tooling_maintenance")) {
     intent = "tooling_patch";
-  } else if (assessment.primaryConcern === "confirmed_runtime_usage") {
+  } else if (assessment.primaryConcern === "unresolved_runtime_exposure") {
     if (assessment.factors.includes("queue_infrastructure")) {
       intent = "queue_runtime_upgrade";
     } else if (assessment.factors.includes("auth_infrastructure")) {
