@@ -2,6 +2,14 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## 0.15.0
+
+### Added
+
+- Fourth public scan decision value `indeterminate` for honest abstention (`abstain` outcomes).
+- `PrRiskWire` discriminated union: scored branch unchanged; `availability: 'indeterminate'` branch has no numeric score.
+- Outcome-primary presentation status mapping and scan-surface copy for Cannot determine.
+
 ## 0.14.0
 
 ### Breaking
