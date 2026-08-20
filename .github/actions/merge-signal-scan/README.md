@@ -61,6 +61,19 @@ Use **repository variables** for non-secret overrides (`vars.MERGESIGNAL_ENGINE_
 - **Problem addressed:** dependency and lockfile changes can introduce security, maintenance, and upgrade risk that is easy to miss in review.
 - **Immediately after adding the action:** each matching workflow run includes a **job summary** in GitHub Actions with **merge posture**, focused **reviewer guidance** for this PR's changed packages, and **verification checks** on relevant code paths — dependency-focused analysis without scanning the entire repository. A compact risk index and layer breakdown remain available as supporting context.
 
+### Scan decision states
+
+Each summary reports one of four merge decisions on `decision.recommendation`:
+
+| Value           | Label            | Meaning (short)                                       |
+| --------------- | ---------------- | ----------------------------------------------------- |
+| `safe`          | Safe             | Evidence-backed clearance                             |
+| `needs_review`  | Needs review     | Concrete concern with bounded verification            |
+| `risky`         | Risky            | Negative evidence of breakage                         |
+| `indeterminate` | Cannot determine | Honest abstention — not safe, not a review assignment |
+
+Full public semantics: [Scan decision states](../../docs/decision-states.md).
+
 ## Recommended workflow
 
 ```yaml

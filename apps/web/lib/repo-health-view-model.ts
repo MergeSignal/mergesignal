@@ -142,6 +142,7 @@ export function buildRepoPullHealthViewModel(
 
     if (
       posture &&
+      posture !== "indeterminate" &&
       presentationState !== "scanning" &&
       presentationState !== "surfaces_incomplete"
     ) {

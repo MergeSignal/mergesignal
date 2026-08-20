@@ -15,6 +15,7 @@ import type {
 import {
   applyRepoIntelligenceValidation,
   parseScanResultOrThrow,
+  resolvePrRiskScore,
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
 import { publishGitHubCheckRun } from "./githubSurfaces.js";
@@ -87,11 +88,9 @@ async function persistSuccess(
   engineReleaseGitSha: string | null,
 ): Promise<number> {
   const decision = result.decision?.recommendation ?? null;
+  const resolvedPrRisk = resolvePrRiskScore(result);
   const prRiskScore =
-    typeof result.prRisk?.score === "number" &&
-    Number.isFinite(result.prRisk.score)
-      ? Math.round(result.prRisk.score)
-      : null;
+    resolvedPrRisk != null ? Math.round(resolvedPrRisk) : null;
   const repositoryHealthScore =
     typeof result.repositoryHealth?.totalScore === "number" &&
     Number.isFinite(result.repositoryHealth.totalScore)
@@ -420,7 +419,7 @@ export async function executeScanJob(
             engineInfo?.releaseVersion ?? engineInfo?.releaseRef ?? null,
           engineReleaseGitSha: engineInfo?.releaseGitSha ?? null,
           methodologyVersion: validated.methodologyVersion,
-          totalScore: validated.prRisk?.score ?? validated.totalScore,
+          totalScore: resolvePrRiskScore(validated) ?? validated.totalScore,
           decision: validated.decision?.recommendation ?? null,
           codeIntelligenceAvailable,
           warningCodes: prepared.preparationSummary.warningCodes,

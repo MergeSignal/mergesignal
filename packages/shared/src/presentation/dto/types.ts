@@ -1,6 +1,10 @@
 export type PipelineStatus = "queued" | "running" | "done" | "failed";
 
-export type PresentationStatus = "safe" | "needs_review" | "risky";
+export type PresentationStatus =
+  | "safe"
+  | "needs_review"
+  | "risky"
+  | "indeterminate";
 
 export type PresentationDensity = "minimal" | "standard" | "rich";
 

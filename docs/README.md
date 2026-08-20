@@ -10,6 +10,7 @@ Adopt, evaluate, and integrate MergeSignal.
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | [README](../README.md)                                                  | Quick start: CLI, GitHub Actions, GitHub App link                   |
 | [Getting started](https://mergesignal-web.fly.dev/getting-started)      | Complete onboarding on the web app (replace host when self-hosting) |
+| [Scan decision states](./decision-states.md)                            | Canonical meaning of Safe, Needs review, Risky, and Indeterminate   |
 | [Architecture](./architecture.md)                                       | High-level components (web, API, worker, engine)                    |
 | [GitHub App](./github-app.md)                                           | What the App is and when to use it                                  |
 | [GitHub Actions action](../.github/actions/merge-signal-scan/README.md) | CI integration contract                                             |

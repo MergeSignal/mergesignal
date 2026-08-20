@@ -189,6 +189,8 @@ export const scanSurfaceCopy = {
         "MergeSignal reviewed dependency structure for this upgrade. Review the items below before merging.",
       risky:
         "MergeSignal detected blockers in this upgrade. Resolve the priorities below before merging.",
+      indeterminate:
+        "Cannot determine - the available evidence did not support either clearance or a concrete review-worthy concern.",
       lightweightGraph:
         "This PR has limited code-change signal. MergeSignal reviewed dependency structure for structural risks.",
     },

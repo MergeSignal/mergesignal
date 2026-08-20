@@ -14,6 +14,8 @@ npm install @mergesignal/shared
 - **Validation** for scan results and trusted CI output guards
 - **Presentation copy** helpers used by the web app and CI summary renderers
 
+Scan merge decisions use four wire values: `safe`, `needs_review`, `risky`, and `indeterminate`. Product semantics are documented in [Scan decision states](../../docs/decision-states.md).
+
 ## Usage
 
 ```typescript

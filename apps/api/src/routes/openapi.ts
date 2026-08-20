@@ -127,7 +127,7 @@ function getOpenApiSpec() {
               properties: {
                 posture: {
                   type: "string",
-                  enum: ["safe", "needs_review", "risky"],
+                  enum: ["safe", "needs_review", "risky", "indeterminate"],
                 },
                 postureLabel: { type: "string" },
                 scopeLabel: { type: "string", nullable: true },

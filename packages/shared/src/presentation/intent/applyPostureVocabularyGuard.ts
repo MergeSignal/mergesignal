@@ -11,6 +11,9 @@ const NEEDS_REVIEW_FORBIDDEN =
 const RISKY_FORBIDDEN =
   /\b(no\s+action\s+required|minor\s+findings\s+only|low\s+risk|no\s+concerns)\b/i;
 
+const INDETERMINATE_FORBIDDEN =
+  /\b(fix\s+required|review\s+required|needs\s+review|high\s+risk|critical\s+concern|merge\s+blocked|urgent\s+verification)\b/i;
+
 function violatesPosture(text: string, status: PresentationStatus): boolean {
   const t = text.trim();
   if (!t) return true;
@@ -21,6 +24,8 @@ function violatesPosture(text: string, status: PresentationStatus): boolean {
       return NEEDS_REVIEW_FORBIDDEN.test(t);
     case "risky":
       return RISKY_FORBIDDEN.test(t);
+    case "indeterminate":
+      return INDETERMINATE_FORBIDDEN.test(t);
     default:
       return false;
   }

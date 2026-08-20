@@ -26,7 +26,10 @@ function isMergePostureDecision(
   decision: string | null | undefined,
 ): decision is MergePosture {
   return (
-    decision === "safe" || decision === "needs_review" || decision === "risky"
+    decision === "safe" ||
+    decision === "needs_review" ||
+    decision === "risky" ||
+    decision === "indeterminate"
   );
 }
 

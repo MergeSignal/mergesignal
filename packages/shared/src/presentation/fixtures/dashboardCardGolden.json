@@ -164,7 +164,7 @@
     "layout": "expanded",
     "detailActionLabel": "Review scan",
     "sortKey": {
-      "postureRank": 1,
+      "postureRank": 2,
       "riskIndex": 55
     }
   },
@@ -199,7 +199,7 @@
     "layout": "expanded",
     "detailActionLabel": "Review scan",
     "sortKey": {
-      "postureRank": 1,
+      "postureRank": 2,
       "riskIndex": 52
     }
   },
@@ -242,7 +242,7 @@
     "layout": "expanded",
     "detailActionLabel": "Review scan",
     "sortKey": {
-      "postureRank": 1,
+      "postureRank": 2,
       "riskIndex": 48
     }
   },
@@ -278,7 +278,7 @@
     "layout": "standard",
     "detailActionLabel": "Review scan",
     "sortKey": {
-      "postureRank": 1,
+      "postureRank": 2,
       "riskIndex": 40
     }
   },
@@ -351,7 +351,7 @@
     "layout": "expanded",
     "detailActionLabel": "Review scan",
     "sortKey": {
-      "postureRank": 1,
+      "postureRank": 2,
       "riskIndex": 55
     }
   }

@@ -27,6 +27,10 @@ const LAYER_ORDER: ScoreLayer[] = [
  * Surfaces must consume `facts.riskSignals` — do not re-derive bands.
  */
 export function deriveRiskSignals(result: ScanResult): RiskSignals | null {
+  if (result.assessment?.outcome === "abstain") {
+    return null;
+  }
+
   const riskIndex = resolvePrRiskScore(result);
   const layerScores: LayerScores | null = resolvePrRiskLayerScores(result);
 

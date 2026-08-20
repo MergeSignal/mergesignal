@@ -10,6 +10,7 @@ import type { PresentationInterpretation } from "../intent/presentationIntent.js
 import type { PresentationProfile } from "./presentationProfile.js";
 import { collectVerificationFocusForPresentation } from "../../assessmentProjection.js";
 import { hasPreparationUncertaintyWarnings } from "../../lockfileEvidence.js";
+import { presentationStatusFromAssessment } from "../presentationStatusFromAssessment.js";
 
 function focalAnchorPackage(assessment: Assessment): string | null {
   const anchors = assessment.reviewFocalPoint.anchors;
@@ -68,7 +69,7 @@ export function buildProfileFromAssessment(
   const riParse = safeParseRepoIntelligence(result.repoIntelligence);
   const preparationWarnings = result.analysisPreparation?.warnings ?? [];
   const verifiedNoTransitionSafe =
-    assessment.posture === "safe" &&
+    presentationStatusFromAssessment(assessment) === "safe" &&
     assessment.outcome === "cleared" &&
     (result.changedPackages?.length ?? 0) === 0;
 
@@ -88,7 +89,7 @@ export function buildProfileFromAssessment(
         : undefined;
 
   return {
-    status: assessment.posture,
+    status: presentationStatusFromAssessment(assessment),
     density: narrativeIntensityToDensity(presentation.narrativeIntensity),
     confidence: assessment.confidence,
     priority,

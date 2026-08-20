@@ -48,12 +48,18 @@ function asScanResult(result: unknown): ScanResult | null {
   return result as ScanResult;
 }
 
+function isIndeterminatePrRisk(prRisk: PrRiskWire | undefined): boolean {
+  return prRisk?.availability === "indeterminate";
+}
+
 /**
  * PR Risk score authority chain:
- * 1. result.prRisk.score
- * 2. denormalized pr_risk_score (when provided)
- * 3. historical scans.total_score column (when provided)
- * 4. result.totalScore (historical JSON fallback only)
+ * 1. abstain outcome → no numeric score (outcome-primary reader semantics)
+ * 2. result.prRisk.availability === 'indeterminate' → no numeric score
+ * 3. result.prRisk.score (scored wire)
+ * 4. denormalized pr_risk_score (when provided)
+ * 5. historical scans.total_score column (when provided)
+ * 6. result.totalScore (historical JSON fallback only)
  */
 export function resolvePrRiskScore(
   result: ScanResult | null | undefined,
@@ -63,7 +69,19 @@ export function resolvePrRiskScore(
     return null;
   }
 
-  const fromWire = finiteScore(result?.prRisk?.score);
+  if (result?.assessment?.outcome === "abstain") {
+    return null;
+  }
+
+  if (isIndeterminatePrRisk(result?.prRisk)) {
+    return null;
+  }
+
+  const fromWire = finiteScore(
+    result?.prRisk && "score" in result.prRisk
+      ? result.prRisk.score
+      : undefined,
+  );
   if (fromWire != null) return fromWire;
 
   const fromDenorm = finiteScore(ctx.prRiskScore);
@@ -87,7 +105,12 @@ export function resolvePrRiskLayerScores(
   result: ScanResult | null | undefined,
 ): LayerScores | null {
   if (!result) return null;
-  const fromPrRisk = result.prRisk?.layerScores;
+  if (result.assessment?.outcome === "abstain") return null;
+  if (isIndeterminatePrRisk(result.prRisk)) return null;
+  const fromPrRisk =
+    result.prRisk && "layerScores" in result.prRisk
+      ? result.prRisk.layerScores
+      : undefined;
   if (fromPrRisk) return fromPrRisk;
   if (result.layerScores) return result.layerScores;
   return null;

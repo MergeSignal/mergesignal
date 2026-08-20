@@ -15,10 +15,19 @@ const layerScoresSchema = z.object({
   upgradeImpact: z.number(),
 });
 
-const prRiskSchema = z.object({
+const prRiskScoredSchema = z.object({
+  availability: z.literal("scored").optional(),
   score: z.number().min(0).max(100),
   layerScores: layerScoresSchema.optional(),
+  qualifier: z.literal("limited_evidence").optional(),
 });
+
+const prRiskIndeterminateSchema = z.object({
+  availability: z.literal("indeterminate"),
+  qualifier: z.literal("limited_evidence").optional(),
+});
+
+const prRiskSchema = z.union([prRiskScoredSchema, prRiskIndeterminateSchema]);
 
 const repositoryHealthSchema = z.object({
   totalScore: z.number().min(0).max(100),
@@ -72,7 +81,12 @@ export const scanResultSchema = z
     insights: z.array(z.unknown()).optional(),
     decision: z
       .object({
-        recommendation: z.enum(["safe", "needs_review", "risky"]),
+        recommendation: z.enum([
+          "safe",
+          "needs_review",
+          "risky",
+          "indeterminate",
+        ]),
         confidence: z.enum(["low", "medium", "high"]).optional(),
         reasoning: z.array(z.string()).optional(),
       })

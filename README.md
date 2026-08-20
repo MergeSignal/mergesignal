@@ -75,6 +75,7 @@ Optional — most users start with CLI, GitHub Actions, or the hosted App. To ru
 ## Documentation
 
 - [Documentation index](./docs/README.md) — user, self-host, and maintainer docs
+- [Scan decision states](./docs/decision-states.md) — Safe, Needs review, Risky, and Indeterminate
 - [Architecture overview](./docs/architecture.md)
 - [GitHub Actions integration](./.github/actions/merge-signal-scan/README.md)
 - [Example workflow (PR + push)](./docs/examples/mergesignal-scan-with-pull-request.yml)

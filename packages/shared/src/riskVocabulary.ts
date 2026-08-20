@@ -24,11 +24,12 @@ export const MERGE_POSTURE_LABEL: Record<MergePosture, string> = {
   safe: "Safe",
   needs_review: "Needs review",
   risky: "Risky",
+  indeterminate: "Cannot determine",
 };
 
 /**
  * Dashboard card badge labels. Defaults to full canonical names for triage clarity.
- * Wire values remain `safe | needs_review | risky`.
+ * Wire values remain `safe | needs_review | risky | indeterminate`.
  */
 export const CARD_POSTURE_DISPLAY_LABEL: Record<MergePosture, string> = {
   ...MERGE_POSTURE_LABEL,
@@ -43,8 +44,9 @@ export function cardPostureDisplayLabel(posture: MergePosture): string {
  * Use as: arr.sort((a, b) => MERGE_POSTURE_SORT_ORDER[b] - MERGE_POSTURE_SORT_ORDER[a])
  */
 export const MERGE_POSTURE_SORT_ORDER: Record<MergePosture, number> = {
-  risky: 2,
-  needs_review: 1,
+  risky: 3,
+  needs_review: 2,
+  indeterminate: 1,
   safe: 0,
 };
 
@@ -55,7 +57,8 @@ export function mergePostureFromDecision(
   if (
     decision === "safe" ||
     decision === "needs_review" ||
-    decision === "risky"
+    decision === "risky" ||
+    decision === "indeterminate"
   ) {
     return decision;
   }

@@ -1,5 +1,10 @@
 /** Assessment posture on the wire. */
-export const ASSESSMENT_POSTURES = ["safe", "needs_review", "risky"] as const;
+export const ASSESSMENT_POSTURES = [
+  "safe",
+  "needs_review",
+  "risky",
+  "indeterminate",
+] as const;
 
 /** Engine confidence in the Assessment. */
 export const ASSESSMENT_CONFIDENCES = ["low", "medium", "high"] as const;

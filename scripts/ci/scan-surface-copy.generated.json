@@ -102,6 +102,7 @@
   "scanDetail.recommendationScanContext.quietSafe": "MergeSignal reviewed this upgrade. No merge blockers or runtime-impact indicators detected.",
   "scanDetail.recommendationScanContext.needsReview": "MergeSignal reviewed dependency structure for this upgrade. Review the items below before merging.",
   "scanDetail.recommendationScanContext.risky": "MergeSignal detected blockers in this upgrade. Resolve the priorities below before merging.",
+  "scanDetail.recommendationScanContext.indeterminate": "Cannot determine - the available evidence did not support either clearance or a concrete review-worthy concern.",
   "scanDetail.recommendationScanContext.lightweightGraph": "This PR has limited code-change signal. MergeSignal reviewed dependency structure for structural risks.",
   "scanDetail.recommendationPriority.high": "High Priority",
   "scanDetail.recommendationPriority.medium": "Medium Priority",

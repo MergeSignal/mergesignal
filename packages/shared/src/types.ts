@@ -9,11 +9,22 @@ export type LayerScores = {
   upgradeImpact: number;
 };
 
-/** Engine-emitted PR-scoped risk score (ABI 4+). */
-export type PrRiskWire = {
+/** Engine-emitted PR-scoped risk score when evidence supports numeric severity (ABI 4+). */
+export type PrRiskWireScored = {
+  availability?: "scored";
   score: number;
   layerScores?: LayerScores;
+  qualifier?: "limited_evidence";
 };
+
+/** PR Risk when Assessment could not establish numeric severity (abstain). */
+export type PrRiskWireIndeterminate = {
+  availability: "indeterminate";
+  qualifier?: "limited_evidence";
+};
+
+/** Engine-emitted PR-scoped risk (ABI 4+). Legacy rows omit `availability` and imply scored. */
+export type PrRiskWire = PrRiskWireScored | PrRiskWireIndeterminate;
 
 /** Engine-emitted repository health score (ABI 4+). */
 export type RepositoryHealthWire = {
@@ -305,6 +316,7 @@ export const MERGE_POSTURE_RECOMMENDATIONS = [
   "safe",
   "needs_review",
   "risky",
+  "indeterminate",
 ] as const;
 
 export type PRDecisionRecommendation =

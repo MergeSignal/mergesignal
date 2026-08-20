@@ -2,7 +2,7 @@
 // These types provide compile-time safety for queries
 
 export type ScanStatus = "queued" | "running" | "done" | "failed";
-export type Decision = "safe" | "needs_review" | "risky";
+export type Decision = "safe" | "needs_review" | "risky" | "indeterminate";
 
 export interface Scan {
   id: string;

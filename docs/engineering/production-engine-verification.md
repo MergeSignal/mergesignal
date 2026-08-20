@@ -32,7 +32,7 @@ Run after deploying the worker with a real private engine (Phase 8). Record outc
 ## API / dashboard
 
 - [ ] `GET /scan/:id` returns posture summary
-- [ ] Dashboard cards render `safe` / `needs_review` / `risky` with correct colors
+- [ ] Dashboard cards render all four decision states (`safe`, `needs_review`, `risky`, `indeterminate`) with correct labels — see [Scan decision states](../decision-states.md)
 - [ ] "Waiting for results…" only for genuinely running scans
 
 ## Observability
