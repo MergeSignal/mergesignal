@@ -2,6 +2,13 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## 0.15.1
+
+### Fixed
+
+- Align generic indeterminate presentation headlines with **Cannot determine** semantics so abstention does not imply review homework.
+- Add canonical indeterminate headline copy and posture vocabulary remediation for shared headline projection.
+
 ## 0.15.0
 
 ### Added
