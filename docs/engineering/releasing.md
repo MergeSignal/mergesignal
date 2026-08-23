@@ -35,6 +35,34 @@ No cross-repo workspace paths, `file:` deps, or sibling checkouts are required f
 
 ---
 
+## MergeSignal engineering infrastructure
+
+MergeSignal engineering uses **remote infrastructure only**. Developer-machine Docker and Docker Compose are **not** used for governed validation, migration proof, release, deployment, or empirical verification in this repository.
+
+**Governed agents** must not use the public self-host Compose stack ([`docker-compose.yml`](../../docker-compose.yml), [`docs/self-host/local-development.md`](../self-host/local-development.md)) as MergeSignal engineering proof.
+
+**Permitted remote infrastructure:**
+
+- GitHub-hosted runner `docker build`, `docker run`, and related build activity in `.github/workflows/`
+- Governed Fly deploy workflows and engine bake
+- `flyctl deploy --local-only` on GitHub Actions — builds on the **runner**, not the developer machine
+
+Read-only inspection of existing local Docker resources is permitted only when explicitly authorized for incident forensics.
+
+### Governed migration proof (remote-only)
+
+SQL migration validation and proof for MergeSignal engineering is remote-only:
+
+1. **Static/schema proof** — CI unit tests and typecheck on pull request ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)).
+2. **Applied migration proof** — merge to `main`, governed Fly deploy, API startup with `MERGESIGNAL_AUTO_MIGRATE=1` ([`apps/api/fly.toml`](../../apps/api/fly.toml), [`apps/api/src/migrate.ts`](../../apps/api/src/migrate.ts)).
+3. **Post-deploy verification** — remote checklist ([`production-engine-verification.md`](./production-engine-verification.md)).
+
+**Forbidden as MergeSignal engineering migration proof:** `docker compose up -d db`, `docker exec mergesignal-db`, localhost PostgreSQL, and local `:5433` database connections on the developer machine.
+
+Self-host users may run local migrations for their own deployments under [local-development.md](../self-host/local-development.md). That product workflow does not authorize MergeSignal engineering to substitute local Docker for governed proof.
+
+---
+
 ## Routine release order
 
 Release order follows **dependency direction**: a package must not publish while depending on an unpublished downstream artifact. `@mergesignal/contracts` is **restricted** on npmjs; `@mergesignal/shared` is public on npmjs. Public packages install without npm authentication.

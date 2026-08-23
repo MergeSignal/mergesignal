@@ -1,5 +1,7 @@
 # Local development (full stack)
 
+> **Self-host/product workflow only.** This guide is for customers and self-host operators who want to run the full stack locally. It is **not** the MergeSignal engineering validation, migration-proof, release, or deployment path. Governed MergeSignal agents must not use this workflow as engineering proof. MergeSignal engineering infrastructure authority: [docs/engineering/releasing.md § MergeSignal engineering infrastructure](../engineering/releasing.md#mergesignal-engineering-infrastructure).
+
 Run the web app, API, worker, and databases locally for development or evaluation. For CLI-only scans without Docker, see the [README Quick Start](../../README.md).
 
 **Engine note:** `docker compose` uses the OSS stub engine — not production analysis. See [packages/engine-stub/README.md](../../packages/engine-stub/README.md).
