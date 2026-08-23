@@ -282,6 +282,34 @@ export const assessmentStub: Assessment = withAssessmentScope(
   },
 );
 
+/** Generic abstain: no entitled concern, no verification target. */
+export const assessmentGenericAbstain: Assessment = withAssessmentScope(
+  {
+    posture: "indeterminate",
+    outcome: "abstain",
+    confidence: "low",
+    primaryConcern: null,
+    concerns: [],
+    factors: [],
+    changeClasses: ["runtime_upgrade"],
+    presentation: {
+      narrativeIntensity: "minimal",
+      reachVisibility: "hidden",
+      verificationIntensity: "none",
+      insightEmissionFloor: "none",
+      reportMode: "high_signal_pr",
+    },
+    reasoning: ["Deterministic analysis could not reach a conclusion."],
+    confidenceRationale: "Confidence is low.",
+    abstainReasons: [{ kind: "insufficient_collection", detail: "fixture" }],
+  },
+  {
+    reviewFocalPoint: minimalReviewFocalPoint(["pkg-a"]),
+    reachScope: emptyReachScope(),
+    verificationScope: emptyVerificationScope(),
+  },
+);
+
 export const assessmentUnknownSafe: Assessment = withAssessmentScope(
   {
     posture: "safe",

@@ -10,6 +10,7 @@ import {
   scanResultBullmq,
   scanResultEslint,
   scanResultFastifyRuntime,
+  scanResultGenericAbstain,
   scanResultMixedTypescriptFastify,
   scanResultPrettier,
   scanResultTypescriptPatch,
@@ -17,6 +18,7 @@ import {
 } from "./fixtures/presentationPersonaFixtures.js";
 import type { ScanResult } from "../types.js";
 import { projectAssessmentFields } from "./projectAssessmentFields.js";
+import { presentCliScanSummary } from "./presenters/presentCliScanSummary.js";
 
 import { buildNarrativeChannels } from "./compose/narrativeChannels.js";
 
@@ -55,6 +57,7 @@ const validationPersonas: Array<{ name: string; result: ScanResult }> = [
   ...validationPersonasCore,
   { name: "eslint", result: scanResultEslint },
   { name: "vitest", result: scanResultVitest },
+  { name: "indeterminate", result: scanResultGenericAbstain },
 ];
 
 function surfacesFor(result: ScanResult) {
@@ -191,5 +194,18 @@ describe("surfaceParity guardrail", () => {
     expect(ch27.verification).not.toEqual(ch30.verification);
     expect(ch26.verification).not.toEqual(ch27.verification);
     expect(ch26.scopeAreas.length).toBeGreaterThan(0);
+  });
+
+  it("indeterminate: headline matches across card, details, GitHub check, and CLI", () => {
+    const s = surfacesFor(scanResultGenericAbstain);
+    const cli = presentCliScanSummary(s.bundle, { repoLabel: "acme/api" });
+
+    expect(s.details.hero.headline).toBe(s.card.headline);
+    expect(s.check.title).toBe(s.card.headline);
+    expect(cli.headline).toBe(s.card.headline);
+    expect(s.card.headline).toMatch(/could not be determined/i);
+    expect(s.card.headline).not.toMatch(/needs review/i);
+    expect(s.check.conclusion).toBe("neutral");
+    expect(s.card.verificationFocus).toEqual([]);
   });
 });

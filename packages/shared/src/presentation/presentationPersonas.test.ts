@@ -9,6 +9,7 @@ import {
   scanResultBullmq,
   scanResultEslint,
   scanResultFastifyRuntime,
+  scanResultGenericAbstain,
   scanResultLimitedContext,
   scanResultMixedTypescriptFastify,
   scanResultNextAuth,
@@ -24,7 +25,7 @@ type PersonaExpectation = {
   name: string;
   result: ScanResult;
   intent: PresentationIntent;
-  status: "safe" | "needs_review" | "risky";
+  status: "safe" | "needs_review" | "risky" | "indeterminate";
   density: "minimal" | "standard" | "rich";
   headlineMatch: RegExp;
   headlineMustNot?: RegExp;
@@ -118,6 +119,15 @@ const personas: PersonaExpectation[] = [
     headlineMatch: /dependency upgrade/i,
     headlineMustNot: /needs review/i,
   },
+  {
+    name: "indeterminate",
+    result: scanResultGenericAbstain,
+    intent: "unknown_upgrade",
+    status: "indeterminate",
+    density: "minimal",
+    headlineMatch: /could not be determined/i,
+    headlineMustNot: /needs review/i,
+  },
 ];
 
 function cardFor(result: ScanResult) {
@@ -151,6 +161,10 @@ describe("presentation personas", () => {
       if (persona.status === "needs_review") {
         const combined = card.verification.join(" ");
         expect(combined).not.toMatch(REVIEW_FORBIDDEN);
+      }
+      if (persona.status === "indeterminate") {
+        expect(card.verification).toEqual([]);
+        expect(card.headline).not.toMatch(/needs review/i);
       }
       if (persona.verificationIncludes) {
         for (const v of persona.verificationIncludes) {
@@ -199,5 +213,20 @@ describe("presentation personas", () => {
     expect(details.hero.headline).toBe(card.headline);
     expect(cli.headline).toBe(card.headline);
     expect(card.headline).not.toMatch(/needs review/i);
+  });
+
+  it("cross-surface parity: indeterminate headline matches card, details, CLI", () => {
+    const bundle = buildScanPresentationBundle({
+      result: scanResultGenericAbstain,
+      pipelineStatus: "done",
+    })!;
+    const card = presentDashboardCard(bundle);
+    const details = presentScanDetails(bundle, { scanId: SCAN_ID });
+    const cli = presentCliScanSummary(bundle, { repoLabel: "acme/api" });
+    expect(details.hero.headline).toBe(card.headline);
+    expect(cli.headline).toBe(card.headline);
+    expect(card.headline).toMatch(/could not be determined/i);
+    expect(card.headline).not.toMatch(/needs review/i);
+    expect(card.verification).toEqual([]);
   });
 });

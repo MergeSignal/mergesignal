@@ -196,6 +196,7 @@
   "presentation.runtimeUpgradeHeadline": "{package} runtime upgrade affects {surface}",
   "presentation.unresolvedRuntimeExposureHeadline": "{package} upgrade leaves unresolved exposure on {surface}",
   "presentation.safeNeutralHeadline": "{package} dependency upgrade",
+  "presentation.indeterminateUpgradeHeadline": "{package} dependency upgrade could not be determined",
   "presentation.defaultUpgradeHeadline": "{package} dependency upgrade needs review",
   "presentation.changedPackageKeyPoint": "Changed package: {package}",
   "presentation.usedInPathsSingle": "Used across application code ({path})",

@@ -42,4 +42,15 @@ describe("applyPostureVocabularyGuard", () => {
     );
     expect(out).toContain("needs review");
   });
+
+  it("substitutes indeterminate headline when review language present", () => {
+    const out = guardHeadlineForPosture(
+      "pkg-a dependency upgrade needs review",
+      "indeterminate",
+      "pkg-a",
+    );
+    expect(out.toLowerCase()).not.toContain("needs review");
+    expect(out).toMatch(/could not be determined/i);
+    expect(out.toLowerCase()).toContain("pkg-a");
+  });
 });

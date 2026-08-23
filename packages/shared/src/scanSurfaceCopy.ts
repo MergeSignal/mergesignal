@@ -374,6 +374,8 @@ export const scanSurfaceCopy = {
     unresolvedRuntimeExposureHeadline:
       "{package} upgrade leaves unresolved exposure on {surface}",
     safeNeutralHeadline: "{package} dependency upgrade",
+    indeterminateUpgradeHeadline:
+      "{package} dependency upgrade could not be determined",
     defaultUpgradeHeadline: "{package} dependency upgrade needs review",
     changedPackageKeyPoint: "Changed package: {package}",
     usedInPathsSingle: "Used across application code ({path})",

@@ -46,6 +46,12 @@ export function guardHeadlineForPosture(
       pkg,
     );
   }
+  if (status === "indeterminate") {
+    return scanSurfaceCopy.presentation.indeterminateUpgradeHeadline.replace(
+      "{package}",
+      pkg,
+    );
+  }
   return headline;
 }
 

@@ -7,8 +7,11 @@ import {
   emptyReachScope,
   emptyVerificationScope,
 } from "../fixtures/assessmentScopeFixtures.js";
+import { assessmentGenericAbstain } from "../fixtures/assessmentFixtures.js";
 import { buildGitHubCheckRunOutput } from "./buildGitHubCheckRunOutput.js";
 import { presentationStatusFromAssessment } from "./presentationStatusFromAssessment.js";
+import { presentScanDetails } from "./presenters/presentScanDetails.js";
+import { buildScanPresentationBundle } from "./orchestration/buildScanPresentationBundle.js";
 import { formatPrRiskSummary } from "../prRiskBand.js";
 import { deriveRiskSignals } from "../riskSignals.js";
 import { deriveScanNarrative } from "../deriveScanNarrative.js";
@@ -115,5 +118,57 @@ describe("abstention presentation semantics", () => {
     };
     expect(fresh.decision.recommendation).toBe("indeterminate");
     expect(fresh.prRisk).toEqual({ availability: "indeterminate" });
+  });
+
+  it("generic abstain: indeterminate headline without review homework", () => {
+    const assessment = assessmentGenericAbstain;
+    const result = scanWithAssessment(assessment);
+    const bundle = buildScanPresentationBundle({
+      result: {
+        ...result,
+        decision: {
+          recommendation: "indeterminate",
+          confidence: "low",
+          reasoning: [],
+        },
+        prRisk: { availability: "indeterminate" },
+        insights: [],
+        recommendations: [],
+      },
+      pipelineStatus: "done",
+    })!;
+    const details = presentScanDetails(bundle, {
+      scanId: "scan-generic-abstain",
+    });
+
+    expect(presentationStatusFromAssessment(assessment)).toBe("indeterminate");
+    expect(details.posture).toBe("indeterminate");
+    expect(details.hero.headline).toMatch(/could not be determined/i);
+    expect(details.hero.headline).not.toMatch(/needs review/i);
+    expect(details.verificationFocus).toEqual([]);
+  });
+
+  it("generic abstain: GitHub check neutral with uncertainty headline", () => {
+    const result = scanWithAssessment(assessmentGenericAbstain);
+    const out = buildGitHubCheckRunOutput(
+      {
+        ...result,
+        decision: {
+          recommendation: "indeterminate",
+          confidence: "low",
+          reasoning: [],
+        },
+        prRisk: { availability: "indeterminate" },
+        insights: [],
+        recommendations: [],
+      },
+      {
+        scanId: "scan-generic-abstain",
+        webAppOrigin: "https://app.test",
+      },
+    );
+    expect(out.conclusion).toBe("neutral");
+    expect(out.title).toMatch(/could not be determined/i);
+    expect(out.title).not.toMatch(/needs review/i);
   });
 });

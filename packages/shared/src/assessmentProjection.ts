@@ -139,13 +139,6 @@ export function formatAssessmentHeadline(
 ): string {
   const copy = scanSurfaceCopy.presentation;
   const primaryPkg = focalHeadlinePackages(assessment);
-  if (assessment.reviewFocalPoint.episodeShape === "structural") {
-    const headline = copy.defaultUpgradeHeadline.replace(
-      "{package}",
-      "dependencies",
-    );
-    return applyPostureVocabularyGuardHeadline(headline, status, null);
-  }
 
   if (assessment.primaryConcern === "insufficient_evidence") {
     return applyPostureVocabularyGuardHeadline(
@@ -153,6 +146,22 @@ export function formatAssessmentHeadline(
       status,
       primaryPkg,
     );
+  }
+
+  if (status === "indeterminate") {
+    const headline = copy.indeterminateUpgradeHeadline.replace(
+      "{package}",
+      primaryPkg,
+    );
+    return applyPostureVocabularyGuardHeadline(headline, status, primaryPkg);
+  }
+
+  if (assessment.reviewFocalPoint.episodeShape === "structural") {
+    const headline = copy.defaultUpgradeHeadline.replace(
+      "{package}",
+      "dependencies",
+    );
+    return applyPostureVocabularyGuardHeadline(headline, status, null);
   }
 
   const changeClass = assessment.changeClasses[0];

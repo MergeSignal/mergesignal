@@ -5,6 +5,7 @@ import {
   assessmentBullmq,
   assessmentEslint,
   assessmentFastifyRuntime,
+  assessmentGenericAbstain,
   assessmentLimitedContext,
   assessmentMixedTypescriptFastify,
   assessmentNextAuth,
@@ -254,6 +255,21 @@ export const scanResultMixedTypescriptFastify: ScanResult = scanBase(
     totalScore: 55,
     changedPackages: ["typescript", "fastify"],
     repoIntelligence: fixtureRepoIntelligenceMixedToolingRuntime,
+  },
+);
+
+export const scanResultGenericAbstain: ScanResult = scanBase(
+  assessmentGenericAbstain,
+  {
+    changedPackages: ["pkg-a"],
+    prRisk: { availability: "indeterminate" },
+    decision: {
+      recommendation: "indeterminate",
+      confidence: "low",
+      reasoning: [],
+    },
+    insights: [],
+    recommendations: [],
   },
 );
 
