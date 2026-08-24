@@ -2,6 +2,13 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## 0.16.0
+
+### Added
+
+- `proof_capability_ceiling` sufficiency blocker kind on the Assessment wire, distinguishing governed proof-capability ceilings from missing routable proof (`proof_coverage_insufficient`).
+- Closed-enum extension on optional ABI 4 `evidenceSufficiencyVerdict` fields; `ASSESSMENT_ABI` remains `4`. Trusted consumers on older `@mergesignal/shared` versions reject payloads containing the new literal until upgraded.
+
 ## 0.15.1
 
 ### Fixed
