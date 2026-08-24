@@ -124,7 +124,14 @@ export const ABSTAIN_REASON_KINDS = [
   "insufficient_collection",
 ] as const;
 
-/** Blocker kinds for EvidenceSufficiencyVerdict. */
+/**
+ * Blocker kinds for EvidenceSufficiencyVerdict.
+ *
+ * Taxonomy separation:
+ * - Collection / acquisition incompleteness: repository_coverage_insufficient, package_facts_missing, …
+ * - Routable proof missing: proof_coverage_insufficient
+ * - Governed proof-capability ceiling: proof_capability_ceiling
+ */
 export const SUFFICIENCY_BLOCKER_KINDS = [
   "repository_coverage_insufficient",
   "package_facts_missing",
@@ -132,6 +139,7 @@ export const SUFFICIENCY_BLOCKER_KINDS = [
   "private_package",
   "correlation_abstained",
   "proof_coverage_insufficient",
+  "proof_capability_ceiling",
   "proof_execution_failed",
   "unsupported_ecosystem",
   "partial_monorepo_scan",
