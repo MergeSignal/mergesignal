@@ -2,6 +2,15 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## 0.16.1
+
+### Fixed
+
+- Gate repository intelligence at the presentation boundary via reach visibility so presentation does not surface intelligence the assessment did not establish for the consumer.
+- Align indeterminate presentation headlines with merge-safety semantics, scoping uncertainty to merge safety rather than total analysis failure.
+- Limit collection-limited degraded messaging to sealed collection semantics; low confidence alone no longer implies limited collection.
+- Correct shared limited-context narrative so low confidence alone does not equate to limited collection.
+
 ## 0.16.0
 
 ### Added
