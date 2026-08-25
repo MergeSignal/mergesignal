@@ -21,7 +21,7 @@
     "@fastify/rate-limit": "^10.3.0",
     "@mergesignal/engine": "workspace:^",
     "@mergesignal/shared": "workspace:^",
-    "@octokit/app": "^16.1.2",
+    "@octokit/app": "^16.1.4",
     "@sentry/node": "8",
     "bullmq": "^5.70.1",
     "dotenv": "^17.4.2",
