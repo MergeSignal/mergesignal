@@ -44,6 +44,17 @@ describe("resolvePrRiskScore", () => {
     expect(resolvePrRiskScore(baseResult({ totalScore: 48 }))).toBe(48);
   });
 
+  it("does not fall back to JSON totalScore when assessment is present", () => {
+    expect(
+      resolvePrRiskScore(
+        baseResult({
+          totalScore: 48,
+          assessment: { outcome: "cleared" } as ScanResult["assessment"],
+        }),
+      ),
+    ).toBeNull();
+  });
+
   it("returns null when no score available", () => {
     expect(resolvePrRiskScore(baseResult({ totalScore: NaN }))).toBeNull();
   });
@@ -79,6 +90,20 @@ describe("resolvePrRiskLayerScores", () => {
     };
     const result = baseResult({ prRisk: { score: 10, layerScores: layers } });
     expect(resolvePrRiskLayerScores(result)).toEqual(layers);
+  });
+
+  it("does not fall back to legacy layerScores when assessment is present", () => {
+    const layers = {
+      security: 1,
+      maintainability: 2,
+      ecosystem: 3,
+      upgradeImpact: 4,
+    };
+    const result = baseResult({
+      layerScores: layers,
+      assessment: { outcome: "abstain" } as ScanResult["assessment"],
+    });
+    expect(resolvePrRiskLayerScores(result)).toBeNull();
   });
 });
 

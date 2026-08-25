@@ -213,7 +213,8 @@ importers:
       const result = await analyze(request);
 
       expect(result).toBeDefined();
-      expect(result.confidence).toBeDefined();
+      expect(result.confidence).toBeUndefined();
+      expect(result.assessment?.confidence).toBeDefined();
     });
   });
 

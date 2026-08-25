@@ -77,24 +77,41 @@ resolve_impl_file() {
   echo "${root}/${rel}"
 }
 
+resolve_analysis_engine_package_dir() {
+  local impl_file="$1"
+  local pkg_dir
+  pkg_dir="$(dirname "$impl_file")"
+  while [ "$pkg_dir" != "/" ] && [ ! -f "${pkg_dir}/package.json" ]; do
+    pkg_dir="$(dirname "$pkg_dir")"
+  done
+  if [ ! -f "${pkg_dir}/package.json" ]; then
+    echo "::error::analysis-engine package.json not found for ${impl_file}" >&2
+    return 1
+  fi
+  echo "$pkg_dir"
+}
+
 write_manifest() {
   local root="$1"
   local impl_file="$2"
   local manifest_path="$3"
   local git_sha package_version dist_sha node_version pnpm_version built_at
   local release_ref release_version
+  local pkg_dir
 
   git_sha="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo "")"
+  pkg_dir="$(resolve_analysis_engine_package_dir "$impl_file")"
   package_version="$(node -e "
     const fs = require('fs');
-    const path = require('path');
-    const impl = process.argv[1];
-    const pkgJson = path.join(path.dirname(impl), 'package.json');
+    const pkgJson = process.argv[1];
     try {
       const v = JSON.parse(fs.readFileSync(pkgJson, 'utf8')).version;
       if (v) process.stdout.write(String(v));
     } catch { /* optional */ }
-  " "$impl_file")"
+  " "${pkg_dir}/package.json")"
+  if [ -z "$package_version" ]; then
+    fail "analysis-engine package version is required for engine-manifest.json"
+  fi
   dist_sha="$(sha256_file "$impl_file")"
   node_version="$(node -v 2>/dev/null || echo "")"
   pnpm_version="$(pnpm -v 2>/dev/null || echo "")"
@@ -202,4 +219,6 @@ main() {
   echo "$spec"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi

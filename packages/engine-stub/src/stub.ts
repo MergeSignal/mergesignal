@@ -54,7 +54,6 @@ function buildMockResult(): ScanResult {
       reasoning: ["Stub engine cannot perform real analysis"],
     },
     methodologyVersion: METHODOLOGY_VERSION,
-    confidence: "low",
     generatedAt: new Date().toISOString(),
   };
 }

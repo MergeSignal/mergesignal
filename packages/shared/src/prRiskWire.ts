@@ -59,7 +59,7 @@ function isIndeterminatePrRisk(prRisk: PrRiskWire | undefined): boolean {
  * 3. result.prRisk.score (scored wire)
  * 4. denormalized pr_risk_score (when provided)
  * 5. historical scans.total_score column (when provided)
- * 6. result.totalScore (historical JSON fallback only)
+ * 6. result.totalScore (historical JSON fallback only — never when assessment is present)
  */
 export function resolvePrRiskScore(
   result: ScanResult | null | undefined,
@@ -90,6 +90,10 @@ export function resolvePrRiskScore(
   const fromLegacyColumn = finiteScore(ctx.legacyTotalScore);
   if (fromLegacyColumn != null) return fromLegacyColumn;
 
+  if (result?.assessment) {
+    return null;
+  }
+
   return finiteScore(result?.totalScore);
 }
 
@@ -112,6 +116,7 @@ export function resolvePrRiskLayerScores(
       ? result.prRisk.layerScores
       : undefined;
   if (fromPrRisk) return fromPrRisk;
+  if (result.assessment) return null;
   if (result.layerScores) return result.layerScores;
   return null;
 }

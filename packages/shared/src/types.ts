@@ -376,6 +376,10 @@ export type ScanResult = {
   methodologyVersion?: string;
   /** Assessment Contract — sole authority for posture and presentation intensity. */
   assessment?: Assessment;
+  /**
+   * Legacy graph-scoring input-coverage confidence — omitted on ABI-4 output when
+   * {@link assessment} is present. Use `assessment.confidence` for merge-decision confidence.
+   */
   confidence?: RiskConfidence;
   signals?: RiskSignal[];
   contributions?: ScoreContribution[];
