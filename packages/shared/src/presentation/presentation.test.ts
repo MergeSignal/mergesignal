@@ -10,7 +10,7 @@ import {
   scanResultLimitedContext,
   scanResultTypescriptPatch,
 } from "./fixtures/scanResultFixtures.js";
-import { scanResultEslint } from "./fixtures/presentationPersonaFixtures.js";
+import { fixtureRepoIntelligenceFastify } from "../fixtures/repoIntelligenceFixtures.js";
 
 const SCAN_ID = "22222222-2222-4222-8222-222222222222";
 const ORIGIN = "https://app.example.com";
@@ -90,19 +90,37 @@ describe("presentDashboardCard personas", () => {
 
 describe("presentScanDetails usage paths", () => {
   it("maps wire usage.files into detailPresentation.usage.items[].paths", () => {
+    const result = {
+      ...scanResultFastifyRuntime,
+      repoIntelligence: {
+        ...fixtureRepoIntelligenceFastify,
+        packages: {
+          fastify: {
+            ...fixtureRepoIntelligenceFastify.packages.fastify!,
+            usage: {
+              packageName: "fastify",
+              files: ["apps/api/src/middleware/auth.ts"],
+              paths: [],
+            },
+          },
+        },
+      },
+    };
     const bundle = buildScanPresentationBundle({
-      result: scanResultEslint,
+      result,
       pipelineStatus: "done",
     })!;
     const details = presentScanDetails(bundle, { scanId: SCAN_ID });
-    const eslintUsage = details.usage?.items.find(
-      (item) => item.packageName === "eslint",
+    const fastifyUsage = details.usage?.items.find(
+      (item) => item.packageName === "fastify",
     );
 
-    expect(eslintUsage).toBeDefined();
-    expect(eslintUsage!.paths).toEqual([".eslintrc.cjs"]);
+    expect(fastifyUsage).toBeDefined();
+    expect(fastifyUsage!.paths).toEqual(["apps/api/src/middleware/auth.ts"]);
     expect(bundle.facts.packageUsage[0]?.paths).toEqual([]);
-    expect(bundle.facts.packageUsage[0]?.files).toEqual([".eslintrc.cjs"]);
+    expect(bundle.facts.packageUsage[0]?.files).toEqual([
+      "apps/api/src/middleware/auth.ts",
+    ]);
   });
 
   it("deduplicates paths across paths, criticalPaths, and files buckets", () => {

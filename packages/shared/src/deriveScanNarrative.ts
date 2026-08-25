@@ -728,5 +728,6 @@ export function deriveScanNarrative(
     mergePosture,
     riskIndex,
     riskSignals,
+    reachVisibility: result.assessment?.presentation?.reachVisibility ?? null,
   };
 }

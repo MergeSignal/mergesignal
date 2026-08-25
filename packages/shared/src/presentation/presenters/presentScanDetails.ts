@@ -1,5 +1,6 @@
 import { MERGE_CONCERN_LABELS } from "../../assessmentLabels.js";
 import { normalizedPackageUsagePaths } from "../../narrativePresentation.js";
+import { safeParseRepoIntelligence } from "../../repoIntelligenceSchema.js";
 import {
   formatPrRiskSummary,
   prRiskBandToGaugeBand,
@@ -21,6 +22,7 @@ import { scanSurfaceCopy } from "../../scanSurfaceCopy.js";
 import type { ScanDetailsPresentation } from "../dto/scanDetailsPresentation.js";
 import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
 import { projectAssessmentFields } from "../projectAssessmentFields.js";
+import { shouldSurfaceReachNarrative } from "../reachNarrativeGating.js";
 
 export type PresentScanDetailsContext = {
   scanId: string;
@@ -73,20 +75,35 @@ function mapSignalSummary(
 function mapUsage(
   bundle: ScanPresentationBundle,
 ): ScanDetailsPresentation["usage"] {
-  const { facts } = bundle;
-  if (facts.packageUsage.length === 0 && facts.frameworks.length === 0) {
+  if (!shouldSurfaceReachNarrative(bundle.presentation)) {
     return undefined;
   }
-  return {
-    summary: facts.packageUsage[0]
-      ? `${facts.packageUsage.length} package(s) with usage data`
-      : undefined,
-    items: facts.packageUsage.map((row) => ({
+
+  const { facts, presentation, result } = bundle;
+  const parsedRi = safeParseRepoIntelligence(result.repoIntelligence);
+  const parsedPackages = parsedRi.ok ? parsedRi.value.packages : {};
+
+  const items = facts.packageUsage
+    .filter((row) =>
+      shouldSurfaceReachNarrative(
+        presentation,
+        parsedPackages[row.packageName],
+      ),
+    )
+    .map((row) => ({
       packageName: row.packageName,
       paths: normalizedPackageUsagePaths(row),
       areas: row.areas,
       criticalPaths: row.criticalPaths,
-    })),
+    }));
+
+  if (items.length === 0) {
+    return undefined;
+  }
+
+  return {
+    summary: `${items.length} package(s) with usage data`,
+    items,
     frameworks: facts.frameworks,
   };
 }

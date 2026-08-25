@@ -1,3 +1,4 @@
+import type { ReachVisibility } from "./assessment/types.js";
 import type { ObservationSignalFamily } from "./cardObservationCatalog.js";
 import type { MergePosture } from "./riskVocabulary.js";
 import type { RiskSignals } from "./riskSignals.js";
@@ -201,6 +202,8 @@ export type ScanNarrativeFacts = {
   /** @deprecated Use `riskSignals.riskIndex` — kept for frozen surface presenters. */
   riskIndex: number | null;
   riskSignals: RiskSignals | null;
+  /** Assessment presentation reach policy projected for narrative helpers (not a canonical RI fact). */
+  reachVisibility?: ReachVisibility | null;
 };
 
 export const EMPTY_SCAN_NARRATIVE_FACTS: ScanNarrativeFacts = {
@@ -228,6 +231,7 @@ export const EMPTY_SCAN_NARRATIVE_FACTS: ScanNarrativeFacts = {
   mergePosture: null,
   riskIndex: null,
   riskSignals: null,
+  reachVisibility: null,
 };
 
 /** Derivation caps — presenters apply tighter channel limits. */

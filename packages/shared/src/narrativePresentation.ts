@@ -1,7 +1,9 @@
+import type { ReachVisibility } from "./assessment/types.js";
 import type {
   NarrativePackageUsage,
   ScanNarrativeFacts,
 } from "./scanNarrativeFacts.js";
+import { shouldSurfaceReachNarrative } from "./presentation/reachNarrativeGating.js";
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
 
 /** Deduplicated union of wire usage path buckets — matches reachability/linkage semantics. */
@@ -239,17 +241,33 @@ export function formatFrameworksSummary(
   return frameworks.join(", ");
 }
 
+export type ComposeContextLineFromFactsOptions = {
+  includePathSample?: boolean;
+  maxAreas?: number;
+  /** Overrides Assessment reach policy projected on facts when supplied. */
+  reachVisibility?: ReachVisibility;
+};
+
 export function composeContextLineFromFacts(
   facts: ScanNarrativeFacts,
-  options: { includePathSample?: boolean; maxAreas?: number } = {},
+  options: ComposeContextLineFromFactsOptions = {},
 ): string | null {
+  const reachVisibility = options.reachVisibility ?? facts.reachVisibility;
+  if (reachVisibility == null) {
+    return null;
+  }
+  if (
+    !shouldSurfaceReachNarrative(
+      { reachVisibility },
+      facts.packageSemantics ?? undefined,
+    )
+  ) {
+    return null;
+  }
+
   const parts: string[] = [];
-  const suppressRuntime =
-    facts.packageSemantics?.suppressRuntimeNarrative === true;
-  const runtime = suppressRuntime ? null : labelRuntimeSurface(facts);
-  const reach = suppressRuntime
-    ? null
-    : summarizeReachability(facts, options.includePathSample ? 1 : 0);
+  const runtime = labelRuntimeSurface(facts);
+  const reach = summarizeReachability(facts, options.includePathSample ? 1 : 0);
   const blast = labelBlastRadiusLevel(facts);
 
   if (runtime) parts.push(runtime);

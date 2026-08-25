@@ -5,6 +5,7 @@ import {
   buildNarrativeChannels,
   projectCompactKeyPoints,
 } from "./narrativeChannels.js";
+import { shouldSurfaceReachNarrative } from "../reachNarrativeGating.js";
 
 export {
   buildNarrativeChannels,
@@ -48,6 +49,7 @@ export function composeAffectedAreaLabels(
   bundle: ScanPresentationBundle,
   max: number,
 ): string[] {
+  if (!shouldSurfaceReachNarrative(bundle.presentation)) return [];
   const labels: string[] = [];
   for (const area of bundle.facts.affectedAreas) {
     const formatted = formatCardAreaLabels([area.label], 1);

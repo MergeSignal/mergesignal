@@ -8,6 +8,22 @@ MergeSignal surfaces (dashboard, scan detail, GitHub check run, PR comment, CLI)
 
 If presentation output disagrees with assessment, assessment wins.
 
+## Canonical facts vs presentation visibility
+
+`deriveScanNarrative()` produces complete canonical Repository Intelligence facts (runtime surface, reachability, usage paths, application areas, blast radius). Those facts remain truthful and are not mutated or redacted at derivation time.
+
+`assessment.presentation.reachVisibility` governs what user-facing presentation surfaces may show:
+
+- **`hidden`** — suppress reach/runtime evidence in presentation projection (reach chip, scope areas, blast-radius chips, usage/path sections, reach-derived compact key points). Canonical facts and `ScanResult` remain unchanged.
+- **`contextual`** — permit governed contextual reach representation (e.g. "Limited reach"). Package-level `suppressRuntimeNarrative` may still suppress per-package runtime narration.
+- **`prominent`** — permit existing governed prominent reach/runtime presentation.
+
+Presentation consumers must not derive merge decision authority from raw Repository Intelligence. Headline, reasoning, and verification guidance come from Assessment Expression; structured RI facts are layout/context only.
+
+Verification guidance selection uses `assessment.presentation.verificationIntensity` and `verificationScope` via `collectVerificationFocusForPresentation` — presentation selects what to render without mutating canonical verification facts.
+
+`composeContextLineFromFacts()` in `narrativePresentation.ts` is a legacy exported helper. Governed bundle presenters route through `buildNarrativeChannels` and `shouldSurfaceReachNarrative()`. The exported helper honors the same reach policy via Assessment `reachVisibility` projected on `ScanNarrativeFacts` (or an optional `reachVisibility` override in its options). When presentation policy is absent (`undefined` or `null`), the helper conservatively emits no reach-derived context — absence is not treated as prominent presentation.
+
 ## Public contract
 
 Presentation code uses only the published `ScanResult` and `Assessment` shapes from `@mergesignal/shared`. It may normalize and format published fields. It must not depend on engine-internal assessment fields or re-derive merge decisions in presenters.

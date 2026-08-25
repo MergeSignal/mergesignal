@@ -10,6 +10,7 @@ import { safeParseRepoIntelligence } from "../../repoIntelligenceSchema.js";
 import type { PresentationEvidenceRow } from "../dto/types.js";
 import type { ScanPresentationBundle } from "../orchestration/scanPresentationBundle.js";
 import { labelBlastRadiusLevel } from "../../narrativePresentation.js";
+import { shouldSurfaceReachNarrative } from "../reachNarrativeGating.js";
 
 type NarrativeChannels = {
   headline: string;
@@ -25,6 +26,7 @@ function composeScopeAreaLabels(
   bundle: ScanPresentationBundle,
   max: number,
 ): string[] {
+  if (!shouldSurfaceReachNarrative(bundle.presentation)) return [];
   const parsed = safeParseRepoIntelligence(bundle.result.repoIntelligence);
   const labels = parsed.ok ? applicationAreaLabels(parsed.value) : [];
   return labels.slice(0, max);
@@ -34,6 +36,7 @@ function composeChannelEvidence(
   bundle: ScanPresentationBundle,
   max: number,
 ): PresentationEvidenceRow[] {
+  if (!shouldSurfaceReachNarrative(bundle.presentation)) return [];
   const blast = labelBlastRadiusLevel(bundle.facts);
   const rows: PresentationEvidenceRow[] = [];
   if (blast) rows.push({ label: "Blast radius", value: blast });
