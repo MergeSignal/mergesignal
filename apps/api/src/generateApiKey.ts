@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { randomBytes, createHash } from "crypto";
+import { createHash, randomBytes, randomUUID } from "crypto";
+import minimist from "minimist";
 import { queries } from "./db.js";
-import { randomUUID } from "crypto";
 
 async function generateApiKey(owner: string, description?: string) {
   if (!owner || owner.trim() === "") {
@@ -41,23 +41,65 @@ async function generateApiKey(owner: string, description?: string) {
   }
 }
 
-const args = process.argv.slice(2);
-if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
+type ParsedCli =
+  | { mode: "help" }
+  | { mode: "usage"; exitCode: number }
+  | { mode: "run"; owner: string; description?: string };
+
+function parseGenerateApiKeyArgv(argv: string[]): ParsedCli {
+  const args = minimist(argv, {
+    string: ["owner", "description"],
+    boolean: ["help"],
+    alias: { h: "help" },
+  });
+
+  if (args.help) {
+    return { mode: "help" };
+  }
+
+  const positional = Array.isArray(args._) ? args._.map((x) => String(x)) : [];
+  const owner =
+    (typeof args.owner === "string" ? args.owner.trim() : "") ||
+    (positional[0] ? positional[0].trim() : "");
+  const description =
+    (typeof args.description === "string" ? args.description.trim() : "") ||
+    (positional.length > 1 ? positional.slice(1).join(" ").trim() : "") ||
+    undefined;
+
+  if (argv.length === 0) {
+    return { mode: "usage", exitCode: 1 };
+  }
+
+  return { mode: "run", owner, description };
+}
+
+function printUsage(): void {
   console.log(`
-Usage: npm run generate-api-key -- <owner> [description]
+Usage:
+  pnpm run generate-api-key -- <owner> [description]
+  pnpm run generate-api-key -- --owner <owner> [--description <text>]
 
 Examples:
-  npm run generate-api-key -- acme "Production API key"
-  npm run generate-api-key -- octocat
+  pnpm run generate-api-key -- acme "Production API key"
+  pnpm run generate-api-key -- octocat
+  pnpm run generate-api-key -- --owner acme --description "Staging key"
 
 Arguments:
   owner         GitHub organization or user name
   description   Optional description for the API key
 `);
-  process.exit(args.includes("--help") || args.includes("-h") ? 0 : 1);
 }
 
-const owner = args[0];
-const description = args.slice(1).join(" ");
+const parsed = parseGenerateApiKeyArgv(process.argv.slice(2));
 
-generateApiKey(owner, description);
+if (parsed.mode === "help") {
+  printUsage();
+  process.exit(0);
+}
+
+if (parsed.mode === "usage") {
+  printUsage();
+  process.exit(parsed.exitCode);
+}
+
+void generateApiKey(parsed.owner, parsed.description);
