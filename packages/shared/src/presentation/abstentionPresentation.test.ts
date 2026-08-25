@@ -143,7 +143,7 @@ describe("abstention presentation semantics", () => {
 
     expect(presentationStatusFromAssessment(assessment)).toBe("indeterminate");
     expect(details.posture).toBe("indeterminate");
-    expect(details.hero.headline).toMatch(/could not be determined/i);
+    expect(details.hero.headline).toMatch(/merge safety not established/i);
     expect(details.hero.headline).not.toMatch(/needs review/i);
     expect(details.verificationFocus).toEqual([]);
   });
@@ -168,7 +168,7 @@ describe("abstention presentation semantics", () => {
       },
     );
     expect(out.conclusion).toBe("neutral");
-    expect(out.title).toMatch(/could not be determined/i);
+    expect(out.title).toMatch(/merge safety not established/i);
     expect(out.title).not.toMatch(/needs review/i);
   });
 });

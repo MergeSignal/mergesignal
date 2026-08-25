@@ -24,6 +24,8 @@ Verification guidance selection uses `assessment.presentation.verificationIntens
 
 `composeContextLineFromFacts()` in `narrativePresentation.ts` is a legacy exported helper. Governed bundle presenters route through `buildNarrativeChannels` and `shouldSurfaceReachNarrative()`. The exported helper honors the same reach policy via Assessment `reachVisibility` projected on `ScanNarrativeFacts` (or an optional `reachVisibility` override in its options). When presentation policy is absent (`undefined` or `null`), the helper conservatively emits no reach-derived context — absence is not treated as prominent presentation.
 
+Indeterminate headlines use merge-clearance abstention semantics via `formatAssessmentHeadline()` — scoped to unresolved merge safety, not total analytical failure, and without developer-attention language. Low confidence alone does not imply limited collection; collection-limited `degradedMessage` is emitted only when sealed Assessment abstain reasons or `evidenceSufficiencyVerdict.blockers` establish collection/acquisition incompleteness. Capability-ceiling abstention must not receive collection-limited subheadlines. `deriveScanNarrative().confidence.limitedContext` follows the same rule: corpus-gate and preparation-uncertainty signals only, not low confidence alone. Presentation must not contradict authored Assessment Expression in reasoning or confidence rationale.
+
 ## Public contract
 
 Presentation code uses only the published `ScanResult` and `Assessment` shapes from `@mergesignal/shared`. It may normalize and format published fields. It must not depend on engine-internal assessment fields or re-derive merge decisions in presenters.

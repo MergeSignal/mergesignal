@@ -203,7 +203,7 @@ describe("surfaceParity guardrail", () => {
     expect(s.details.hero.headline).toBe(s.card.headline);
     expect(s.check.title).toBe(s.card.headline);
     expect(cli.headline).toBe(s.card.headline);
-    expect(s.card.headline).toMatch(/could not be determined/i);
+    expect(s.card.headline).toMatch(/merge safety not established/i);
     expect(s.card.headline).not.toMatch(/needs review/i);
     expect(s.check.conclusion).toBe("neutral");
     expect(s.card.verificationFocus).toEqual([]);

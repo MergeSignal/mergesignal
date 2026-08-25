@@ -269,6 +269,29 @@ describe("deriveScanNarrative", () => {
     expect(facts.confidence.limitedContext).toBe(true);
   });
 
+  it("does not set limitedContext from low assessment confidence alone", () => {
+    const result = {
+      ...baseResult,
+      changedPackages: ["fastify"],
+      analysisPreparation: analysisPreparationWithValidRepoIntel(),
+      repoIntelligence: fixtureRepoIntelligenceFastify,
+      assessment: {
+        ...assessmentFastifyRuntime,
+        confidence: "low",
+      },
+      decision: {
+        recommendation: "indeterminate",
+        confidence: "low",
+        reasoning: [],
+      },
+    } satisfies ScanResult;
+
+    const facts = deriveScanNarrative(result);
+    expect(facts.confidence.assessment).toBe("low");
+    expect(facts.availability.corpusGateReason).toBe("ok");
+    expect(facts.confidence.limitedContext).toBe(false);
+  });
+
   it("links affected areas to packages, findings, paths, and verification", () => {
     const result = {
       ...baseResult,

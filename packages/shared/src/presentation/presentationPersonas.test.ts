@@ -125,7 +125,7 @@ const personas: PersonaExpectation[] = [
     intent: "unknown_upgrade",
     status: "indeterminate",
     density: "minimal",
-    headlineMatch: /could not be determined/i,
+    headlineMatch: /merge safety not established/i,
     headlineMustNot: /needs review/i,
   },
 ];
@@ -225,7 +225,7 @@ describe("presentation personas", () => {
     const cli = presentCliScanSummary(bundle, { repoLabel: "acme/api" });
     expect(details.hero.headline).toBe(card.headline);
     expect(cli.headline).toBe(card.headline);
-    expect(card.headline).toMatch(/could not be determined/i);
+    expect(card.headline).toMatch(/merge safety not established/i);
     expect(card.headline).not.toMatch(/needs review/i);
     expect(card.verification).toEqual([]);
   });

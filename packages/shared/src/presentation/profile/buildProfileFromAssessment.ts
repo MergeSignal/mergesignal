@@ -11,6 +11,7 @@ import type { PresentationProfile } from "./presentationProfile.js";
 import { collectVerificationFocusForPresentation } from "../../assessmentProjection.js";
 import { hasPreparationUncertaintyWarnings } from "../../lockfileEvidence.js";
 import { presentationStatusFromAssessment } from "../presentationStatusFromAssessment.js";
+import { assessmentEstablishesCollectionLimitation } from "./assessmentEstablishesCollectionLimitation.js";
 
 function focalAnchorPackage(assessment: Assessment): string | null {
   const anchors = assessment.reviewFocalPoint.anchors;
@@ -53,7 +54,7 @@ function buildInterpretation(
     anchorPackage,
     suppressRuntimeNarrative,
     allowRuntimeNarrative: !suppressRuntimeNarrative,
-    showLimitedEvidence: assessment.confidence === "low",
+    showLimitedEvidence: assessmentEstablishesCollectionLimitation(assessment),
     expectedImpactKey: null,
     verificationLabels,
     runtimeSurfaceLabel: null,
@@ -78,10 +79,12 @@ export function buildProfileFromAssessment(
       ? "pr_intelligence"
       : "limited";
 
+  const establishesCollectionLimitation =
+    assessmentEstablishesCollectionLimitation(assessment);
+
   const degradedMessage = verifiedNoTransitionSafe
     ? undefined
-    : assessment.primaryConcern === "insufficient_evidence" ||
-        assessment.confidence === "low" ||
+    : establishesCollectionLimitation ||
         hasPreparationUncertaintyWarnings(preparationWarnings)
       ? scanSurfaceCopy.presentation.limitedContextMessage
       : priority === "limited"

@@ -50,7 +50,7 @@ describe("applyPostureVocabularyGuard", () => {
       "pkg-a",
     );
     expect(out.toLowerCase()).not.toContain("needs review");
-    expect(out).toMatch(/could not be determined/i);
+    expect(out).toMatch(/merge safety not established/i);
     expect(out.toLowerCase()).toContain("pkg-a");
   });
 });

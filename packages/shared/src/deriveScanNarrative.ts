@@ -581,12 +581,10 @@ function assessmentConfidenceFromResult(
 function limitedContextDiagnostic(input: {
   corpusGateReason: CorpusGateReason;
   preparationWarnings: AnalysisContextWarning[];
-  assessmentConfidence: ScanNarrativeFacts["confidence"]["assessment"];
 }): boolean {
   return (
     input.corpusGateReason !== "ok" ||
-    hasPreparationUncertaintyWarnings(input.preparationWarnings) ||
-    input.assessmentConfidence === "low"
+    hasPreparationUncertaintyWarnings(input.preparationWarnings)
   );
 }
 
@@ -667,7 +665,6 @@ export function deriveScanNarrative(
     limitedContext: limitedContextDiagnostic({
       corpusGateReason,
       preparationWarnings,
-      assessmentConfidence,
     }),
   };
 
