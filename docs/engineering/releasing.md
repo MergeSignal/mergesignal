@@ -74,7 +74,7 @@ Choose the sequence that matches **which contract domain changed**.
 When a public Shared contract changes and private Contracts consumes or re-exports it:
 
 1. **Validate and graduate Shared** — build, test, and pack-artifact checks in mergesignal (`pnpm run check:shared-pack-artifact` and CI gates).
-2. **Commit** the reviewed Shared source to `main`.
+2. **Default:** commit the reviewed Shared source to green canonical `main`, then tag. **Exception:** when [Dependency-ordered foundational publication](#dependency-ordered-foundational-publication) applies, tag and publish from the isolated release-metadata commit **without** moving `main`; integrate the **exact tagged commit** only after the restoration boundary in that subsection.
 3. **Tag and publish** the immutable Shared version to npmjs (`shared-vX.Y.Z` → [publish-shared.yml](.github/workflows/publish-shared.yml)).
 4. **Verify** the npmjs artifact (publish workflow registry check; optional local `npm view` / `npm pack`).
 5. **Update private Contracts** in mergesignal-engine to consume the **published** Shared version (catalog pin, expectations, lockfile).
@@ -95,6 +95,34 @@ When a change affects only private Contracts domains and does **not** require a 
 - **Public Shared changes publish before** private Contracts versions that consume them.
 - Do not publish Contracts with a Shared dependency pin that is not yet on npmjs.
 - Public users and public packages require no npm authentication for Shared or Scan Preparation.
+- Canonical `main` must remain full-monorepo CI green. There is no expected-red-`main` exemption. See [Dependency-ordered foundational publication](#dependency-ordered-foundational-publication).
+
+### Dependency-ordered foundational publication
+
+**This subsection owns the two-path publication rule.** Default package releases remain: green canonical `main` → tag → publish. A breaking contract change does not by itself qualify.
+
+A **dependency-ordered foundational publication** is allowed only when a foundational public package introduces an independently graduated contract change, but dependent packages cannot truthfully validate against the registry until that artifact is published. Full monorepo CI then cannot pass before publication for that structural reason.
+
+**Canonical `main` receives dependency-ordered release work only after the complete repository state satisfies its governed full-CI boundary.**
+
+**Eligibility — all required:**
+
+1. Foundational public package independently source-graduated.
+2. Package-owned executable validation complete (Shared: build, test, and `check:shared-pack-artifact` as already required above and by [publish-shared.yml](.github/workflows/publish-shared.yml); packed consumption proof where that proof is governed).
+3. Committed source and packed-artifact identity known where those proofs are governed.
+4. Structural registry dependency cycle proven: dependents cannot pin an unpublished version.
+5. Full monorepo coherence cannot be achieved before foundational publication for that structural reason.
+6. Publication does not silently auto-upgrade governed production consumers (exact pins).
+7. Release-boundary review approves the candidate and this topology.
+8. Explicit publication authorization exists (separate from a local checkpoint or this documentation).
+
+Package-owned validation substitutes for full monorepo CI **only** before the foundational artifact exists in the registry. It is not generally equivalent to full CI.
+
+**Prohibited uses.** Do not use this path to bypass: normal failing tests; incomplete source; unrelated red CI; missing independent review; unresolved downstream defects that can be fixed before publication; convenience-only sequencing; unreviewed breaking changes; package validation; or canonical-`main` integration.
+
+**Sequence.** (1) Independently graduate the foundational package checkpoint. (2) Prepare the version and changelog commit in a **clean checkout or worktree** rooted at that checkpoint so sibling or uncommitted work cannot contaminate the release commit. (3) Run package-owned release validation. (4) Tag and publish **without moving canonical `main`**. Provenance remains: registry artifact ↔ package version ↔ immutable tag ↔ exact release commit SHA ↔ package publish workflow ↔ eventual canonical history. (5) Downstream packages consume the **published** registry artifact; remove temporary resolution scaffolding; isolated/distributable checks, downstream type/runtime validation, full public CI, and relevant private registry-consumption validation all pass. (6) Only then integrate into canonical `main`. The **exact tagged release commit** must become an ancestor of `main`. Do not re-author the published release as a different commit, duplicate release metadata for the same published version, or leave published ancestry permanently detached. Downstream alignment builds on the tagged release ancestry.
+
+**Failure after publication and before `main` integration.** Published versions and tags are immutable (Rollback table in this Shared section). Do not move or recreate the published tag; do not unpublish or reuse the version. Fix forward: downstream-only defects repair on the tagged release commit; a wrong published package requires a **new** version whose parent is that tagged commit (or that commit plus documented follow-up). Preserve the published release commit in ancestry. Engine consumers remain on the prior exact pin until a human-merged consumption PR passes.
 
 ### Lockfile refresh
 
@@ -155,14 +183,14 @@ The canonical contract and presentation package lives in `packages/shared` and i
 - intentional shared presentation behavior: informational preparation warnings (e.g. `code_fetch_skipped`) no longer trigger limited-context degradation; verified no-transition Safe suppresses degraded messaging
 - **public Assessment wire ownership:** `@mergesignal/shared` is the canonical owner of the public `Assessment` wire, parsers, `ASSESSMENT_ABI`, and presentation accessors; the published package depends only on `zod` (no `@mergesignal/contracts`)
 
-**Graduation sequence:** merge public changes → tag `shared-v0.13.0` → publish → publish private `@mergesignal/contracts` if its Shared dependency changed → engine bumps catalog pins and regenerates lockfile → remove any local `link:` validation override → run `pnpm run validate:shared-consumption`.
+**Historical graduation sequence (this version):** merge public changes → tag `shared-v0.13.0` → publish → publish private `@mergesignal/contracts` if its Shared dependency changed → engine bumps catalog pins and regenerates lockfile → remove any local `link:` validation override → run `pnpm run validate:shared-consumption`. Current publication paths: **Publish (maintainers)** below, and [Dependency-ordered foundational publication](#dependency-ordered-foundational-publication).
 
 **`0.3.0`+:** strict `repoIntelligence` wire (`REPO_INTELLIGENCE_ABI`), `safeParseRepoIntelligence`, and `applyRepoIntelligenceValidation`. Publish shared before bumping the engine’s exact pin.
 
 **Publish (maintainers)**
 
 1. Bump `version` in `packages/shared/package.json` (semver).
-2. Merge to `main`.
+2. **Default:** merge to green canonical `main`. **Exception:** when [Dependency-ordered foundational publication](#dependency-ordered-foundational-publication) applies, do not merge incoherent `main`; tag the isolated release-metadata commit and push that tag only.
 3. Tag: `git tag shared-v0.2.3` (prefix must match `shared-v*`).
 4. Push the tag: `git push origin shared-v0.2.3`.
 5. GitHub Actions workflow [`.github/workflows/publish-shared.yml`](.github/workflows/publish-shared.yml) runs build, tests, `npm publish`, and notifies mergesignal-engine (requires `NPM_TOKEN` with **Bypass 2FA** when org 2FA is on, plus `MERGESIGNAL_ENGINE_DISPATCH_TOKEN` — see [Engine notification](#engine-notification-after-shared-publish)).
@@ -279,7 +307,7 @@ On Shared publish success, [publish-shared.yml](.github/workflows/publish-shared
 | Revert engine        | Restore previous exact pin in `package.json` and the prior `pnpm-lock.yaml` hunk; redeploy. |
 | Public monorepo apps | Redeploy prior git SHA (shared resolves from npm).                                          |
 
-Published npm versions are immutable; do not rely on `npm unpublish`.
+Published npm versions are immutable; do not rely on `npm unpublish`. After an isolated tagged publication, defects found before canonical-`main` integration follow [Dependency-ordered foundational publication](#dependency-ordered-foundational-publication) (preserve the published release commit in ancestry; fix forward; never move the tag).
 
 **After publish (quick checks)**
 
@@ -419,7 +447,7 @@ Configuration paths:
 
 1. npm Trusted Publishing is configured (above); first OIDC proof completed at `@mergesignal/scan-prep@0.1.4`.
 2. Bump `packages/scan-prep/package.json` version when release authority requires it.
-3. Commit reviewed source to `main` (with [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml) present).
+3. Commit reviewed source to `main` (with [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml) present). Isolated tag-first publication applies only when Scan Preparation itself satisfies [Dependency-ordered foundational publication](#dependency-ordered-foundational-publication) eligibility; otherwise keep this main-first default.
 4. Tag: `git tag scan-prep-vX.Y.Z` and `git push origin scan-prep-vX.Y.Z`.
 5. The workflow proves npmjs version availability, produces the governed release candidate (`pack:scan-prep-release-candidate`), writes structured publication evidence to a JSON file, re-validates candidate integrity from the structured report immediately before `npm publish`, publishes that exact tarball with OIDC, then runs unauthenticated post-publication verification.
 6. Confirm no Scan Preparation write secret exists in GitHub or npm.
