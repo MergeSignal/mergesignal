@@ -50,7 +50,7 @@
     "detailActionLabel": "Review scan",
     "sortKey": {
       "postureRank": 0,
-      "riskIndex": 18
+      "riskIndex": -1
     }
   },
   "prettier": {
@@ -104,7 +104,7 @@
     "detailActionLabel": "Review scan",
     "sortKey": {
       "postureRank": 0,
-      "riskIndex": 18
+      "riskIndex": -1
     }
   },
   "fastifyRuntime": {
@@ -176,7 +176,7 @@
     "detailActionLabel": "Review scan",
     "sortKey": {
       "postureRank": 2,
-      "riskIndex": 52
+      "riskIndex": -1
     }
   },
   "bullmq": {
@@ -219,7 +219,7 @@
     "detailActionLabel": "Review scan",
     "sortKey": {
       "postureRank": 2,
-      "riskIndex": 48
+      "riskIndex": -1
     }
   },
   "limitedContext": {
@@ -249,7 +249,7 @@
     "detailActionLabel": "Review scan",
     "sortKey": {
       "postureRank": 2,
-      "riskIndex": 40
+      "riskIndex": -1
     }
   },
   "unknownSafe": {
@@ -283,7 +283,7 @@
     "detailActionLabel": "Review scan",
     "sortKey": {
       "postureRank": 0,
-      "riskIndex": 18
+      "riskIndex": -1
     }
   },
   "mixedTypescriptFastify": {
@@ -322,7 +322,7 @@
     "detailActionLabel": "Review scan",
     "sortKey": {
       "postureRank": 2,
-      "riskIndex": 55
+      "riskIndex": -1
     }
   }
 }

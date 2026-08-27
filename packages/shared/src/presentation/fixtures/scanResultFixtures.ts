@@ -103,6 +103,7 @@ export const scanResultTypescriptPatch: ScanResult = withAbi4SplitScores(
 );
 
 export const scanResultLimitedContext: ScanResult = {
+  prRisk: { availability: "indeterminate", qualifier: "limited_evidence" },
   totalScore: 40,
   layerScores: {
     security: 10,

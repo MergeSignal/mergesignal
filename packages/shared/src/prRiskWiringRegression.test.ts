@@ -113,8 +113,26 @@ describe("PR Risk wiring regression (Investigation 1)", () => {
     expect(typescript.card.sortKey.riskIndex).toBe(30);
   });
 
-  it("historical fallback: missing prRisk uses totalScore for riskIndex", () => {
+  it("historical fallback: missing prRisk uses totalScore for riskIndex when assessment is absent", () => {
     const historical: ScanResult = {
+      totalScore: 48,
+      layerScores: {
+        security: 10,
+        maintainability: 12,
+        ecosystem: 14,
+        upgradeImpact: 12,
+      },
+      findings: [],
+      generatedAt: "2026-01-01T00:00:00.000Z",
+    };
+
+    const facts = deriveScanNarrative(historical);
+    expect(facts.riskSignals?.riskIndex).toBe(48);
+    expect(facts.riskIndex).toBe(48);
+  });
+
+  it("assessment-era result without scored prRisk does not resurrect riskIndex from totalScore", () => {
+    const assessmentEraWithoutPrRisk: ScanResult = {
       totalScore: 48,
       layerScores: {
         security: 10,
@@ -128,14 +146,8 @@ describe("PR Risk wiring regression (Investigation 1)", () => {
       decision: scanResultTypescriptPatch.decision,
     };
 
-    const facts = deriveScanNarrative(historical);
-    expect(facts.riskSignals?.riskIndex).toBe(48);
-    expect(facts.riskIndex).toBe(48);
-
-    const bundle = buildScanPresentationBundle({
-      result: historical,
-      pipelineStatus: "done",
-    })!;
-    expect(presentDashboardCard(bundle).sortKey.riskIndex).toBe(48);
+    const facts = deriveScanNarrative(assessmentEraWithoutPrRisk);
+    expect(facts.riskSignals).toBeNull();
+    expect(facts.riskIndex).toBeNull();
   });
 });
