@@ -13,15 +13,35 @@ import {
 } from "./presentation/fixtures/presentationPersonaFixtures.js";
 import type { ScanResult } from "./types.js";
 
-const validationPersonas: Array<{ id: string; result: ScanResult }> = [
-  { id: "fastify-runtime", result: scanResultFastifyRuntime },
-  { id: "typescript-patch", result: scanResultTypescriptPatch },
+const scoredPrRiskPersonas: Array<{
+  id: string;
+  result: ScanResult;
+  expectedRiskIndex: number;
+}> = [
+  {
+    id: "fastify-runtime",
+    result: scanResultFastifyRuntime,
+    expectedRiskIndex: 55,
+  },
+  {
+    id: "typescript-patch",
+    result: scanResultTypescriptPatch,
+    expectedRiskIndex: 30,
+  },
+  { id: "prettier", result: scanResultPrettier, expectedRiskIndex: 30 },
+];
+
+const nonScoredPrRiskPersonas: Array<{ id: string; result: ScanResult }> = [
   { id: "mixed-ts-fastify", result: scanResultMixedTypescriptFastify },
-  { id: "prettier", result: scanResultPrettier },
   { id: "bullmq", result: scanResultBullmq },
   { id: "eslint", result: scanResultEslint },
   { id: "vitest", result: scanResultVitest },
   { id: "limited-context", result: scanResultLimitedContext },
+];
+
+const validationPersonas: Array<{ id: string; result: ScanResult }> = [
+  ...scoredPrRiskPersonas,
+  ...nonScoredPrRiskPersonas,
 ];
 
 function bundleFor(result: ScanResult) {
@@ -39,9 +59,28 @@ describe("scanPresentationBundle golden — proof model", () => {
     expect(bundle!.facts.confidence).toMatchObject({
       limitedContext: expect.any(Boolean),
     });
-    expect(bundle!.facts.riskSignals).not.toBeNull();
-    expect(bundle!.facts.riskSignals!.layers).toHaveLength(4);
   });
+
+  it.each(scoredPrRiskPersonas)(
+    "$id: scored persona exposes governed numeric PR Risk",
+    ({ result, expectedRiskIndex }) => {
+      const { facts } = bundleFor(result)!;
+      expect(facts.riskSignals).not.toBeNull();
+      expect(facts.riskSignals!.riskIndex).toBe(expectedRiskIndex);
+      expect(facts.riskIndex).toBe(expectedRiskIndex);
+      expect(facts.riskSignals!.layers).toHaveLength(4);
+      expect(facts.riskSignals!.band).toBe(scoreToBand(expectedRiskIndex));
+    },
+  );
+
+  it.each(nonScoredPrRiskPersonas)(
+    "$id: non-scored persona does not expose numeric PR Risk",
+    ({ result }) => {
+      const { facts } = bundleFor(result)!;
+      expect(facts.riskSignals).toBeNull();
+      expect(facts.riskIndex).toBeNull();
+    },
+  );
 
   it("fastify-runtime — linkage and diagnostics", () => {
     const bundle = bundleFor(scanResultFastifyRuntime)!;
@@ -67,6 +106,12 @@ describe("scanPresentationBundle golden — proof model", () => {
     const bundle = bundleFor(scanResultLimitedContext)!;
     const { facts } = bundle;
 
+    expect(scanResultLimitedContext.prRisk).toEqual({
+      availability: "indeterminate",
+      qualifier: "limited_evidence",
+    });
+    expect(facts.riskSignals).toBeNull();
+    expect(facts.riskIndex).toBeNull();
     expect(facts.availability.corpusGateReason).toBe("no_code_intelligence");
     expect(
       facts.availability.preparationWarnings.some(
