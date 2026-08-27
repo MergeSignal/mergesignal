@@ -57,9 +57,10 @@ function isIndeterminatePrRisk(prRisk: PrRiskWire | undefined): boolean {
  * 1. abstain outcome → no numeric score (outcome-primary reader semantics)
  * 2. result.prRisk.availability === 'indeterminate' → no numeric score
  * 3. result.prRisk.score (scored wire)
- * 4. denormalized pr_risk_score (when provided)
- * 5. historical scans.total_score column (when provided)
- * 6. result.totalScore (historical JSON fallback only — never when assessment is present)
+ * 4. when assessment is present and no scored wire → no numeric score
+ * 5. denormalized pr_risk_score (historical rows only — no assessment in result)
+ * 6. historical scans.total_score column (historical rows only)
+ * 7. result.totalScore (historical JSON fallback only)
  */
 export function resolvePrRiskScore(
   result: ScanResult | null | undefined,
@@ -84,15 +85,15 @@ export function resolvePrRiskScore(
   );
   if (fromWire != null) return fromWire;
 
+  if (result?.assessment) {
+    return null;
+  }
+
   const fromDenorm = finiteScore(ctx.prRiskScore);
   if (fromDenorm != null) return fromDenorm;
 
   const fromLegacyColumn = finiteScore(ctx.legacyTotalScore);
   if (fromLegacyColumn != null) return fromLegacyColumn;
-
-  if (result?.assessment) {
-    return null;
-  }
 
   return finiteScore(result?.totalScore);
 }

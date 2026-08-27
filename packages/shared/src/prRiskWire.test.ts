@@ -23,6 +23,10 @@ function baseResult(overrides: Partial<ScanResult> = {}): ScanResult {
   };
 }
 
+const assessmentCleared = {
+  outcome: "cleared",
+} as ScanResult["assessment"];
+
 describe("resolvePrRiskScore", () => {
   it("prefers prRisk.score", () => {
     const result = baseResult({
@@ -49,7 +53,7 @@ describe("resolvePrRiskScore", () => {
       resolvePrRiskScore(
         baseResult({
           totalScore: 48,
-          assessment: { outcome: "cleared" } as ScanResult["assessment"],
+          assessment: assessmentCleared,
         }),
       ),
     ).toBeNull();
@@ -57,6 +61,105 @@ describe("resolvePrRiskScore", () => {
 
   it("returns null when no score available", () => {
     expect(resolvePrRiskScore(baseResult({ totalScore: NaN }))).toBeNull();
+  });
+
+  describe("assessment-era authority", () => {
+    const scoredAssessmentResult = baseResult({
+      assessment: assessmentCleared,
+      prRisk: { score: 72 },
+      totalScore: 48,
+    });
+
+    it("prefers scored wire over stale prRiskScore", () => {
+      expect(
+        resolvePrRiskScore(scoredAssessmentResult, { prRiskScore: 61 }),
+      ).toBe(72);
+    });
+
+    it("prefers scored wire over stale legacyTotalScore", () => {
+      expect(
+        resolvePrRiskScore(scoredAssessmentResult, { legacyTotalScore: 48 }),
+      ).toBe(72);
+    });
+
+    it("prefers scored wire over stale JSON totalScore", () => {
+      expect(resolvePrRiskScore(scoredAssessmentResult)).toBe(72);
+    });
+
+    it("returns null for indeterminate PR Risk with stale prRiskScore", () => {
+      expect(
+        resolvePrRiskScore(
+          baseResult({
+            assessment: assessmentCleared,
+            prRisk: { availability: "indeterminate" },
+            totalScore: 48,
+          }),
+          { prRiskScore: 61 },
+        ),
+      ).toBeNull();
+    });
+
+    it("returns null for indeterminate PR Risk with stale legacyTotalScore", () => {
+      expect(
+        resolvePrRiskScore(
+          baseResult({
+            assessment: assessmentCleared,
+            prRisk: { availability: "indeterminate" },
+            totalScore: 48,
+          }),
+          { legacyTotalScore: 48 },
+        ),
+      ).toBeNull();
+    });
+
+    it("returns null when PR Risk wire is missing and prRiskScore is stale", () => {
+      expect(
+        resolvePrRiskScore(
+          baseResult({
+            assessment: assessmentCleared,
+            totalScore: 48,
+          }),
+          { prRiskScore: 61 },
+        ),
+      ).toBeNull();
+    });
+
+    it("returns null when PR Risk wire is missing and legacyTotalScore is stale", () => {
+      expect(
+        resolvePrRiskScore(
+          baseResult({
+            assessment: assessmentCleared,
+            totalScore: 48,
+          }),
+          { legacyTotalScore: 48 },
+        ),
+      ).toBeNull();
+    });
+
+    it("returns null when PR Risk wire is missing and JSON totalScore is stale", () => {
+      expect(
+        resolvePrRiskScore(
+          baseResult({
+            assessment: assessmentCleared,
+            totalScore: 48,
+          }),
+        ),
+      ).toBeNull();
+    });
+  });
+
+  describe("historical compatibility", () => {
+    it("uses prRiskScore when assessment is absent", () => {
+      expect(resolvePrRiskScore(null, { prRiskScore: 61 })).toBe(61);
+    });
+
+    it("uses legacy total_score column when assessment is absent", () => {
+      expect(resolvePrRiskScore(null, { legacyTotalScore: 48 })).toBe(48);
+    });
+
+    it("uses JSON totalScore when assessment is absent", () => {
+      expect(resolvePrRiskScore(baseResult({ totalScore: 48 }))).toBe(48);
+    });
   });
 });
 
@@ -75,6 +178,57 @@ describe("resolvePrRiskScoreFromRow", () => {
       resolvePrRiskScoreFromRow({
         pr_risk_score: null,
         total_score: 40,
+      }),
+    ).toBe(40);
+  });
+
+  it("returns null for assessment-era hybrid row with stale persisted scores", () => {
+    expect(
+      resolvePrRiskScoreFromRow({
+        pr_risk_score: 61,
+        total_score: 48,
+        result: baseResult({
+          assessment: assessmentCleared,
+          totalScore: 48,
+        }),
+      }),
+    ).toBeNull();
+  });
+
+  it("returns null when assessment-era row has indeterminate PR Risk and stale columns", () => {
+    expect(
+      resolvePrRiskScoreFromRow({
+        pr_risk_score: 61,
+        total_score: 48,
+        result: baseResult({
+          assessment: assessmentCleared,
+          prRisk: { availability: "indeterminate" },
+          totalScore: 48,
+        }),
+      }),
+    ).toBeNull();
+  });
+
+  it("prefers scored wire over stale persisted columns on assessment-era rows", () => {
+    expect(
+      resolvePrRiskScoreFromRow({
+        pr_risk_score: 61,
+        total_score: 48,
+        result: baseResult({
+          assessment: assessmentCleared,
+          prRisk: { score: 72 },
+          totalScore: 48,
+        }),
+      }),
+    ).toBe(72);
+  });
+
+  it("preserves historical fallback when result JSON has no assessment", () => {
+    expect(
+      resolvePrRiskScoreFromRow({
+        pr_risk_score: null,
+        total_score: 40,
+        result: baseResult({ totalScore: 48 }),
       }),
     ).toBe(40);
   });
