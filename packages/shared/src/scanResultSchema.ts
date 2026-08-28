@@ -1,12 +1,13 @@
 import { assessmentSchema } from "./assessment/schema.js";
 import { z } from "zod";
+import type { FreshEngineOutputExpectation } from "./scanAnalysisScope.js";
 import type { EngineEmittedScanResult, ScanResult } from "./types.js";
 
 /** Bump when persisted `result` JSON validation rules change materially (relaxed / legacy-tolerant). */
 export const SCAN_RESULT_ABI = "2" as const;
 
 /** Bump when strict fresh-engine-output validation rules change materially. */
-export const ENGINE_OUTPUT_SCAN_ABI = "4" as const;
+export const ENGINE_OUTPUT_SCAN_ABI = "5" as const;
 
 const layerScoresSchema = z.object({
   security: z.number(),
@@ -29,14 +30,109 @@ const prRiskIndeterminateSchema = z.object({
 
 const prRiskSchema = z.union([prRiskScoredSchema, prRiskIndeterminateSchema]);
 
+const explainReasonSchema = z.object({
+  id: z.string(),
+  layer: z.enum(["security", "maintainability", "ecosystem", "upgradeImpact"]),
+  title: z.string(),
+  value: z.number().optional(),
+  scoreImpact: z.number(),
+  evidence: z.record(z.string(), z.unknown()).optional(),
+});
+
+const explainBlockSchema = z.object({
+  reasons: z.array(explainReasonSchema),
+});
+
+const scoreContributionSchema = z.object({
+  id: z.string(),
+  layer: z.enum(["security", "maintainability", "ecosystem", "upgradeImpact"]),
+  scoreImpact: z.number(),
+  evidence: z.record(z.string(), z.unknown()).optional(),
+});
+
 const repositoryHealthSchema = z.object({
   totalScore: z.number().min(0).max(100),
   layerScores: layerScoresSchema.optional(),
+  explain: explainBlockSchema.optional(),
+  topContributions: z.array(scoreContributionSchema).optional(),
 });
 
+const decisionSchema = z
+  .object({
+    recommendation: z.enum(["safe", "needs_review", "risky", "indeterminate"]),
+    confidence: z.enum(["low", "medium", "high"]).optional(),
+    reasoning: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+const MODERN_PR_FORBIDDEN_ROOT_KEYS = [
+  "totalScore",
+  "layerScores",
+  "signals",
+  "contributions",
+  "explain",
+] as const;
+
+function refineChangeRequestForbiddenRoots(
+  obj: Record<string, unknown>,
+  ctx: z.RefinementCtx,
+): void {
+  if (obj.prRisk === undefined) {
+    return;
+  }
+  for (const key of MODERN_PR_FORBIDDEN_ROOT_KEYS) {
+    if (obj[key] !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Change-request engine output must not emit root \`${key}\``,
+        path: [key],
+      });
+    }
+  }
+  if (obj.assessment !== undefined && obj.confidence !== undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message:
+        "Change-request engine output must not emit root `confidence` when assessment is present",
+      path: ["confidence"],
+    });
+  }
+}
+
+function refineRepositoryForbiddenPrAuthorities(
+  obj: Record<string, unknown>,
+  ctx: z.RefinementCtx,
+): void {
+  if (obj.prRisk !== undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Repository-scoped engine output must not emit `prRisk`",
+      path: ["prRisk"],
+    });
+  }
+  if (obj.repositoryHealth !== undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message:
+        "Repository-scoped engine output must not emit `repositoryHealth`",
+      path: ["repositoryHealth"],
+    });
+  }
+}
+
+/** @deprecated Use refineChangeRequestForbiddenRoots — kept for transitional reads. */
+function refineModernPrForbiddenRoots(
+  obj: Record<string, unknown>,
+  ctx: z.RefinementCtx,
+): void {
+  refineChangeRequestForbiddenRoots(obj, ctx);
+}
+
 /**
- * Synthesize ABI-4 prRisk/repositoryHealth from legacy totalScore when an engine
- * has not yet adopted the dual-score wire (transitional bridge).
+ * Legacy ingest helper only. Synthesizes repositoryHealth from legacy root graph
+ * scores when repositoryHealth is missing. Never synthesizes prRisk.
+ *
+ * Not invoked by strict fresh engine-output validation (`safeParseEngineOutputScanResult`).
  */
 export function normalizeEngineOutputAbi4(raw: unknown): unknown {
   if (!raw || typeof raw !== "object") return raw;
@@ -49,7 +145,6 @@ export function normalizeEngineOutputAbi4(raw: unknown): unknown {
   if (!layerScores || typeof layerScores !== "object") return raw;
   return {
     ...obj,
-    prRisk: obj.prRisk ?? { score: totalScore, layerScores },
     repositoryHealth: obj.repositoryHealth ?? { totalScore, layerScores },
   };
 }
@@ -61,8 +156,8 @@ export function normalizeEngineOutputAbi4(raw: unknown): unknown {
  */
 export const scanResultSchema = z
   .object({
-    totalScore: z.number().min(0).max(100),
-    layerScores: layerScoresSchema,
+    totalScore: z.number().min(0).max(100).optional(),
+    layerScores: layerScoresSchema.optional(),
     prRisk: prRiskSchema.optional(),
     repositoryHealth: repositoryHealthSchema.optional(),
     findings: z
@@ -79,19 +174,7 @@ export const scanResultSchema = z
     graphInsights: z.unknown().optional(),
     generatedAt: z.string().min(1),
     insights: z.array(z.unknown()).optional(),
-    decision: z
-      .object({
-        recommendation: z.enum([
-          "safe",
-          "needs_review",
-          "risky",
-          "indeterminate",
-        ]),
-        confidence: z.enum(["low", "medium", "high"]).optional(),
-        reasoning: z.array(z.string()).optional(),
-      })
-      .passthrough()
-      .optional(),
+    decision: decisionSchema.optional(),
     codeAnalysisMetrics: z.unknown().optional(),
   })
   .passthrough();
@@ -104,17 +187,45 @@ const engineOutputGeneratedAtSchema = z
     error: "generatedAt must be a parseable ISO-8601 timestamp",
   });
 
+const freshEngineOutputBaseSchema = scanResultSchema.extend({
+  methodologyVersion: z.string().trim().min(1),
+  generatedAt: engineOutputGeneratedAtSchema,
+});
+
+/** Strict schema for fresh change-request `analyze()` output. */
+const changeRequestEngineOutputScanResultSchema = freshEngineOutputBaseSchema
+  .extend({
+    assessment: assessmentSchema,
+    decision: decisionSchema,
+    prRisk: prRiskSchema,
+    repositoryHealth: repositoryHealthSchema,
+  })
+  .superRefine((obj, ctx) => {
+    refineChangeRequestForbiddenRoots(obj as Record<string, unknown>, ctx);
+  });
+
+/** Strict schema for fresh repository-scoped `analyze()` output. */
+export const repositoryEngineOutputScanResultSchema =
+  freshEngineOutputBaseSchema
+    .extend({
+      totalScore: z.number().min(0).max(100),
+      layerScores: layerScoresSchema,
+    })
+    .superRefine((obj, ctx) => {
+      refineRepositoryForbiddenPrAuthorities(
+        obj as Record<string, unknown>,
+        ctx,
+      );
+    });
+
 /**
  * Stricter schema for **fresh** `analyze()` output only. Do not use when hydrating
  * historical `scans.result` blobs from the database.
+ *
+ * Prefer {@link engineOutputScanResultSchemaFor} with an explicit analysis-scope expectation.
  */
-export const engineOutputScanResultSchema = scanResultSchema.extend({
-  methodologyVersion: z.string().trim().min(1),
-  generatedAt: engineOutputGeneratedAtSchema,
-  assessment: assessmentSchema,
-  prRisk: prRiskSchema,
-  repositoryHealth: repositoryHealthSchema,
-});
+export const engineOutputScanResultSchema =
+  changeRequestEngineOutputScanResultSchema;
 
 export type EngineOutputScanResultParseFailure = {
   ok: false;
@@ -127,12 +238,19 @@ export type EngineOutputScanResultParseSuccess = {
   result: EngineEmittedScanResult;
 };
 
+export function engineOutputScanResultSchemaFor(
+  expectation: FreshEngineOutputExpectation,
+): z.ZodType {
+  return expectation === "change_request"
+    ? changeRequestEngineOutputScanResultSchema
+    : repositoryEngineOutputScanResultSchema;
+}
+
 export function safeParseEngineOutputScanResult(
   data: unknown,
+  expectation: FreshEngineOutputExpectation,
 ): EngineOutputScanResultParseSuccess | EngineOutputScanResultParseFailure {
-  const parsed = engineOutputScanResultSchema.safeParse(
-    normalizeEngineOutputAbi4(data),
-  );
+  const parsed = engineOutputScanResultSchemaFor(expectation).safeParse(data);
   if (!parsed.success) {
     const issues = parsed.error.issues.map(
       (i) => `${i.path.join(".") || "(root)"}: ${i.message}`,
@@ -149,8 +267,9 @@ export function safeParseEngineOutputScanResult(
 /** Validates fresh engine output; throws on failure. Not for legacy persisted JSON. */
 export function parseEngineOutputScanResultOrThrow(
   data: unknown,
+  expectation: FreshEngineOutputExpectation,
 ): EngineEmittedScanResult {
-  const r = safeParseEngineOutputScanResult(data);
+  const r = safeParseEngineOutputScanResult(data, expectation);
   if (!r.ok) {
     throw new Error(`validation: ${r.message}`);
   }

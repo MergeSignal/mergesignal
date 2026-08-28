@@ -84,6 +84,41 @@ describe("selectTopAffectedAreas", () => {
     expect(areas[1]).toBe("Medium");
   });
 
+  it("prefers repositoryHealth.explain over historical root explain", () => {
+    const result = makeScanResult({
+      explain: {
+        reasons: [
+          {
+            id: "r1",
+            layer: "security",
+            title: "Legacy root",
+            scoreImpact: -2,
+          },
+        ],
+      },
+      repositoryHealth: {
+        totalScore: 50,
+        layerScores: {
+          security: 10,
+          maintainability: 10,
+          ecosystem: 10,
+          upgradeImpact: 10,
+        },
+        explain: {
+          reasons: [
+            {
+              id: "r2",
+              layer: "security",
+              title: "Namespaced health",
+              scoreImpact: -40,
+            },
+          ],
+        },
+      },
+    });
+    expect(selectTopAffectedAreas(result)).toEqual(["Namespaced health"]);
+  });
+
   it("falls back to insights when explain is empty", () => {
     const result = makeScanResult({
       insights: [

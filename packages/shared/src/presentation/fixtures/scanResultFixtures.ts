@@ -20,8 +20,6 @@ const fastifyLayerScores = {
 
 export const scanResultFastifyRuntime: ScanResult = withAbi4SplitScores(
   {
-    totalScore: 63,
-    layerScores: fastifyLayerScores,
     findings: [
       {
         id: "finding-fastify-runtime",
@@ -73,8 +71,6 @@ const typescriptLayerScores = {
 
 export const scanResultTypescriptPatch: ScanResult = withAbi4SplitScores(
   {
-    totalScore: 63,
-    layerScores: typescriptLayerScores,
     findings: [],
     generatedAt: "2026-01-01T00:00:00.000Z",
     changedPackages: ["typescript"],
@@ -104,12 +100,14 @@ export const scanResultTypescriptPatch: ScanResult = withAbi4SplitScores(
 
 export const scanResultLimitedContext: ScanResult = {
   prRisk: { availability: "indeterminate", qualifier: "limited_evidence" },
-  totalScore: 40,
-  layerScores: {
-    security: 10,
-    maintainability: 10,
-    ecosystem: 10,
-    upgradeImpact: 10,
+  repositoryHealth: {
+    totalScore: 40,
+    layerScores: {
+      security: 10,
+      maintainability: 10,
+      ecosystem: 10,
+      upgradeImpact: 10,
+    },
   },
   findings: [],
   generatedAt: "2026-01-01T00:00:00.000Z",

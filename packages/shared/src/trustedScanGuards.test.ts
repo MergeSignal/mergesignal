@@ -8,29 +8,46 @@ import {
   validateTrustedEngineScanResult,
 } from "./trustedScanGuards.js";
 import { assessmentStub } from "./fixtures/assessmentFixtures.js";
-import { withAbi4EngineScores } from "./fixtures/engineAbi4Fixtures.js";
 import type { ScanResult } from "./types.js";
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
 
-const baseResult: ScanResult = withAbi4EngineScores({
-  totalScore: 10,
+/** Repository-scoped trusted `ms scan` output shape (GitHub Action audit path). */
+const trustedActionRepositoryScan: ScanResult = {
+  totalScore: 12,
   layerScores: {
     security: 10,
     maintainability: 10,
-    ecosystem: 10,
-    upgradeImpact: 10,
+    ecosystem: 15,
+    upgradeImpact: 13,
   },
+  findings: [],
+  recommendations: [],
+  generatedAt: "2026-01-01T00:00:00.000Z",
+  methodologyVersion: "mergesignal-engine/v2.20.0",
+};
+
+const changeRequestTrustedScan: ScanResult = {
   findings: [],
   recommendations: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
   methodologyVersion: "engine-stub/v2",
   assessment: assessmentStub,
+  prRisk: { availability: "indeterminate" },
+  repositoryHealth: {
+    totalScore: 10,
+    layerScores: {
+      security: 10,
+      maintainability: 10,
+      ecosystem: 10,
+      upgradeImpact: 10,
+    },
+  },
   decision: {
     recommendation: "needs_review",
     confidence: "low",
     reasoning: ["Stub engine cannot perform real analysis"],
   },
-});
+};
 
 describe("trustedScanGuards", () => {
   it("detects stub methodology", () => {
@@ -77,7 +94,7 @@ describe("trustedScanGuards", () => {
     });
 
     it("rejects stub methodology", () => {
-      expect(() => assertTrustedScanResult(baseResult)).toThrow(
+      expect(() => assertTrustedScanResult(changeRequestTrustedScan)).toThrow(
         /verification requirements/,
       );
     });
@@ -85,7 +102,7 @@ describe("trustedScanGuards", () => {
     it("accepts non-stub methodology", () => {
       expect(() =>
         assertTrustedScanResult({
-          ...baseResult,
+          ...changeRequestTrustedScan,
           methodologyVersion: "engine-test-fixture/v1",
         }),
       ).not.toThrow();
@@ -96,13 +113,13 @@ describe("trustedScanGuards", () => {
         "engine-test-fixture/";
       expect(() =>
         assertTrustedScanResult({
-          ...baseResult,
+          ...changeRequestTrustedScan,
           methodologyVersion: "engine-test-fixture/v1",
         }),
       ).not.toThrow();
       expect(() =>
         assertTrustedScanResult({
-          ...baseResult,
+          ...changeRequestTrustedScan,
           methodologyVersion: "other/v1",
         }),
       ).toThrow(/methodology output did not match/);
@@ -123,26 +140,67 @@ describe("trustedScanGuards", () => {
 
     it("rejects structurally valid relaxed payload without methodologyVersion", () => {
       expect(() =>
-        validateTrustedEngineScanResult({
-          totalScore: 10,
-          layerScores: {
-            security: 10,
-            maintainability: 10,
-            ecosystem: 10,
-            upgradeImpact: 10,
+        validateTrustedEngineScanResult(
+          {
+            totalScore: 10,
+            layerScores: {
+              security: 10,
+              maintainability: 10,
+              ecosystem: 10,
+              upgradeImpact: 10,
+            },
+            findings: [],
+            generatedAt: "2026-01-01T00:00:00.000Z",
           },
-          findings: [],
-          generatedAt: "2026-01-01T00:00:00.000Z",
-        }),
+          "repository",
+        ),
       ).toThrow(/^validation:/);
     });
 
     it("returns result when strict schema and trusted policy pass", () => {
-      const r = validateTrustedEngineScanResult({
-        ...baseResult,
-        methodologyVersion: "acme-prod/v2",
-      });
+      const r = validateTrustedEngineScanResult(
+        {
+          ...changeRequestTrustedScan,
+          methodologyVersion: "acme-prod/v2",
+        },
+        "change_request",
+      );
       expect(r.methodologyVersion).toBe("acme-prod/v2");
+    });
+
+    it("rejects repository output that includes change-request authorities", () => {
+      expect(() =>
+        validateTrustedEngineScanResult(
+          {
+            totalScore: 10,
+            layerScores: {
+              security: 10,
+              maintainability: 10,
+              ecosystem: 10,
+              upgradeImpact: 10,
+            },
+            findings: [],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+            methodologyVersion: "acme-prod/v2",
+            assessment: assessmentStub,
+            repositoryHealth: {
+              totalScore: 10,
+              layerScores: {
+                security: 10,
+                maintainability: 10,
+                ecosystem: 10,
+                upgradeImpact: 10,
+              },
+            },
+            decision: {
+              recommendation: "needs_review",
+              confidence: "low",
+              reasoning: ["Stub engine cannot perform real analysis"],
+            },
+          },
+          "repository",
+        ),
+      ).toThrow(/^validation:/);
     });
   });
 
@@ -150,22 +208,16 @@ describe("trustedScanGuards", () => {
     it("fails when summary contains demo title", () => {
       const r = auditTrustedActionsOutput({
         summaryText: `Hello ${scanSurfaceCopy.actions.demoSummaryTitle} world`,
-        scanResult: {
-          ...baseResult,
-          methodologyVersion: "acme/v1",
-        },
+        scanResult: trustedActionRepositoryScan,
       });
       expect(r.ok).toBe(false);
       if (!r.ok) expect(r.errors.length).toBeGreaterThan(0);
     });
 
-    it("passes for clean summary and valid methodology", () => {
+    it("passes for clean summary and repository-scoped trusted ms scan output", () => {
       const r = auditTrustedActionsOutput({
         summaryText: "# MergeSignal\n\nLow risk posture.",
-        scanResult: {
-          ...baseResult,
-          methodologyVersion: "acme-prod/v2",
-        },
+        scanResult: trustedActionRepositoryScan,
       });
       expect(r).toEqual({ ok: true });
     });
@@ -183,6 +235,20 @@ describe("trustedScanGuards", () => {
           },
           findings: [],
           generatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      });
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.errors.some((e) => e.startsWith("validation:"))).toBe(true);
+      }
+    });
+
+    it("fails when trusted action output is change-request scoped", () => {
+      const r = auditTrustedActionsOutput({
+        summaryText: "# MergeSignal\n\nLow risk posture.",
+        scanResult: {
+          ...changeRequestTrustedScan,
+          methodologyVersion: "mergesignal-engine/v2.20.0",
         },
       });
       expect(r.ok).toBe(false);

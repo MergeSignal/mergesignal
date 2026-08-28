@@ -244,7 +244,7 @@ if (
 ) {
   throw new Error("informational warning must not count as uncertainty");
 }
-if (ENGINE_OUTPUT_SCAN_ABI !== "4") {
+if (ENGINE_OUTPUT_SCAN_ABI !== "5") {
   throw new Error("representative export missing");
 }
 if (ASSESSMENT_ABI !== "4") {

@@ -44,9 +44,11 @@ export function selectTopAffectedAreas(
     return areas.length < max;
   }
 
-  // Priority 1: explain.reasons sorted by absolute scoreImpact
-  if (Array.isArray(result.explain?.reasons)) {
-    const sorted = [...result.explain.reasons]
+  // Priority 1: repositoryHealth.explain then historical root explain
+  const explainReasons =
+    result.repositoryHealth?.explain?.reasons ?? result.explain?.reasons;
+  if (Array.isArray(explainReasons)) {
+    const sorted = [...explainReasons]
       .filter((r) => r.title)
       .sort(
         (a, b) => Math.abs(b.scoreImpact ?? 0) - Math.abs(a.scoreImpact ?? 0),
@@ -77,7 +79,8 @@ export function selectTopAffectedAreas(
       ecosystem: "Ecosystem",
       upgradeImpact: "Upgrade impact",
     };
-    const layerScores = result.layerScores;
+    const layerScores =
+      result.repositoryHealth?.layerScores ?? result.layerScores;
     if (!layerScores || typeof layerScores !== "object") return areas;
     const sorted = Object.entries(layerScores as Record<string, number>)
       .filter(([, v]) => typeof v === "number")

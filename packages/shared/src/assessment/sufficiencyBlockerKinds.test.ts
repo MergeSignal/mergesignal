@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { withAbi4EngineScores } from "../fixtures/engineAbi4Fixtures.js";
 import { safeParseEngineOutputScanResult } from "../scanResultSchema.js";
 import { SUFFICIENCY_BLOCKER_KINDS } from "./literals.js";
 import { assessmentSchema, parseAssessmentOrThrow } from "./schema.js";
@@ -142,19 +141,28 @@ describe("proof_capability_ceiling sufficiency blocker wire contract", () => {
 
   it("is accepted through the trusted fresh-engine output parse boundary", () => {
     const r = safeParseEngineOutputScanResult(
-      withAbi4EngineScores({
-        totalScore: 42,
-        layerScores: {
-          security: 10,
-          maintainability: 20,
-          ecosystem: 30,
-          upgradeImpact: 40,
-        },
+      {
         findings: [],
         generatedAt: "2026-01-01T00:00:00.000Z",
         methodologyVersion: "engine-test-fixture/v1",
         assessment: minimalAssessmentWithSufficiency([blocker]),
-      }),
+        decision: {
+          recommendation: "indeterminate",
+          confidence: "low",
+          reasoning: [],
+        },
+        prRisk: { availability: "indeterminate" },
+        repositoryHealth: {
+          totalScore: 42,
+          layerScores: {
+            security: 10,
+            maintainability: 20,
+            ecosystem: 30,
+            upgradeImpact: 40,
+          },
+        },
+      },
+      "change_request",
     );
     expect(r.ok).toBe(true);
     if (r.ok) {

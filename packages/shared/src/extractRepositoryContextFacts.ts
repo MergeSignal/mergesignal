@@ -56,8 +56,10 @@ export function extractRepositoryContextFacts(
     }
   }
 
-  if (Array.isArray(result.explain?.reasons)) {
-    for (const reason of result.explain.reasons) {
+  const explainReasons =
+    result.repositoryHealth?.explain?.reasons ?? result.explain?.reasons;
+  if (Array.isArray(explainReasons)) {
+    for (const reason of explainReasons) {
       const mapped = mapExplainReasonToCatalogPhrase(reason);
       if (!mapped) {
         const family = matchSignalFamily(

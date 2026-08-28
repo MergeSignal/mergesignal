@@ -1,5 +1,4 @@
 import type { LayerScores, ScanResult } from "../types.js";
-import { normalizeEngineOutputAbi4 } from "../scanResultSchema.js";
 
 type Abi4SplitScores = {
   prRiskScore: number;
@@ -8,19 +7,24 @@ type Abi4SplitScores = {
 };
 
 /**
- * Attach differentiated ABI-4 prRisk + repositoryHealth wire blocks.
- * `totalScore` mirrors repository health for legacy readers; presentation must
- * consume `prRisk.score` via `deriveRiskSignals()`.
+ * Attach differentiated ABI-4+ prRisk + repositoryHealth wire blocks for modern
+ * Assessment-era fixtures. Does not mirror health onto legacy root graph fields.
  */
 export function withAbi4SplitScores<T extends ScanResult>(
   result: T,
   scores: Abi4SplitScores,
 ): T {
-  const layerScores = scores.layerScores ?? result.layerScores;
+  const layerScores =
+    scores.layerScores ??
+    result.layerScores ??
+    result.repositoryHealth?.layerScores;
+  const {
+    totalScore: _totalScore,
+    layerScores: _layerScores,
+    ...rest
+  } = result;
   return {
-    ...result,
-    totalScore: scores.repositoryHealthScore,
-    layerScores,
+    ...rest,
     prRisk: {
       score: scores.prRiskScore,
       layerScores: result.prRisk?.layerScores ?? layerScores,
@@ -30,9 +34,4 @@ export function withAbi4SplitScores<T extends ScanResult>(
       layerScores,
     },
   };
-}
-
-/** Attach ABI-4 prRisk + repositoryHealth wire blocks for strict engine validation tests. */
-export function withAbi4EngineScores<T extends ScanResult>(result: T): T {
-  return normalizeEngineOutputAbi4(result) as T;
 }
