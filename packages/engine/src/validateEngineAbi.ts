@@ -3,6 +3,7 @@ import type {
   UpgradeSimulationRequest,
 } from "@mergesignal/shared";
 import {
+  freshOutputExpectationFromScanRequest,
   isStubMethodologyVersion,
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
@@ -75,7 +76,10 @@ async function validateEngineAbiInner(
   }
 
   const rawScan = await analyze(ABI_PROBE_SCAN_REQUEST);
-  const validated = validateTrustedEngineScanResult(rawScan);
+  const validated = validateTrustedEngineScanResult(
+    rawScan,
+    freshOutputExpectationFromScanRequest(ABI_PROBE_SCAN_REQUEST),
+  );
 
   if (isStubMethodologyVersion(validated.methodologyVersion)) {
     throw new Error(
@@ -87,7 +91,10 @@ async function validateEngineAbiInner(
     ABI_PROBE_SCAN_REQUEST_WITH_PACKAGES,
     ABI_PROBE_CODE_ANALYSIS,
   );
-  const withCorpus = validateTrustedEngineScanResult(rawWithCorpus);
+  const withCorpus = validateTrustedEngineScanResult(
+    rawWithCorpus,
+    freshOutputExpectationFromScanRequest(ABI_PROBE_SCAN_REQUEST_WITH_PACKAGES),
+  );
   const supportsCodeAnalysisArgument = detectCorpusConsumed(
     validated,
     withCorpus,

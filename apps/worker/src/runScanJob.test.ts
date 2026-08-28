@@ -41,11 +41,9 @@ const layerScores = {
   ecosystem: 10,
   upgradeImpact: 10,
 };
-const validEngineOutput = {
+const validRepositoryEngineOutput = {
   totalScore: 40,
   layerScores,
-  prRisk: { score: 40, layerScores },
-  repositoryHealth: { totalScore: 40, layerScores },
   findings: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
   methodologyVersion: "acme-prod/v1",
@@ -103,7 +101,7 @@ describe("executeScanJob", () => {
   });
 
   it("persists a validated result on success and preserves PR columns in SQL", async () => {
-    vi.mocked(analyze).mockResolvedValue(validEngineOutput);
+    vi.mocked(analyze).mockResolvedValue(validRepositoryEngineOutput);
 
     const calls: string[] = [];
     let status = "queued";
@@ -157,7 +155,8 @@ describe("executeScanJob", () => {
       manager: "pnpm",
       content: "x",
     });
-    expect(req.github).toEqual({ owner: "acme", repo: "app", prNumber: 7 });
+    expect(req.github).toBeUndefined();
+    expect(req.repoSource).toBeUndefined();
 
     const doneSql = calls.find((c) => c.includes("status = 'done'"));
     expect(doneSql).toBeDefined();
@@ -273,7 +272,7 @@ describe("executeScanJob", () => {
 
   it("when MERGESIGNAL_TRUSTED_ANALYSIS is set, persists with valid provenance", async () => {
     process.env.MERGESIGNAL_TRUSTED_ANALYSIS = "1";
-    vi.mocked(analyze).mockResolvedValue(validEngineOutput);
+    vi.mocked(analyze).mockResolvedValue(validRepositoryEngineOutput);
 
     let status = "queued";
     const pool = {
@@ -342,7 +341,7 @@ describe("executeScanJob", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     vi.mocked(analyze).mockResolvedValue({
-      ...validEngineOutput,
+      ...validRepositoryEngineOutput,
       repoIntelligence: {
         packageUsage: [{ name: "jsonwebtoken", files: ["src/a.ts"] }],
         blastRadius: { level: "large", factors: [] },
@@ -404,7 +403,7 @@ describe("executeScanJob", () => {
   });
 
   it("marks failed when persistSuccess fails after retries", async () => {
-    vi.mocked(analyze).mockResolvedValue(validEngineOutput);
+    vi.mocked(analyze).mockResolvedValue(validRepositoryEngineOutput);
 
     let status = "queued";
     let doneAttempts = 0;

@@ -1,5 +1,6 @@
 import type {
   CodeAnalysisInput,
+  LayerScores,
   ScanRequest,
   ScanResult,
   UpgradeSimulationRequest,
@@ -10,6 +11,48 @@ import { assessmentStub } from "@mergesignal/shared";
 const METHODOLOGY_VERSION = "engine-stub/v2";
 
 const STUB_ASSESSMENT = assessmentStub;
+
+/** Repository-scoped synthetic scan with a guaranteed root graph score (stub upgrade path). */
+type RepositoryScopedStubScanResult = ScanResult & {
+  totalScore: number;
+  layerScores: LayerScores;
+};
+
+function buildRepositoryScopedStubResult(
+  totalScore: number,
+): RepositoryScopedStubScanResult {
+  const layerScores: LayerScores = {
+    security: 20,
+    maintainability: 15,
+    ecosystem: 30,
+    upgradeImpact: 35,
+  };
+  return {
+    totalScore,
+    layerScores,
+    findings: [],
+    recommendations: [
+      {
+        id: "stub-rec-1",
+        title: "Stub recommendation - actual analysis unavailable",
+        rationale:
+          "This is a placeholder result from the stub implementation. Install the proprietary engine for real analysis.",
+        impact: "low",
+        rank: 1,
+        priorityScore: 10,
+      },
+    ],
+    insights: [],
+    assessment: STUB_ASSESSMENT,
+    decision: {
+      recommendation: "needs_review",
+      confidence: "low",
+      reasoning: ["Stub engine cannot perform real analysis"],
+    },
+    methodologyVersion: METHODOLOGY_VERSION,
+    generatedAt: new Date().toISOString(),
+  };
+}
 
 function buildMockResult(): ScanResult {
   const layerScores = {
@@ -22,8 +65,6 @@ function buildMockResult(): ScanResult {
   return {
     totalScore,
     layerScores,
-    prRisk: { score: totalScore, layerScores },
-    repositoryHealth: { totalScore, layerScores },
     findings: [],
     signals: [
       {
@@ -97,8 +138,8 @@ export async function simulateUpgrade(
     "⚠️  Using stub engine - upgrade simulation results are mocked for demonstration only",
   );
 
-  const before = buildMockResult();
-  const after = { ...buildMockResult(), totalScore: 30 };
+  const before = buildRepositoryScopedStubResult(25);
+  const after = buildRepositoryScopedStubResult(30);
 
   return {
     before,

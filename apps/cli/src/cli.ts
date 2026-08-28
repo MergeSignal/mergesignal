@@ -3,9 +3,14 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { analyze } from "@mergesignal/engine";
-import type { ScanLockfileInput, ScanResult } from "@mergesignal/shared";
+import type {
+  ScanLockfileInput,
+  ScanRequest,
+  ScanResult,
+} from "@mergesignal/shared";
 import {
   buildScanPresentationBundle,
+  freshOutputExpectationFromScanRequest,
   presentCliScanSummary,
   renderCliScanSummaryText,
   resolvePrRiskScore,
@@ -58,15 +63,20 @@ async function main() {
     explicitPath: args["--lockfile"],
   });
 
-  let result = (await analyze({
+  const analyzeRequest: ScanRequest = {
     repoId,
     dependencyGraph: {},
     lockfile,
-  })) as ScanResult;
+  };
+
+  let result = (await analyze(analyzeRequest)) as ScanResult;
 
   if (process.env.MERGESIGNAL_TRUSTED_ANALYSIS === "1") {
     try {
-      result = validateTrustedEngineScanResult(result);
+      result = validateTrustedEngineScanResult(
+        result,
+        freshOutputExpectationFromScanRequest(analyzeRequest),
+      );
     } catch (e: unknown) {
       const debug = process.env.MERGESIGNAL_DEBUG === "1";
       const ciLike =

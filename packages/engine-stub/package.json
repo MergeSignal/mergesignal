@@ -8,7 +8,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check-types": "tsc -p tsconfig.json --noEmit",
-    "lint": "echo 'No lint configured for engine-stub'"
+    "lint": "echo 'No lint configured for engine-stub'",
+    "test": "pnpm run build && node --experimental-strip-types --test src/stub.test.ts"
   },
   "license": "ISC",
   "dependencies": {

@@ -14,6 +14,7 @@ import type {
 } from "@mergesignal/shared";
 import {
   applyRepoIntelligenceValidation,
+  freshOutputExpectationFromScanRequest,
   parseScanResultOrThrow,
   resolvePrRiskScore,
   validateTrustedEngineScanResult,
@@ -96,6 +97,11 @@ async function persistSuccess(
     Number.isFinite(result.repositoryHealth.totalScore)
       ? Math.round(result.repositoryHealth.totalScore)
       : null;
+  const layers = result.repositoryHealth?.layerScores ?? result.layerScores;
+  const layerValue = (value: number | undefined): number | null =>
+    typeof value === "number" && Number.isFinite(value)
+      ? Math.round(value)
+      : null;
   const res = await withPgRetries(() =>
     pool.query(
       `UPDATE scans SET
@@ -121,10 +127,10 @@ async function persistSuccess(
         JSON.stringify(result),
         prRiskScore,
         repositoryHealthScore,
-        Math.round(result.layerScores.security),
-        Math.round(result.layerScores.maintainability),
-        Math.round(result.layerScores.ecosystem),
-        Math.round(result.layerScores.upgradeImpact),
+        layerValue(layers?.security),
+        layerValue(layers?.maintainability),
+        layerValue(layers?.ecosystem),
+        layerValue(layers?.upgradeImpact),
         result.methodologyVersion ?? null,
         decision,
         engineReleaseVersion,
@@ -349,7 +355,10 @@ export async function executeScanJob(
     let validated: ScanResult;
     try {
       validated = requiresStrictEngineScanValidation()
-        ? validateTrustedEngineScanResult(rawResult)
+        ? validateTrustedEngineScanResult(
+            rawResult,
+            freshOutputExpectationFromScanRequest(analyzeRequest),
+          )
         : parseScanResultOrThrow(rawResult);
     } catch (e: unknown) {
       captureWorkerException(e);
