@@ -30,6 +30,8 @@ export type PrRiskWire = PrRiskWireScored | PrRiskWireIndeterminate;
 export type RepositoryHealthWire = {
   totalScore: number;
   layerScores?: LayerScores;
+  explain?: ExplainBlock;
+  topContributions?: ScoreContribution[];
 };
 
 export type FindingSeverity = "low" | "medium" | "high" | "critical";
@@ -139,14 +141,10 @@ export type AnalysisPreparation = {
   repoIntelligenceValidation?: RepoIntelligenceValidation;
 };
 
-/** Subset of PR identity passed into analysis (no installation tokens). */
-export type ScanRequestGithubContext = {
-  owner: string;
-  repo: string;
-  prNumber: number;
-};
-
 export type { LockfileEvidenceStatus } from "./lockfileEvidence.js";
+
+/** Neutral analysis scope — repository-wide vs change-request scoped analysis. */
+export type ScanAnalysisScope = "repository" | "change_request";
 
 export type ScanRequest = {
   repoId: string;
@@ -154,9 +152,11 @@ export type ScanRequest = {
   lockfile?: ScanLockfileInput;
   /** Base branch lockfile for PR scans (optional). */
   baseLockfile?: ScanLockfileInput;
-  repoSource?: RepoSource;
-  /** Optional PR context for engine/logging (no installation id). */
-  github?: ScanRequestGithubContext;
+  /**
+   * Governs change-request vs repository output semantics at engine ingress.
+   * Defaults to `repository` when unset.
+   */
+  scanAnalysisScope?: ScanAnalysisScope;
   changedPackages?: string[];
   /** When both base and head lockfiles were compared in the worker. */
   lockfilePackageDelta?: LockfilePackageDelta;
@@ -366,8 +366,8 @@ export type EngineeringTrace = {
 
 export type ScanResult = {
   /** Legacy composite score — historical fallback only; not PR Risk authority on ABI-4 output. */
-  totalScore: number;
-  layerScores: LayerScores;
+  totalScore?: number;
+  layerScores?: LayerScores;
   /** PR Risk authority on ABI-4 engine output. */
   prRisk?: PrRiskWire;
   /** Repository health authority on ABI-4 engine output. */

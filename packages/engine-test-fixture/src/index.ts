@@ -1,6 +1,7 @@
 import type {
   Assessment,
   CodeAnalysisInput,
+  LayerScores,
   ScanRequest,
   ScanResult,
   UpgradeSimulationRequest,
@@ -8,6 +9,10 @@ import type {
 } from "@mergesignal/shared";
 
 const METHODOLOGY_VERSION = "engine-test-fixture/v1";
+
+function isChangeRequestScope(req: ScanRequest): boolean {
+  return req.scanAnalysisScope === "change_request";
+}
 
 /** Self-contained ABI-3 assessment — no runtime @mergesignal/shared import (Docker fixture engine). */
 const FIXTURE_ASSESSMENT: Assessment = {
@@ -53,19 +58,24 @@ const FIXTURE_ASSESSMENT: Assessment = {
   },
 };
 
-const minimalScan = (repoId: string): ScanResult => {
-  const layerScores = {
+/** Repository-scoped synthetic scan with a guaranteed root graph score (fixture upgrade path). */
+type RepositoryScopedFixtureScanResult = ScanResult & {
+  totalScore: number;
+  layerScores: LayerScores;
+};
+
+function buildRepositoryScopedFixtureScan(
+  totalScore: number,
+): RepositoryScopedFixtureScanResult {
+  const layerScores: LayerScores = {
     security: 10,
     maintainability: 10,
     ecosystem: 15,
     upgradeImpact: 13,
   };
-  const totalScore = 12;
   return {
     totalScore,
     layerScores,
-    prRisk: { score: totalScore, layerScores },
-    repositoryHealth: { totalScore, layerScores },
     findings: [],
     recommendations: [],
     generatedAt: new Date().toISOString(),
@@ -82,13 +92,52 @@ const minimalScan = (repoId: string): ScanResult => {
     insights: [],
     signals: [],
   };
+}
+
+const minimalRepositoryScan = (
+  repoId: string,
+): RepositoryScopedFixtureScanResult => buildRepositoryScopedFixtureScan(12);
+
+const minimalChangeRequestScan = (): ScanResult => {
+  const layerScores: LayerScores = {
+    security: 10,
+    maintainability: 10,
+    ecosystem: 15,
+    upgradeImpact: 13,
+  };
+  const totalScore = 12;
+  return {
+    prRisk: { score: totalScore, layerScores },
+    repositoryHealth: { totalScore, layerScores },
+    findings: [],
+    recommendations: [],
+    generatedAt: new Date().toISOString(),
+    methodologyVersion: METHODOLOGY_VERSION,
+    assessment: FIXTURE_ASSESSMENT,
+    decision: {
+      recommendation: "safe",
+      confidence: "high",
+      reasoning: [
+        "No dedicated dependency review required beyond normal engineering process.",
+      ],
+    },
+    insights: [],
+    signals: [],
+    changedPackages: [],
+  };
 };
+
+function minimalScan(req: ScanRequest): ScanResult {
+  return isChangeRequestScope(req)
+    ? minimalChangeRequestScan()
+    : minimalRepositoryScan(req.repoId);
+}
 
 export async function analyze(
   req: ScanRequest,
   codeAnalysis?: CodeAnalysisInput,
 ): Promise<ScanResult> {
-  const base = minimalScan(req.repoId);
+  const base = minimalScan(req);
   if (codeAnalysis && codeAnalysis.fileContents.size > 0) {
     return {
       ...base,
@@ -114,11 +163,12 @@ export async function analyze(
 export async function simulateUpgrade(
   _req: UpgradeSimulationRequest,
 ): Promise<UpgradeSimulationResult> {
-  const before = minimalScan("fixture");
+  const before = buildRepositoryScopedFixtureScan(12);
+  const after = buildRepositoryScopedFixtureScan(11);
   return {
     before,
-    after: { ...before, totalScore: 11 },
-    delta: { totalScoreDelta: -1 },
+    after,
+    delta: { totalScoreDelta: after.totalScore - before.totalScore },
     generatedAt: new Date().toISOString(),
   };
 }

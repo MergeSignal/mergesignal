@@ -1,4 +1,5 @@
 import { parseEngineOutputScanResultOrThrow } from "./scanResultSchema.js";
+import type { FreshEngineOutputExpectation } from "./scanAnalysisScope.js";
 import type { EngineEmittedScanResult, ScanResult } from "./types.js";
 import { scanSurfaceCopy } from "./scanSurfaceCopy.js";
 
@@ -67,8 +68,9 @@ export function assertTrustedScanResult(result: ScanResult): void {
  */
 export function validateTrustedEngineScanResult(
   raw: unknown,
+  expectation: FreshEngineOutputExpectation,
 ): EngineEmittedScanResult {
-  const result = parseEngineOutputScanResultOrThrow(raw);
+  const result = parseEngineOutputScanResultOrThrow(raw, expectation);
   assertTrustedScanResult(result);
   return result;
 }
@@ -98,7 +100,7 @@ export function auditTrustedActionsOutput(opts: {
 
   let scanResult: ScanResult | undefined;
   try {
-    scanResult = validateTrustedEngineScanResult(opts.scanResult);
+    scanResult = validateTrustedEngineScanResult(opts.scanResult, "repository");
   } catch (e) {
     errors.push(e instanceof Error ? e.message : String(e));
   }

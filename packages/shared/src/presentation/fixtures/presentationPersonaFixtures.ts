@@ -182,20 +182,34 @@ function scanBase(
   assessment: Assessment,
   over: Partial<ScanResult> = {},
 ): ScanResult {
+  const defaultLayerScores = {
+    security: 5,
+    maintainability: 8,
+    ecosystem: 10,
+    upgradeImpact: 5,
+  };
+  const layerScores = over.layerScores ?? defaultLayerScores;
+  const repositoryHealthScore =
+    over.repositoryHealth?.totalScore ?? over.totalScore ?? 18;
+  const repositoryHealth = over.repositoryHealth ?? {
+    totalScore: repositoryHealthScore,
+    layerScores,
+  };
+  const {
+    totalScore: _omitTotal,
+    layerScores: _omitLayers,
+    repositoryHealth: _omitHealth,
+    ...rest
+  } = over;
   return {
-    totalScore: 18,
-    layerScores: {
-      security: 5,
-      maintainability: 8,
-      ecosystem: 10,
-      upgradeImpact: 5,
-    },
     findings: [],
     generatedAt: "2026-01-01T00:00:00.000Z",
     assessment,
     decision: decisionForAssessment(assessment),
     analysisPreparation: basePrep,
-    ...over,
+    repositoryHealth,
+    ...(over.prRisk !== undefined ? { prRisk: over.prRisk } : {}),
+    ...rest,
   };
 }
 

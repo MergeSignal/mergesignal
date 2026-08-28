@@ -69,7 +69,7 @@ describe("PR Risk wiring regression (Investigation 1)", () => {
       expect(result.repositoryHealth?.totalScore).toBe(
         expectedRepositoryHealth,
       );
-      expect(result.totalScore).toBe(expectedRepositoryHealth);
+      expect(result.totalScore).toBeUndefined();
       expect(resolveRepositoryHealthScore(result)).toBe(
         expectedRepositoryHealth,
       );

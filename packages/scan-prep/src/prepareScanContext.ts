@@ -158,7 +158,6 @@ export async function prepareScanContext(
     dependencyGraph: job.dependencyGraph ?? {},
     lockfile: job.lockfile,
     baseLockfile: job.baseLockfile,
-    repoSource: job.repoSource,
     changedFiles,
     changedPackages,
     lockfilePackageDelta,
@@ -168,9 +167,6 @@ export async function prepareScanContext(
       warnings.some((w) => w.code.startsWith("code_"))
         ? codeAnalysisMetrics
         : undefined,
-    github: github
-      ? { owner: github.owner, repo: github.repo, prNumber: github.prNumber }
-      : undefined,
   };
 
   const delta = lockfilePackageDelta ?? {
