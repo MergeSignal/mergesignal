@@ -26,7 +26,7 @@ export const SCAN_PREP_DIR = path.resolve(
   __dirname,
   "../../../packages/scan-prep",
 );
-export const EXPECTED_SHARED_VERSION = "0.13.0";
+export const EXPECTED_SHARED_VERSION = "0.17.0";
 export const PACKAGE_NAME = "@mergesignal/scan-prep";
 export const NPMJS_REGISTRY = "https://registry.npmjs.org/";
 const PRIVATE_PACKAGE = "@mergesignal/contracts";

@@ -36,7 +36,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@mergesignal/shared": "0.13.0",
+    "@mergesignal/shared": "0.17.0",
     "@octokit/auth-app": "^7.1.4",
     "octokit": "^4.1.2"
   },

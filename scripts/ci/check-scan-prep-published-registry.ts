@@ -10,7 +10,7 @@ import path from "node:path";
 import { assertPublishedRegistryConsumerLockfile } from "./lib/scan-prep-published-registry-lockfile.ts";
 import { cleanNpmEnv } from "./lib/scan-prep-npmjs-version-availability.ts";
 const PACKAGE_NAME = "@mergesignal/scan-prep";
-const EXPECTED_SHARED_VERSION = "0.13.0";
+const EXPECTED_SHARED_VERSION = "0.17.0";
 const NPMJS_REGISTRY = "https://registry.npmjs.org/";
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 

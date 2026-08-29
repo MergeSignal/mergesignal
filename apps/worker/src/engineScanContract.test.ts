@@ -79,6 +79,7 @@ describe("worker → engine scan contract", () => {
         dependencyGraph: {},
         lockfile: job.lockfile,
         baseLockfile: job.baseLockfile,
+        scanAnalysisScope: "change_request",
         changedPackages: ["react"],
         lockfilePackageDelta: {
           added: [],
@@ -143,8 +144,17 @@ describe("worker → engine scan contract", () => {
     const [req, codeAnalysis] = analyzeSpy.mock.calls[0]!;
     expect(req.changedPackages).toEqual(["react"]);
     expect(req.lockfilePackageDelta?.updated).toContain("react");
+    expect(req.scanAnalysisScope).toBe("change_request");
     expect(req.repoSource).toBeUndefined();
     expect(req.github).toBeUndefined();
+    expect(job.repoSource).toEqual({
+      provider: "github",
+      owner: "acme",
+      repo: "app",
+      sha: "abc123",
+      installationId: 1,
+    });
+    expect(job.github?.prNumber).toBe(1);
     expect(req.baseLockfile).toEqual(job.baseLockfile);
     expect(codeAnalysis).toBeDefined();
     expect(codeAnalysis!.fileContents.size).toBeGreaterThan(0);

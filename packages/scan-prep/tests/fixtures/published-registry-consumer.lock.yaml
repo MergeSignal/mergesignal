@@ -11,8 +11,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0
       "@mergesignal/shared":
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.17.0
+        version: 0.17.0
     devDependencies:
       typescript:
         specifier: ^5.9.3
@@ -25,10 +25,10 @@ packages:
         integrity: sha512-KHBKRtwPFV65s3GAqj/UjbCjWZGnO9WUfyBAUjBJ//iIIK/lBnjj9F1sFiexZ66A34tiZbJcakGoDVPkSFaRrg==,
       }
 
-  "@mergesignal/shared@0.13.0":
+  "@mergesignal/shared@0.17.0":
     resolution:
       {
-        integrity: sha512-Oijj2VwquFKy8j3r1XgN0Jvt0RqVnUcHLGznOh8nt4L5ukP9MrCVpEKo6r7dvVIL49ZylE6NfI5NgP/44pajEw==,
+        integrity: sha512-zN7iuF5X0uFQ68nDuOwZ0YyJVS5jMBvGBL9SmvjFem4jDg6fhyMsKU2aUsF/7ctzb2oU7x3T/xjGo9ToXd3Vfw==,
       }
 
   "@octokit/app@15.1.6":
@@ -280,11 +280,11 @@ packages:
 snapshots:
   "@mergesignal/scan-prep@0.1.0":
     dependencies:
-      "@mergesignal/shared": 0.13.0
+      "@mergesignal/shared": 0.17.0
       "@octokit/auth-app": 7.2.2
       octokit: 4.1.4
 
-  "@mergesignal/shared@0.13.0":
+  "@mergesignal/shared@0.17.0":
     dependencies:
       zod: 4.4.3
 

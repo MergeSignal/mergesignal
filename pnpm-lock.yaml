@@ -12,7 +12,7 @@ importers:
         version: 9.1.7
       knip:
         specifier: ^5.88.1
-        version: 5.88.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.7.1)(@types/node@22.15.3)(typescript@5.9.2)
+        version: 5.88.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.7.1)(@types/node@22.15.3)(typescript@5.9.3)
       lint-staged:
         specifier: ^16.4.0
         version: 16.4.0
@@ -354,8 +354,8 @@ importers:
   packages/scan-prep:
     dependencies:
       "@mergesignal/shared":
-        specifier: 0.13.0
-        version: 0.13.0
+        specifier: 0.17.0
+        version: 0.17.0
       "@octokit/auth-app":
         specifier: ^7.1.4
         version: 7.2.2
@@ -1492,10 +1492,10 @@ packages:
     peerDependencies:
       react: ^19.2.0
 
-  "@mergesignal/shared@0.13.0":
+  "@mergesignal/shared@0.17.0":
     resolution:
       {
-        integrity: sha512-Oijj2VwquFKy8j3r1XgN0Jvt0RqVnUcHLGznOh8nt4L5ukP9MrCVpEKo6r7dvVIL49ZylE6NfI5NgP/44pajEw==,
+        integrity: sha512-zN7iuF5X0uFQ68nDuOwZ0YyJVS5jMBvGBL9SmvjFem4jDg6fhyMsKU2aUsF/7ctzb2oU7x3T/xjGo9ToXd3Vfw==,
       }
 
   "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3":
@@ -8344,7 +8344,7 @@ snapshots:
     dependencies:
       react: 19.2.0
 
-  "@mergesignal/shared@0.13.0":
+  "@mergesignal/shared@0.17.0":
     dependencies:
       zod: 4.4.3
 
@@ -10924,7 +10924,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  knip@5.88.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.7.1)(@types/node@22.15.3)(typescript@5.9.2):
+  knip@5.88.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.7.1)(@types/node@22.15.3)(typescript@5.9.3):
     dependencies:
       "@nodelib/fs.walk": 1.2.8
       "@types/node": 22.15.3
@@ -10937,7 +10937,7 @@ snapshots:
       picomatch: 4.0.3
       smol-toml: 1.6.1
       strip-json-comments: 5.0.3
-      typescript: 5.9.2
+      typescript: 5.9.3
       unbash: 2.2.0
       yaml: 2.8.3
       zod: 4.3.6

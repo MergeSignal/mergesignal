@@ -6,7 +6,7 @@ import { assertPublishedRegistryConsumerLockfile } from "../../../scripts/ci/lib
 
 const PACKAGE_NAME = "@mergesignal/scan-prep";
 const VERSION = "0.1.0";
-const SHARED_VERSION = "0.13.0";
+const SHARED_VERSION = "0.17.0";
 
 const VALID_LOCKFILE = readFileSync(
   path.join(
@@ -55,10 +55,10 @@ describe("published-registry consumer lockfile validation", () => {
 
   it("rejects a real file: resolution for @mergesignal/shared", () => {
     const lock = VALID_LOCKFILE.replace(
-      '"@mergesignal/shared@0.13.0":',
+      '"@mergesignal/shared@0.17.0":',
       '"@mergesignal/shared@file:../shared":',
     ).replace(
-      "version: 0.13.0\n    devDependencies:",
+      "version: 0.17.0\n    devDependencies:",
       "version: file:../shared\n    devDependencies:",
     );
 
@@ -76,7 +76,7 @@ describe("published-registry consumer lockfile validation", () => {
 
   it("rejects registry packages missing integrity metadata", () => {
     const lock = VALID_LOCKFILE.replace(
-      "integrity: sha512-Oijj2VwquFKy8j3r1XgN0Jvt0RqVnUcHLGznOh8nt4L5ukP9MrCVpEKo6r7dvVIL49ZylE6NfI5NgP/44pajEw==",
+      "integrity: sha512-zN7iuF5X0uFQ68nDuOwZ0YyJVS5jMBvGBL9SmvjFem4jDg6fhyMsKU2aUsF/7ctzb2oU7x3T/xjGo9ToXd3Vfw==",
       "",
     );
 

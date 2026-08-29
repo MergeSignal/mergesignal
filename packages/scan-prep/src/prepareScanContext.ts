@@ -5,6 +5,7 @@ import type {
   ScanQueueJob,
   ScanRequest,
 } from "@mergesignal/shared";
+import { scanAnalysisScopeFromQueueJob } from "@mergesignal/shared";
 
 import { getCachedFiles, setCachedFiles } from "./file-cache.js";
 import { classifyFetchError, fetchGitHubFiles } from "./github-files.js";
@@ -43,7 +44,7 @@ export async function prepareScanContext(
   job: ScanQueueJob,
 ): Promise<PrepareScanContextResult> {
   const warnings: AnalysisContextWarning[] = [];
-  const { repoSource, changedFiles, github } = job;
+  const { repoSource, changedFiles } = job;
 
   const lockfileCtx = prepareLockfileContext(job);
   warnings.push(...lockfileCtx.warnings);
@@ -158,6 +159,7 @@ export async function prepareScanContext(
     dependencyGraph: job.dependencyGraph ?? {},
     lockfile: job.lockfile,
     baseLockfile: job.baseLockfile,
+    scanAnalysisScope: scanAnalysisScopeFromQueueJob(job),
     changedFiles,
     changedPackages,
     lockfilePackageDelta,

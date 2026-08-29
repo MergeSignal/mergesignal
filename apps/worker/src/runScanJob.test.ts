@@ -41,9 +41,9 @@ const layerScores = {
   ecosystem: 10,
   upgradeImpact: 10,
 };
-const validRepositoryEngineOutput = {
-  totalScore: 40,
-  layerScores,
+const validChangeRequestEngineOutput = {
+  prRisk: { score: 40, layerScores },
+  repositoryHealth: { totalScore: 40, layerScores },
   findings: [],
   generatedAt: "2026-01-01T00:00:00.000Z",
   methodologyVersion: "acme-prod/v1",
@@ -76,6 +76,16 @@ const validRepositoryEngineOutput = {
   },
 };
 
+const validRepositoryEngineOutput = {
+  totalScore: 40,
+  layerScores,
+  findings: [],
+  generatedAt: "2026-01-01T00:00:00.000Z",
+  methodologyVersion: "acme-prod/v1",
+  assessment: validChangeRequestEngineOutput.assessment,
+  decision: validChangeRequestEngineOutput.decision,
+};
+
 function makeJob(over: Partial<ScanQueueJob>): Job<ScanQueueJob> {
   const data: ScanQueueJob = {
     scanId: over.scanId ?? "scan-1",
@@ -101,7 +111,7 @@ describe("executeScanJob", () => {
   });
 
   it("persists a validated result on success and preserves PR columns in SQL", async () => {
-    vi.mocked(analyze).mockResolvedValue(validRepositoryEngineOutput);
+    vi.mocked(analyze).mockResolvedValue(validChangeRequestEngineOutput);
 
     const calls: string[] = [];
     let status = "queued";
@@ -155,6 +165,7 @@ describe("executeScanJob", () => {
       manager: "pnpm",
       content: "x",
     });
+    expect(req.scanAnalysisScope).toBe("change_request");
     expect(req.github).toBeUndefined();
     expect(req.repoSource).toBeUndefined();
 
@@ -270,6 +281,54 @@ describe("executeScanJob", () => {
     expect(status).toBe("failed");
   });
 
+  it("when MERGESIGNAL_TRUSTED_ANALYSIS is set, fails if assessment is present but prRisk is missing", async () => {
+    process.env.MERGESIGNAL_TRUSTED_ANALYSIS = "1";
+    const withoutPrRisk = { ...validChangeRequestEngineOutput };
+    delete (withoutPrRisk as Partial<typeof validChangeRequestEngineOutput>)
+      .prRisk;
+    vi.mocked(analyze).mockResolvedValue(withoutPrRisk);
+
+    let status = "queued";
+    let persistedDone = false;
+    const pool = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.startsWith("SELECT status")) {
+          return { rows: [{ status }], rowCount: 1 };
+        }
+        if (sql.includes("status IN ('queued', 'running')")) {
+          status = "running";
+          return { rowCount: 1 };
+        }
+        if (sql.includes("heartbeat_at = NOW()")) return { rowCount: 1 };
+        if (sql.includes("status = 'failed'")) {
+          status = "failed";
+          return { rowCount: 1 };
+        }
+        if (sql.includes("status = 'done'")) {
+          persistedDone = true;
+          return { rowCount: 1 };
+        }
+        return { rows: [], rowCount: 0 };
+      }),
+    } as unknown as Pool;
+
+    await executeScanJob(
+      pool,
+      makeJob({
+        github: {
+          owner: "acme",
+          repo: "app",
+          prNumber: 1,
+          headSha: "head",
+          installationId: 1,
+        },
+      }),
+      "worker-test",
+    );
+    expect(status).toBe("failed");
+    expect(persistedDone).toBe(false);
+  });
+
   it("when MERGESIGNAL_TRUSTED_ANALYSIS is set, persists with valid provenance", async () => {
     process.env.MERGESIGNAL_TRUSTED_ANALYSIS = "1";
     vi.mocked(analyze).mockResolvedValue(validRepositoryEngineOutput);
@@ -341,7 +400,7 @@ describe("executeScanJob", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     vi.mocked(analyze).mockResolvedValue({
-      ...validRepositoryEngineOutput,
+      ...validChangeRequestEngineOutput,
       repoIntelligence: {
         packageUsage: [{ name: "jsonwebtoken", files: ["src/a.ts"] }],
         blastRadius: { level: "large", factors: [] },
