@@ -2,6 +2,21 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## 0.17.0
+
+### Breaking
+
+- **ABI-5 fresh engine output contract:** `ENGINE_OUTPUT_SCAN_ABI` is `5`. Strict fresh-output validation is scope-specific (`repository` vs `change_request`) via `engineOutputScanResultSchemaFor` and `freshOutputExpectationFromScanRequest`. Expected scope must be supplied independently; validators must not infer scope from engine output.
+- **Provider-neutral `ScanRequest`:** `github`, `repoSource`, and `ScanRequestGithubContext` are removed from engine ingress. Provider facts remain on queue/integration surfaces (e.g. `ScanQueueJob`).
+- **Repository-scoped fresh output** requires root `totalScore` and `layerScores`; modern change-request fresh output requires Assessment, Decision, `prRisk`, and `repositoryHealth` authorities. Repository-scoped output must not emit `prRisk` or `repositoryHealth` wires.
+- **Modern PR Risk authority:** `prRisk` is the governed PR severity wire; root `totalScore` is not authoritative for modern change-request PR Risk.
+
+### Added
+
+- `ScanAnalysisScope`, optional `ScanRequest.scanAnalysisScope` (defaults to `repository` when omitted).
+- `scanAnalysisScopeFromQueueJob` for downstream normalization of queue context into engine ingress scope (consumers must opt in explicitly).
+- `repositoryEngineOutputScanResultSchema` and scope-aware trusted validation helpers.
+
 ## 0.16.1
 
 ### Fixed
