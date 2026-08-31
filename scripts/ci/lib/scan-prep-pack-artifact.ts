@@ -20,13 +20,13 @@ import {
   APPROVED_LOCKFILE_RUNTIME,
   APPROVED_ROOT_RUNTIME,
 } from "../../../packages/scan-prep/approved-export-surface.ts";
+import { readSharedReleaseVersion } from "./shared-package-version.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const SCAN_PREP_DIR = path.resolve(
   __dirname,
   "../../../packages/scan-prep",
 );
-export const EXPECTED_SHARED_VERSION = "0.17.0";
 export const PACKAGE_NAME = "@mergesignal/scan-prep";
 export const NPMJS_REGISTRY = "https://registry.npmjs.org/";
 const PRIVATE_PACKAGE = "@mergesignal/contracts";
@@ -86,6 +86,32 @@ export function readSourcePackageJsonRaw(): string {
 
 export function readSourceManifest(): PackedScanPrepManifest {
   return JSON.parse(readSourcePackageJsonRaw()) as PackedScanPrepManifest;
+}
+
+export function readScanPrepSourceSharedDependencyVersion(): string {
+  const sharedDep = readSourceManifest().dependencies?.["@mergesignal/shared"];
+  if (typeof sharedDep !== "string" || !sharedDep.trim()) {
+    throw new Error(
+      "packages/scan-prep/package.json must declare an exact @mergesignal/shared dependency",
+    );
+  }
+  if (INVALID_PROTOCOL.test(sharedDep)) {
+    throw new Error(
+      `packages/scan-prep/package.json @mergesignal/shared must be an exact published semver (got ${sharedDep})`,
+    );
+  }
+  return sharedDep;
+}
+
+/** scan-prep source manifest vs Shared own-release authority at packages/shared/package.json */
+export function assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(): void {
+  const sharedReleaseVersion = readSharedReleaseVersion();
+  const scanPrepSharedVersion = readScanPrepSourceSharedDependencyVersion();
+  if (scanPrepSharedVersion !== sharedReleaseVersion) {
+    throw new Error(
+      `packages/scan-prep/package.json @mergesignal/shared must match packages/shared/package.json version (${sharedReleaseVersion}); got ${scanPrepSharedVersion}`,
+    );
+  }
 }
 
 function resolveReleaseCandidatePath(candidatePath: string): string {
@@ -476,10 +502,14 @@ export function validatePackedScanPrepArtifact(input: {
     violations.push("packed publishConfig.access must be public");
   }
 
-  const sharedDep = packedManifest.dependencies?.["@mergesignal/shared"];
-  if (sharedDep !== EXPECTED_SHARED_VERSION) {
+  const sourceManifest = JSON.parse(
+    sourceManifestBefore,
+  ) as PackedScanPrepManifest;
+  const sourceSharedDep = sourceManifest.dependencies?.["@mergesignal/shared"];
+  const packedSharedDep = packedManifest.dependencies?.["@mergesignal/shared"];
+  if (packedSharedDep !== sourceSharedDep) {
     violations.push(
-      `packed @mergesignal/shared must be exact ${EXPECTED_SHARED_VERSION} (got ${sharedDep ?? "missing"})`,
+      `packed @mergesignal/shared must match source manifest (${sourceSharedDep ?? "missing"}) (got ${packedSharedDep ?? "missing"})`,
     );
   }
   if (packedManifest.dependencies?.[PRIVATE_PACKAGE]) {

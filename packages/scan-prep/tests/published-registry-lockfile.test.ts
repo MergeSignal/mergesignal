@@ -5,8 +5,10 @@ import { describe, expect, it } from "vitest";
 import { assertPublishedRegistryConsumerLockfile } from "../../../scripts/ci/lib/scan-prep-published-registry-lockfile.ts";
 
 const PACKAGE_NAME = "@mergesignal/scan-prep";
-const VERSION = "0.1.0";
-const SHARED_VERSION = "0.17.0";
+/** Frozen published-consumer fixture identity — not current Shared HEAD authority. */
+const FIXTURE_SCAN_PREP_VERSION = "0.1.0";
+/** Matches fixtures/published-registry-consumer.lock.yaml importer resolutions. */
+const FIXTURE_SHARED_VERSION = "0.17.0";
 
 const VALID_LOCKFILE = readFileSync(
   path.join(
@@ -20,8 +22,8 @@ function expectLockfilePass(lock: string): void {
   expect(() =>
     assertPublishedRegistryConsumerLockfile(lock, {
       scanPrepPackageName: PACKAGE_NAME,
-      scanPrepVersion: VERSION,
-      sharedVersion: SHARED_VERSION,
+      scanPrepVersion: FIXTURE_SCAN_PREP_VERSION,
+      sharedVersion: FIXTURE_SHARED_VERSION,
     }),
   ).not.toThrow();
 }
@@ -30,8 +32,8 @@ function expectLockfileFail(lock: string, message: RegExp): void {
   expect(() =>
     assertPublishedRegistryConsumerLockfile(lock, {
       scanPrepPackageName: PACKAGE_NAME,
-      scanPrepVersion: VERSION,
-      sharedVersion: SHARED_VERSION,
+      scanPrepVersion: FIXTURE_SCAN_PREP_VERSION,
+      sharedVersion: FIXTURE_SHARED_VERSION,
     }),
   ).toThrow(message);
 }

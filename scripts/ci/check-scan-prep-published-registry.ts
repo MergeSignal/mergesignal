@@ -9,8 +9,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { assertPublishedRegistryConsumerLockfile } from "./lib/scan-prep-published-registry-lockfile.ts";
 import { cleanNpmEnv } from "./lib/scan-prep-npmjs-version-availability.ts";
+import { readScanPrepReleaseIdentity } from "./lib/scan-prep-release-identity.ts";
+
 const PACKAGE_NAME = "@mergesignal/scan-prep";
-const EXPECTED_SHARED_VERSION = "0.17.0";
 const NPMJS_REGISTRY = "https://registry.npmjs.org/";
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 
@@ -79,7 +80,7 @@ function view(version: string, field: string): string {
   return viewWithRetry(version, field);
 }
 
-function verifyMetadata(version: string): void {
+function verifyMetadata(version: string, expectedSharedVersion: string): void {
   if (view(version, "version") !== version) {
     throw new Error(`${PACKAGE_NAME}@${version} metadata version mismatch`);
   }
@@ -88,9 +89,9 @@ function verifyMetadata(version: string): void {
     throw new Error(`published package access must be public (got: ${access})`);
   }
   const sharedDep = view(version, "dependencies.@mergesignal/shared");
-  if (sharedDep !== EXPECTED_SHARED_VERSION) {
+  if (sharedDep !== expectedSharedVersion) {
     throw new Error(
-      `published @mergesignal/shared dependency must be exact ${EXPECTED_SHARED_VERSION}`,
+      `published @mergesignal/shared dependency must be exact ${expectedSharedVersion}`,
     );
   }
   process.stdout.write(
@@ -98,7 +99,10 @@ function verifyMetadata(version: string): void {
   );
 }
 
-function verifyIsolatedInstall(version: string): void {
+function verifyIsolatedInstall(
+  version: string,
+  expectedSharedVersion: string,
+): void {
   const consumerDir = mkdtempSync(
     path.join(tmpdir(), "ms-scan-prep-published-consumer-"),
   );
@@ -116,7 +120,7 @@ function verifyIsolatedInstall(version: string): void {
           type: "module",
           dependencies: {
             [PACKAGE_NAME]: version,
-            "@mergesignal/shared": EXPECTED_SHARED_VERSION,
+            "@mergesignal/shared": expectedSharedVersion,
           },
           devDependencies: {
             typescript: "^5.9.3",
@@ -136,7 +140,7 @@ function verifyIsolatedInstall(version: string): void {
     assertPublishedRegistryConsumerLockfile(lock, {
       scanPrepPackageName: PACKAGE_NAME,
       scanPrepVersion: version,
-      sharedVersion: EXPECTED_SHARED_VERSION,
+      sharedVersion: expectedSharedVersion,
     });
 
     run(
@@ -176,7 +180,7 @@ function verifyIsolatedInstall(version: string): void {
     );
     run("pnpm exec tsc --noEmit -p tsconfig.json", consumerDir, cleanEnv);
     process.stdout.write(
-      `  isolated install: ${PACKAGE_NAME}@${version} + @mergesignal/shared@${EXPECTED_SHARED_VERSION} from npmjs\n`,
+      `  isolated install: ${PACKAGE_NAME}@${version} + @mergesignal/shared@${expectedSharedVersion} from npmjs\n`,
     );
   } finally {
     rmSync(consumerDir, { recursive: true, force: true });
@@ -185,11 +189,16 @@ function verifyIsolatedInstall(version: string): void {
 
 function main(): void {
   const version = parseVersion(process.argv.slice(2));
+  const releaseIdentity = readScanPrepReleaseIdentity(version);
   process.stdout.write("check:scan-prep-published-registry report\n");
   process.stdout.write(`  registry: ${NPMJS_REGISTRY}\n`);
   process.stdout.write(`  version: ${version}\n`);
-  verifyMetadata(version);
-  verifyIsolatedInstall(version);
+  process.stdout.write(`  release tag: ${releaseIdentity.tag}\n`);
+  process.stdout.write(
+    `  expected @mergesignal/shared: ${releaseIdentity.sharedDependencyVersion} (from ${releaseIdentity.tag})\n`,
+  );
+  verifyMetadata(version, releaseIdentity.sharedDependencyVersion);
+  verifyIsolatedInstall(version, releaseIdentity.sharedDependencyVersion);
   process.stdout.write("check:scan-prep-published-registry OK\n");
 }
 

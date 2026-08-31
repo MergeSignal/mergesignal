@@ -7,13 +7,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
-  EXPECTED_SHARED_VERSION,
   NPMJS_REGISTRY,
   PACKAGE_NAME,
   type ScanPrepPackResult,
   digestSha512OfFile,
   readSourcePackageJsonRaw,
 } from "./scan-prep-pack-artifact.ts";
+import { readSharedReleaseVersion } from "./shared-package-version.ts";
 
 function run(command: string, cwd: string, env?: NodeJS.ProcessEnv): string {
   return execSync(command, {
@@ -36,6 +36,7 @@ export function runScanPrepIsolatedInstall(input: {
 }): IsolatedInstallResult {
   const { candidate } = input;
   const verifySourceUnchanged = input.verifySourceUnchanged ?? true;
+  const expectedSharedVersion = readSharedReleaseVersion();
   const sourceBefore = verifySourceUnchanged
     ? readSourcePackageJsonRaw()
     : undefined;
@@ -63,7 +64,7 @@ export function runScanPrepIsolatedInstall(input: {
           type: "module",
           dependencies: {
             [PACKAGE_NAME]: `file:${packedAbs}`,
-            "@mergesignal/shared": EXPECTED_SHARED_VERSION,
+            "@mergesignal/shared": expectedSharedVersion,
           },
           devDependencies: {
             typescript: "^5.9.3",
@@ -111,9 +112,9 @@ export function runScanPrepIsolatedInstall(input: {
         "lockfile must not use link:/file: for @mergesignal/shared",
       );
     }
-    if (!lock.includes(`@mergesignal/shared@${EXPECTED_SHARED_VERSION}`)) {
+    if (!lock.includes(`@mergesignal/shared@${expectedSharedVersion}`)) {
       throw new Error(
-        `lockfile missing @mergesignal/shared@${EXPECTED_SHARED_VERSION}`,
+        `lockfile missing @mergesignal/shared@${expectedSharedVersion}`,
       );
     }
     if (!/integrity:\s*sha512-/i.test(lock)) {

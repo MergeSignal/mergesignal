@@ -31,6 +31,10 @@ const RECOVERY_EVIDENCE_MODULE_PATH = path.join(
   REPO_ROOT,
   "scripts/ci/verify-scan-prep-dispatch-recovery-evidence.ts",
 );
+const RELEASE_IDENTITY_MODULE_PATH = path.join(
+  REPO_ROOT,
+  "scripts/ci/lib/scan-prep-release-identity.ts",
+);
 
 function publishJobSection(workflow: string): string {
   const publishStart = workflow.indexOf("  publish:");
@@ -182,8 +186,13 @@ function readRecoveryEvidenceModuleSource(): string {
 
   const source = readFileSync(resolvedModulePath, "utf8");
   expect(source).toContain("verifyScanPrepDispatchRecoveryEvidence");
-  expect(source).toContain("git show");
-  return source;
+  expect(source).toContain("readScanPrepReleaseCoreIdentity");
+  const releaseIdentitySource = readFileSync(
+    RELEASE_IDENTITY_MODULE_PATH,
+    "utf8",
+  );
+  expect(releaseIdentitySource).toContain("git show");
+  return `${source}\n${releaseIdentitySource}`;
 }
 
 function assertRecoveryEvidenceModuleAvoidsWorkspaceFilesystemReads(

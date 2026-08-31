@@ -6,12 +6,14 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 import {
+  assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority,
   packScanPrepToDirectory,
   readSourcePackageJsonRaw,
   validatePackedScanPrepArtifact,
 } from "./lib/scan-prep-pack-artifact.ts";
 
 function main(): void {
+  assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority();
   const sourceBefore = readSourcePackageJsonRaw();
   const packDir = mkdtempSync(`${tmpdir()}/ms-scan-prep-pack-check-`);
 

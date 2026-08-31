@@ -8,16 +8,19 @@ import path from "node:path";
 
 import {
   PACKAGE_NAME,
-  EXPECTED_SHARED_VERSION,
   assertPackedScanPrepArtifactValid,
+  assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority,
   loadScanPrepCandidateFromTarball,
   packScanPrepToDirectory,
   parseCandidateArg,
   readSourcePackageJsonRaw,
 } from "./lib/scan-prep-pack-artifact.ts";
 import { runScanPrepIsolatedInstall } from "./lib/scan-prep-isolated-install.ts";
+import { readSharedReleaseVersion } from "./lib/shared-package-version.ts";
 
 function main(): void {
+  assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority();
+  const expectedSharedVersion = readSharedReleaseVersion();
   const candidatePath = parseCandidateArg(process.argv.slice(2));
   let packDir: string | undefined;
   let removePackDir = false;
@@ -39,7 +42,7 @@ function main(): void {
 
     runScanPrepIsolatedInstall({ candidate });
     process.stdout.write(
-      `check:scan-prep-isolated-install OK (${PACKAGE_NAME}@${candidate.version} candidate + @mergesignal/shared@${EXPECTED_SHARED_VERSION} from npmjs)\n`,
+      `check:scan-prep-isolated-install OK (${PACKAGE_NAME}@${candidate.version} candidate + @mergesignal/shared@${expectedSharedVersion} from npmjs)\n`,
     );
   } finally {
     if (removePackDir && packDir) {
