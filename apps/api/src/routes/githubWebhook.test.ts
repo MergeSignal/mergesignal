@@ -135,7 +135,17 @@ describe("GitHub Webhook Tests", () => {
     it("should return 503 when webhook is not configured", async () => {
       // Close and recreate app without config
       await app.close();
-      process.env = { ...originalEnv };
+      // Simulate host shell pollution, then explicitly clear webhook config.
+      process.env = {
+        ...originalEnv,
+        GITHUB_APP_ID: "host-app-id",
+        GITHUB_PRIVATE_KEY:
+          "-----BEGIN RSA PRIVATE KEY-----\\nhost\\n-----END RSA PRIVATE KEY-----",
+        GITHUB_WEBHOOK_SECRET: "host-webhook-secret",
+      };
+      delete process.env.GITHUB_APP_ID;
+      delete process.env.GITHUB_PRIVATE_KEY;
+      delete process.env.GITHUB_WEBHOOK_SECRET;
 
       app = Fastify();
       await app.register(rawBody, {
