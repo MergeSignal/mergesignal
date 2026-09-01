@@ -18,7 +18,7 @@
     "@mergesignal/shared": "workspace:^",
     "@octokit/auth-app": "^8.2.0",
     "@sentry/node": "^8.55.1",
-    "bullmq": "^5.70.1",
+    "bullmq": "^6.1.2",
     "dotenv": "^17.4.2",
     "octokit": "^3.1.2",
     "pg": "^8.19.0"
