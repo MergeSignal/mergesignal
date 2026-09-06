@@ -10,11 +10,14 @@ import {
   CHANGE_CLASSES,
   CLEARANCE_BASES,
   COVERAGE_CLASSES,
+  DELTA_CHANGE_KINDS,
   DELTA_DIMENSION_KINDS,
   FOCAL_ELECTION_DIMENSIONS,
   INSIGHT_EMISSION_FLOORS,
+  MANIFEST_CONSUMER_RELEVANCE_VALUES,
   MERGE_CONCERN_KINDS,
   NARRATIVE_INTENSITIES,
+  NO_IMPACT_PROOF_BASIS_KINDS,
   REACH_BUCKETS,
   REACH_VISIBILITIES,
   REVIEW_EPISODE_SHAPES,
@@ -155,6 +158,26 @@ const packageOutcomeSchema = z.object({
   boundedVerifyTargetRefs: z.array(z.string()).optional(),
 });
 
+const positiveClearanceProvenanceMemberSchema = z.object({
+  fieldPath: z.string(),
+  changeKind: z.enum(DELTA_CHANGE_KINDS),
+});
+
+const positiveClearanceProvenanceGroupSchema = z.object({
+  packageName: z.string(),
+  dimensionKind: z.enum(DELTA_DIMENSION_KINDS),
+  clearanceBasis: z.literal("no_impact_proven"),
+  noImpactProofKind: z.enum(NO_IMPACT_PROOF_BASIS_KINDS),
+  manifestConsumerRelevance: z
+    .enum(MANIFEST_CONSUMER_RELEVANCE_VALUES)
+    .optional(),
+  members: z.array(positiveClearanceProvenanceMemberSchema),
+});
+
+const positiveClearanceProvenanceSchema = z.object({
+  groups: z.array(positiveClearanceProvenanceGroupSchema),
+});
+
 /** Root Assessment wire schema (ABI 4).
  *
  * All ABI 3 required fields are preserved. ABI 4 outcome model fields are optional,
@@ -183,6 +206,7 @@ export const assessmentSchema = z.object({
   boundedVerifyTargets: z.array(boundedVerifyTargetSchema).optional(),
   evidenceSufficiencyVerdict: evidenceSufficiencyVerdictSchema.optional(),
   abstainReasons: z.array(abstainReasonSchema).optional(),
+  positiveClearanceProvenance: positiveClearanceProvenanceSchema.optional(),
 });
 
 export type SafeParseAssessmentResult =

@@ -245,6 +245,295 @@ function minimalAssessment(overrides: Partial<Assessment> = {}): Assessment {
   };
 }
 
+function minimalProvenanceMember(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    fieldPath: "exports.foo",
+    changeKind: "changed",
+    ...overrides,
+  };
+}
+
+function minimalProvenanceGroup(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    packageName: "pkg-a",
+    dimensionKind: "exports",
+    clearanceBasis: "no_impact_proven",
+    noImpactProofKind: "no_imports",
+    members: [minimalProvenanceMember()],
+    ...overrides,
+  };
+}
+
+function minimalProvenance(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    groups: [minimalProvenanceGroup()],
+    ...overrides,
+  };
+}
+
+describe("positiveClearanceProvenance (ABI 4 wire transport)", () => {
+  it("accepts Assessment without positiveClearanceProvenance (historical compatibility)", () => {
+    const parsed = assessmentSchema.safeParse(minimalAbi3Assessment);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.positiveClearanceProvenance).toBeUndefined();
+    }
+  });
+
+  it("accepts ABI 4 Assessment without positiveClearanceProvenance", () => {
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      outcome: "cleared",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.positiveClearanceProvenance).toBeUndefined();
+    }
+  });
+
+  it("parses and preserves a single provenance group with one member", () => {
+    const provenance = minimalProvenance();
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      positiveClearanceProvenance: provenance,
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.positiveClearanceProvenance).toEqual(provenance);
+      const roundTrip = assessmentSchema.safeParse(parsed.data);
+      expect(roundTrip.success).toBe(true);
+      if (roundTrip.success) {
+        expect(roundTrip.data.positiveClearanceProvenance).toEqual(provenance);
+      }
+    }
+  });
+
+  it("preserves all members in a provenance group", () => {
+    const members = [
+      minimalProvenanceMember({ fieldPath: "exports.a", changeKind: "added" }),
+      minimalProvenanceMember({
+        fieldPath: "exports.b",
+        changeKind: "removed",
+      }),
+      minimalProvenanceMember({
+        fieldPath: "exports.c",
+        changeKind: "tightened",
+      }),
+    ];
+    const provenance = minimalProvenance({
+      groups: [minimalProvenanceGroup({ members })],
+    });
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      positiveClearanceProvenance: provenance,
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(
+        parsed.data.positiveClearanceProvenance?.groups[0]?.members,
+      ).toEqual(members);
+    }
+  });
+
+  it("preserves multiple provenance groups", () => {
+    const provenance = minimalProvenance({
+      groups: [
+        minimalProvenanceGroup({
+          packageName: "pkg-a",
+          dimensionKind: "exports",
+        }),
+        minimalProvenanceGroup({
+          packageName: "pkg-b",
+          dimensionKind: "manifest",
+          noImpactProofKind: "upstream_intrinsic_non_consumer",
+          manifestConsumerRelevance: "upstream_descriptive",
+        }),
+      ],
+    });
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      positiveClearanceProvenance: provenance,
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.positiveClearanceProvenance?.groups).toHaveLength(2);
+      expect(
+        parsed.data.positiveClearanceProvenance?.groups[1]?.packageName,
+      ).toBe("pkg-b");
+    }
+  });
+
+  it("accepts valid noImpactProofKind literals", () => {
+    for (const kind of [
+      "no_imports",
+      "surface_not_consumed",
+      "non_runtime_band",
+      "constraint_axis_absent",
+      "upstream_intrinsic_non_consumer",
+    ]) {
+      const parsed = assessmentSchema.safeParse({
+        ...minimalAbi3Assessment,
+        positiveClearanceProvenance: minimalProvenance({
+          groups: [minimalProvenanceGroup({ noImpactProofKind: kind })],
+        }),
+      });
+      expect(parsed.success).toBe(true);
+    }
+  });
+
+  it("rejects invalid noImpactProofKind", () => {
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      positiveClearanceProvenance: minimalProvenance({
+        groups: [
+          minimalProvenanceGroup({
+            noImpactProofKind: "not_a_real_proof_kind",
+          }),
+        ],
+      }),
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("accepts valid changeKind literals on members", () => {
+    for (const changeKind of [
+      "added",
+      "removed",
+      "changed",
+      "tightened",
+      "relaxed",
+    ]) {
+      const parsed = assessmentSchema.safeParse({
+        ...minimalAbi3Assessment,
+        positiveClearanceProvenance: minimalProvenance({
+          groups: [
+            minimalProvenanceGroup({
+              members: [minimalProvenanceMember({ changeKind })],
+            }),
+          ],
+        }),
+      });
+      expect(parsed.success).toBe(true);
+    }
+  });
+
+  it("rejects invalid changeKind on members", () => {
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      positiveClearanceProvenance: minimalProvenance({
+        groups: [
+          minimalProvenanceGroup({
+            members: [
+              minimalProvenanceMember({
+                changeKind: "mutated_beyond_recognition",
+              }),
+            ],
+          }),
+        ],
+      }),
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("accepts valid optional manifestConsumerRelevance", () => {
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      positiveClearanceProvenance: minimalProvenance({
+        groups: [
+          minimalProvenanceGroup({
+            dimensionKind: "manifest",
+            noImpactProofKind: "upstream_intrinsic_non_consumer",
+            manifestConsumerRelevance: "configuration_axis",
+          }),
+        ],
+      }),
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("rejects invalid manifestConsumerRelevance", () => {
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      positiveClearanceProvenance: minimalProvenance({
+        groups: [
+          minimalProvenanceGroup({
+            manifestConsumerRelevance: "consumer_facing_runtime",
+          }),
+        ],
+      }),
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("accepts non-manifest group without manifestConsumerRelevance", () => {
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      positiveClearanceProvenance: minimalProvenance({
+        groups: [
+          minimalProvenanceGroup({
+            dimensionKind: "exports",
+            manifestConsumerRelevance: undefined,
+          }),
+        ],
+      }),
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(
+        parsed.data.positiveClearanceProvenance?.groups[0]
+          ?.manifestConsumerRelevance,
+      ).toBeUndefined();
+    }
+  });
+
+  it("rejects malformed provenance member missing fieldPath", () => {
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      positiveClearanceProvenance: minimalProvenance({
+        groups: [
+          minimalProvenanceGroup({
+            members: [{ changeKind: "added" }],
+          }),
+        ],
+      }),
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("rejects malformed provenance group missing members", () => {
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      positiveClearanceProvenance: {
+        groups: [
+          {
+            packageName: "pkg-a",
+            dimensionKind: "exports",
+            clearanceBasis: "no_impact_proven",
+            noImpactProofKind: "no_imports",
+          },
+        ],
+      },
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("rejects clearanceBasis other than no_impact_proven", () => {
+    const parsed = assessmentSchema.safeParse({
+      ...minimalAbi3Assessment,
+      positiveClearanceProvenance: minimalProvenance({
+        groups: [minimalProvenanceGroup({ clearanceBasis: "proof_pass" })],
+      }),
+    });
+    expect(parsed.success).toBe(false);
+  });
+});
+
 describe("extractAuthoredCommunication", () => {
   it("copies all authored fields verbatim", () => {
     const assessment = minimalAssessment();

@@ -171,3 +171,43 @@ export const UNCLEARED_REASONS = [
 
 /** Coverage class for ClearanceEnvelope. */
 export const COVERAGE_CLASSES = ["full", "representative", "none"] as const;
+
+/**
+ * Copy-only Assessment wire transport mirror. Semantic authority remains the
+ * owning private PI domain. Shared does not classify or adjudicate these values.
+ */
+export const DELTA_CHANGE_KINDS = [
+  "added",
+  "removed",
+  "changed",
+  "tightened",
+  "relaxed",
+] as const;
+
+/**
+ * Copy-only Assessment wire transport mirror. Semantic authority remains the
+ * owning private IC domain. Shared does not classify or adjudicate these values.
+ */
+export const NO_IMPACT_PROOF_BASIS_KINDS = [
+  "no_imports",
+  "surface_not_consumed",
+  "non_runtime_band",
+  "constraint_axis_absent",
+  "upstream_intrinsic_non_consumer",
+] as const;
+
+/**
+ * Copy-only Assessment wire transport mirror. Semantic authority remains the
+ * owning private PI manifest relevance domain. Shared does not classify or
+ * adjudicate these values.
+ */
+export const MANIFEST_CONSUMER_RELEVANCE_VALUES = [
+  "upstream_maintainer_script",
+  "upstream_publication_script",
+  "upstream_lifecycle_install",
+  "upstream_transitive_resolution",
+  "upstream_executable_exposure",
+  "upstream_descriptive",
+  "configuration_axis",
+  "unknown",
+] as const;

@@ -8,11 +8,14 @@ import type {
   CHANGE_CLASSES,
   CLEARANCE_BASES,
   COVERAGE_CLASSES,
+  DELTA_CHANGE_KINDS,
   DELTA_DIMENSION_KINDS,
   FOCAL_ELECTION_DIMENSIONS,
   INSIGHT_EMISSION_FLOORS,
+  MANIFEST_CONSUMER_RELEVANCE_VALUES,
   MERGE_CONCERN_KINDS,
   NARRATIVE_INTENSITIES,
+  NO_IMPACT_PROOF_BASIS_KINDS,
   REACH_BUCKETS,
   REACH_VISIBILITIES,
   REVIEW_EPISODE_SHAPES,
@@ -51,6 +54,32 @@ export type FocalElectionDimension = (typeof FOCAL_ELECTION_DIMENSIONS)[number];
 export type ReachBucket = (typeof REACH_BUCKETS)[number];
 
 export type DeltaDimensionKind = (typeof DELTA_DIMENSION_KINDS)[number];
+
+export type DeltaChangeKind = (typeof DELTA_CHANGE_KINDS)[number];
+
+export type NoImpactProofBasisKind =
+  (typeof NO_IMPACT_PROOF_BASIS_KINDS)[number];
+
+export type ManifestConsumerRelevance =
+  (typeof MANIFEST_CONSUMER_RELEVANCE_VALUES)[number];
+
+export type PositiveClearanceProvenanceMember = {
+  fieldPath: string;
+  changeKind: DeltaChangeKind;
+};
+
+export type PositiveClearanceProvenanceGroup = {
+  packageName: string;
+  dimensionKind: DeltaDimensionKind;
+  clearanceBasis: "no_impact_proven";
+  noImpactProofKind: NoImpactProofBasisKind;
+  manifestConsumerRelevance?: ManifestConsumerRelevance;
+  members: PositiveClearanceProvenanceMember[];
+};
+
+export type PositiveClearanceProvenance = {
+  groups: PositiveClearanceProvenanceGroup[];
+};
 
 export type AssessmentConcern = {
   kind: MergeConcernKind;
@@ -152,6 +181,12 @@ export type Assessment = {
   boundedVerifyTargets?: BoundedVerifyTarget[];
   evidenceSufficiencyVerdict?: EvidenceSufficiencyVerdict;
   abstainReasons?: AbstainReason[];
+  /**
+   * Authoritative positive-clearance provenance emitted by private Explainability.
+   * Transport-only on the public wire; absent when no dimensions were cleared
+   * via no-impact proof with structured provenance.
+   */
+  positiveClearanceProvenance?: PositiveClearanceProvenance;
 };
 
 /** Wire presentation subset — excludes engine policy fields. */

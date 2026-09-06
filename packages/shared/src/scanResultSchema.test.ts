@@ -7,6 +7,7 @@ import {
   safeParseEngineOutputScanResult,
   parseEngineOutputScanResultOrThrow,
 } from "./scanResultSchema.js";
+import { validateTrustedEngineScanResult } from "./trustedScanGuards.js";
 import {
   emptyReachScope,
   emptyVerificationScope,
@@ -351,6 +352,41 @@ describe("engineOutputScanResultSchema (strict, fresh engine only)", () => {
       "change_request",
     );
     expect(r.ok).toBe(false);
+  });
+
+  it("preserves assessment.positiveClearanceProvenance on trusted fresh engine parse", () => {
+    const positiveClearanceProvenance = {
+      groups: [
+        {
+          packageName: "pkg-a",
+          dimensionKind: "exports" as const,
+          clearanceBasis: "no_impact_proven" as const,
+          noImpactProofKind: "no_imports" as const,
+          members: [
+            { fieldPath: "exports.foo", changeKind: "changed" as const },
+          ],
+        },
+      ],
+    };
+    const payload = modernFreshEngineBase({
+      assessment: {
+        ...minimalAssessment,
+        positiveClearanceProvenance,
+      },
+    });
+
+    const strict = parseEngineOutputScanResultOrThrow(
+      payload,
+      "change_request",
+    );
+    expect(strict.assessment?.positiveClearanceProvenance).toEqual(
+      positiveClearanceProvenance,
+    );
+
+    const trusted = validateTrustedEngineScanResult(payload, "change_request");
+    expect(trusted.assessment?.positiveClearanceProvenance).toEqual(
+      positiveClearanceProvenance,
+    );
   });
 });
 
