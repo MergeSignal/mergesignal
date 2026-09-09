@@ -16,11 +16,28 @@ import {
   readSourcePackageJsonRaw,
 } from "./lib/scan-prep-pack-artifact.ts";
 import { runScanPrepIsolatedInstall } from "./lib/scan-prep-isolated-install.ts";
+import { classifyNpmjsSharedVersionAvailability } from "./lib/shared-npmjs-version-availability.ts";
 import { readSharedReleaseVersion } from "./lib/shared-package-version.ts";
 
 function main(): void {
   assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority();
   const expectedSharedVersion = readSharedReleaseVersion();
+  const sharedAvailability = classifyNpmjsSharedVersionAvailability(
+    expectedSharedVersion,
+  );
+
+  if (sharedAvailability.kind === "not_found") {
+    process.stdout.write(
+      `check:scan-prep-isolated-install SKIPPED (${PACKAGE_NAME} pack validation complete; @mergesignal/shared@${expectedSharedVersion} not on npmjs yet — rerun after Shared publication)\n`,
+    );
+    return;
+  }
+
+  if (sharedAvailability.kind === "unavailable") {
+    throw new Error(
+      `@mergesignal/shared@${expectedSharedVersion} registry availability could not be proven: ${sharedAvailability.message}`,
+    );
+  }
   const candidatePath = parseCandidateArg(process.argv.slice(2));
   let packDir: string | undefined;
   let removePackDir = false;

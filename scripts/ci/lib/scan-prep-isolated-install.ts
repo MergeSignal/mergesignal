@@ -13,6 +13,7 @@ import {
   digestSha512OfFile,
   readSourcePackageJsonRaw,
 } from "./scan-prep-pack-artifact.ts";
+import { readRootPackageManagerAuthority } from "./root-package-manager.ts";
 import { readSharedReleaseVersion } from "./shared-package-version.ts";
 
 function run(command: string, cwd: string, env?: NodeJS.ProcessEnv): string {
@@ -52,6 +53,7 @@ export function runScanPrepIsolatedInstall(input: {
     NODE_AUTH_TOKEN: undefined,
     NPM_TOKEN: undefined,
     NPM_CONFIG_USERCONFIG: path.join(consumerDir, ".npmrc"),
+    COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
   };
 
   try {
@@ -62,6 +64,7 @@ export function runScanPrepIsolatedInstall(input: {
           name: "scan-prep-isolated-install-smoke",
           private: true,
           type: "module",
+          packageManager: readRootPackageManagerAuthority(),
           dependencies: {
             [PACKAGE_NAME]: `file:${packedAbs}`,
             "@mergesignal/shared": expectedSharedVersion,
