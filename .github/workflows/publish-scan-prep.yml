@@ -101,7 +101,7 @@ jobs:
 
       - name: Build and test scan-prep package
         run: |
-          pnpm -F @mergesignal/scan-prep build
+          pnpm turbo run build --filter=@mergesignal/scan-prep
           pnpm -F @mergesignal/scan-prep test
 
       - name: Validate scan-prep export surface
