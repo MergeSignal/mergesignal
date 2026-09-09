@@ -2,6 +2,14 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## 0.18.0
+
+### Added
+
+- Optional `positiveClearanceProvenance` on the Assessment wire for transporting positive-clearance structured provenance, including grouped changed-surface and no-impact proof metadata.
+- Copy-only transport mirrors `DELTA_CHANGE_KINDS`, `NO_IMPACT_PROOF_BASIS_KINDS`, and `MANIFEST_CONSUMER_RELEVANCE_VALUES` for Assessment wire validation.
+- `ASSESSMENT_ABI` remains `4`. Historical assessments without the field remain valid; consumers must upgrade Shared to preserve the new field.
+
 ## 0.17.0
 
 ### Breaking
