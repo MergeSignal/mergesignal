@@ -354,8 +354,8 @@ importers:
   packages/scan-prep:
     dependencies:
       "@mergesignal/shared":
-        specifier: 0.17.0
-        version: 0.17.0
+        specifier: 0.18.0
+        version: link:../shared
       "@octokit/auth-app":
         specifier: ^7.1.4
         version: 7.2.2
