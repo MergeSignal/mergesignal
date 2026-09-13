@@ -163,6 +163,7 @@ export const UNCLEARED_REASONS = [
   "proof_failed",
   "proof_inconclusive",
   "no_producer_available",
+  "correlation_abstained",
   "representative_precision_only",
   "architectural_precision_only",
   "opaque_delta",

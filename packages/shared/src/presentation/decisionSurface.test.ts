@@ -25,6 +25,7 @@ const ENGINE_VOCABULARY = [
   "bounded_verify",
   "representative_precision_only",
   "architectural_precision_only",
+  "correlation_abstained",
   "clearanceEnvelope",
   "coverageClass",
   "precisionLevel",

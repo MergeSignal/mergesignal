@@ -2,6 +2,12 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## Unreleased
+
+### Added
+
+- Additive `UnclearedReason` value `correlation_abstained` on the Clearance Envelope wire: Impact Correlation abstained for the dimension, so clearance cannot be established from sealed correlation evidence. `ASSESSMENT_ABI` remains `4`.
+
 ## 0.18.0
 
 ### Added
