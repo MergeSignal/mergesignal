@@ -2,11 +2,12 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
-## Unreleased
+## 0.19.0
 
 ### Added
 
-- Additive `UnclearedReason` value `correlation_abstained` on the Clearance Envelope wire: Impact Correlation abstained for the dimension, so clearance cannot be established from sealed correlation evidence. `ASSESSMENT_ABI` remains `4`.
+- Additive `UnclearedReason` value `correlation_abstained` on the Clearance Envelope wire: Impact Correlation abstained for the dimension, so clearance cannot be established from sealed correlation evidence.
+- Closed-enum extension on optional ABI 4 `clearanceEnvelopes` / `unclearedDimensions`; `ASSESSMENT_ABI` remains `4`. Trusted consumers on older `@mergesignal/shared` versions reject payloads containing the new literal until upgraded.
 
 ## 0.18.0
 
