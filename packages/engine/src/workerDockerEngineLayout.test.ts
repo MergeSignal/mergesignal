@@ -20,5 +20,8 @@ describe("worker Docker runtime engine layout", () => {
     expect(dockerfile).not.toMatch(
       /test -f \/app\/engine\/dist\/production-scan-ingress\.js/,
     );
+    expect(dockerfile).toMatch(
+      /COPY scripts\/docker\/verify-engine-bake-output\.mjs/,
+    );
   });
 });

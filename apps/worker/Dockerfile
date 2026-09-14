@@ -47,6 +47,7 @@ ARG MERGESIGNAL_ENGINE_IMPL_FILE=packages/analysis-engine/dist/index.js
 ENV ENGINE_OUTPUT=/engine-out
 
 COPY scripts/docker/build-private-engine.sh /scripts/build-private-engine.sh
+COPY scripts/docker/verify-engine-bake-output.mjs /scripts/verify-engine-bake-output.mjs
 COPY scripts/docker/write-fixture-engine-manifest.mjs /scripts/write-fixture-engine-manifest.mjs
 COPY scripts/docker/fixture-production-scan-ingress.js /scripts/fixture-production-scan-ingress.js
 COPY --from=builder /app/packages/engine-test-fixture/dist /fixture-dist/

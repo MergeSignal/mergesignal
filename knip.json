@@ -9,7 +9,9 @@
     "scripts/ci/render-mergesignal-failure-summary.mjs",
     "scripts/ci/audit-trusted-actions-output.mjs",
     "scripts/check-pnpm-version-governance.ts",
-    "scripts/docker/write-fixture-engine-manifest.mjs"
+    "scripts/docker/write-fixture-engine-manifest.mjs",
+    "scripts/docker/verify-engine-bake-output.mjs",
+    "scripts/docker/fixture-production-scan-ingress.js"
   ],
   "workspaces": {
     ".": {
@@ -46,6 +48,7 @@
   },
   "ignoreIssues": {
     "apps/api/**": ["exports", "types"],
-    "apps/web/**": ["exports", "types"]
+    "apps/web/**": ["exports", "types"],
+    "packages/engine/src/engineRuntimePaths.ts": ["exports"]
   }
 }
