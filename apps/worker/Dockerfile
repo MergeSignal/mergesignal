@@ -8,6 +8,7 @@ RUN corepack enable && corepack install
 
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/product-tier/package.json ./packages/product-tier/
 COPY packages/engine/package.json ./packages/engine/
 COPY packages/scan-prep/package.json ./packages/scan-prep/
 COPY packages/engine-stub/package.json ./packages/engine-stub/
@@ -20,6 +21,7 @@ RUN pnpm install --frozen-lockfile --filter @mergesignal/worker...
 
 COPY apps/worker ./apps/worker
 COPY packages/shared ./packages/shared
+COPY packages/product-tier ./packages/product-tier
 COPY packages/engine ./packages/engine
 COPY packages/scan-prep ./packages/scan-prep
 COPY packages/engine-stub ./packages/engine-stub
@@ -28,6 +30,7 @@ COPY packages/typescript-config ./packages/typescript-config
 COPY packages/eslint-config ./packages/eslint-config
 
 RUN pnpm --filter @mergesignal/shared build
+RUN pnpm --filter @mergesignal/product-tier build
 RUN pnpm --filter @mergesignal/scan-prep build
 RUN pnpm --filter @mergesignal/engine-stub build
 RUN pnpm --filter @mergesignal/engine build
@@ -45,10 +48,12 @@ ENV ENGINE_OUTPUT=/engine-out
 
 COPY scripts/docker/build-private-engine.sh /scripts/build-private-engine.sh
 COPY scripts/docker/write-fixture-engine-manifest.mjs /scripts/write-fixture-engine-manifest.mjs
+COPY scripts/docker/fixture-production-scan-ingress.js /scripts/fixture-production-scan-ingress.js
 COPY --from=builder /app/packages/engine-test-fixture/dist /fixture-dist/
 
 RUN if [ "$MERGESIGNAL_ENGINE_FIXTURE" = "1" ]; then \
       mkdir -p /engine-out/dist /engine-out/node_modules && cp -a /fixture-dist/. /engine-out/dist/ && \
+      cp /scripts/fixture-production-scan-ingress.js /engine-out/dist/production-scan-ingress.js && \
       printf '%s\n' '{"name":"@mergesignal/analysis-engine","version":"0.0.0-fixture","type":"module"}' > /engine-out/package.json && \
       node /scripts/write-fixture-engine-manifest.mjs /engine-out; \
     fi
@@ -81,6 +86,7 @@ RUN corepack enable && corepack install
 
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/product-tier/package.json ./packages/product-tier/
 COPY packages/engine/package.json ./packages/engine/
 COPY packages/scan-prep/package.json ./packages/scan-prep/
 COPY packages/engine-stub/package.json ./packages/engine-stub/
@@ -92,20 +98,22 @@ RUN pnpm install --frozen-lockfile --prod --filter @mergesignal/worker...
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/product-tier/package.json ./packages/product-tier/
+COPY --from=builder /app/packages/product-tier/dist ./packages/product-tier/dist
 COPY --from=builder /app/packages/engine/dist ./packages/engine/dist
 COPY --from=builder /app/packages/scan-prep/dist ./packages/scan-prep/dist
 COPY --from=builder /app/packages/engine-stub/dist ./packages/engine-stub/dist
 
-COPY --from=engine-builder /engine-out/dist /app/engine/dist
-COPY --from=engine-builder /engine-out/package.json /app/engine/package.json
-COPY --from=engine-builder /engine-out/engine-manifest.json /app/engine/engine-manifest.json
-COPY --from=engine-builder /engine-out/node_modules /app/engine/node_modules
+# Governed bake layout: dist/, optional ingress/, node_modules/, package.json, engine-manifest.json
+COPY --from=engine-builder /engine-out/ /app/engine/
 
 ENV NODE_ENV=production
 ENV MERGESIGNAL_ENGINE_IMPL=file:/app/engine/dist/index.js
 ENV MERGESIGNAL_ENGINE_MANIFEST=/app/engine/engine-manifest.json
 
-RUN test -f /app/engine/dist/index.js && test -f /app/engine/engine-manifest.json && test -f /app/engine/package.json
+RUN test -f /app/engine/dist/index.js && \
+    test -f /app/engine/engine-manifest.json && \
+    test -f /app/engine/package.json
 
 COPY scripts/docker/verify-runtime-engine.sh /scripts/verify-runtime-engine.sh
 COPY scripts/docker/verify-runtime-image-clean.sh /scripts/verify-runtime-image-clean.sh

@@ -15,6 +15,7 @@ vi.mock("@mergesignal/engine", async (importOriginal) => {
   return {
     ...mod,
     analyze: vi.fn(),
+    orchestrateProductionScanIngress: vi.fn(),
     getEngineLoadInfo: vi.fn(() => ({
       spec: "file:/app/engine/dist/index.js",
       stub: false,
@@ -33,7 +34,7 @@ vi.mock("./sentry.js", () => ({
   captureWorkerException: vi.fn(),
 }));
 
-import { analyze } from "@mergesignal/engine";
+import { analyze, orchestrateProductionScanIngress } from "@mergesignal/engine";
 
 const layerScores = {
   security: 10,
@@ -101,6 +102,36 @@ describe("executeScanJob", () => {
 
   beforeEach(() => {
     vi.mocked(analyze).mockReset();
+    vi.mocked(orchestrateProductionScanIngress).mockReset();
+    vi.mocked(orchestrateProductionScanIngress).mockResolvedValue({
+      scanRequest: {
+        repoId: "acme/app",
+        dependencyGraph: {},
+        scanAnalysisScope: "change_request",
+      },
+      warnings: [],
+      preparationSummary: {
+        changedPackageCount: 0,
+        lockfileDeltaAdded: 0,
+        lockfileDeltaRemoved: 0,
+        lockfileDeltaUpdated: 0,
+        changedFileCount: 0,
+        sourceFilesFetched: 0,
+        sourceFilesSkipped: 0,
+        codeAnalysisEnabled: false,
+        warningCodes: [],
+      },
+      collectionContext: {
+        plan: { tier: 1, domains: [], artifactCollectionEnabled: true },
+        confidence: {
+          overall: "low",
+          collectionSufficiency: "sufficient",
+          attributionConfidence: "low",
+        },
+        manifest: { domains: [], filesRead: [], fallbackUsed: false },
+        preliminarySemantics: [],
+      },
+    });
     process.env = { ...originalEnv };
     delete process.env.MERGESIGNAL_TRUSTED_ANALYSIS;
     delete process.env.MERGESIGNAL_ALLOW_STUB;
@@ -160,7 +191,16 @@ describe("executeScanJob", () => {
     );
 
     expect(analyze).toHaveBeenCalledTimes(1);
-    const req = vi.mocked(analyze).mock.calls[0]![0];
+    const analyzeArgs = vi.mocked(analyze).mock.calls[0]!;
+    const req = analyzeArgs[0];
+    expect(analyzeArgs[2]).toMatchObject({
+      reasoningTier: "free",
+      collectionContext: expect.objectContaining({
+        confidence: expect.objectContaining({
+          collectionSufficiency: "sufficient",
+        }),
+      }),
+    });
     expect(req.baseLockfile).toEqual({
       manager: "pnpm",
       content: "x",
@@ -331,7 +371,7 @@ describe("executeScanJob", () => {
 
   it("when MERGESIGNAL_TRUSTED_ANALYSIS is set, persists with valid provenance", async () => {
     process.env.MERGESIGNAL_TRUSTED_ANALYSIS = "1";
-    vi.mocked(analyze).mockResolvedValue(validRepositoryEngineOutput);
+    vi.mocked(analyze).mockResolvedValue(validChangeRequestEngineOutput);
 
     let status = "queued";
     const pool = {

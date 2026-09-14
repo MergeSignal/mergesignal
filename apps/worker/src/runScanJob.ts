@@ -3,9 +3,9 @@ import type { Pool } from "pg";
 import {
   analyze,
   getEngineLoadInfo,
+  orchestrateProductionScanIngress,
   requiresStrictEngineScanValidation,
 } from "@mergesignal/engine";
-import { prepareScanContext } from "@mergesignal/scan-prep";
 import type {
   AnalysisPreparation,
   ScanQueueJob,
@@ -19,6 +19,7 @@ import {
   resolvePrRiskScore,
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
+import { resolveReasoningBudgetTierForRepoId } from "@mergesignal/product-tier";
 import { publishGitHubCheckRun } from "./githubSurfaces.js";
 import { withPgRetries } from "./pgRetry.js";
 import { captureWorkerException } from "./sentry.js";
@@ -269,7 +270,10 @@ export async function executeScanJob(
       }, hbMs);
     }
 
-    const prepared = await prepareScanContext(job.data);
+    const reasoningTier = resolveReasoningBudgetTierForRepoId(job.data.repoId);
+    const prepared = await orchestrateProductionScanIngress(job.data, {
+      reasoningTier,
+    });
     const engineInfo = getEngineLoadInfo();
 
     for (const w of prepared.warnings) {
@@ -316,7 +320,10 @@ export async function executeScanJob(
       lockfileDeltaUpdated: prepared.preparationSummary.lockfileDeltaUpdated,
     });
     try {
-      rawResult = await analyze(analyzeRequest, prepared.codeAnalysis);
+      rawResult = await analyze(analyzeRequest, prepared.codeAnalysis, {
+        collectionContext: prepared.collectionContext,
+        reasoningTier,
+      });
     } catch (e: unknown) {
       captureWorkerException(e);
       const msg = e instanceof Error ? e.message : String(e);

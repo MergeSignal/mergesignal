@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@mergesignal/engine": "workspace:^",
+    "@mergesignal/product-tier": "workspace:^",
     "@mergesignal/scan-prep": "workspace:^",
     "@mergesignal/shared": "workspace:^",
     "@octokit/auth-app": "^8.2.0",

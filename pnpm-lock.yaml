@@ -37,6 +37,9 @@ importers:
       "@mergesignal/engine":
         specifier: workspace:^
         version: link:../../packages/engine
+      "@mergesignal/product-tier":
+        specifier: workspace:^
+        version: link:../../packages/product-tier
       "@mergesignal/shared":
         specifier: workspace:^
         version: link:../../packages/shared
@@ -220,6 +223,9 @@ importers:
       "@mergesignal/engine":
         specifier: workspace:^
         version: link:../../packages/engine
+      "@mergesignal/product-tier":
+        specifier: workspace:^
+        version: link:../../packages/product-tier
       "@mergesignal/scan-prep":
         specifier: workspace:^
         version: link:../../packages/scan-prep
@@ -351,11 +357,23 @@ importers:
         specifier: ^8.50.0
         version: 8.50.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.2)
 
+  packages/product-tier:
+    devDependencies:
+      "@types/node":
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.15.3)(happy-dom@20.9.0)(jsdom@29.1.1)(lightningcss@1.32.0)(sugarss@5.0.1(postcss@8.5.14))
+
   packages/scan-prep:
     dependencies:
       "@mergesignal/shared":
         specifier: 0.19.0
-        version: link:../shared
+        version: 0.19.0
       "@octokit/auth-app":
         specifier: ^7.1.4
         version: 7.2.2
@@ -1492,10 +1510,10 @@ packages:
     peerDependencies:
       react: ^19.2.0
 
-  "@mergesignal/shared@0.17.0":
+  "@mergesignal/shared@0.19.0":
     resolution:
       {
-        integrity: sha512-zN7iuF5X0uFQ68nDuOwZ0YyJVS5jMBvGBL9SmvjFem4jDg6fhyMsKU2aUsF/7ctzb2oU7x3T/xjGo9ToXd3Vfw==,
+        integrity: sha512-yxNw6RvKduLmtW+CC1l7WToAAIpo783tAODvq/nEH4Ux3y+kCCw2sTRZcxAq/97uRaWRULUTHdWPToEnwpUjEg==,
       }
 
   "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3":
@@ -8344,7 +8362,7 @@ snapshots:
     dependencies:
       react: 19.2.0
 
-  "@mergesignal/shared@0.17.0":
+  "@mergesignal/shared@0.19.0":
     dependencies:
       zod: 4.4.3
 

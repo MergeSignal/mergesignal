@@ -1,7 +1,14 @@
 export type { EngineImpl } from "./loader.js";
+export type {
+  ProductionAnalyzeOptions,
+  ProductionScanIngressResult,
+  OrchestrateProductionScanIngressOptions,
+} from "./loader.js";
 export {
   analyze,
   simulateUpgrade,
+  orchestrateProductionScanIngress,
+  getProductionScanIngress,
   getImpl,
   implSpec,
   requiresStrictEngineScanValidation,

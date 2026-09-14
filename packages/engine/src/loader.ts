@@ -2,16 +2,26 @@ import type {
   CodeAnalysisInput,
   ScanRequest,
   ScanResult,
+  ScanQueueJob,
   UpgradeSimulationRequest,
   UpgradeSimulationResult,
 } from "@mergesignal/shared";
 import { scanSurfaceCopy } from "@mergesignal/shared";
 
+import { productionScanIngressModuleSpec } from "./engineRuntimePaths.js";
+import type {
+  AnalyzeWithProductionOptionsFn,
+  OrchestrateProductionScanIngressFn,
+  ProductionAnalyzeOptions,
+  ProductionScanIngressResult,
+  OrchestrateProductionScanIngressOptions,
+} from "./productionAnalyzeOptions.js";
+
+export type { ProductionAnalyzeOptions, ProductionScanIngressResult };
+export type { OrchestrateProductionScanIngressOptions };
+
 export type EngineImpl = {
-  analyze: (
-    req: ScanRequest,
-    codeAnalysis?: CodeAnalysisInput,
-  ) => Promise<ScanResult>;
+  analyze: AnalyzeWithProductionOptionsFn;
   simulateUpgrade: (
     req: UpgradeSimulationRequest,
   ) => Promise<UpgradeSimulationResult>;
@@ -61,7 +71,7 @@ async function loadFromSpec(spec: string): Promise<EngineImpl> {
     );
   }
   return {
-    analyze: analyzeFn as EngineImpl["analyze"],
+    analyze: analyzeFn as AnalyzeWithProductionOptionsFn,
     simulateUpgrade: simulateUpgradeFn as EngineImpl["simulateUpgrade"],
   };
 }
@@ -69,7 +79,7 @@ async function loadFromSpec(spec: string): Promise<EngineImpl> {
 async function loadStub(): Promise<EngineImpl> {
   const stub = await import("@mergesignal/engine-stub");
   return {
-    analyze: stub.analyze,
+    analyze: stub.analyze as AnalyzeWithProductionOptionsFn,
     simulateUpgrade: stub.simulateUpgrade,
   };
 }
@@ -112,23 +122,51 @@ async function loadImpl(): Promise<EngineImpl> {
 }
 
 let cached: Promise<EngineImpl> | null = null;
+let cachedIngress: Promise<OrchestrateProductionScanIngressFn> | null = null;
 
 export async function getImpl(): Promise<EngineImpl> {
   cached ??= loadImpl();
   return cached;
 }
 
+async function loadProductionScanIngress(): Promise<OrchestrateProductionScanIngressFn> {
+  const ingressSpec = await productionScanIngressModuleSpec();
+  const mod = (await import(ingressSpec)) as Record<string, unknown>;
+  const fn = mod.orchestrateProductionScanIngress;
+  if (typeof fn !== "function") {
+    throw new Error(
+      `Production scan ingress module ${ingressSpec} does not export orchestrateProductionScanIngress`,
+    );
+  }
+  return fn as OrchestrateProductionScanIngressFn;
+}
+
+export async function getProductionScanIngress(): Promise<OrchestrateProductionScanIngressFn> {
+  cachedIngress ??= loadProductionScanIngress();
+  return cachedIngress;
+}
+
 /** Test-only: reset dynamic loader state between Vitest cases. */
 export function __resetEngineLoaderCacheForTests(): void {
   cached = null;
+  cachedIngress = null;
+}
+
+export async function orchestrateProductionScanIngress(
+  job: ScanQueueJob,
+  options?: OrchestrateProductionScanIngressOptions,
+): Promise<ProductionScanIngressResult> {
+  const ingress = await getProductionScanIngress();
+  return ingress(job, options);
 }
 
 export async function analyze(
   req: ScanRequest,
   codeAnalysis?: CodeAnalysisInput,
+  options?: ProductionAnalyzeOptions,
 ): Promise<ScanResult> {
   const impl = await getImpl();
-  return impl.analyze(req, codeAnalysis);
+  return (await impl.analyze(req, codeAnalysis, options)) as ScanResult;
 }
 
 export async function simulateUpgrade(

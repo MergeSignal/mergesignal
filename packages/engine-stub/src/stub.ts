@@ -107,6 +107,7 @@ function buildMockResult(): ScanResult {
 export async function analyze(
   req: ScanRequest,
   codeAnalysis?: CodeAnalysisInput,
+  _productionOptions?: unknown,
 ): Promise<ScanResult> {
   console.warn(
     "⚠️  Using stub engine - analysis results are mocked for demonstration only",

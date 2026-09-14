@@ -1,4 +1,12 @@
-export type Tier = "free" | "paid";
+import {
+  getOwnerFromRepoId,
+  getProductOwnerTierForOwner,
+  type ProductOwnerTier,
+} from "@mergesignal/product-tier";
+
+export type Tier = ProductOwnerTier;
+
+export { getOwnerFromRepoId, getProductOwnerTierForOwner as getTierForOwner };
 
 export type TierLimits = {
   scanMaxLockfileBytes: number;
@@ -8,25 +16,8 @@ export type TierLimits = {
   alertsEnabled: boolean;
 };
 
-export function getOwnerFromRepoId(repoId: string) {
-  const s = String(repoId ?? "").trim();
-  if (!s) return "unknown";
-  const i = s.indexOf("/");
-  return i >= 0 ? s.slice(0, i) : s;
-}
-
-export function getTierForOwner(owner: string): Tier {
-  const map = parseOwnerTiers(process.env.MERGESIGNAL_OWNER_TIERS ?? "");
-  const explicit = map.get(owner);
-  if (explicit) return explicit;
-  const def = String(
-    process.env.MERGESIGNAL_DEFAULT_TIER ?? "free",
-  ).toLowerCase();
-  return def === "paid" ? "paid" : "free";
-}
-
 export function getLimitsForOwner(owner: string): TierLimits {
-  const tier = getTierForOwner(owner);
+  const tier = getProductOwnerTierForOwner(owner);
 
   const free: TierLimits = {
     scanMaxLockfileBytes: clampInt(
@@ -60,19 +51,6 @@ export function getLimitsForOwner(owner: string): TierLimits {
   };
 
   return tier === "paid" ? paid : free;
-}
-
-function parseOwnerTiers(s: string) {
-  const out = new Map<string, Tier>();
-  for (const part of s.split(",")) {
-    const p = part.trim();
-    if (!p) continue;
-    const [kRaw, vRaw] = p.split("=").map((x) => x.trim());
-    if (!kRaw || !vRaw) continue;
-    const v = vRaw.toLowerCase();
-    out.set(kRaw, v === "paid" ? "paid" : "free");
-  }
-  return out;
 }
 
 function clampInt(v: string | undefined, fallback: number) {

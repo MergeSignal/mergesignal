@@ -1,4 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   validateEngineAbi,
   ABI_PROBE_SCAN_REQUEST,
@@ -58,6 +61,45 @@ describe("validateEngineAbi", () => {
     await expect(validateEngineAbi("@mergesignal/engine-stub")).rejects.toThrow(
       /verification requirements|stub methodology/,
     );
+  });
+
+  it("rejects collection ingress sha256 mismatch for file impl", async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ms-abi-sha-"));
+    const dist = path.join(tmp, "dist");
+    fs.mkdirSync(dist, { recursive: true });
+    fs.writeFileSync(
+      path.join(dist, "index.js"),
+      `export async function analyze(req, codeAnalysis, options) {
+        return {
+          repoId: req.repoId,
+          dependencyGraph: req.dependencyGraph ?? {},
+          generatedAt: new Date().toISOString(),
+          methodologyVersion: 'abi-sha-test/v1',
+        };
+      }
+      export async function simulateUpgrade() {
+        return { before: {}, after: {}, delta: {}, generatedAt: new Date().toISOString() };
+      }`,
+    );
+    fs.writeFileSync(
+      path.join(dist, "production-scan-ingress.js"),
+      "export async function orchestrateProductionScanIngress() { return {}; }\n",
+    );
+    fs.writeFileSync(
+      path.join(tmp, "engine-manifest.json"),
+      JSON.stringify({
+        collectionIngressPath: "dist/production-scan-ingress.js",
+        collectionIngressSha256: "0".repeat(64),
+        distSha256: "fixture",
+      }),
+    );
+    process.env.MERGESIGNAL_ENGINE_MANIFEST = path.join(
+      tmp,
+      "engine-manifest.json",
+    );
+    await expect(
+      validateEngineAbi(`file:${path.join(dist, "index.js")}`),
+    ).rejects.toThrow(/collectionIngressSha256 mismatch/);
   });
 
   it("propagates EngineAbiTimeoutError from withTimeout wrapper", async () => {

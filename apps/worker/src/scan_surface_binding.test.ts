@@ -15,6 +15,7 @@ vi.mock("@mergesignal/engine", async (importOriginal) => {
   return {
     ...mod,
     analyze: vi.fn(),
+    orchestrateProductionScanIngress: vi.fn(),
     getEngineLoadInfo: vi.fn(() => ({
       spec: "file:/app/engine/dist/index.js",
       stub: false,
@@ -37,7 +38,7 @@ vi.mock("./sentry.js", () => ({
   captureWorkerException: vi.fn(),
 }));
 
-import { analyze } from "@mergesignal/engine";
+import { analyze, orchestrateProductionScanIngress } from "@mergesignal/engine";
 import { publishGitHubCheckRun } from "./githubSurfaces.js";
 
 const validEngineOutput = {
@@ -123,6 +124,36 @@ function makePool(onQuery?: (sql: string, params?: unknown[]) => void): Pool {
 describe("scan surface binding", () => {
   beforeEach(() => {
     vi.mocked(analyze).mockReset();
+    vi.mocked(orchestrateProductionScanIngress).mockReset();
+    vi.mocked(orchestrateProductionScanIngress).mockResolvedValue({
+      scanRequest: {
+        repoId: "acme/app",
+        dependencyGraph: {},
+        scanAnalysisScope: "change_request",
+      },
+      warnings: [],
+      preparationSummary: {
+        changedPackageCount: 0,
+        lockfileDeltaAdded: 0,
+        lockfileDeltaRemoved: 0,
+        lockfileDeltaUpdated: 0,
+        changedFileCount: 0,
+        sourceFilesFetched: 0,
+        sourceFilesSkipped: 0,
+        codeAnalysisEnabled: false,
+        warningCodes: [],
+      },
+      collectionContext: {
+        plan: { tier: 1, domains: [], artifactCollectionEnabled: true },
+        confidence: {
+          overall: "low",
+          collectionSufficiency: "sufficient",
+          attributionConfidence: "low",
+        },
+        manifest: { domains: [], filesRead: [], fallbackUsed: false },
+        preliminarySemantics: [],
+      },
+    });
     vi.mocked(publishGitHubCheckRun).mockReset();
     process.env.GITHUB_APP_ID = "1";
     process.env.GITHUB_PRIVATE_KEY = "fake";

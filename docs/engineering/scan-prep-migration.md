@@ -26,7 +26,8 @@ Public API freeze: [scan-prep-api.md](./scan-prep-api.md). Registry consumption 
 
 ## This monorepo (mergesignal)
 
-- `packages/scan-prep` is the **canonical public** Scan Preparation source for `apps/worker` (`workspace:^`).
+- `packages/scan-prep` is the **canonical public** Scan Preparation source. Its lockfile subpath remains consumed by **Evidence Collection ingress** (private engine runtime), not as the production PR scan collection authority on Fly.
+- Production Fly PR scans: `@mergesignal/engine.orchestrateProductionScanIngress` (private baked runtime) → `analyze(..., { collectionContext, reasoningTier })`. `@mergesignal/scan-prep.prepareScanContext` is not the primary collection path for that worker.
 - The canonical public core (root API minimization, `./lockfile` subpath, lockfile authority reconciliation) is **implemented** in this repository.
 - `@mergesignal/scan-prep` is **not yet published** to npm. The first-publication framework is **implemented and validated** in this repository; registry publication and published parity verification remain pending — see [scan-prep-api.md](./scan-prep-api.md).
 - Run `scripts/ci/forbid-worker-prep-duplication.sh` in CI to block duplicated prep modules under worker apps.

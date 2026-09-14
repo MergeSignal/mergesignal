@@ -7,10 +7,16 @@ import {
   isStubMethodologyVersion,
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
+import { fileURLToPath } from "node:url";
 import {
   ABI_PROBE_CODE_ANALYSIS,
   ABI_PROBE_SCAN_REQUEST_WITH_PACKAGES,
 } from "./abiProbe.js";
+import {
+  productionScanIngressModuleSpec,
+  readEngineManifest,
+  verifyManifestSha256ForFile,
+} from "./engineRuntimePaths.js";
 import { defaultEngineStartupTimeoutMs, withTimeout } from "./withTimeout.js";
 
 /** Minimal scan input for startup ABI validation — must stay lightweight (no I/O). */
@@ -64,15 +70,39 @@ async function validateEngineAbiInner(
   const analyze = analyzeFn as (
     req: ScanRequest,
     codeAnalysis?: unknown,
+    options?: unknown,
   ) => Promise<unknown>;
   const simulateUpgrade = simulateUpgradeFn as (
     req: UpgradeSimulationRequest,
   ) => Promise<unknown>;
 
+  const fileImpl = spec.startsWith("file:");
   if (analyze.length < 2) {
     throw new Error(
       "Engine analyze() must accept a second codeAnalysis argument (orchestration contract)",
     );
+  }
+
+  await analyze(ABI_PROBE_SCAN_REQUEST, undefined, {});
+
+  if (fileImpl) {
+    const manifest = await readEngineManifest();
+    const implPath = fileURLToPath(spec);
+    await verifyManifestSha256ForFile(manifest, "distSha256", implPath);
+
+    const ingressSpec = await productionScanIngressModuleSpec();
+    const ingressPath = fileURLToPath(ingressSpec);
+    await verifyManifestSha256ForFile(
+      manifest,
+      "collectionIngressSha256",
+      ingressPath,
+    );
+    const ingressMod = (await import(ingressSpec)) as Record<string, unknown>;
+    if (typeof ingressMod.orchestrateProductionScanIngress !== "function") {
+      throw new Error(
+        `Production scan ingress module ${ingressSpec} must export orchestrateProductionScanIngress`,
+      );
+    }
   }
 
   const rawScan = await analyze(ABI_PROBE_SCAN_REQUEST);

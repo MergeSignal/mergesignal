@@ -1,17 +1,23 @@
 # Scan context restoration — verification report
 
+> **Current architecture (supersedes sections below for Fly production):** Production worker calls `@mergesignal/engine.orchestrateProductionScanIngress` then `analyze(..., { collectionContext, reasoningTier })`. See [fly-worker-engine.md](./fly-worker-engine.md) and private `docs/engine/composition/evidence-collection.md` in `mergesignal-engine`.
+
 ## Summary
 
-Production worker (`apps/worker`) now calls `prepareScanContext` from `@mergesignal/scan-prep` before `analyze(scanRequest, codeAnalysis)`, restoring lockfile deltas and optional source corpus for PR scans.
+Production worker (`apps/worker`) calls `@mergesignal/engine.orchestrateProductionScanIngress` before `analyze(..., { collectionContext, reasoningTier })`, using the baked private evidence collection ingress runtime plus lockfile ingress from `@mergesignal/scan-prep/lockfile`.
 
-## Before (production path)
+**Historical note:** An earlier change restored `prepareScanContext` lockfile/corpus wiring only; collection metadata (`CollectionContext`) is supplied by the private ingress path above.
+
+## Before (production path) — historical
 
 - `analyze(scanQueueJobToScanRequest(job))` — single argument
 - No `changedPackages` / `lockfilePackageDelta` on `ScanRequest`
 - No `codeAnalysis` second argument
 - Stored `ScanResult` lacked `repoIntelligence` for PR scans
 
-## After (this change)
+## After (intermediate milestone — historical, not current Fly path)
+
+> **Superseded:** The bullets below describe an intermediate `prepareScanContext`-primary milestone. Current Fly collection authority is private Evidence Collection ingress, not public `prepareScanContext`.
 
 - `prepareScanContext(job)` → enriched `ScanRequest` + optional `codeAnalysis`
 - Structured `scan_context_prepared` / `scan_context_warning` logs

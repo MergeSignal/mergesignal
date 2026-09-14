@@ -8,10 +8,15 @@ Production scans require the real private engine from `MergeSignal/mergesignal-e
 
 ```
 GitHub Actions (fly-deploy) ──build-secret──► Docker engine-builder stage
-                                              (clone tag + frozen lockfile build)
+                                              (clone tag + scripts/docker/build-private-engine.sh)
                                                     │
                                                     ▼
-                                         engine dist + engine-manifest.json
+                              governed engine-out/ (private bake artifact)
+                              dist/index.js + ingress/dist/** + node_modules/
+                              + package.json + engine-manifest.json
+                                                    │
+                                                    ▼
+                              runtime stage: COPY engine-out/ → /app/engine/
                                                     │
                                                     ▼
                                          lean worker runtime image
@@ -19,6 +24,19 @@ GitHub Actions (fly-deploy) ──build-secret──► Docker engine-builder st
                                                     ▼
                               initializeEngine() ABI preflight → queue consumer
 ```
+
+The private build emits a bounded **`engine-out`** deployment tree. The Fly worker image copies that tree wholesale into `/app/engine` (it does not re-layout private packages).
+
+**Manifest authority:** `engine-manifest.json` records `implPath` and `collectionIngressPath`. Runtime and ABI preflight resolve the intelligence and Evidence Collection entry modules from those fields (plus `distSha256` / `collectionIngressSha256`), not from a single fixed path on disk.
+
+| Entry                                                            | Typical production bake (`MERGESIGNAL_ENGINE_REF`)                                                 | CI fixture bake (`MERGESIGNAL_ENGINE_FIXTURE=1`)            |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Intelligence (`analyze`, `simulateUpgrade`)                      | `implPath` → `dist/index.js`                                                                       | `implPath` → `dist/index.js`                                |
+| Evidence Collection ingress (`orchestrateProductionScanIngress`) | `collectionIngressPath` → `ingress/dist/production-scan-ingress.js` (full `ingress/dist/**` graph) | `collectionIngressPath` → `dist/production-scan-ingress.js` |
+
+Physical layout may differ between production and fixture; **`collectionIngressPath` in the manifest is authoritative** for each image.
+
+`MERGESIGNAL_ENGINE_IMPL` points at the baked analysis entry (`file:/app/engine/dist/index.js`). The public `@mergesignal/engine` loader loads Evidence Collection ingress via `MERGESIGNAL_ENGINE_MANIFEST` and `collectionIngressPath`. Production scans: ingress → `analyze(..., { collectionContext, reasoningTier })`.
 
 **Startup ordering (strict):** env validation → engine ABI preflight (timeout-bounded, once per process) → `worker_startup_complete` → queue consumer created → jobs processed.
 
@@ -102,7 +120,8 @@ Verify `worker_startup_complete` logs show the expected engine version. Queued s
 - Frozen lockfiles: `pnpm install --frozen-lockfile` in engine build
 - Toolchain: Node 22; pnpm version from root `package.json` `packageManager` via `corepack install` in Docker stages (see [pnpm-version-governance.md](./pnpm-version-governance.md))
 - Engine tag pinned via `MERGESIGNAL_ENGINE_REF` (no silent default to `main`)
-- Manifest records `engineReleaseGitSha`, `distSha256`, `nodeVersion`, `pnpmVersion`
+- Manifest records `engineReleaseGitSha`, `distSha256`, `collectionIngressPath`, `collectionIngressSha256`, `nodeVersion`, `pnpmVersion`
+- Startup ABI preflight verifies 64-char manifest sha256 fields for the baked impl and ingress files when present
 
 ## Image size thresholds (CI)
 

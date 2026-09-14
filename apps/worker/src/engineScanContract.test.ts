@@ -11,6 +11,14 @@ import {
   peerContextChurnHeadLockfile,
 } from "../../../packages/scan-prep/src/__fixtures__/pnpm-peer-context-churn.fixture.js";
 
+vi.mock("@mergesignal/engine", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("@mergesignal/engine")>();
+  return {
+    ...mod,
+    orchestrateProductionScanIngress: vi.fn(),
+  };
+});
+
 vi.mock("@mergesignal/scan-prep", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@mergesignal/scan-prep")>();
@@ -20,6 +28,8 @@ vi.mock("@mergesignal/scan-prep", async (importOriginal) => {
 vi.mock("./sentry.js", () => ({
   captureWorkerException: vi.fn(),
 }));
+
+import { orchestrateProductionScanIngress } from "@mergesignal/engine";
 
 const pnpmBase = `
 lockfileVersion: '9.0'
@@ -39,6 +49,7 @@ describe("worker → engine scan contract", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     __resetEngineLoaderCacheForTests();
+    vi.mocked(orchestrateProductionScanIngress).mockReset();
     process.env.MERGESIGNAL_ENGINE_IMPL = "@mergesignal/engine-test-fixture";
     process.env.NODE_ENV = "test";
     delete process.env.MERGESIGNAL_ALLOW_STUB;
@@ -70,10 +81,7 @@ describe("worker → engine scan contract", () => {
     };
 
     const corpus = new Map([["src/index.ts", "import react from 'react';"]]);
-    vi.spyOn(
-      await import("@mergesignal/scan-prep"),
-      "prepareScanContext",
-    ).mockResolvedValue({
+    vi.mocked(orchestrateProductionScanIngress).mockResolvedValue({
       scanRequest: {
         repoId: job.repoId,
         dependencyGraph: {},
@@ -102,6 +110,16 @@ describe("worker → engine scan contract", () => {
         sourceFilesSkipped: 0,
         codeAnalysisEnabled: true,
         warningCodes: [],
+      },
+      collectionContext: {
+        plan: { tier: 1, domains: [], artifactCollectionEnabled: true },
+        confidence: {
+          overall: "low",
+          collectionSufficiency: "sufficient",
+          attributionConfidence: "low",
+        },
+        manifest: { domains: [], filesRead: [], fallbackUsed: false },
+        preliminarySemantics: [],
       },
     });
 
@@ -141,7 +159,7 @@ describe("worker → engine scan contract", () => {
     );
 
     expect(analyzeSpy).toHaveBeenCalledTimes(1);
-    const [req, codeAnalysis] = analyzeSpy.mock.calls[0]!;
+    const [req, codeAnalysis, analyzeOptions] = analyzeSpy.mock.calls[0]!;
     expect(req.changedPackages).toEqual(["react"]);
     expect(req.lockfilePackageDelta?.updated).toContain("react");
     expect(req.scanAnalysisScope).toBe("change_request");
@@ -158,6 +176,8 @@ describe("worker → engine scan contract", () => {
     expect(req.baseLockfile).toEqual(job.baseLockfile);
     expect(codeAnalysis).toBeDefined();
     expect(codeAnalysis!.fileContents.size).toBeGreaterThan(0);
+    expect(analyzeOptions?.collectionContext).toBeDefined();
+    expect(analyzeOptions?.reasoningTier).toBe("free");
 
     analyzeSpy.mockRestore();
   });
@@ -203,10 +223,7 @@ describe("worker → engine scan contract", () => {
   });
 
   it("records warnings and analysisPreparation when corpus missing", async () => {
-    vi.spyOn(
-      await import("@mergesignal/scan-prep"),
-      "prepareScanContext",
-    ).mockResolvedValue({
+    vi.mocked(orchestrateProductionScanIngress).mockResolvedValue({
       scanRequest: {
         repoId: "acme/app",
         dependencyGraph: {},
@@ -230,6 +247,16 @@ describe("worker → engine scan contract", () => {
         sourceFilesSkipped: 0,
         codeAnalysisEnabled: false,
         warningCodes: ["code_fetch_failed"],
+      },
+      collectionContext: {
+        plan: { tier: 1, domains: [], artifactCollectionEnabled: true },
+        confidence: {
+          overall: "low",
+          collectionSufficiency: "sufficient",
+          attributionConfidence: "low",
+        },
+        manifest: { domains: [], filesRead: [], fallbackUsed: false },
+        preliminarySemantics: [],
       },
     });
 

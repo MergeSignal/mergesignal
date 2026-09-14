@@ -20,6 +20,7 @@
     "@fastify/cors": "^11.2.0",
     "@fastify/rate-limit": "^10.3.0",
     "@mergesignal/engine": "workspace:^",
+    "@mergesignal/product-tier": "workspace:^",
     "@mergesignal/shared": "workspace:^",
     "@octokit/app": "^16.1.2",
     "@sentry/node": "8",

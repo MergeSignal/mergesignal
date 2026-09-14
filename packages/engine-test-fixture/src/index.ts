@@ -136,6 +136,7 @@ function minimalScan(req: ScanRequest): ScanResult {
 export async function analyze(
   req: ScanRequest,
   codeAnalysis?: CodeAnalysisInput,
+  _productionOptions?: unknown,
 ): Promise<ScanResult> {
   const base = minimalScan(req);
   if (codeAnalysis && codeAnalysis.fileContents.size > 0) {
