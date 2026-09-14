@@ -10,6 +10,7 @@ RUN corepack enable && corepack install
 # Copy all package.json files for workspace resolution
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/product-tier/package.json ./packages/product-tier/
 COPY packages/engine/package.json ./packages/engine/
 COPY packages/engine-stub/package.json ./packages/engine-stub/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
@@ -20,12 +21,14 @@ RUN pnpm install --frozen-lockfile --filter @mergesignal/api...
 # Copy source code
 COPY apps/api ./apps/api
 COPY packages/shared ./packages/shared
+COPY packages/product-tier ./packages/product-tier
 COPY packages/engine ./packages/engine
 COPY packages/engine-stub ./packages/engine-stub
 COPY packages/typescript-config ./packages/typescript-config
 
 # Build packages (engine depends on engine-stub at compile time; stub depends on shared)
 RUN pnpm --filter @mergesignal/shared build
+RUN pnpm --filter @mergesignal/product-tier build
 RUN pnpm --filter @mergesignal/engine-stub build
 RUN pnpm --filter @mergesignal/engine build
 RUN pnpm --filter @mergesignal/api build
@@ -45,6 +48,7 @@ RUN corepack enable && corepack install
 # Copy package.json files
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/product-tier/package.json ./packages/product-tier/
 COPY packages/engine/package.json ./packages/engine/
 COPY packages/engine-stub/package.json ./packages/engine-stub/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
@@ -55,6 +59,7 @@ RUN pnpm install --frozen-lockfile --prod --filter @mergesignal/api...
 # Copy built artifacts from builder (full shared package: exports point at src; include dist for compiled consumers)
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/shared ./packages/shared
+COPY --from=builder /app/packages/product-tier/dist ./packages/product-tier/dist
 COPY --from=builder /app/packages/engine/dist ./packages/engine/dist
 COPY --from=builder /app/packages/engine-stub/dist ./packages/engine-stub/dist
 
