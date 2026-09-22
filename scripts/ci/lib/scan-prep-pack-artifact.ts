@@ -80,16 +80,27 @@ function collectDeclarationFiles(dir: string): string[] {
   return files;
 }
 
-export function readSourcePackageJsonRaw(): string {
-  return readFileSync(path.join(SCAN_PREP_DIR, "package.json"), "utf8");
+const SCAN_PREP_PACKAGE_JSON = path.join(SCAN_PREP_DIR, "package.json");
+
+export function readSourcePackageJsonRaw(
+  manifestPath: string = SCAN_PREP_PACKAGE_JSON,
+): string {
+  return readFileSync(manifestPath, "utf8");
 }
 
-export function readSourceManifest(): PackedScanPrepManifest {
-  return JSON.parse(readSourcePackageJsonRaw()) as PackedScanPrepManifest;
+export function readSourceManifest(
+  manifestPath: string = SCAN_PREP_PACKAGE_JSON,
+): PackedScanPrepManifest {
+  return JSON.parse(
+    readSourcePackageJsonRaw(manifestPath),
+  ) as PackedScanPrepManifest;
 }
 
-export function readScanPrepSourceSharedDependencyVersion(): string {
-  const sharedDep = readSourceManifest().dependencies?.["@mergesignal/shared"];
+export function readScanPrepSourceSharedDependencyVersion(
+  manifestPath: string = SCAN_PREP_PACKAGE_JSON,
+): string {
+  const sharedDep =
+    readSourceManifest(manifestPath).dependencies?.["@mergesignal/shared"];
   if (typeof sharedDep !== "string" || !sharedDep.trim()) {
     throw new Error(
       "packages/scan-prep/package.json must declare an exact @mergesignal/shared dependency",
@@ -103,10 +114,21 @@ export function readScanPrepSourceSharedDependencyVersion(): string {
   return sharedDep;
 }
 
+export type ScanPrepSharedDependencyAlignmentOptions = {
+  sharedPackageJsonPath?: string;
+  scanPrepPackageJsonPath?: string;
+};
+
 /** scan-prep source manifest vs Shared own-release authority at packages/shared/package.json */
-export function assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(): void {
-  const sharedReleaseVersion = readSharedReleaseVersion();
-  const scanPrepSharedVersion = readScanPrepSourceSharedDependencyVersion();
+export function assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(
+  options?: ScanPrepSharedDependencyAlignmentOptions,
+): void {
+  const sharedReleaseVersion = readSharedReleaseVersion(
+    options?.sharedPackageJsonPath,
+  );
+  const scanPrepSharedVersion = readScanPrepSourceSharedDependencyVersion(
+    options?.scanPrepPackageJsonPath,
+  );
   if (scanPrepSharedVersion !== sharedReleaseVersion) {
     throw new Error(
       `packages/scan-prep/package.json @mergesignal/shared must match packages/shared/package.json version (${sharedReleaseVersion}); got ${scanPrepSharedVersion}`,

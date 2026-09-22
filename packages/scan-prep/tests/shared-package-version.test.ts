@@ -1,6 +1,7 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority,
@@ -14,10 +15,6 @@ const SHARED_PACKAGE_JSON = path.resolve(
   import.meta.dirname,
   "../../../packages/shared/package.json",
 );
-const SCAN_PREP_PACKAGE_JSON = path.resolve(
-  import.meta.dirname,
-  "../../../packages/scan-prep/package.json",
-);
 
 describe("shared package version authority", () => {
   it("reads the Shared release version from packages/shared/package.json", () => {
@@ -28,28 +25,23 @@ describe("shared package version authority", () => {
   });
 
   it("fails closed when Shared release manifest is invalid JSON", () => {
-    const original = readFileSync(SHARED_PACKAGE_JSON, "utf8");
-    writeFileSync(SHARED_PACKAGE_JSON, "{not-json");
+    const fixtureDir = mkdtempSync(
+      path.join(tmpdir(), "ms-shared-release-manifest-"),
+    );
+    const tempManifestPath = path.join(fixtureDir, "package.json");
+    writeFileSync(tempManifestPath, "{not-json", "utf8");
     try {
-      expect(() => readSharedReleaseVersion()).toThrow(/invalid JSON/);
+      expect(() => readSharedReleaseVersion(tempManifestPath)).toThrow(
+        /invalid JSON/,
+      );
     } finally {
-      writeFileSync(SHARED_PACKAGE_JSON, original);
+      rmSync(fixtureDir, { recursive: true, force: true });
     }
   });
 });
 
 describe("scan-prep Shared dependency alignment", () => {
-  let sharedOriginal: string;
-  let scanPrepOriginal: string;
-
-  afterEach(() => {
-    writeFileSync(SHARED_PACKAGE_JSON, sharedOriginal);
-    writeFileSync(SCAN_PREP_PACKAGE_JSON, scanPrepOriginal);
-  });
-
   it("requires scan-prep source dependency to match Shared release authority", () => {
-    sharedOriginal = readFileSync(SHARED_PACKAGE_JSON, "utf8");
-    scanPrepOriginal = readFileSync(SCAN_PREP_PACKAGE_JSON, "utf8");
     expect(() =>
       assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(),
     ).not.toThrow();
@@ -59,20 +51,43 @@ describe("scan-prep Shared dependency alignment", () => {
   });
 
   it("rejects scan-prep source drift from Shared release authority", () => {
-    sharedOriginal = readFileSync(SHARED_PACKAGE_JSON, "utf8");
-    scanPrepOriginal = readFileSync(SCAN_PREP_PACKAGE_JSON, "utf8");
-    const scanPrepManifest = JSON.parse(scanPrepOriginal) as {
-      dependencies: Record<string, string>;
-    };
-    scanPrepManifest.dependencies["@mergesignal/shared"] = "0.0.1";
-    writeFileSync(
-      SCAN_PREP_PACKAGE_JSON,
-      `${JSON.stringify(scanPrepManifest, null, 2)}\n`,
+    const fixtureDir = mkdtempSync(
+      path.join(tmpdir(), "ms-scan-prep-shared-alignment-"),
     );
-
-    expect(() =>
-      assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(),
-    ).toThrow(/must match packages\/shared\/package\.json version/);
+    const sharedManifestPath = path.join(fixtureDir, "shared-package.json");
+    const scanPrepManifestPath = path.join(
+      fixtureDir,
+      "scan-prep-package.json",
+    );
+    const sharedVersion = "0.19.0";
+    writeFileSync(
+      sharedManifestPath,
+      `${JSON.stringify({ name: "@mergesignal/shared", version: sharedVersion }, null, 2)}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      scanPrepManifestPath,
+      `${JSON.stringify(
+        {
+          name: "@mergesignal/scan-prep",
+          version: "0.1.7",
+          dependencies: { "@mergesignal/shared": "0.0.1" },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    try {
+      expect(() =>
+        assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority({
+          sharedPackageJsonPath: sharedManifestPath,
+          scanPrepPackageJsonPath: scanPrepManifestPath,
+        }),
+      ).toThrow(/must match packages\/shared\/package\.json version/);
+    } finally {
+      rmSync(fixtureDir, { recursive: true, force: true });
+    }
   });
 
   it("validates packed artifact Shared dependency against source manifest", () => {

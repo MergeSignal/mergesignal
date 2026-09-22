@@ -13,34 +13,32 @@ const SHARED_PACKAGE_JSON = path.resolve(
 );
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 
-export function readSharedReleaseVersion(): string {
+export function readSharedReleaseVersion(
+  manifestPath: string = SHARED_PACKAGE_JSON,
+): string {
   let raw: string;
   try {
-    raw = readFileSync(SHARED_PACKAGE_JSON, "utf8");
+    raw = readFileSync(manifestPath, "utf8");
   } catch {
-    throw new Error(
-      `unable to read Shared release manifest: ${SHARED_PACKAGE_JSON}`,
-    );
+    throw new Error(`unable to read Shared release manifest: ${manifestPath}`);
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error(
-      `invalid JSON in Shared release manifest: ${SHARED_PACKAGE_JSON}`,
-    );
+    throw new Error(`invalid JSON in Shared release manifest: ${manifestPath}`);
   }
 
   const version = (parsed as { version?: unknown }).version;
   if (typeof version !== "string" || !version.trim()) {
     throw new Error(
-      `missing version in Shared release manifest: ${SHARED_PACKAGE_JSON}`,
+      `missing version in Shared release manifest: ${manifestPath}`,
     );
   }
   if (!SEMVER_PATTERN.test(version)) {
     throw new Error(
-      `invalid Shared release version "${version}" in ${SHARED_PACKAGE_JSON}`,
+      `invalid Shared release version "${version}" in ${manifestPath}`,
     );
   }
 
