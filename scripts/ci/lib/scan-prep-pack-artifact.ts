@@ -114,15 +114,11 @@ export function readScanPrepSourceSharedDependencyVersion(
   return sharedDep;
 }
 
-export type ScanPrepSharedDependencyAlignmentOptions = {
+/** scan-prep source manifest vs Shared own-release authority at packages/shared/package.json */
+export function assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(options?: {
   sharedPackageJsonPath?: string;
   scanPrepPackageJsonPath?: string;
-};
-
-/** scan-prep source manifest vs Shared own-release authority at packages/shared/package.json */
-export function assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(
-  options?: ScanPrepSharedDependencyAlignmentOptions,
-): void {
+}): void {
   const sharedReleaseVersion = readSharedReleaseVersion(
     options?.sharedPackageJsonPath,
   );
