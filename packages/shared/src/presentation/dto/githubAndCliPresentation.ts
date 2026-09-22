@@ -48,10 +48,10 @@ export type CliScanPresentation = AssessmentPresentationFields & {
   keyPoints: string[];
   verificationActions: string[];
   metrics?: {
-    prRiskScore: number;
+    prRiskScore?: number;
     prRiskBandLabel?: string;
     /** @deprecated Use prRiskScore */
-    riskIndex: number;
+    riskIndex?: number;
     layerLine: string;
     findingCount: number;
     recommendationCount: number;

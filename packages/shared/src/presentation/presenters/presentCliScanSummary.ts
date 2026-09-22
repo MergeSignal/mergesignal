@@ -22,7 +22,7 @@ export function presentCliScanSummary(
     ? `security=${layerScores.security} maintainability=${layerScores.maintainability} ecosystem=${layerScores.ecosystem} upgradeImpact=${layerScores.upgradeImpact}`
     : "";
   const prRisk = formatPrRiskSummary(facts);
-  const prRiskScore = prRisk?.prRiskScore ?? facts.riskIndex ?? 0;
+  const prRiskScore = prRisk?.prRiskScore;
 
   return {
     ...projectAssessmentFields(bundle),
@@ -40,9 +40,8 @@ export function presentCliScanSummary(
     keyPoints: projectCompactKeyPoints(channels, 6),
     verificationActions: channels.verification.slice(0, 5),
     metrics: {
-      prRiskScore,
+      ...(prRiskScore !== undefined ? { prRiskScore } : {}),
       prRiskBandLabel: prRisk?.prRiskBandLabel ?? undefined,
-      riskIndex: prRiskScore,
       layerLine,
       findingCount: result.findings?.length ?? 0,
       recommendationCount: result.recommendations?.length ?? 0,

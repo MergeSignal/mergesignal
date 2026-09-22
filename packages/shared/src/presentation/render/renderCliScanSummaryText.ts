@@ -16,9 +16,18 @@ export function renderCliScanSummaryText(p: CliScanPresentation): string {
     const bandSuffix = p.metrics.prRiskBandLabel
       ? ` (${p.metrics.prRiskBandLabel})`
       : "";
+    if (
+      p.metrics.prRiskScore != null &&
+      Number.isFinite(p.metrics.prRiskScore)
+    ) {
+      lines.push(
+        `${scanSurfaceCopy.actions.prRiskScoreLabel}: ${p.metrics.prRiskScore}${bandSuffix}`,
+      );
+    }
+    if (p.metrics.layerLine) {
+      lines.push(p.metrics.layerLine);
+    }
     lines.push(
-      `${scanSurfaceCopy.actions.prRiskScoreLabel}: ${p.metrics.prRiskScore}${bandSuffix}`,
-      p.metrics.layerLine,
       `Findings: ${p.metrics.findingCount} | Recommendations: ${p.metrics.recommendationCount}`,
     );
   }

@@ -84,7 +84,7 @@ describe("PR Risk wiring regression (Investigation 1)", () => {
       expect(details.hero.prRiskScore).toBe(expectedPrRisk);
       expect(details.signalSummary?.prRiskScore).toBe(expectedPrRisk);
       expect(cli.metrics?.prRiskScore).toBe(expectedPrRisk);
-      expect(cli.metrics?.riskIndex).toBe(expectedPrRisk);
+      expect(cli.metrics?.riskIndex).toBeUndefined();
 
       const prRiskSection = check.sections.find((s) => s.title === "PR Risk");
       expect(prRiskSection?.bullets[0]).toMatch(

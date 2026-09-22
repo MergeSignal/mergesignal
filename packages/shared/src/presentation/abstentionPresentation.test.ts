@@ -10,8 +10,14 @@ import {
 import { assessmentGenericAbstain } from "../fixtures/assessmentFixtures.js";
 import { buildGitHubCheckRunOutput } from "./buildGitHubCheckRunOutput.js";
 import { presentationStatusFromAssessment } from "./presentationStatusFromAssessment.js";
+import { presentCliScanSummary } from "./presenters/presentCliScanSummary.js";
 import { presentScanDetails } from "./presenters/presentScanDetails.js";
 import { buildScanPresentationBundle } from "./orchestration/buildScanPresentationBundle.js";
+import { renderCliScanSummaryText } from "./render/renderCliScanSummaryText.js";
+import {
+  scanResultFastifyRuntime,
+  scanResultTypescriptPatch,
+} from "./fixtures/scanResultFixtures.js";
 import { formatPrRiskSummary } from "../prRiskBand.js";
 import { deriveRiskSignals } from "../riskSignals.js";
 import { deriveScanNarrative } from "../deriveScanNarrative.js";
@@ -87,6 +93,59 @@ describe("abstention presentation semantics", () => {
     const result = scanWithAssessment(abstainAssessment());
     expect(deriveRiskSignals(result)).toBeNull();
     expect(formatPrRiskSummary(deriveScanNarrative(result))).toBeUndefined();
+  });
+
+  it("CLI summary omits fabricated PR Risk score for indeterminate PR Risk wire", () => {
+    const result = {
+      ...scanWithAssessment(abstainAssessment()),
+      decision: {
+        recommendation: "indeterminate" as const,
+        confidence: "low" as const,
+        reasoning: [],
+      },
+      prRisk: { availability: "indeterminate" as const },
+    };
+    const bundle = buildScanPresentationBundle({
+      result,
+      pipelineStatus: "done",
+    })!;
+    const cli = presentCliScanSummary(bundle, { repoLabel: "silence" });
+    const text = renderCliScanSummaryText(cli);
+
+    expect(cli.metrics?.prRiskScore).toBeUndefined();
+    expect(cli.metrics?.riskIndex).toBeUndefined();
+    expect(text).not.toMatch(/PR Risk score:\s*0\b/);
+    expect(text).not.toMatch(/PR Risk score:/);
+  });
+
+  it("CLI summary renders authoritative PR Risk score when wire is scored", () => {
+    const bundle = buildScanPresentationBundle({
+      result: scanResultFastifyRuntime,
+      pipelineStatus: "done",
+    })!;
+    const cli = presentCliScanSummary(bundle, { repoLabel: "acme/api" });
+    const text = renderCliScanSummaryText(cli);
+
+    expect(cli.metrics?.prRiskScore).toBe(55);
+    expect(cli.metrics?.riskIndex).toBeUndefined();
+    expect(text).toContain("PR Risk score: 55");
+  });
+
+  it("CLI summary renders authoritative PR Risk score zero when wire is scored at 0", () => {
+    const result = {
+      ...scanResultTypescriptPatch,
+      prRisk: { score: 0 },
+    };
+    const bundle = buildScanPresentationBundle({
+      result,
+      pipelineStatus: "done",
+    })!;
+    const cli = presentCliScanSummary(bundle, { repoLabel: "acme/api" });
+    const text = renderCliScanSummaryText(cli);
+
+    expect(cli.metrics?.prRiskScore).toBe(0);
+    expect(cli.metrics?.riskIndex).toBeUndefined();
+    expect(text).toContain("PR Risk score: 0");
   });
 
   it("maps abstain to neutral GitHub check conclusion", () => {
