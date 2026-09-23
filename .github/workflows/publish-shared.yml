@@ -109,8 +109,14 @@ jobs:
             exit 1
           fi
           bash scripts/ci/configure-npmjs-userconfig.sh
+
+      - name: Verify npmjs authentication
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.notify_only != true }}
+        run: |
+          set -euo pipefail
           unset NODE_AUTH_TOKEN
           unset NPM_TOKEN
+          unset NPM_PUBLISH_TOKEN
           NPM_USER="$(npm whoami)"
           if [ -z "${NPM_USER}" ]; then
             echo "::error::npm whoami returned empty username on registry.npmjs.org" >&2
