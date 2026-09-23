@@ -7,13 +7,43 @@ import { execSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { assertPublishedRegistryConsumerLockfile } from "./lib/scan-prep-published-registry-lockfile.ts";
 import { cleanNpmEnv } from "./lib/scan-prep-npmjs-version-availability.ts";
+import { readRootPackageManagerAuthority } from "./lib/root-package-manager.ts";
 import { readScanPrepReleaseIdentity } from "./lib/scan-prep-release-identity.ts";
 
-const PACKAGE_NAME = "@mergesignal/scan-prep";
+export const PACKAGE_NAME = "@mergesignal/scan-prep";
 const NPMJS_REGISTRY = "https://registry.npmjs.org/";
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
+
+export type PublishedRegistryConsumerPackageJson = {
+  name: string;
+  private: boolean;
+  type: string;
+  packageManager: string;
+  dependencies: Record<string, string>;
+  devDependencies: Record<string, string>;
+};
+
+export function buildPublishedRegistryConsumerPackageJson(
+  scanPrepVersion: string,
+  expectedSharedVersion: string,
+): PublishedRegistryConsumerPackageJson {
+  return {
+    name: "scan-prep-published-registry-smoke",
+    private: true,
+    type: "module",
+    packageManager: readRootPackageManagerAuthority(),
+    dependencies: {
+      [PACKAGE_NAME]: scanPrepVersion,
+      "@mergesignal/shared": expectedSharedVersion,
+    },
+    devDependencies: {
+      typescript: "^5.9.3",
+    },
+  };
+}
 
 function parseVersion(argv: string[]): string {
   const flag = argv.find((arg) => arg.startsWith("--version="));
@@ -111,24 +141,13 @@ function verifyIsolatedInstall(
     NPM_CONFIG_USERCONFIG: path.join(consumerDir, ".npmrc"),
   };
   try {
+    const consumerPackageJson = buildPublishedRegistryConsumerPackageJson(
+      version,
+      expectedSharedVersion,
+    );
     writeFileSync(
       path.join(consumerDir, "package.json"),
-      `${JSON.stringify(
-        {
-          name: "scan-prep-published-registry-smoke",
-          private: true,
-          type: "module",
-          dependencies: {
-            [PACKAGE_NAME]: version,
-            "@mergesignal/shared": expectedSharedVersion,
-          },
-          devDependencies: {
-            typescript: "^5.9.3",
-          },
-        },
-        null,
-        2,
-      )}\n`,
+      `${JSON.stringify(consumerPackageJson, null, 2)}\n`,
     );
     writeFileSync(
       path.join(consumerDir, ".npmrc"),
@@ -202,4 +221,10 @@ function main(): void {
   process.stdout.write("check:scan-prep-published-registry OK\n");
 }
 
-main();
+const isDirectRun =
+  process.argv[1] != null &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isDirectRun) {
+  main();
+}
