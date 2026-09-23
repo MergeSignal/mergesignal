@@ -2,6 +2,12 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## 0.19.1
+
+### Fixed
+
+- CLI and shared presentation preserve Indeterminate PR Risk without fabricating a numeric score; authoritative `prRiskScore` is used when present, and a scored `0` still renders correctly.
+
 ## 0.19.0
 
 ### Added
