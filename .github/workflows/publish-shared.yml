@@ -76,18 +76,6 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Publishing version: $VERSION"
 
-      - name: Verify npm token
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.notify_only != true }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [ -z "${NODE_AUTH_TOKEN}" ]; then
-            echo "::error::NPM_TOKEN secret is not set."
-            exit 1
-          fi
-          echo "npm user: $(npm whoami)"
-
       - name: Install dependencies
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.notify_only != true }}
         run: pnpm install --frozen-lockfile
@@ -114,18 +102,42 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.notify_only != true }}
         env:
           NPM_PUBLISH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: bash scripts/ci/configure-npmjs-userconfig.sh
+        run: |
+          set -euo pipefail
+          if [ -z "${NPM_PUBLISH_TOKEN}" ]; then
+            echo "::error::NPM_TOKEN secret is not set."
+            exit 1
+          fi
+          bash scripts/ci/configure-npmjs-userconfig.sh
+          unset NODE_AUTH_TOKEN
+          unset NPM_TOKEN
+          NPM_USER="$(npm whoami)"
+          if [ -z "${NPM_USER}" ]; then
+            echo "::error::npm whoami returned empty username on registry.npmjs.org" >&2
+            exit 1
+          fi
+          echo "npmjs authenticated user: ${NPM_USER}"
 
       - name: Configure npm for registry.npmjs.org (notify-only)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.notify_only == true }}
         env:
           NODE_AUTH_TOKEN: ""
-        run: bash scripts/ci/configure-npmjs-userconfig.sh
+          NPM_TOKEN: ""
+          NPM_PUBLISH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          bash scripts/ci/configure-npmjs-userconfig.sh
+          unset NODE_AUTH_TOKEN
+          unset NPM_TOKEN
+          unset NPM_PUBLISH_TOKEN
 
       - name: Verify version not already on registry
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.notify_only != true }}
         run: |
           set -euo pipefail
+          unset NODE_AUTH_TOKEN
+          unset NPM_TOKEN
+          unset NPM_PUBLISH_TOKEN
           VERSION="${{ steps.version.outputs.version }}"
           if npm view "@mergesignal/shared@${VERSION}" version \
             --@mergesignal:registry=https://registry.npmjs.org/ 2>/dev/null; then
@@ -139,10 +151,12 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.notify_only != true }}
         working-directory: packages/shared
         env:
-          NPM_PUBLISH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
         run: |
           set -euo pipefail
+          unset NODE_AUTH_TOKEN
+          unset NPM_TOKEN
+          unset NPM_PUBLISH_TOKEN
           npm whoami
           npm publish --access public 2>&1 | tee /tmp/npm-publish.log
           exit "${PIPESTATUS[0]}"
