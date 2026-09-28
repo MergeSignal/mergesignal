@@ -11,6 +11,10 @@ import { getCachedFiles, setCachedFiles } from "./file-cache.js";
 import { classifyFetchError, fetchGitHubFiles } from "./github-files.js";
 import { logInfo, logWarn } from "./log.js";
 import { prepareLockfileContext } from "./prepare-lockfile-context.js";
+import {
+  REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES,
+  REPOSITORY_EVIDENCE_MAX_FILE_BYTES,
+} from "./repository-evidence/corpusPolicy.js";
 
 export type PrepareScanContextResult = {
   scanRequest: ScanRequest;
@@ -74,8 +78,8 @@ export async function prepareScanContext(
         const fetchStart = Date.now();
         const fetchResult = await fetchGitHubFiles(repoSource, {
           timeoutMs: defaultFetchTimeoutMs(),
-          maxFileSize: 500_000,
-          maxFiles: 1000,
+          maxFileSize: REPOSITORY_EVIDENCE_MAX_FILE_BYTES,
+          maxFiles: REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES,
         });
         fileContents = fetchResult.files;
         sourceFilesSkipped = fetchResult.sourceFilesSkipped;
