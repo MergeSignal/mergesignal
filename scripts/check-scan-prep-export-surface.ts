@@ -11,6 +11,8 @@ import {
   APPROVED_LOCKFILE_RUNTIME,
   APPROVED_LOCKFILE_TYPES,
   APPROVED_PACKAGE_EXPORTS,
+  APPROVED_REPOSITORY_EVIDENCE_RUNTIME,
+  APPROVED_REPOSITORY_EVIDENCE_TYPES,
   APPROVED_ROOT_RUNTIME,
   APPROVED_ROOT_TYPES,
   PROHIBITED_RUNTIME,
@@ -101,9 +103,15 @@ function main(): void {
   if (!pkg.exports["./lockfile"]) {
     throw new Error("package.json missing ./lockfile export");
   }
+  if (!pkg.exports["./repository-evidence"]) {
+    throw new Error("package.json missing ./repository-evidence export");
+  }
 
   const rootBarrel = runtimeExportsFromBarrel("src/index.ts");
   const lockfileBarrel = runtimeExportsFromBarrel("src/lockfile.ts");
+  const repositoryEvidenceBarrel = runtimeExportsFromBarrel(
+    "src/repository-evidence.ts",
+  );
 
   assertEqualSets(
     "root barrel runtime exports",
@@ -115,15 +123,27 @@ function main(): void {
     lockfileBarrel,
     APPROVED_LOCKFILE_RUNTIME,
   );
+  assertEqualSets(
+    "repository-evidence barrel runtime exports",
+    repositoryEvidenceBarrel,
+    APPROVED_REPOSITORY_EVIDENCE_RUNTIME,
+  );
 
   for (const symbol of PROHIBITED_RUNTIME) {
-    if (rootBarrel.includes(symbol) || lockfileBarrel.includes(symbol)) {
+    if (
+      rootBarrel.includes(symbol) ||
+      lockfileBarrel.includes(symbol) ||
+      repositoryEvidenceBarrel.includes(symbol)
+    ) {
       throw new Error(`prohibited export surfaced in barrel: ${symbol}`);
     }
   }
 
   const rootDecl = declarationExports("dist/index.d.ts");
   const lockfileDecl = declarationExports("dist/lockfile.d.ts");
+  const repositoryEvidenceDecl = declarationExports(
+    "dist/repository-evidence.d.ts",
+  );
 
   assertEqualSets(
     "root declaration values",
@@ -145,6 +165,16 @@ function main(): void {
     lockfileDecl.types,
     APPROVED_LOCKFILE_TYPES,
   );
+  assertEqualSets(
+    "repository-evidence declaration values",
+    repositoryEvidenceDecl.values,
+    APPROVED_REPOSITORY_EVIDENCE_RUNTIME,
+  );
+  assertEqualSets(
+    "repository-evidence declaration types",
+    repositoryEvidenceDecl.types,
+    APPROVED_REPOSITORY_EVIDENCE_TYPES,
+  );
 
   if (
     rootDecl.values.some((symbol) =>
@@ -152,6 +182,17 @@ function main(): void {
     )
   ) {
     throw new Error("lockfile runtime export found on root declaration");
+  }
+  if (
+    rootDecl.values.some((symbol) =>
+      (APPROVED_REPOSITORY_EVIDENCE_RUNTIME as readonly string[]).includes(
+        symbol,
+      ),
+    )
+  ) {
+    throw new Error(
+      "repository-evidence runtime export found on root declaration",
+    );
   }
 
   for (const symbol of PROHIBITED_RUNTIME) {
@@ -163,7 +204,15 @@ function main(): void {
       resolve(PKG_ROOT, "dist/lockfile.d.ts"),
       "utf8",
     );
-    if (rootDeclText.includes(symbol) || lockfileDeclText.includes(symbol)) {
+    const repositoryEvidenceDeclText = readFileSync(
+      resolve(PKG_ROOT, "dist/repository-evidence.d.ts"),
+      "utf8",
+    );
+    if (
+      rootDeclText.includes(symbol) ||
+      lockfileDeclText.includes(symbol) ||
+      repositoryEvidenceDeclText.includes(symbol)
+    ) {
       throw new Error(`built declarations expose prohibited symbol: ${symbol}`);
     }
   }

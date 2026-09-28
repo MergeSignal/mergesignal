@@ -3,10 +3,14 @@ import { Octokit } from "octokit";
 
 import { getInstallationToken } from "./github-auth.js";
 import { logInfo, logWarn } from "./log.js";
+import {
+  REPOSITORY_EVIDENCE_DEFAULT_GLOB_PATTERNS,
+  REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES,
+  REPOSITORY_EVIDENCE_MAX_FILE_BYTES,
+  prioritizeRepositoryEvidencePaths,
+} from "./repository-evidence/corpusPolicy.js";
 
 const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
-const MAX_FILE_SIZE_BYTES = 500_000;
-const MAX_TOTAL_FILES = 1000;
 const BATCH_SIZE = 10;
 
 export interface FetchOptions {
@@ -32,15 +36,10 @@ export async function fetchGitHubFiles(
   options: FetchOptions = {},
 ): Promise<FetchResult> {
   const timeoutMs = options.timeoutMs ?? defaultFetchTimeoutMs();
-  const maxFileSize = options.maxFileSize ?? MAX_FILE_SIZE_BYTES;
-  const maxFiles = options.maxFiles ?? MAX_TOTAL_FILES;
+  const maxFileSize = options.maxFileSize ?? REPOSITORY_EVIDENCE_MAX_FILE_BYTES;
+  const maxFiles = options.maxFiles ?? REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES;
   const patterns = options.patterns ?? [
-    "*.ts",
-    "*.tsx",
-    "*.js",
-    "*.jsx",
-    "*.mjs",
-    "*.cjs",
+    ...REPOSITORY_EVIDENCE_DEFAULT_GLOB_PATTERNS,
   ];
 
   return Promise.race([
@@ -75,7 +74,23 @@ async function fetchFilesInternal(
     recursive: "true",
   });
 
-  const sourceFiles = filterAndPrioritizeFiles(tree.tree, patterns, maxFiles);
+  const blobPaths = tree.tree
+    .filter((item) => item.type === "blob" && item.path)
+    .map((item) => item.path!);
+
+  const selectedPaths = prioritizeRepositoryEvidencePaths(blobPaths, {
+    maxFiles,
+    patterns,
+  });
+  const pathToItem = new Map(
+    tree.tree
+      .filter((item) => item.type === "blob" && item.path)
+      .map((item) => [item.path!, item]),
+  );
+  const sourceFiles = selectedPaths
+    .map((path) => pathToItem.get(path))
+    .filter((item): item is NonNullable<typeof item> => item != null);
+
   const candidatesAfterFilter = sourceFiles.length;
 
   logInfo(
@@ -145,80 +160,6 @@ async function fetchFilesInternal(
   );
 
   return { files: fileContents, sourceFilesSkipped };
-}
-
-function filterAndPrioritizeFiles(
-  treeItems: Array<{ type?: string; path?: string; sha?: string }>,
-  patterns: string[],
-  maxFiles: number,
-): Array<{ type?: string; path?: string; sha?: string }> {
-  const sourceFiles = treeItems.filter((item) => {
-    if (item.type !== "blob" || !item.path) return false;
-
-    const skipPaths = [
-      "node_modules/",
-      ".next/",
-      "dist/",
-      "build/",
-      ".git/",
-      "coverage/",
-      ".turbo/",
-      ".cache/",
-      "public/",
-      "static/",
-      "assets/",
-      "__tests__/",
-      "__mocks__/",
-      "test/",
-      "tests/",
-      "spec/",
-      "specs/",
-    ];
-
-    if (skipPaths.some((skip) => item.path!.includes(skip))) return false;
-
-    return patterns.some((pattern) => {
-      const regex = new RegExp(
-        pattern.replace(/\*/g, ".*").replace(/\./g, "\\."),
-      );
-      return regex.test(item.path!);
-    });
-  });
-
-  return sourceFiles
-    .sort((a, b) => getFilePriority(b.path!) - getFilePriority(a.path!))
-    .slice(0, maxFiles);
-}
-
-function getFilePriority(path: string): number {
-  let score = 0;
-  const entryPoints = [
-    "index.ts",
-    "index.tsx",
-    "index.js",
-    "main.ts",
-    "server.ts",
-    "app.ts",
-  ];
-  if (entryPoints.some((e) => path.endsWith(e))) score += 100;
-
-  const criticalPaths = [
-    "auth/",
-    "authentication/",
-    "api/",
-    "core/",
-    "db/",
-    "payment/",
-    "checkout/",
-  ];
-  if (criticalPaths.some((c) => path.includes(c))) score += 50;
-
-  const sourceDirs = ["src/", "lib/", "app/", "pages/", "components/"];
-  if (sourceDirs.some((d) => path.includes(d))) score += 25;
-
-  if (path.endsWith(".ts") || path.endsWith(".tsx")) score += 10;
-  score -= path.split("/").length;
-  return score;
 }
 
 export function classifyFetchError(error: unknown): string {

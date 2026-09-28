@@ -108,6 +108,28 @@ The workspace root entry (`@mergesignal/scan-prep`) exports **only** the symbols
 
 ---
 
+## Approved `./repository-evidence` exports (`@mergesignal/scan-prep/repository-evidence`)
+
+Provider-neutral repository source-evidence selection policy (pure predicates and bounds). Used by public GitHub corpus preparation and future local acquisition; not storage, upload, or merge-decision logic.
+
+| Symbol                                      | Role                                                              |
+| ------------------------------------------- | ----------------------------------------------------------------- |
+| `REPOSITORY_EVIDENCE_MAX_FILE_BYTES`        | Per-file UTF-8 byte bound for source evidence                     |
+| `REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES`   | Maximum repository paths considered per collection pass           |
+| `REPOSITORY_EVIDENCE_DEFAULT_GLOB_PATTERNS` | Default JS/TS source glob patterns                                |
+| `REPOSITORY_EVIDENCE_EXCLUDED_PATH_MARKERS` | Path segment markers excluded from evidence (vendor/build/test)   |
+| `normalizeRepositoryRelativePath`           | Repository-relative path normalization                            |
+| `isRepositoryEvidencePathExcluded`          | Exclusion predicate for evidence paths                            |
+| `isRepositoryEvidencePathEligible`          | Full-tree corpus eligibility (patterns + exclusions)              |
+| `repositoryEvidenceFilePriority`            | Deterministic priority for bounded selection                      |
+| `prioritizeRepositoryEvidencePaths`         | Filter, rank, and cap candidate paths                             |
+| `isChangeRequestChangedSourcePathEligible`  | PR changed-path source relevance (distinct from full-tree corpus) |
+| `filterChangeRequestChangedSourcePaths`     | Filter PR changed paths to relevant source files                  |
+
+The workspace root entry (`@mergesignal/scan-prep`) does **not** re-export repository-evidence symbols. Consumers import `@mergesignal/scan-prep/repository-evidence` explicitly.
+
+---
+
 ## Rejected exports
 
 The following categories are **explicitly rejected** from the published package:

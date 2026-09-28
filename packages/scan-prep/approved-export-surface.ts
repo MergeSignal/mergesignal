@@ -50,4 +50,24 @@ export const PROHIBITED_RUNTIME = [
   "executeCollectionPlan",
 ] as const;
 
-export const APPROVED_PACKAGE_EXPORTS = [".", "./lockfile"] as const;
+export const APPROVED_PACKAGE_EXPORTS = [
+  ".",
+  "./lockfile",
+  "./repository-evidence",
+] as const;
+
+export const APPROVED_REPOSITORY_EVIDENCE_RUNTIME = [
+  "REPOSITORY_EVIDENCE_DEFAULT_GLOB_PATTERNS",
+  "REPOSITORY_EVIDENCE_EXCLUDED_PATH_MARKERS",
+  "REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES",
+  "REPOSITORY_EVIDENCE_MAX_FILE_BYTES",
+  "filterChangeRequestChangedSourcePaths",
+  "isChangeRequestChangedSourcePathEligible",
+  "isRepositoryEvidencePathEligible",
+  "isRepositoryEvidencePathExcluded",
+  "normalizeRepositoryRelativePath",
+  "prioritizeRepositoryEvidencePaths",
+  "repositoryEvidenceFilePriority",
+] as const;
+
+export const APPROVED_REPOSITORY_EVIDENCE_TYPES = [] as const;
