@@ -1,6 +1,10 @@
 import type { Assessment } from "./assessment/types.js";
 
 import type { LockfileEvidenceStatus } from "./lockfileEvidence.js";
+import type {
+  ScanChangeIntent,
+  SerializableScanAcquiredFacts,
+} from "./scanIngressWire.js";
 
 export type LayerScores = {
   security: number;
@@ -546,4 +550,8 @@ export type ScanQueueJob = {
   /** PR manifest paths (package.json) for importer-scoped lockfile diff. */
   changedPackageJsonFiles?: string[];
   github?: ScanQueueGithubContext;
+  /** Orchestration: explicit change vs repository acquisition intent. */
+  changeIntent?: ScanChangeIntent;
+  /** Orchestration: provider-neutral facts snapshot for preparation ingress. */
+  acquiredFacts?: SerializableScanAcquiredFacts;
 };
