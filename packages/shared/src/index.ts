@@ -22,6 +22,8 @@ export * from "./normalizeGeneratedText.js";
 export { presentGitHubPrCommentMarkdownFromResult } from "./presentGitHubPrComment.js";
 export * from "./scanCardPresentationState.js";
 export * from "./scanAnalysisScope.js";
+export * from "./scanIngressWire.js";
+export * from "./scanIngressSchema.js";
 export * from "./scanResultSchema.js";
 export * from "./scanSurfaceCopy.js";
 export * from "./resolvePipelineStatus.js";

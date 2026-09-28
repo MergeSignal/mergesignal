@@ -26,6 +26,11 @@ export type { DashboardCardLayout } from "./dto/dashboardCardPresentation.js";
 /** @deprecated Use DashboardCardPresentation */
 export type { DashboardCardPresentation as ScanCardPresentation } from "./dto/dashboardCardPresentation.js";
 export type { ScanDetailsPresentation } from "./dto/scanDetailsPresentation.js";
+export {
+  parseScanDetailsPresentation,
+  safeParseScanDetailsPresentation,
+  scanDetailsPresentationSchema,
+} from "./dto/scanDetailsPresentationSchema.js";
 export type {
   GitHubCheckRunPresentation,
   GitHubPrCommentPresentation,
