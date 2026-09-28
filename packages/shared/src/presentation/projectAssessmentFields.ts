@@ -1,7 +1,4 @@
-import {
-  collectVerificationFocusForPresentation,
-  projectReasoningLines,
-} from "../assessmentProjection.js";
+import { collectVerificationFocusForPresentation } from "../assessmentProjection.js";
 import type { AssessmentPresentationFields } from "./dto/assessmentPresentationFields.js";
 import type { ScanPresentationBundle } from "./orchestration/scanPresentationBundle.js";
 
@@ -22,12 +19,12 @@ export function projectAssessmentFields(
     posture: assessment.posture,
     primaryConcern: assessment.primaryConcern,
     factors: [...assessment.factors],
-    reasoning: projectReasoningLines(result),
+    reasoning: [...bundle.reasoningLines],
     verificationFocus: focus,
     verificationChannel: channel,
     reachVisibility: presentation.reachVisibility,
     narrativeIntensity: presentation.narrativeIntensity,
-    confidenceRationale: trimOptionalExpression(assessment.confidenceRationale),
+    confidenceRationale: trimOptionalExpression(bundle.trustLine),
     electionSummary: trimOptionalExpression(
       assessment.reviewFocalPoint.electionSummary,
     ),

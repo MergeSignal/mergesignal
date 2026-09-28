@@ -19,6 +19,8 @@ function makePresentation(
       "Changed package upgrade leaves unresolved runtime exposure that requires review.",
     ],
     reasoning: ["HTTP framework infrastructure detected."],
+    resolutionLine: null,
+    notAffectedLine: null,
     verificationFocus: ["Run integration tests"],
     verificationChannel: "runtime",
     reachVisibility: "contextual",

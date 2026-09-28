@@ -186,6 +186,20 @@ function getOpenApiSpec() {
           type: "object",
           description:
             "Structured scan detail presentation for UI and integrations",
+          properties: {
+            resolutionLine: {
+              type: "string",
+              nullable: true,
+              description:
+                "Engine-authored resolutionLine when present on Assessment",
+            },
+            notAffectedLine: {
+              type: "string",
+              nullable: true,
+              description:
+                "Engine-authored notAffectedLine when present on Assessment",
+            },
+          },
           additionalProperties: true,
         },
         PackageHealth: {

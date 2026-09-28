@@ -25,6 +25,14 @@ const runtimeReviewPresentation: Assessment["presentation"] = {
   reportMode: "high_signal_pr",
 };
 
+const SAFE_TOOLING_REASONING = [
+  "No dedicated dependency review required beyond normal engineering process.",
+];
+
+const RUNTIME_EXPOSURE_REASONING = [
+  "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge.",
+];
+
 export const assessmentTypescriptPatch: Assessment = withAssessmentScope(
   {
     posture: "safe",
@@ -34,6 +42,7 @@ export const assessmentTypescriptPatch: Assessment = withAssessmentScope(
     factors: ["tooling_maintenance"],
     changeClasses: ["tooling_maintenance"],
     presentation: safeToolingPresentation,
+    reasoning: [...SAFE_TOOLING_REASONING],
   },
   {
     reviewFocalPoint: minimalReviewFocalPoint(["typescript"]),
@@ -86,6 +95,7 @@ export const assessmentVitest: Assessment = withAssessmentScope(
     factors: ["test_infra_change"],
     changeClasses: ["test_infra"],
     presentation: safeToolingPresentation,
+    reasoning: [...SAFE_TOOLING_REASONING],
   },
   {
     reviewFocalPoint: minimalReviewFocalPoint(["vitest"]),
@@ -118,6 +128,7 @@ export const assessmentFastifyRuntime: Assessment = withAssessmentScope(
     factors: ["unresolved_runtime_exposure", "http_framework_infrastructure"],
     changeClasses: ["runtime_upgrade"],
     presentation: runtimeReviewPresentation,
+    reasoning: [...RUNTIME_EXPOSURE_REASONING, "HTTP framework infrastructure"],
   },
   {
     reviewFocalPoint: minimalReviewFocalPoint(["fastify"]),
@@ -149,6 +160,11 @@ export const assessmentBullmq: Assessment = withAssessmentScope(
     ],
     changeClasses: ["runtime_upgrade"],
     presentation: runtimeReviewPresentation,
+    reasoning: [
+      ...RUNTIME_EXPOSURE_REASONING,
+      "Queue infrastructure",
+      "Verification focus required",
+    ],
   },
   {
     reviewFocalPoint: minimalReviewFocalPoint(["bullmq"]),
@@ -176,6 +192,7 @@ export const assessmentNextAuth: Assessment = withAssessmentScope(
     factors: ["unresolved_runtime_exposure", "auth_infrastructure"],
     changeClasses: ["runtime_upgrade"],
     presentation: runtimeReviewPresentation,
+    reasoning: [...RUNTIME_EXPOSURE_REASONING],
   },
   {
     reviewFocalPoint: minimalReviewFocalPoint(["next-auth"]),
@@ -208,6 +225,7 @@ export const assessmentMixedTypescriptFastify: Assessment = withAssessmentScope(
     ],
     changeClasses: ["runtime_upgrade", "tooling_maintenance"],
     presentation: runtimeReviewPresentation,
+    reasoning: [...RUNTIME_EXPOSURE_REASONING],
   },
   {
     reviewFocalPoint: minimalReviewFocalPoint(["fastify"], {
@@ -243,6 +261,9 @@ export const assessmentLimitedContext: Assessment = withAssessmentScope(
       insightEmissionFloor: "none",
       reportMode: "high_signal_pr",
     },
+    reasoning: [
+      "Collection evidence is partial; confidence is reduced but review posture is preserved when runtime signals exist.",
+    ],
   },
   {
     reviewFocalPoint: minimalReviewFocalPoint(["lodash"]),
@@ -325,6 +346,7 @@ export const assessmentUnknownSafe: Assessment = withAssessmentScope(
       insightEmissionFloor: "explain_only",
       reportMode: "high_signal_pr",
     },
+    reasoning: [...SAFE_TOOLING_REASONING],
   },
   {
     reviewFocalPoint: minimalReviewFocalPoint(["opaque-pkg"]),
