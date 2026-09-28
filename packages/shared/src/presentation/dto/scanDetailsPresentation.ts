@@ -9,6 +9,8 @@ import type { PresentationIntent } from "../intent/presentationIntent.js";
 import type { FindingSeverity, ScoreLayer } from "../../types.js";
 
 export type ScanDetailsPresentation = AssessmentPresentationFields & {
+  resolutionLine: string | null;
+  notAffectedLine: string | null;
   evidenceContext: PresentationEvidenceContext;
   status: PresentationStatus;
   density: PresentationDensity;

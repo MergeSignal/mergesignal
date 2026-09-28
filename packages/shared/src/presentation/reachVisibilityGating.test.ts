@@ -124,7 +124,7 @@ describe("reachVisibility presentation gating", () => {
       expect(whyText).not.toMatch(/Affected areas:/i);
       expect(whyText).not.toMatch(/Blast radius/i);
       expect(check.reasoning.length).toBeGreaterThan(0);
-      expect(check.reasoning).toEqual(hiddenBundle.result.decision?.reasoning);
+      expect(check.reasoning).toEqual([...hiddenBundle.reasoningLines]);
     });
 
     it("CLI compact key points do not leak reach when Assessment reasoning is empty", () => {

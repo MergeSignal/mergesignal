@@ -386,6 +386,12 @@ describe("scan routes", () => {
               insightEmissionFloor: "full",
               reportMode: "high_signal_pr",
             },
+            reasoning: ["Runtime usage confirmed"],
+            confidenceRationale: "Confidence is medium.",
+            resolutionLine:
+              "A passing automated verification for this dimension would make this deterministic.",
+            notAffectedLine:
+              "No repository code paths are affected by export compatibility.",
           },
           {
             reviewFocalPoint: minimalReviewFocalPoint(["pkg"]),
@@ -441,6 +447,15 @@ describe("scan routes", () => {
       const body = JSON.parse(response.body);
       expect(body.result).toEqual(rawResult);
       expect(body.detailPresentation).toBeTruthy();
+      expect(body.detailPresentation.resolutionLine).toBe(
+        rawResult.assessment.resolutionLine,
+      );
+      expect(body.detailPresentation.notAffectedLine).toBe(
+        rawResult.assessment.notAffectedLine,
+      );
+      expect(body.detailPresentation.reasoning).toEqual(
+        rawResult.assessment.reasoning,
+      );
     });
 
     it("should return 404 when scan not found", async () => {

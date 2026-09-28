@@ -1,4 +1,3 @@
-import { MERGE_CONCERN_LABELS } from "../../assessmentLabels.js";
 import { normalizedPackageUsagePaths } from "../../narrativePresentation.js";
 import { safeParseRepoIntelligence } from "../../repoIntelligenceSchema.js";
 import {
@@ -154,11 +153,14 @@ export function presentScanDetails(
     : undefined;
 
   const postureLabel = MERGE_POSTURE_LABEL[profile.status];
+  const resolutionLine = bundle.resolutionLine;
+  const notAffectedLine = bundle.notAffectedLine;
   const verdictLine =
     assessmentFields.reasoning[0] ??
-    (assessmentFields.primaryConcern
-      ? MERGE_CONCERN_LABELS[assessmentFields.primaryConcern]
-      : postureLabel);
+    resolutionLine ??
+    notAffectedLine ??
+    channels.headline ??
+    postureLabel;
 
   const verificationActions = channels.verification.map((title, index) => ({
     title: normalizeGeneratedText(title),
@@ -181,6 +183,8 @@ export function presentScanDetails(
 
   return {
     ...assessmentFields,
+    resolutionLine,
+    notAffectedLine,
     evidenceContext: evidenceContextFromProfile(bundle),
     status: profile.status,
     density: profile.density,
