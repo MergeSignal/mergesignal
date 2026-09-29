@@ -1,5 +1,5 @@
 # ── Worker build ──
-FROM node:22-alpine AS builder
+FROM node:24.21.0-alpine AS builder
 
 WORKDIR /app
 
@@ -38,7 +38,7 @@ RUN pnpm --filter @mergesignal/engine-test-fixture build
 RUN pnpm --filter @mergesignal/worker build
 
 # ── Engine output (private clone OR CI fixture) ──
-FROM node:22-alpine AS engine-builder
+FROM node:24.21.0-alpine AS engine-builder
 
 ARG MERGESIGNAL_ENGINE_FIXTURE=0
 ARG MERGESIGNAL_ENGINE_REPOSITORY=MergeSignal/mergesignal-engine
@@ -76,12 +76,13 @@ RUN --mount=type=secret,id=engine_repo_token \
     fi
 
 # ── Lean runtime ──
-FROM node:22-alpine AS runtime
+FROM node:24.21.0-alpine AS runtime
 
 WORKDIR /app
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 
+# Root has "prepare": "husky"; --prod does not install husky, but prepare still runs — strip it for the image.
 RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));delete p.scripts.prepare;fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');"
 RUN corepack enable && corepack install
 

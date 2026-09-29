@@ -8,7 +8,7 @@ Run the web app, API, worker, and databases locally for development or evaluatio
 
 ## Prerequisites
 
-- Node.js ≥ 20.19 (see [`.nvmrc`](../../.nvmrc))
+- Node.js **24.21.0** (see [`.nvmrc`](../../.nvmrc) and root `package.json` `engines` / `volta`)
 - pnpm from root `package.json` `packageManager` via Corepack (`corepack enable && corepack install`)
 - Docker (for Postgres, Redis, and worker)
 

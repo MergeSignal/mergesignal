@@ -118,7 +118,7 @@ Verify `worker_startup_complete` logs show the expected engine version. Queued s
 ## Reproducibility checklist
 
 - Frozen lockfiles: `pnpm install --frozen-lockfile` in engine build
-- Toolchain: Node 22; pnpm version from root `package.json` `packageManager` via `corepack install` in Docker stages (see [pnpm-version-governance.md](./pnpm-version-governance.md))
+- Toolchain: Node **24.21.0** (`node:24.21.0-alpine` in Docker); pnpm version from root `package.json` `packageManager` via `corepack install` in Docker stages (see [pnpm-version-governance.md](./pnpm-version-governance.md))
 - Engine tag pinned via `MERGESIGNAL_ENGINE_REF` (no silent default to `main`)
 - Manifest records `engineReleaseGitSha`, `distSha256`, `collectionIngressPath`, `collectionIngressSha256`, `nodeVersion`, `pnpmVersion`
 - Startup ABI preflight verifies 64-char manifest sha256 fields for the baked impl and ingress files when present

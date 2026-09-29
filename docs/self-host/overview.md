@@ -17,7 +17,7 @@ Architecture at a glance: [docs/architecture.md](../architecture.md).
 
 ### CLI only
 
-- Node.js ≥ 20.19, pnpm
+- Node.js **24.21.0** (`.nvmrc`), pnpm from root `packageManager` via Corepack
 - No Docker, database, or MergeSignal server
 
 ### GitHub Actions
