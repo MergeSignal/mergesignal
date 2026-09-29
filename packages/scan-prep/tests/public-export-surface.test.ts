@@ -52,7 +52,7 @@ describe("public export surface", () => {
     ]);
     expect(APPROVED_LOCKFILE_RUNTIME).toHaveLength(12);
     expect(APPROVED_LOCKFILE_TYPES).toHaveLength(7);
-    expect(APPROVED_REPOSITORY_EVIDENCE_RUNTIME).toHaveLength(11);
+    expect(APPROVED_REPOSITORY_EVIDENCE_RUNTIME).toHaveLength(9);
     expect(APPROVED_REPOSITORY_EVIDENCE_TYPES).toHaveLength(0);
     expect(APPROVED_PACKAGE_EXPORTS).toEqual([
       ".",

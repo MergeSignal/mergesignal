@@ -7,14 +7,16 @@ import type {
 } from "@mergesignal/shared";
 import { scanAnalysisScopeFromQueueJob } from "@mergesignal/shared";
 
-import { getCachedFiles, setCachedFiles } from "./file-cache.js";
+import { getCachedCorpus, setCachedCorpus } from "./file-cache.js";
 import { classifyFetchError, fetchGitHubFiles } from "./github-files.js";
 import { logInfo, logWarn } from "./log.js";
 import { prepareLockfileContext } from "./prepare-lockfile-context.js";
 import {
-  REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES,
-  REPOSITORY_EVIDENCE_MAX_FILE_BYTES,
-} from "./repository-evidence/corpusPolicy.js";
+  aggregateSourceFilesSkipped,
+  assertRepositoryEvidenceAcquisitionInvariants,
+  type RepositoryEvidenceAcquisitionAccounting,
+  ZERO_REPOSITORY_EVIDENCE_ACQUISITION,
+} from "./repository-evidence-acquisition-accounting.js";
 
 export type PrepareScanContextResult = {
   scanRequest: ScanRequest;
@@ -30,7 +32,16 @@ export type ScanPreparationSummary = {
   lockfileDeltaUpdated: number;
   changedFileCount: number;
   sourceFilesFetched: number;
+  /**
+   * Cap-selected paths not included in the fetched UTF-8 corpus (size or fetch failure).
+   * Does not include cap truncation or policy-ineligible paths.
+   */
   sourceFilesSkipped: number;
+  repositoryEvidenceEligibleCandidateCount: number;
+  repositoryEvidenceSelectedCandidateCount: number;
+  repositoryEvidenceCapTruncatedCandidateCount: number;
+  sourceFilesSkippedOversized: number;
+  sourceFilesSkippedFetchError: number;
   codeAnalysisEnabled: boolean;
   warningCodes: string[];
 };
@@ -42,6 +53,30 @@ function warn(
   details?: Record<string, unknown>,
 ): void {
   warnings.push({ code, message, details });
+}
+
+function repositoryEvidenceFieldsFromAccounting(
+  accounting: RepositoryEvidenceAcquisitionAccounting,
+  sourceFilesFetched: number,
+): Pick<
+  ScanPreparationSummary,
+  | "sourceFilesSkipped"
+  | "repositoryEvidenceEligibleCandidateCount"
+  | "repositoryEvidenceSelectedCandidateCount"
+  | "repositoryEvidenceCapTruncatedCandidateCount"
+  | "sourceFilesSkippedOversized"
+  | "sourceFilesSkippedFetchError"
+> {
+  const sourceFilesSkipped = aggregateSourceFilesSkipped(accounting);
+  assertRepositoryEvidenceAcquisitionInvariants({
+    accounting,
+    sourceFilesFetched,
+    sourceFilesSkipped,
+  });
+  return {
+    sourceFilesSkipped,
+    ...accounting,
+  };
 }
 
 export async function prepareScanContext(
@@ -62,27 +97,48 @@ export async function prepareScanContext(
     filesAnalyzed: 0,
   };
   let sourceFilesFetched = 0;
-  let sourceFilesSkipped = 0;
+  let repositoryEvidenceAccounting: RepositoryEvidenceAcquisitionAccounting =
+    ZERO_REPOSITORY_EVIDENCE_ACQUISITION;
 
   if (repoSource && changedPackages.length > 0) {
     try {
       let fileContents: Map<string, string>;
 
-      const cached = getCachedFiles(repoSource);
+      const cached = getCachedCorpus(repoSource);
       if (cached) {
-        fileContents = cached;
+        fileContents = cached.files;
         codeAnalysisMetrics.fromCache = true;
-        codeAnalysisMetrics.filesAnalyzed = cached.size;
-        sourceFilesFetched = cached.size;
+        codeAnalysisMetrics.filesAnalyzed = cached.files.size;
+        sourceFilesFetched = cached.files.size;
+        repositoryEvidenceAccounting = {
+          repositoryEvidenceEligibleCandidateCount:
+            cached.metrics.repositoryEvidenceEligibleCandidateCount,
+          repositoryEvidenceSelectedCandidateCount:
+            cached.metrics.repositoryEvidenceSelectedCandidateCount,
+          repositoryEvidenceCapTruncatedCandidateCount:
+            cached.metrics.repositoryEvidenceCapTruncatedCandidateCount,
+          sourceFilesSkippedOversized:
+            cached.metrics.sourceFilesSkippedOversized,
+          sourceFilesSkippedFetchError:
+            cached.metrics.sourceFilesSkippedFetchError,
+        };
       } else {
         const fetchStart = Date.now();
         const fetchResult = await fetchGitHubFiles(repoSource, {
           timeoutMs: defaultFetchTimeoutMs(),
-          maxFileSize: REPOSITORY_EVIDENCE_MAX_FILE_BYTES,
-          maxFiles: REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES,
         });
         fileContents = fetchResult.files;
-        sourceFilesSkipped = fetchResult.sourceFilesSkipped;
+        repositoryEvidenceAccounting = {
+          repositoryEvidenceEligibleCandidateCount:
+            fetchResult.repositoryEvidenceEligibleCandidateCount,
+          repositoryEvidenceSelectedCandidateCount:
+            fetchResult.repositoryEvidenceSelectedCandidateCount,
+          repositoryEvidenceCapTruncatedCandidateCount:
+            fetchResult.repositoryEvidenceCapTruncatedCandidateCount,
+          sourceFilesSkippedOversized: fetchResult.sourceFilesSkippedOversized,
+          sourceFilesSkippedFetchError:
+            fetchResult.sourceFilesSkippedFetchError,
+        };
         codeAnalysisMetrics.analysisTimeMs = Date.now() - fetchStart;
         codeAnalysisMetrics.filesAnalyzed = fileContents.size;
         sourceFilesFetched = fileContents.size;
@@ -92,10 +148,11 @@ export async function prepareScanContext(
           totalBytes += Buffer.byteLength(content, "utf-8");
         }
 
-        setCachedFiles(repoSource, fileContents, {
+        setCachedCorpus(repoSource, fileContents, {
           fileCount: fileContents.size,
           totalBytes,
           fetchTimeMs: codeAnalysisMetrics.analysisTimeMs ?? 0,
+          ...repositoryEvidenceAccounting,
         });
       }
 
@@ -141,6 +198,8 @@ export async function prepareScanContext(
         "Code corpus fetch failed",
       );
       codeAnalysis = undefined;
+      sourceFilesFetched = 0;
+      repositoryEvidenceAccounting = ZERO_REPOSITORY_EVIDENCE_ACQUISITION;
     }
   } else if (repoSource && changedPackages.length === 0) {
     warn(
@@ -181,6 +240,11 @@ export async function prepareScanContext(
     updated: [],
   };
 
+  const repositoryEvidenceSummary = repositoryEvidenceFieldsFromAccounting(
+    repositoryEvidenceAccounting,
+    sourceFilesFetched,
+  );
+
   const preparationSummary: ScanPreparationSummary = {
     changedPackageCount: changedPackages.length,
     lockfileDeltaAdded: delta.added.length,
@@ -188,7 +252,7 @@ export async function prepareScanContext(
     lockfileDeltaUpdated: delta.updated.length,
     changedFileCount: changedFiles?.length ?? 0,
     sourceFilesFetched,
-    sourceFilesSkipped,
+    ...repositoryEvidenceSummary,
     codeAnalysisEnabled: Boolean(
       codeAnalysis && codeAnalysis.fileContents.size > 0,
     ),

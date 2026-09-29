@@ -3,15 +3,13 @@
  * Authority: docs/engineering/scan-prep-api.md
  */
 export {
-  REPOSITORY_EVIDENCE_DEFAULT_GLOB_PATTERNS,
   REPOSITORY_EVIDENCE_EXCLUDED_PATH_MARKERS,
   REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES,
   REPOSITORY_EVIDENCE_MAX_FILE_BYTES,
+  REPOSITORY_EVIDENCE_SOURCE_EXTENSIONS,
   isRepositoryEvidencePathEligible,
   isRepositoryEvidencePathExcluded,
-  normalizeRepositoryRelativePath,
   prioritizeRepositoryEvidencePaths,
-  repositoryEvidenceFilePriority,
 } from "./repository-evidence/corpusPolicy.js";
 export {
   filterChangeRequestChangedSourcePaths,

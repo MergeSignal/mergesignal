@@ -19,8 +19,8 @@ vi.mock("../services/repoSourceService.js", () => ({
   upsertGithubRepoSource: vi.fn(),
 }));
 
-vi.mock("../services/githubFileService.js", () => ({
-  filterRelevantSourceFiles: vi.fn(),
+vi.mock("@mergesignal/scan-prep/repository-evidence", () => ({
+  filterChangeRequestChangedSourcePaths: vi.fn(),
 }));
 
 vi.mock("../problem.js", () => ({

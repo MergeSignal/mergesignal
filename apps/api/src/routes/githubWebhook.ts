@@ -3,7 +3,7 @@ import { App } from "@octokit/app";
 import { createHmac, timingSafeEqual } from "crypto";
 import { createScanAndEnqueue } from "../services/scanService.js";
 import { upsertGithubRepoSource } from "../services/repoSourceService.js";
-import { filterRelevantSourceFiles } from "../services/githubFileService.js";
+import { filterChangeRequestChangedSourcePaths } from "@mergesignal/scan-prep/repository-evidence";
 import { sendProblem } from "../problem.js";
 import { db } from "../db.js";
 
@@ -211,7 +211,7 @@ async function handlePullRequest(
   const changedPackageJsonFiles = changed.filter(
     (file) => file === "package.json" || file.endsWith("/package.json"),
   );
-  const changedFiles = filterRelevantSourceFiles(changed);
+  const changedFiles = filterChangeRequestChangedSourcePaths(changed);
 
   const contents = await octokit.request(
     "GET /repos/{owner}/{repo}/contents/{path}",

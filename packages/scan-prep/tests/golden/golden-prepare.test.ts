@@ -49,6 +49,11 @@ describe("golden prepareScanContext fixtures", () => {
       .mockResolvedValue({
         files: new Map([["src/index.ts", "export {}"]]),
         sourceFilesSkipped: 0,
+        repositoryEvidenceEligibleCandidateCount: 1,
+        repositoryEvidenceSelectedCandidateCount: 1,
+        repositoryEvidenceCapTruncatedCandidateCount: 0,
+        sourceFilesSkippedOversized: 0,
+        sourceFilesSkippedFetchError: 0,
       });
 
     try {

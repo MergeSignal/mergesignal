@@ -4,25 +4,34 @@ import { Octokit } from "octokit";
 import { getInstallationToken } from "./github-auth.js";
 import { logInfo, logWarn } from "./log.js";
 import {
-  REPOSITORY_EVIDENCE_DEFAULT_GLOB_PATTERNS,
-  REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES,
+  aggregateSourceFilesSkipped,
+  type RepositoryEvidenceAcquisitionAccounting,
+} from "./repository-evidence-acquisition-accounting.js";
+import {
   REPOSITORY_EVIDENCE_MAX_FILE_BYTES,
-  prioritizeRepositoryEvidencePaths,
+  selectRepositoryEvidenceCandidatePaths,
 } from "./repository-evidence/corpusPolicy.js";
 
 const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
 const BATCH_SIZE = 10;
 
 export interface FetchOptions {
+  /** Operational fetch timeout only; does not change evidence policy. */
   timeoutMs?: number;
-  maxFileSize?: number;
-  maxFiles?: number;
-  patterns?: string[];
 }
 
 export interface FetchResult {
   files: Map<string, string>;
+  /**
+   * Cap-selected paths not retrieved as UTF-8 content (size limit or fetch failure).
+   * Excludes repository-evidence cap truncation and ineligible paths.
+   */
   sourceFilesSkipped: number;
+  repositoryEvidenceEligibleCandidateCount: number;
+  repositoryEvidenceSelectedCandidateCount: number;
+  repositoryEvidenceCapTruncatedCandidateCount: number;
+  sourceFilesSkippedOversized: number;
+  sourceFilesSkippedFetchError: number;
 }
 
 function defaultFetchTimeoutMs(): number {
@@ -36,14 +45,9 @@ export async function fetchGitHubFiles(
   options: FetchOptions = {},
 ): Promise<FetchResult> {
   const timeoutMs = options.timeoutMs ?? defaultFetchTimeoutMs();
-  const maxFileSize = options.maxFileSize ?? REPOSITORY_EVIDENCE_MAX_FILE_BYTES;
-  const maxFiles = options.maxFiles ?? REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES;
-  const patterns = options.patterns ?? [
-    ...REPOSITORY_EVIDENCE_DEFAULT_GLOB_PATTERNS,
-  ];
 
   return Promise.race([
-    fetchFilesInternal(repoSource, patterns, { maxFileSize, maxFiles }),
+    fetchFilesInternal(repoSource),
     new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("File fetch timeout")), timeoutMs),
     ),
@@ -52,14 +56,12 @@ export async function fetchGitHubFiles(
 
 async function fetchFilesInternal(
   repoSource: RepoSource,
-  patterns: string[],
-  options: { maxFileSize: number; maxFiles: number },
 ): Promise<FetchResult> {
   const { owner, repo, sha, installationId } = repoSource;
-  const { maxFileSize, maxFiles } = options;
+  const maxFileSize = REPOSITORY_EVIDENCE_MAX_FILE_BYTES;
 
   logInfo(
-    { owner, repo, sha, installationId, maxFileSize, maxFiles },
+    { owner, repo, sha, installationId, maxFileSize },
     "Fetching GitHub repository files",
   );
 
@@ -78,29 +80,36 @@ async function fetchFilesInternal(
     .filter((item) => item.type === "blob" && item.path)
     .map((item) => item.path!);
 
-  const selectedPaths = prioritizeRepositoryEvidencePaths(blobPaths, {
-    maxFiles,
-    patterns,
-  });
+  const selection = selectRepositoryEvidenceCandidatePaths(blobPaths);
   const pathToItem = new Map(
     tree.tree
       .filter((item) => item.type === "blob" && item.path)
       .map((item) => [item.path!, item]),
   );
-  const sourceFiles = selectedPaths
-    .map((path) => pathToItem.get(path))
+
+  const sourceFiles = selection.selectedPaths
+    .map((path) => {
+      const item = pathToItem.get(path);
+      if (item) return item;
+      return null;
+    })
     .filter((item): item is NonNullable<typeof item> => item != null);
 
-  const candidatesAfterFilter = sourceFiles.length;
+  let sourceFilesSkippedFetchError =
+    selection.selectedCandidateCount - sourceFiles.length;
 
   logInfo(
-    { count: sourceFiles.length, maxFiles },
+    {
+      eligibleCandidateCount: selection.eligibleCandidateCount,
+      selectedCandidateCount: selection.selectedCandidateCount,
+      capTruncatedCandidateCount: selection.capTruncatedCandidateCount,
+      treeMatchedForFetch: sourceFiles.length,
+    },
     "Found and filtered source files",
   );
 
   const fileContents = new Map<string, string>();
-  let skippedLargeFiles = 0;
-  let skippedErrors = 0;
+  let sourceFilesSkippedOversized = 0;
 
   for (let i = 0; i < sourceFiles.length; i += BATCH_SIZE) {
     const batch = sourceFiles.slice(i, i + BATCH_SIZE);
@@ -114,13 +123,13 @@ async function fetchFilesInternal(
           });
 
           if (data.size && data.size > maxFileSize) {
-            skippedLargeFiles++;
+            sourceFilesSkippedOversized++;
             return null;
           }
 
           const content = Buffer.from(data.content, "base64").toString("utf-8");
           if (Buffer.byteLength(content, "utf-8") > maxFileSize) {
-            skippedLargeFiles++;
+            sourceFilesSkippedOversized++;
             return null;
           }
 
@@ -133,7 +142,7 @@ async function fetchFilesInternal(
             },
             "Failed to fetch file",
           );
-          skippedErrors++;
+          sourceFilesSkippedFetchError++;
           return null;
         }
       }),
@@ -144,22 +153,34 @@ async function fetchFilesInternal(
     }
   }
 
-  const sourceFilesSkipped =
-    skippedLargeFiles +
-    skippedErrors +
-    Math.max(0, candidatesAfterFilter - fileContents.size);
+  const accounting: RepositoryEvidenceAcquisitionAccounting = {
+    repositoryEvidenceEligibleCandidateCount: selection.eligibleCandidateCount,
+    repositoryEvidenceSelectedCandidateCount: selection.selectedCandidateCount,
+    repositoryEvidenceCapTruncatedCandidateCount:
+      selection.capTruncatedCandidateCount,
+    sourceFilesSkippedOversized,
+    sourceFilesSkippedFetchError,
+  };
+
+  const sourceFilesSkipped = aggregateSourceFilesSkipped(accounting);
 
   logInfo(
     {
       count: fileContents.size,
-      skippedLargeFiles,
-      skippedErrors,
       sourceFilesSkipped,
+      sourceFilesSkippedOversized,
+      sourceFilesSkippedFetchError,
+      repositoryEvidenceCapTruncatedCandidateCount:
+        selection.capTruncatedCandidateCount,
     },
     "Successfully fetched file contents",
   );
 
-  return { files: fileContents, sourceFilesSkipped };
+  return {
+    files: fileContents,
+    sourceFilesSkipped,
+    ...accounting,
+  };
 }
 
 export function classifyFetchError(error: unknown): string {

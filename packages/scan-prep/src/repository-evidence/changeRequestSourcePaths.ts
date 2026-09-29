@@ -1,20 +1,11 @@
 /**
  * Change-request (PR) changed-path filtering — distinct from full-tree corpus policy.
- * Excludes test fixtures and declaration-only paths that tree glob matching may still include.
  */
 
-import { normalizeRepositoryRelativePath } from "./corpusPolicy.js";
-
-const CHANGE_REQUEST_SOURCE_EXTENSIONS = new Set([
-  ".js",
-  ".jsx",
-  ".ts",
-  ".tsx",
-  ".mjs",
-  ".cjs",
-  ".mts",
-  ".cts",
-]);
+import {
+  isCanonicalRepositoryRelativePath,
+  terminalRepositorySourceExtension,
+} from "./corpusPolicy.js";
 
 const CHANGE_REQUEST_IGNORED_PATH_PATTERNS = [
   /node_modules\//,
@@ -31,14 +22,11 @@ const CHANGE_REQUEST_IGNORED_PATH_PATTERNS = [
 export function isChangeRequestChangedSourcePathEligible(
   path: string,
 ): boolean {
-  const normalized = normalizeRepositoryRelativePath(path);
-  const dotIndex = normalized.lastIndexOf(".");
-  if (dotIndex === -1) return false;
-  const ext = normalized.substring(dotIndex);
-  if (!CHANGE_REQUEST_SOURCE_EXTENSIONS.has(ext)) return false;
+  if (!isCanonicalRepositoryRelativePath(path)) return false;
+  if (terminalRepositorySourceExtension(path) === null) return false;
 
   for (const pattern of CHANGE_REQUEST_IGNORED_PATH_PATTERNS) {
-    if (pattern.test(normalized)) return false;
+    if (pattern.test(path)) return false;
   }
   return true;
 }

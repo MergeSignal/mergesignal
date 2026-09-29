@@ -1,15 +1,23 @@
 import type { RepoSource } from "@mergesignal/shared";
 
 import { logDebug, logInfo } from "./log.js";
+import type { RepositoryEvidenceAcquisitionAccounting } from "./repository-evidence-acquisition-accounting.js";
+
+type CachedCorpusMetrics = {
+  fileCount: number;
+  totalBytes: number;
+  fetchTimeMs: number;
+} & RepositoryEvidenceAcquisitionAccounting;
+
+type CachedCorpusEntry = {
+  files: Map<string, string>;
+  metrics: CachedCorpusMetrics;
+};
 
 interface CachedFiles {
   files: Map<string, string>;
   fetchedAt: Date;
-  metrics: {
-    fileCount: number;
-    totalBytes: number;
-    fetchTimeMs: number;
-  };
+  metrics: CachedCorpusMetrics;
 }
 
 const cache = new Map<string, CachedFiles>();
@@ -24,9 +32,9 @@ function getCacheKey(repoSource: RepoSource): string {
   return `${repoSource.owner}/${repoSource.repo}@${repoSource.sha}`;
 }
 
-export function getCachedFiles(
+export function getCachedCorpus(
   repoSource: RepoSource,
-): Map<string, string> | null {
+): CachedCorpusEntry | null {
   const key = getCacheKey(repoSource);
   const cached = cache.get(key);
   if (!cached) return null;
@@ -43,13 +51,13 @@ export function getCachedFiles(
     { key, fileCount: cached.metrics.fileCount, ageMs: age },
     "Cache hit",
   );
-  return cached.files;
+  return { files: cached.files, metrics: cached.metrics };
 }
 
-export function setCachedFiles(
+export function setCachedCorpus(
   repoSource: RepoSource,
   files: Map<string, string>,
-  metrics: CachedFiles["metrics"],
+  metrics: CachedCorpusMetrics,
 ): void {
   const key = getCacheKey(repoSource);
   cache.set(key, { files, fetchedAt: new Date(), metrics });
@@ -59,7 +67,14 @@ export function setCachedFiles(
       fileCount: metrics.fileCount,
       totalBytes: metrics.totalBytes,
       fetchTimeMs: metrics.fetchTimeMs,
+      repositoryEvidenceCapTruncatedCandidateCount:
+        metrics.repositoryEvidenceCapTruncatedCandidateCount,
     },
     "Cached files",
   );
+}
+
+/** @internal test-only */
+export function __resetFileCacheForTests(): void {
+  cache.clear();
 }

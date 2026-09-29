@@ -41,8 +41,8 @@ export const PROHIBITED_RUNTIME = [
   "classifyFetchError",
   "getInstallationToken",
   "clearTokenCache",
-  "getCachedFiles",
-  "setCachedFiles",
+  "getCachedCorpus",
+  "setCachedCorpus",
   "clearCache",
   "cleanupExpiredEntries",
   "__resetFileCacheForTests",
@@ -57,17 +57,15 @@ export const APPROVED_PACKAGE_EXPORTS = [
 ] as const;
 
 export const APPROVED_REPOSITORY_EVIDENCE_RUNTIME = [
-  "REPOSITORY_EVIDENCE_DEFAULT_GLOB_PATTERNS",
   "REPOSITORY_EVIDENCE_EXCLUDED_PATH_MARKERS",
   "REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES",
   "REPOSITORY_EVIDENCE_MAX_FILE_BYTES",
+  "REPOSITORY_EVIDENCE_SOURCE_EXTENSIONS",
   "filterChangeRequestChangedSourcePaths",
   "isChangeRequestChangedSourcePathEligible",
   "isRepositoryEvidencePathEligible",
   "isRepositoryEvidencePathExcluded",
-  "normalizeRepositoryRelativePath",
   "prioritizeRepositoryEvidencePaths",
-  "repositoryEvidenceFilePriority",
 ] as const;
 
 export const APPROVED_REPOSITORY_EVIDENCE_TYPES = [] as const;
