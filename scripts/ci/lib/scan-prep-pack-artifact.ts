@@ -17,6 +17,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  classifyNpmjsScanPrepVersionAvailability,
+  PACKAGE_NAME,
+} from "./scan-prep-npmjs-version-availability.ts";
+import { NPMJS_REGISTRY } from "./npmjs-registry.ts";
+
+import {
   APPROVED_LOCKFILE_RUNTIME,
   APPROVED_REPOSITORY_EVIDENCE_RUNTIME,
   APPROVED_ROOT_RUNTIME,
@@ -28,8 +34,8 @@ export const SCAN_PREP_DIR = path.resolve(
   __dirname,
   "../../../packages/scan-prep",
 );
-export const PACKAGE_NAME = "@mergesignal/scan-prep";
-export const NPMJS_REGISTRY = "https://registry.npmjs.org/";
+export { NPMJS_REGISTRY, PACKAGE_NAME };
+
 const PRIVATE_PACKAGE = "@mergesignal/contracts";
 const INVALID_PROTOCOL = /^(catalog:|workspace:|link:|file:)/;
 export const PACK_IN_PROGRESS_ENV = "MS_SCAN_PREP_PACK_IN_PROGRESS";
@@ -117,9 +123,21 @@ export function readScanPrepSourceSharedDependencyVersion(
   return sharedDep;
 }
 
-function readPublishedScanPrepSharedDependencyPin(
+export type ScanPrepVersionAvailability =
+  | { kind: "published"; version: string }
+  | { kind: "not_found" }
+  | { kind: "unavailable"; message: string };
+
+export type ScanPrepSharedDependencyAlignmentDeps = {
+  scanPrepVersionAvailability: (
+    scanPrepVersion: string,
+  ) => ScanPrepVersionAvailability;
+  readPublishedSharedDependencyPin: (scanPrepVersion: string) => string;
+};
+
+function readPublishedScanPrepSharedDependencyPinFromRegistry(
   scanPrepVersion: string,
-): string | undefined {
+): string {
   try {
     const stdout = execSync(
       `npm view ${PACKAGE_NAME}@${scanPrepVersion} dependencies.@mergesignal/shared --registry ${NPMJS_REGISTRY}`,
@@ -133,9 +151,71 @@ function readPublishedScanPrepSharedDependencyPin(
         },
       },
     ).trim();
-    return stdout || undefined;
-  } catch {
-    return undefined;
+    if (!stdout) {
+      throw new Error(
+        `published ${PACKAGE_NAME}@${scanPrepVersion} is missing dependencies.@mergesignal/shared on npmjs`,
+      );
+    }
+    return stdout;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : String(error ?? "unknown error");
+    throw new Error(
+      `could not read published @mergesignal/shared dependency for ${PACKAGE_NAME}@${scanPrepVersion} from npmjs: ${message}`,
+    );
+  }
+}
+
+function defaultScanPrepVersionAvailability(
+  scanPrepVersion: string,
+): ScanPrepVersionAvailability {
+  return classifyNpmjsScanPrepVersionAvailability(scanPrepVersion);
+}
+
+export function assertScanPrepSharedDependencyAlignment(
+  input: {
+    sharedReleaseVersion: string;
+    scanPrepVersion: string;
+    scanPrepSharedVersion: string;
+  },
+  deps: ScanPrepSharedDependencyAlignmentDeps,
+): void {
+  const { sharedReleaseVersion, scanPrepVersion, scanPrepSharedVersion } =
+    input;
+  const availability = deps.scanPrepVersionAvailability(scanPrepVersion);
+
+  if (availability.kind === "unavailable") {
+    throw new Error(
+      `@mergesignal/scan-prep@${scanPrepVersion} registry availability could not be proven: ${availability.message}`,
+    );
+  }
+
+  if (availability.kind === "published") {
+    let publishedSharedPin: string;
+    try {
+      publishedSharedPin =
+        deps.readPublishedSharedDependencyPin(scanPrepVersion);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error ?? "unknown error");
+      throw new Error(
+        `could not read published @mergesignal/shared dependency for ${PACKAGE_NAME}@${scanPrepVersion} from npmjs: ${message}`,
+      );
+    }
+    if (scanPrepSharedVersion !== publishedSharedPin) {
+      throw new Error(
+        `packages/scan-prep/package.json @mergesignal/shared must match the published ${PACKAGE_NAME}@${scanPrepVersion} npmjs dependency (${publishedSharedPin}); got ${scanPrepSharedVersion}`,
+      );
+    }
+    return;
+  }
+
+  if (scanPrepSharedVersion !== sharedReleaseVersion) {
+    throw new Error(
+      `packages/scan-prep/package.json @mergesignal/shared must match packages/shared/package.json version (${sharedReleaseVersion}) for unpublished ${PACKAGE_NAME}@${scanPrepVersion}; got ${scanPrepSharedVersion}`,
+    );
   }
 }
 
@@ -143,6 +223,7 @@ function readPublishedScanPrepSharedDependencyPin(
 export function assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(options?: {
   sharedPackageJsonPath?: string;
   scanPrepPackageJsonPath?: string;
+  alignmentDeps?: ScanPrepSharedDependencyAlignmentDeps;
 }): void {
   const sharedReleaseVersion = readSharedReleaseVersion(
     options?.sharedPackageJsonPath,
@@ -151,22 +232,20 @@ export function assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(o
     options?.scanPrepPackageJsonPath ?? SCAN_PREP_PACKAGE_JSON;
   const scanPrepSharedVersion =
     readScanPrepSourceSharedDependencyVersion(scanPrepManifestPath);
-  if (scanPrepSharedVersion === sharedReleaseVersion) {
-    return;
-  }
-
   const scanPrepVersion = readSourceManifest(scanPrepManifestPath).version;
-  const publishedSharedPin =
-    readPublishedScanPrepSharedDependencyPin(scanPrepVersion);
-  if (
-    publishedSharedPin === scanPrepSharedVersion &&
-    publishedSharedPin !== undefined
-  ) {
-    return;
-  }
+  const deps = options?.alignmentDeps ?? {
+    scanPrepVersionAvailability: defaultScanPrepVersionAvailability,
+    readPublishedSharedDependencyPin:
+      readPublishedScanPrepSharedDependencyPinFromRegistry,
+  };
 
-  throw new Error(
-    `packages/scan-prep/package.json @mergesignal/shared must match packages/shared/package.json version (${sharedReleaseVersion}) or match the published @mergesignal/scan-prep@${scanPrepVersion} registry pin; got ${scanPrepSharedVersion}`,
+  assertScanPrepSharedDependencyAlignment(
+    {
+      sharedReleaseVersion,
+      scanPrepVersion,
+      scanPrepSharedVersion,
+    },
+    deps,
   );
 }
 
