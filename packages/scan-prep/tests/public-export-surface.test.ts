@@ -4,11 +4,14 @@ import {
   APPROVED_LOCKFILE_RUNTIME,
   APPROVED_LOCKFILE_TYPES,
   APPROVED_PACKAGE_EXPORTS,
+  APPROVED_REPOSITORY_EVIDENCE_RUNTIME,
+  APPROVED_REPOSITORY_EVIDENCE_TYPES,
   APPROVED_ROOT_RUNTIME,
   APPROVED_ROOT_TYPES,
   PROHIBITED_RUNTIME,
 } from "../approved-export-surface.js";
 import * as lockfile from "../src/lockfile.js";
+import * as repositoryEvidence from "../src/repository-evidence.js";
 import * as root from "../src/index.js";
 
 describe("public export surface", () => {
@@ -27,10 +30,17 @@ describe("public export surface", () => {
     }
   });
 
-  it("does not expose prohibited symbols on root or lockfile barrels", () => {
+  it("exposes exactly approved repository-evidence subpath runtime symbols", () => {
+    expect(Object.keys(repositoryEvidence).sort()).toEqual(
+      [...APPROVED_REPOSITORY_EVIDENCE_RUNTIME].sort(),
+    );
+  });
+
+  it("does not expose prohibited symbols on public barrels", () => {
     for (const symbol of PROHIBITED_RUNTIME) {
       expect(root).not.toHaveProperty(symbol);
       expect(lockfile).not.toHaveProperty(symbol);
+      expect(repositoryEvidence).not.toHaveProperty(symbol);
     }
   });
 
@@ -42,18 +52,24 @@ describe("public export surface", () => {
     ]);
     expect(APPROVED_LOCKFILE_RUNTIME).toHaveLength(12);
     expect(APPROVED_LOCKFILE_TYPES).toHaveLength(7);
-    expect(APPROVED_PACKAGE_EXPORTS).toEqual([".", "./lockfile"]);
+    expect(APPROVED_REPOSITORY_EVIDENCE_RUNTIME).toHaveLength(9);
+    expect(APPROVED_REPOSITORY_EVIDENCE_TYPES).toHaveLength(0);
+    expect(APPROVED_PACKAGE_EXPORTS).toEqual([
+      ".",
+      "./lockfile",
+      "./repository-evidence",
+    ]);
   });
 });
 
-describe("lockfile subpath resolution", () => {
-  it("resolves package.json exports map for ./lockfile", async () => {
+describe("subpath resolution", () => {
+  it("resolves package.json exports map for governed subpaths", async () => {
     const pkg = await import("../package.json", { with: { type: "json" } });
     expect(Object.keys(pkg.default.exports).sort()).toEqual(
       [...APPROVED_PACKAGE_EXPORTS].sort(),
     );
-    const lockfileExport = pkg.default.exports["./lockfile"];
-    expect(lockfileExport.import).toBe("./dist/lockfile.js");
-    expect(lockfileExport.types).toBe("./dist/lockfile.d.ts");
+    expect(pkg.default.exports["./repository-evidence"].import).toBe(
+      "./dist/repository-evidence.js",
+    );
   });
 });

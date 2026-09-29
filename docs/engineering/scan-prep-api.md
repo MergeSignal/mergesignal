@@ -76,6 +76,8 @@ Scan Preparation **produces prepared evidence and uncertainties**. It does **not
 | `PrepareScanContextResult` | Result type                          |
 | `ScanPreparationSummary`   | Preparation metadata / observability |
 
+`ScanPreparationSummary` includes repository-evidence acquisition accounting when source corpus fetch runs: eligible, selected, and cap-truncated candidate counts, plus size- and fetch-failure skips among cap-selected paths. When corpus fetch does not run, these counts are zero. `sourceFilesSkipped` counts only cap-selected paths that failed size policy or content fetch—not cap truncation and not policy-ineligible paths.
+
 The workspace root entry (`@mergesignal/scan-prep`) exports **only** the symbols in the table above. Lockfile ingress symbols are available exclusively from `@mergesignal/scan-prep/lockfile`. Authentication, corpus cache controls, and raw GitHub fetch helpers remain internal implementation details.
 
 ---
@@ -105,6 +107,82 @@ The workspace root entry (`@mergesignal/scan-prep`) exports **only** the symbols
 | `ImporterTransitionChangeKind`             | Change kind type                                  |
 
 **Note:** The `./lockfile` subpath is configured in `packages/scan-prep/package.json`. Engine continues to import from its local workspace copy until registry consumption graduates.
+
+---
+
+## Approved `./repository-evidence` exports (`@mergesignal/scan-prep/repository-evidence`)
+
+Provider-neutral repository source-evidence selection policy (pure predicates and bounds). Used by public GitHub corpus preparation and future local acquisition; not storage, upload, or merge-decision logic.
+
+### Policy ownership and roles
+
+- **Full-tree corpus** (`isRepositoryEvidencePathEligible`, `prioritizeRepositoryEvidencePaths`): selects ranked, capped source paths from a complete repository tree for code-analysis evidence collection.
+- **Change-request paths** (`isChangeRequestChangedSourcePathEligible`, `filterChangeRequestChangedSourcePaths`): filters PR/webhook changed-file lists to implementable source paths. Does not rank or cap; the host already bounded the list.
+
+Evidence selection chooses **which source files may be collected** for dependency-consumption analysis. It does **not** adjudicate merge compatibility, safety, or Assessment Decision outcomes.
+
+### Canonical path input contract
+
+Acquisition adapters (GitHub tree listing, webhook changed-files, future local/git enumeration) must supply **canonical repository-relative paths** as opaque repository identity strings:
+
+- non-empty;
+- no leading `./`;
+- no leading `/`;
+- not drive-letter / filesystem-root forms (for example `C:`).
+
+The policy validates representation shape only. It does **not** trim, rewrite separators, or otherwise change path identity. Literal backslash or whitespace inside a path may be legitimate repository identity where Git permits it; local acquisition adapters normalize platform filesystem separators **before** this boundary. The policy is **not** a filesystem traversal or path-safety boundary.
+
+Non-canonical path strings are ineligible for corpus selection and change-request filtering.
+
+### Governed source extensions (full-tree corpus)
+
+One frozen extension set — **`REPOSITORY_EVIDENCE_SOURCE_EXTENSIONS`**. Callers must not override eligibility extensions.
+
+Supported terminal extensions: `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts`, `.cts`. Matching is by exact terminal extension (for example `.js` does not match `.json` or `.js.map`). `.mts` and `.cts` are TypeScript implementation sources for evidence priority as well as eligibility.
+
+**Current supported corpus scope** excludes declaration-only `.d.ts` files. That is a supported-scope boundary for repository evidence collection—not a claim that declaration contents could never be useful if supplied elsewhere.
+
+### Intentional full-tree vs change-request differences
+
+| Concern                          | Full-tree corpus                                       | Change-request filter                                  |
+| -------------------------------- | ------------------------------------------------------ | ------------------------------------------------------ |
+| Scope                            | Governed extensions + directory segment exclusions     | Same governed extensions + PR-specific path ignores    |
+| `.d.ts`                          | Excluded in current supported scope                    | Excluded via `/\.d\.ts$/`                              |
+| Test paths                       | Directory markers (`tests/`, `spec/`, `__tests__/`, …) | Filename/segment patterns (`.test.`, `.spec.`, …)      |
+| `public/`, `assets/`, build dirs | Excluded via segment markers                           | Not excluded unless path matches a test/ignore pattern |
+| Ranking / cap                    | Priority, exact-path dedupe, path tie-break, then cap  | No ranking or cap                                      |
+
+### Acquisition bounds
+
+`REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES` is a **fixed acquisition ceiling** on how many eligible repository paths may proceed to content retrieval after deterministic selection. `REPOSITORY_EVIDENCE_MAX_FILE_BYTES` (**500 KB** per file, UTF-8) bounds per-file content acquisition. Callers cannot override these through `prioritizeRepositoryEvidencePaths` or public fetch options.
+
+Repository-evidence selection applies provider-neutral eligibility, exact-path dedupe, deterministic ranking, and the governed cap. It is a **bounded baseline selector**, not a claim of full repository coverage. Acquisition or orchestration **may supply a dependency-relevant candidate path set before** this policy runs; the policy validates and bounds that set—it does not rewrite path identity.
+
+Partial repository observation must remain visible through preparation accounting (eligible vs selected vs fetched vs cap-truncated vs size/fetch skips). Repository-evidence selection does **not** adjudicate Assessment outcomes or merge posture.
+
+### Deterministic bounded selection
+
+Pipeline: **canonical paths → eligibility → exact-path dedupe → evidence priority (desc) → UTF-16 path tie-break → cap**.
+
+Equivalent eligible path sets produce the same capped result regardless of provider enumeration order.
+
+### Exported policy collections
+
+`REPOSITORY_EVIDENCE_SOURCE_EXTENSIONS` and `REPOSITORY_EVIDENCE_EXCLUDED_PATH_MARKERS` are runtime-frozen; consumers must not mutate them.
+
+| Symbol                                      | Role                                                                        |
+| ------------------------------------------- | --------------------------------------------------------------------------- |
+| `REPOSITORY_EVIDENCE_MAX_FILE_BYTES`        | Per-file UTF-8 byte bound for source evidence                               |
+| `REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES`   | Maximum repository paths considered per collection pass                     |
+| `REPOSITORY_EVIDENCE_SOURCE_EXTENSIONS`     | Governed terminal source extensions for full-tree corpus                    |
+| `REPOSITORY_EVIDENCE_EXCLUDED_PATH_MARKERS` | Path segment markers excluded from evidence (vendor/build/test)             |
+| `isRepositoryEvidencePathExcluded`          | Exclusion predicate for evidence paths                                      |
+| `isRepositoryEvidencePathEligible`          | Full-tree corpus eligibility (extensions + exclusions)                      |
+| `prioritizeRepositoryEvidencePaths`         | Dedupe, rank, and apply fixed `REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES` cap |
+| `isChangeRequestChangedSourcePathEligible`  | PR changed-path source relevance (distinct from full-tree corpus)           |
+| `filterChangeRequestChangedSourcePaths`     | Filter PR changed paths to relevant source files                            |
+
+The workspace root entry (`@mergesignal/scan-prep`) does **not** re-export repository-evidence symbols. Consumers import `@mergesignal/scan-prep/repository-evidence` explicitly.
 
 ---
 
@@ -230,4 +308,3 @@ This section is the lifecycle authority for Scan Preparation documentation. Temp
 | npm Trusted Publishing (OIDC)                    | **Proven at `0.1.4`** — configured on npmjs; tag-triggered publication via `publish-scan-prep.yml` with no stored npm write token                                                                                                                               |
 | Engine registry consumption                      | **Not yet active** — engine uses local `packages/scan-prep` (separate operation)                                                                                                                                                                                |
 | Private collection relocation to worker boundary | **Implemented in engine** (not in this package)                                                                                                                                                                                                                 |
-| Public corpus-fetch bounded alignment            | **Deferred** — engine-governed; unchanged by public core                                                                                                                                                                                                        |

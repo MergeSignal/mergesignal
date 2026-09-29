@@ -41,8 +41,8 @@ export const PROHIBITED_RUNTIME = [
   "classifyFetchError",
   "getInstallationToken",
   "clearTokenCache",
-  "getCachedFiles",
-  "setCachedFiles",
+  "getCachedCorpus",
+  "setCachedCorpus",
   "clearCache",
   "cleanupExpiredEntries",
   "__resetFileCacheForTests",
@@ -50,4 +50,22 @@ export const PROHIBITED_RUNTIME = [
   "executeCollectionPlan",
 ] as const;
 
-export const APPROVED_PACKAGE_EXPORTS = [".", "./lockfile"] as const;
+export const APPROVED_PACKAGE_EXPORTS = [
+  ".",
+  "./lockfile",
+  "./repository-evidence",
+] as const;
+
+export const APPROVED_REPOSITORY_EVIDENCE_RUNTIME = [
+  "REPOSITORY_EVIDENCE_EXCLUDED_PATH_MARKERS",
+  "REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES",
+  "REPOSITORY_EVIDENCE_MAX_FILE_BYTES",
+  "REPOSITORY_EVIDENCE_SOURCE_EXTENSIONS",
+  "filterChangeRequestChangedSourcePaths",
+  "isChangeRequestChangedSourcePathEligible",
+  "isRepositoryEvidencePathEligible",
+  "isRepositoryEvidencePathExcluded",
+  "prioritizeRepositoryEvidencePaths",
+] as const;
+
+export const APPROVED_REPOSITORY_EVIDENCE_TYPES = [] as const;

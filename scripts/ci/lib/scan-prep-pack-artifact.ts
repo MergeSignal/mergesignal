@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   APPROVED_LOCKFILE_RUNTIME,
+  APPROVED_REPOSITORY_EVIDENCE_RUNTIME,
   APPROVED_ROOT_RUNTIME,
 } from "../../../packages/scan-prep/approved-export-surface.ts";
 import { readSharedReleaseVersion } from "./shared-package-version.ts";
@@ -38,6 +39,8 @@ const REQUIRED_RELEASE_ENTRYPOINTS = [
   "package/dist/index.d.ts",
   "package/dist/lockfile.js",
   "package/dist/lockfile.d.ts",
+  "package/dist/repository-evidence.js",
+  "package/dist/repository-evidence.d.ts",
 ] as const;
 
 export type PackedScanPrepManifest = {
@@ -578,6 +581,10 @@ export function validatePackedScanPrepArtifact(input: {
         `tar -xOf "${tarballName}" package/dist/lockfile.d.ts`,
         packDir,
       );
+      const repositoryEvidenceDecl = run(
+        `tar -xOf "${tarballName}" package/dist/repository-evidence.d.ts`,
+        packDir,
+      );
       for (const symbol of APPROVED_ROOT_RUNTIME) {
         if (!rootDecl.includes(symbol))
           violations.push(`root declaration missing ${symbol}`);
@@ -590,10 +597,25 @@ export function validatePackedScanPrepArtifact(input: {
           violations.push(`lockfile declaration missing ${symbol}`);
         }
       }
+      for (const symbol of [
+        "isRepositoryEvidencePathEligible",
+        "prioritizeRepositoryEvidencePaths",
+      ]) {
+        if (!repositoryEvidenceDecl.includes(symbol)) {
+          violations.push(`repository-evidence declaration missing ${symbol}`);
+        }
+      }
       for (const symbol of APPROVED_LOCKFILE_RUNTIME) {
         if (rootDecl.includes(symbol)) {
           violations.push(
             `lockfile runtime export ${symbol} leaked to root declaration`,
+          );
+        }
+      }
+      for (const symbol of APPROVED_REPOSITORY_EVIDENCE_RUNTIME) {
+        if (rootDecl.includes(symbol)) {
+          violations.push(
+            `repository-evidence runtime export ${symbol} leaked to root declaration`,
           );
         }
       }

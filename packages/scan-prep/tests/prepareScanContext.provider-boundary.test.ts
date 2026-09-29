@@ -45,7 +45,12 @@ describe("prepareScanContext provider boundary", () => {
       .spyOn(githubFiles, "fetchGitHubFiles")
       .mockResolvedValue({
         files: new Map([["src/index.ts", "import react from 'react';"]]),
-        skipped: [],
+        sourceFilesSkipped: 0,
+        repositoryEvidenceEligibleCandidateCount: 1,
+        repositoryEvidenceSelectedCandidateCount: 1,
+        repositoryEvidenceCapTruncatedCandidateCount: 0,
+        sourceFilesSkippedOversized: 0,
+        sourceFilesSkippedFetchError: 0,
       });
 
     const job: ScanQueueJob = {

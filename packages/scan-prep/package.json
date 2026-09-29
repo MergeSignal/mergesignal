@@ -27,6 +27,11 @@
       "types": "./dist/lockfile.d.ts",
       "import": "./dist/lockfile.js",
       "default": "./dist/lockfile.js"
+    },
+    "./repository-evidence": {
+      "types": "./dist/repository-evidence.d.ts",
+      "import": "./dist/repository-evidence.js",
+      "default": "./dist/repository-evidence.js"
     }
   },
   "scripts": {

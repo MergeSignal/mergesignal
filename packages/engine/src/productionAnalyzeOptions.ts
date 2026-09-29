@@ -20,6 +20,11 @@ export type ProductionScanPreparationSummary = {
   changedFileCount: number;
   sourceFilesFetched: number;
   sourceFilesSkipped: number;
+  repositoryEvidenceEligibleCandidateCount: number;
+  repositoryEvidenceSelectedCandidateCount: number;
+  repositoryEvidenceCapTruncatedCandidateCount: number;
+  sourceFilesSkippedOversized: number;
+  sourceFilesSkippedFetchError: number;
   warningCodes: string[];
 };
 
