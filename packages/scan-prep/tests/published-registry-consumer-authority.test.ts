@@ -6,7 +6,7 @@ import {
 } from "../../../scripts/ci/check-scan-prep-published-registry.ts";
 import { readRootPackageManagerAuthority } from "../../../scripts/ci/lib/root-package-manager.ts";
 
-const FIXTURE_SCAN_PREP_VERSION = "0.1.8";
+const FIXTURE_SCAN_PREP_VERSION = "0.1.9";
 const FIXTURE_SHARED_VERSION = "0.19.1";
 
 describe("published-registry isolated consumer packageManager authority", () => {
