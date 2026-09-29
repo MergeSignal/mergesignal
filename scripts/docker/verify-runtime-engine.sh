@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Runtime ABI smoke — run inside the final worker image (Node 22, production env).
+# Runtime ABI smoke — run inside the final worker image (Node 24.21.0, production env).
 set -eu
 
 export NODE_ENV=production

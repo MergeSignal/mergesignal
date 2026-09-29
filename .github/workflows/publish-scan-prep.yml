@@ -52,6 +52,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
       - name: Enable pnpm via Corepack
         run: |
           corepack enable
@@ -61,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
           NODE_VERSION="$(node -v | sed 's/^v//')"
-          REQUIRED_NODE='22.14.0'
+          REQUIRED_NODE='24.15.0'
           NODE_VERSION="$NODE_VERSION" REQUIRED_NODE="$REQUIRED_NODE" node -e "
             const current = process.env.NODE_VERSION.split('.').map(Number);
             const required = process.env.REQUIRED_NODE.split('.').map(Number);
@@ -171,7 +175,7 @@ jobs:
       - name: Configure npmjs registry for OIDC publish
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org
           scope: "@mergesignal"
 

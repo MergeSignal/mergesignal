@@ -25,9 +25,9 @@ These paths **derive** pnpm from the authority via `corepack install` after `pac
 | Surface                                  | Mechanism                                                                                                                             |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Local dev / CI                           | `corepack enable && corepack install`                                                                                                 |
-| `apps/api/Dockerfile`                    | Copy root `package.json` → `corepack install`                                                                                         |
-| `apps/web/Dockerfile`                    | Copy root `package.json` → `corepack install`                                                                                         |
-| `apps/worker/Dockerfile`                 | Copy root `package.json` → `corepack install`                                                                                         |
+| `apps/api/Dockerfile`                    | Copy root `package.json` → `corepack enable && corepack install` (pnpm derived from `packageManager`; Node `24.21.0-alpine`)          |
+| `apps/web/Dockerfile`                    | Same as API                                                                                                                           |
+| `apps/worker/Dockerfile`                 | Same as API                                                                                                                           |
 | `scripts/docker/build-private-engine.sh` | After cloning **mergesignal-engine**, `corepack install` reads **engine** `package.json` (engine is authority for that build context) |
 
 ## Update procedure
