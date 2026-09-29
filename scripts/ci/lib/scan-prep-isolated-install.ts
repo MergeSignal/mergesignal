@@ -11,10 +11,10 @@ import {
   PACKAGE_NAME,
   type ScanPrepPackResult,
   digestSha512OfFile,
+  readScanPrepSourceSharedDependencyVersion,
   readSourcePackageJsonRaw,
 } from "./scan-prep-pack-artifact.ts";
 import { readRootPackageManagerAuthority } from "./root-package-manager.ts";
-import { readSharedReleaseVersion } from "./shared-package-version.ts";
 
 function run(command: string, cwd: string, env?: NodeJS.ProcessEnv): string {
   return execSync(command, {
@@ -37,7 +37,7 @@ export function runScanPrepIsolatedInstall(input: {
 }): IsolatedInstallResult {
   const { candidate } = input;
   const verifySourceUnchanged = input.verifySourceUnchanged ?? true;
-  const expectedSharedVersion = readSharedReleaseVersion();
+  const expectedSharedVersion = readScanPrepSourceSharedDependencyVersion();
   const sourceBefore = verifySourceUnchanged
     ? readSourcePackageJsonRaw()
     : undefined;

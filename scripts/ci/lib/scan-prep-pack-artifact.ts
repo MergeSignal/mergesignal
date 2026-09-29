@@ -117,6 +117,28 @@ export function readScanPrepSourceSharedDependencyVersion(
   return sharedDep;
 }
 
+function readPublishedScanPrepSharedDependencyPin(
+  scanPrepVersion: string,
+): string | undefined {
+  try {
+    const stdout = execSync(
+      `npm view ${PACKAGE_NAME}@${scanPrepVersion} dependencies.@mergesignal/shared --registry ${NPMJS_REGISTRY}`,
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        env: {
+          ...process.env,
+          NODE_AUTH_TOKEN: undefined,
+          NPM_TOKEN: undefined,
+        },
+      },
+    ).trim();
+    return stdout || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** scan-prep source manifest vs Shared own-release authority at packages/shared/package.json */
 export function assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(options?: {
   sharedPackageJsonPath?: string;
@@ -125,14 +147,27 @@ export function assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(o
   const sharedReleaseVersion = readSharedReleaseVersion(
     options?.sharedPackageJsonPath,
   );
-  const scanPrepSharedVersion = readScanPrepSourceSharedDependencyVersion(
-    options?.scanPrepPackageJsonPath,
-  );
-  if (scanPrepSharedVersion !== sharedReleaseVersion) {
-    throw new Error(
-      `packages/scan-prep/package.json @mergesignal/shared must match packages/shared/package.json version (${sharedReleaseVersion}); got ${scanPrepSharedVersion}`,
-    );
+  const scanPrepManifestPath =
+    options?.scanPrepPackageJsonPath ?? SCAN_PREP_PACKAGE_JSON;
+  const scanPrepSharedVersion =
+    readScanPrepSourceSharedDependencyVersion(scanPrepManifestPath);
+  if (scanPrepSharedVersion === sharedReleaseVersion) {
+    return;
   }
+
+  const scanPrepVersion = readSourceManifest(scanPrepManifestPath).version;
+  const publishedSharedPin =
+    readPublishedScanPrepSharedDependencyPin(scanPrepVersion);
+  if (
+    publishedSharedPin === scanPrepSharedVersion &&
+    publishedSharedPin !== undefined
+  ) {
+    return;
+  }
+
+  throw new Error(
+    `packages/scan-prep/package.json @mergesignal/shared must match packages/shared/package.json version (${sharedReleaseVersion}) or match the published @mergesignal/scan-prep@${scanPrepVersion} registry pin; got ${scanPrepSharedVersion}`,
+  );
 }
 
 function resolveReleaseCandidatePath(candidatePath: string): string {

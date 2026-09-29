@@ -41,13 +41,49 @@ describe("shared package version authority", () => {
 });
 
 describe("scan-prep Shared dependency alignment", () => {
-  it("requires scan-prep source dependency to match Shared release authority", () => {
+  it("accepts scan-prep alignment with Shared release authority", () => {
     expect(() =>
       assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(),
     ).not.toThrow();
-    expect(readScanPrepSourceSharedDependencyVersion()).toBe(
-      readSharedReleaseVersion(),
+  });
+
+  it("allows scan-prep to remain on published Shared pin while workspace Shared advances", () => {
+    const fixtureDir = mkdtempSync(
+      path.join(tmpdir(), "ms-scan-prep-published-pin-"),
     );
+    const sharedManifestPath = path.join(fixtureDir, "shared-package.json");
+    const scanPrepManifestPath = path.join(
+      fixtureDir,
+      "scan-prep-package.json",
+    );
+    writeFileSync(
+      sharedManifestPath,
+      `${JSON.stringify({ name: "@mergesignal/shared", version: "0.20.0" }, null, 2)}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      scanPrepManifestPath,
+      `${JSON.stringify(
+        {
+          name: "@mergesignal/scan-prep",
+          version: "0.1.9",
+          dependencies: { "@mergesignal/shared": "0.19.1" },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    try {
+      expect(() =>
+        assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority({
+          sharedPackageJsonPath: sharedManifestPath,
+          scanPrepPackageJsonPath: scanPrepManifestPath,
+        }),
+      ).not.toThrow();
+    } finally {
+      rmSync(fixtureDir, { recursive: true, force: true });
+    }
   });
 
   it("rejects scan-prep source drift from Shared release authority", () => {
@@ -84,7 +120,9 @@ describe("scan-prep Shared dependency alignment", () => {
           sharedPackageJsonPath: sharedManifestPath,
           scanPrepPackageJsonPath: scanPrepManifestPath,
         }),
-      ).toThrow(/must match packages\/shared\/package\.json version/);
+      ).toThrow(
+        /must match packages\/shared\/package\.json version|published @mergesignal\/scan-prep@/,
+      );
     } finally {
       rmSync(fixtureDir, { recursive: true, force: true });
     }
