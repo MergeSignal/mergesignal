@@ -2,6 +2,17 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## 0.20.0
+
+### Added
+
+- Governed public scan ingress wire types and runtime validators: `SerializableScanAcquiredFacts`, `RepositoryEvidenceEnvelope`, `GovernedScanProductResponse`, and related operational-outcome shapes (`scanIngressWire`, `scanIngressSchema`).
+- Versioned `repositoryEvidenceEnvelopeSchema` and helpers for provider-neutral repository evidence transport.
+- Additive optional `ScanQueueJob` orchestration fields: `changeIntent`, `acquiredFacts` (provider facts remain on queue surfaces; engine ingress stays provider-neutral).
+- Scan details presentation schema extensions aligned with governed scan product ingress.
+
+`ASSESSMENT_ABI` remains `4`. Additive wire and queue fields; consumers on `@mergesignal/shared@0.19.1` do not receive these exports until upgraded.
+
 ## 0.19.1
 
 ### Fixed

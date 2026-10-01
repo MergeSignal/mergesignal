@@ -12,8 +12,8 @@ import {
   validatePackedScanPrepArtifact,
 } from "./lib/scan-prep-pack-artifact.ts";
 
-function main(): void {
-  assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority();
+async function main(): Promise<void> {
+  await assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority();
   const sourceBefore = readSourcePackageJsonRaw();
   const packDir = mkdtempSync(`${tmpdir()}/ms-scan-prep-pack-check-`);
 
@@ -40,4 +40,9 @@ function main(): void {
   }
 }
 
-main();
+main().catch((error: unknown) => {
+  const message =
+    error instanceof Error ? error.message : String(error ?? "unknown error");
+  console.error(message);
+  process.exitCode = 1;
+});

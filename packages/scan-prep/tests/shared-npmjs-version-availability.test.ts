@@ -1,64 +1,62 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   classifyNpmjsSharedVersionAvailability,
-  isConfirmedExactSharedVersionNotFound,
+  SHARED_PACKAGE_NAME,
 } from "../../../scripts/ci/lib/shared-npmjs-version-availability.ts";
+import { buildNpmjsPackageVersionUrl } from "../../../scripts/ci/lib/npmjs-registry.ts";
 
-const { execFileSyncMock } = vi.hoisted(() => ({
-  execFileSyncMock: vi.fn(),
-}));
+const VERSION = "0.20.0";
 
-vi.mock("node:child_process", () => ({
-  execFileSync: execFileSyncMock,
-}));
-
-const VERSION = "0.18.0";
-const SPEC = "@mergesignal/shared@0.18.0";
-
-function npmError(stderr: string): never {
-  const error = new Error("npm command failed") as Error & {
-    status?: number;
-    stderr?: string;
-  };
-  error.status = 1;
-  error.stderr = stderr;
-  throw error;
+function mockRegistryResponse(status: number, body: string): typeof fetch {
+  return vi.fn().mockResolvedValue(new Response(body, { status }));
 }
 
-describe("npmjs shared version availability", () => {
-  it("classifies an exact published version", () => {
-    execFileSyncMock.mockReturnValue("0.18.0\n");
+describe("shared npmjs version availability adapter", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+  });
 
-    expect(classifyNpmjsSharedVersionAvailability(VERSION)).toEqual({
+  it("delegates to the generic exact-version registry authority", async () => {
+    const fetchImpl = mockRegistryResponse(
+      200,
+      JSON.stringify({
+        name: SHARED_PACKAGE_NAME,
+        version: VERSION,
+      }),
+    );
+
+    vi.stubGlobal("fetch", fetchImpl);
+
+    await expect(
+      classifyNpmjsSharedVersionAvailability(VERSION),
+    ).resolves.toEqual({
       kind: "published",
-      version: "0.18.0",
+      version: VERSION,
     });
-    expect(execFileSyncMock).toHaveBeenCalledWith(
-      "npm",
-      ["view", SPEC, "version", "--registry", "https://registry.npmjs.org/"],
-      expect.objectContaining({ encoding: "utf8" }),
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      buildNpmjsPackageVersionUrl(SHARED_PACKAGE_NAME, VERSION),
+      expect.objectContaining({ method: "GET" }),
     );
   });
 
-  it("classifies a confirmed exact-version npm E404 as not found", () => {
-    execFileSyncMock.mockImplementation(() => {
-      npmError(
-        "npm error code E404\nnpm error 404 No match found for version @mergesignal/shared@0.18.0",
-      );
-    });
+  it("classifies HTTP 404 as not_found", async () => {
+    vi.stubGlobal("fetch", mockRegistryResponse(404, "{}"));
 
-    expect(classifyNpmjsSharedVersionAvailability(VERSION)).toEqual({
-      kind: "not_found",
-    });
+    await expect(
+      classifyNpmjsSharedVersionAvailability(VERSION),
+    ).resolves.toEqual({ kind: "not_found" });
   });
 
-  it("detects coherent shared E404 output", () => {
-    expect(
-      isConfirmedExactSharedVersionNotFound(
-        "npm error code E404\nnpm error 404 No match found for version @mergesignal/shared@0.18.0",
-        VERSION,
-      ),
-    ).toBe(true);
+  it("fails closed on HTTP 502", async () => {
+    vi.stubGlobal("fetch", mockRegistryResponse(502, "{}"));
+
+    await expect(
+      classifyNpmjsSharedVersionAvailability(VERSION),
+    ).resolves.toEqual({
+      kind: "unavailable",
+      message: expect.stringContaining("HTTP 502"),
+    });
   });
 });

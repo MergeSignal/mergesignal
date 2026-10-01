@@ -19,9 +19,9 @@ function parseVersion(argv: string[]): string {
   return version;
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const version = parseVersion(process.argv.slice(2));
-  const result = classifyNpmjsScanPrepVersionAvailability(version);
+  const result = await classifyNpmjsScanPrepVersionAvailability(version);
 
   if (result.kind === "published") {
     throw new Error(
@@ -41,4 +41,9 @@ function main(): void {
   );
 }
 
-main();
+main().catch((error: unknown) => {
+  const message =
+    error instanceof Error ? error.message : String(error ?? "unknown error");
+  console.error(message);
+  process.exitCode = 1;
+});

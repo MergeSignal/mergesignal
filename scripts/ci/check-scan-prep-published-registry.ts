@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertPublishedRegistryConsumerLockfile } from "./lib/scan-prep-published-registry-lockfile.ts";
-import { cleanNpmEnv } from "./lib/scan-prep-npmjs-version-availability.ts";
+import { cleanNpmEnv } from "./lib/npmjs-registry.ts";
 import { readRootPackageManagerAuthority } from "./lib/root-package-manager.ts";
 import { readScanPrepReleaseIdentity } from "./lib/scan-prep-release-identity.ts";
 
