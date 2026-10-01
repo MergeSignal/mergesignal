@@ -279,9 +279,9 @@ If local publish succeeds but CI still shows `EOTP`, the GitHub **`NPM_TOKEN` se
 
 **After first publish:** Optionally add [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) on the package (`publish-shared.yml`, repo `MergeSignal/mergesignal`) to drop the long-lived publish token.
 
-**Publish succeeded but verify step failed (`Expected @mergesignal/shared@X.Y.Z on npm, got: <none>`)**
+**Publish succeeded but verify step failed (`Expected @mergesignal/shared@X.Y.Z on npm after …; last HTTP: …`)**
 
-The package is often **already on npm** — `npm publish` completed, but post-publish `npm view` queried the wrong registry. Ensure scoped `npm view` targets `https://registry.npmjs.org/` (see `scripts/ci/verify-shared-on-npmjs.sh`).
+The package is often **already on npm** — `npm publish` completed, but post-publish verification has not yet observed the exact version on the public registry (registry replication lag). CI runs `scripts/ci/verify-shared-on-npmjs.sh`: an HTTP GET to the exact-version URL on `https://registry.npmjs.org/`, success only on HTTP 200 with matching `name` and `version` in the document, with bounded per-request timeouts and retries between attempts.
 
 1. Confirm: `npm view @mergesignal/shared@X.Y.Z version --registry https://registry.npmjs.org/`
 2. Recovery: Actions → **Publish @mergesignal/shared** → **Run workflow** → enable **notify_only** (resends engine dispatch without republishing).
