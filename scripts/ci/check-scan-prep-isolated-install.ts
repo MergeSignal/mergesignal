@@ -19,10 +19,10 @@ import {
 import { runScanPrepIsolatedInstall } from "./lib/scan-prep-isolated-install.ts";
 import { classifyNpmjsSharedVersionAvailability } from "./lib/shared-npmjs-version-availability.ts";
 
-function main(): void {
-  assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority();
+async function main(): Promise<void> {
+  await assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority();
   const sharedForIsolatedInstall = readScanPrepSourceSharedDependencyVersion();
-  const sharedAvailability = classifyNpmjsSharedVersionAvailability(
+  const sharedAvailability = await classifyNpmjsSharedVersionAvailability(
     sharedForIsolatedInstall,
   );
 
@@ -68,4 +68,9 @@ function main(): void {
   }
 }
 
-main();
+main().catch((error: unknown) => {
+  const message =
+    error instanceof Error ? error.message : String(error ?? "unknown error");
+  console.error(message);
+  process.exitCode = 1;
+});

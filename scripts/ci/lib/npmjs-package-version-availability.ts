@@ -1,98 +1,201 @@
 /**
  * Structured npmjs published-version evidence for CI package governance.
+ *
+ * Uses the registry exact-version HTTP contract:
+ * GET <registry>/<encoded-package>/<version>
  */
-import { execFileSync } from "node:child_process";
-
-import { cleanNpmEnv, NPMJS_REGISTRY } from "./npmjs-registry.ts";
+import {
+  buildNpmjsPackageVersionUrl,
+  NPMJS_REGISTRY,
+} from "./npmjs-registry.ts";
 
 type NpmjsVersionAvailabilityResult =
   | { kind: "published"; version: string }
   | { kind: "not_found" }
   | { kind: "unavailable"; message: string };
 
-function formatNpmExecFailure(
-  spec: string,
-  error: unknown,
-): { kind: "unavailable"; message: string } {
-  const execError = error as {
-    status?: number;
-    stderr?: Buffer | string;
-    stdout?: Buffer | string;
-    message?: string;
-  };
-  const combined = [
-    String(execError.stderr ?? ""),
-    String(execError.stdout ?? ""),
-    String(execError.message ?? ""),
-  ].join("\n");
-  const summary =
-    combined.trim() ||
-    `npm view failed for ${spec} with exit status ${execError.status ?? "unknown"}`;
-  return { kind: "unavailable", message: summary };
+type NpmjsPackageVersionDocument = {
+  name: string;
+  version: string;
+  dependencies?: Record<string, string>;
+};
+
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+type PublicationQueryResult =
+  | { kind: "published"; document: NpmjsPackageVersionDocument }
+  | { kind: "not_found" }
+  | { kind: "unavailable"; message: string };
+
+type NpmjsPublicationQueryOptions = {
+  fetchImpl?: typeof fetch;
+  timeoutMs?: number;
+  registry?: string;
+};
+
+function unavailable(message: string): PublicationQueryResult {
+  return { kind: "unavailable", message };
 }
 
 /**
- * Parses `npm view <pkg> versions --json` stdout.
- * Returns null when the response is not a usable version list.
+ * Validates a registry exact-version JSON document from HTTP 200.
  */
-export function parseNpmPublishedVersionsJson(stdout: string): string[] | null {
-  const trimmed = stdout.trim();
-  if (!trimmed) {
-    return null;
-  }
-
+export function parseNpmjsPackageVersionDocument(
+  body: string,
+  expectedPackageName: string,
+  expectedVersion: string,
+): NpmjsPackageVersionDocument | null {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(trimmed);
+    parsed = JSON.parse(body);
   } catch {
     return null;
   }
 
-  if (typeof parsed === "string") {
-    return parsed.length > 0 ? [parsed] : [];
-  }
-
-  if (!Array.isArray(parsed)) {
+  if (typeof parsed !== "object" || parsed === null) {
     return null;
   }
 
-  if (!parsed.every((entry) => typeof entry === "string")) {
+  const record = parsed as Record<string, unknown>;
+  if (
+    typeof record.name !== "string" ||
+    typeof record.version !== "string" ||
+    record.name !== expectedPackageName ||
+    record.version !== expectedVersion
+  ) {
     return null;
   }
 
-  return parsed;
+  const dependencies =
+    record.dependencies === undefined
+      ? undefined
+      : typeof record.dependencies === "object" &&
+          record.dependencies !== null &&
+          !Array.isArray(record.dependencies)
+        ? (record.dependencies as Record<string, string>)
+        : undefined;
+
+  if (record.dependencies !== undefined && dependencies === undefined) {
+    return null;
+  }
+
+  return {
+    name: record.name,
+    version: record.version,
+    dependencies,
+  };
 }
 
-export function classifyNpmjsPackageVersionAvailability(
+export function readSharedDependencyPinFromNpmjsPackageVersionDocument(
+  document: NpmjsPackageVersionDocument,
+  dependencyName = "@mergesignal/shared",
+): string {
+  const pin = document.dependencies?.[dependencyName];
+  if (typeof pin !== "string" || !pin.trim()) {
+    throw new Error(
+      `published ${document.name}@${document.version} is missing dependencies.${dependencyName} on npmjs`,
+    );
+  }
+  return pin;
+}
+
+/**
+ * Maps an exact-version registry HTTP response to publication evidence.
+ */
+export function classifyNpmjsPublicationFromHttpResponse(
+  status: number,
+  body: string,
   packageName: string,
   version: string,
-): NpmjsVersionAvailabilityResult {
-  const spec = `${packageName} versions`;
-  try {
-    const stdout = execFileSync(
-      "npm",
-      ["view", packageName, "versions", "--json", "--registry", NPMJS_REGISTRY],
-      {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        env: cleanNpmEnv(),
-      },
-    );
-
-    const publishedVersions = parseNpmPublishedVersionsJson(stdout);
-    if (publishedVersions === null) {
-      return {
-        kind: "unavailable",
-        message: `npm view returned malformed versions JSON for ${packageName}`,
-      };
-    }
-
-    if (publishedVersions.includes(version)) {
-      return { kind: "published", version };
-    }
-
+): PublicationQueryResult {
+  if (status === 404) {
     return { kind: "not_found" };
-  } catch (error) {
-    return formatNpmExecFailure(spec, error);
   }
+
+  if (status === 401 || status === 403) {
+    return unavailable(
+      `npmjs registry returned HTTP ${status} for ${packageName}@${version}`,
+    );
+  }
+
+  if (status === 408 || status === 429) {
+    return unavailable(
+      `npmjs registry returned HTTP ${status} for ${packageName}@${version}`,
+    );
+  }
+
+  if (status >= 500) {
+    return unavailable(
+      `npmjs registry returned HTTP ${status} for ${packageName}@${version}`,
+    );
+  }
+
+  if (status !== 200) {
+    return unavailable(
+      `npmjs registry returned unexpected HTTP ${status} for ${packageName}@${version}`,
+    );
+  }
+
+  const document = parseNpmjsPackageVersionDocument(body, packageName, version);
+  if (!document) {
+    return unavailable(
+      `npmjs registry returned malformed exact-version JSON for ${packageName}@${version}`,
+    );
+  }
+
+  return { kind: "published", document };
+}
+
+export async function queryNpmjsExactPackageVersionPublication(
+  packageName: string,
+  version: string,
+  options: NpmjsPublicationQueryOptions = {},
+): Promise<PublicationQueryResult> {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const url = buildNpmjsPackageVersionUrl(
+    packageName,
+    version,
+    options.registry ?? NPMJS_REGISTRY,
+  );
+
+  try {
+    const response = await fetchImpl(url, {
+      method: "GET",
+      redirect: "follow",
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const body = await response.text();
+    return classifyNpmjsPublicationFromHttpResponse(
+      response.status,
+      body,
+      packageName,
+      version,
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : String(error ?? "unknown error");
+    return unavailable(
+      `npmjs registry request failed for ${packageName}@${version}: ${message}`,
+    );
+  }
+}
+
+export async function classifyNpmjsPackageVersionAvailability(
+  packageName: string,
+  version: string,
+  options?: NpmjsPublicationQueryOptions,
+): Promise<NpmjsVersionAvailabilityResult> {
+  const result = await queryNpmjsExactPackageVersionPublication(
+    packageName,
+    version,
+    options,
+  );
+
+  if (result.kind === "published") {
+    return { kind: "published", version: result.document.version };
+  }
+
+  return result;
 }

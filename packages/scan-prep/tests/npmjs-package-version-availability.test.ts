@@ -1,189 +1,220 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  buildNpmjsPackageVersionUrl,
+  encodeNpmjsPackageNameForRegistryPath,
+} from "../../../scripts/ci/lib/npmjs-registry.ts";
+import {
   classifyNpmjsPackageVersionAvailability,
-  parseNpmPublishedVersionsJson,
+  classifyNpmjsPublicationFromHttpResponse,
+  parseNpmjsPackageVersionDocument,
+  queryNpmjsExactPackageVersionPublication,
+  readSharedDependencyPinFromNpmjsPackageVersionDocument,
 } from "../../../scripts/ci/lib/npmjs-package-version-availability.ts";
 
-const { execFileSyncMock } = vi.hoisted(() => ({
-  execFileSyncMock: vi.fn(),
-}));
-
-vi.mock("node:child_process", () => ({
-  execFileSync: execFileSyncMock,
-}));
-
+const PACKAGE = "@mergesignal/scan-prep";
 const VERSION = "8.8.8-test";
-const REGISTRY = "https://registry.npmjs.org/";
 
-function npmError(stderr: string): never {
-  const error = new Error("npm command failed") as Error & {
-    status?: number;
-    stderr?: string;
-  };
-  error.status = 1;
-  error.stderr = stderr;
-  throw error;
+function manifest(
+  overrides: Partial<{ name: string; version: string; shared: string }> = {},
+): string {
+  return JSON.stringify({
+    name: overrides.name ?? PACKAGE,
+    version: overrides.version ?? VERSION,
+    dependencies: {
+      "@mergesignal/shared": overrides.shared ?? "0.19.1",
+    },
+  });
 }
 
-function expectNpmVersionsQuery(packageName: string): void {
-  expect(execFileSyncMock).toHaveBeenCalledWith(
-    "npm",
-    ["view", packageName, "versions", "--json", "--registry", REGISTRY],
-    expect.objectContaining({ encoding: "utf8" }),
-  );
-}
+describe("npmjs registry URL construction", () => {
+  it("encodes scoped package paths for the exact-version endpoint", () => {
+    expect(encodeNpmjsPackageNameForRegistryPath(PACKAGE)).toBe(
+      "@mergesignal%2Fscan-prep",
+    );
+    expect(buildNpmjsPackageVersionUrl(PACKAGE, VERSION)).toBe(
+      "https://registry.npmjs.org/@mergesignal%2Fscan-prep/8.8.8-test",
+    );
+  });
+});
 
-describe("parseNpmPublishedVersionsJson", () => {
-  it("accepts a JSON array of version strings", () => {
-    expect(parseNpmPublishedVersionsJson('["0.1.0","0.1.1"]')).toEqual([
-      "0.1.0",
-      "0.1.1",
-    ]);
+describe("parseNpmjsPackageVersionDocument", () => {
+  it("accepts a valid exact-version document", () => {
+    expect(
+      parseNpmjsPackageVersionDocument(manifest(), PACKAGE, VERSION),
+    ).toEqual({
+      name: PACKAGE,
+      version: VERSION,
+      dependencies: { "@mergesignal/shared": "0.19.1" },
+    });
   });
 
-  it("accepts a single published version as a JSON string", () => {
-    expect(parseNpmPublishedVersionsJson('"0.1.9"')).toEqual(["0.1.9"]);
+  it("rejects wrong package or version", () => {
+    expect(
+      parseNpmjsPackageVersionDocument(
+        manifest({ version: "9.9.9" }),
+        PACKAGE,
+        VERSION,
+      ),
+    ).toBeNull();
+    expect(
+      parseNpmjsPackageVersionDocument(
+        manifest({ name: "@mergesignal/shared" }),
+        PACKAGE,
+        VERSION,
+      ),
+    ).toBeNull();
   });
 
   it("rejects malformed JSON", () => {
-    expect(parseNpmPublishedVersionsJson("not-json")).toBeNull();
+    expect(
+      parseNpmjsPackageVersionDocument("not-json", PACKAGE, VERSION),
+    ).toBeNull();
+  });
+});
+
+describe("classifyNpmjsPublicationFromHttpResponse", () => {
+  it("classifies HTTP 200 with a valid document as published", () => {
+    expect(
+      classifyNpmjsPublicationFromHttpResponse(
+        200,
+        manifest(),
+        PACKAGE,
+        VERSION,
+      ),
+    ).toEqual({
+      kind: "published",
+      document: {
+        name: PACKAGE,
+        version: VERSION,
+        dependencies: { "@mergesignal/shared": "0.19.1" },
+      },
+    });
   });
 
-  it("rejects unexpected JSON shapes", () => {
-    expect(parseNpmPublishedVersionsJson('{"versions":["0.1.0"]}')).toBeNull();
-    expect(parseNpmPublishedVersionsJson("[1,2]")).toBeNull();
+  it("classifies HTTP 404 as not_found", () => {
+    expect(
+      classifyNpmjsPublicationFromHttpResponse(404, "{}", PACKAGE, VERSION),
+    ).toEqual({ kind: "not_found" });
   });
 
-  it("treats an empty JSON array as a valid empty version list", () => {
-    expect(parseNpmPublishedVersionsJson("[]")).toEqual([]);
+  it.each([
+    [401, "unauthorized"],
+    [403, "forbidden"],
+    [408, "timeout"],
+    [429, "rate limited"],
+    [500, "server error"],
+    [502, "bad gateway"],
+    [503, "unavailable"],
+  ])("fails closed on HTTP %i (%s)", (status) => {
+    expect(
+      classifyNpmjsPublicationFromHttpResponse(status, "{}", PACKAGE, VERSION),
+    ).toEqual({
+      kind: "unavailable",
+      message: expect.stringContaining(`HTTP ${status}`),
+    });
+  });
+
+  it("fails closed on HTTP 200 with malformed JSON", () => {
+    expect(
+      classifyNpmjsPublicationFromHttpResponse(
+        200,
+        "not-json",
+        PACKAGE,
+        VERSION,
+      ),
+    ).toEqual({
+      kind: "unavailable",
+      message: expect.stringContaining("malformed exact-version JSON"),
+    });
+  });
+});
+
+describe("queryNpmjsExactPackageVersionPublication", () => {
+  it("maps network failures to unavailable", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockRejectedValue(new Error("getaddrinfo ENOTFOUND"));
+
+    await expect(
+      queryNpmjsExactPackageVersionPublication(PACKAGE, VERSION, { fetchImpl }),
+    ).resolves.toEqual({
+      kind: "unavailable",
+      message: expect.stringContaining("ENOTFOUND"),
+    });
+  });
+
+  it("maps fetch timeouts to unavailable", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockRejectedValue(new Error("The operation was aborted"));
+
+    await expect(
+      queryNpmjsExactPackageVersionPublication(PACKAGE, VERSION, { fetchImpl }),
+    ).resolves.toEqual({
+      kind: "unavailable",
+      message: expect.stringContaining("aborted"),
+    });
   });
 });
 
 describe.each(["@mergesignal/scan-prep", "@mergesignal/shared"] as const)(
   "classifyNpmjsPackageVersionAvailability (%s)",
   (packageName) => {
-    it("classifies a version present in structured npm versions output as published", () => {
-      execFileSyncMock.mockReturnValue(`["0.1.0","${VERSION}"]\n`);
+    const version = VERSION;
 
-      expect(
-        classifyNpmjsPackageVersionAvailability(packageName, VERSION),
-      ).toEqual({
+    beforeEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("classifies HTTP 200 exact-version metadata as published", async () => {
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValue(
+          new Response(manifest({ name: packageName }), { status: 200 }),
+        );
+
+      await expect(
+        classifyNpmjsPackageVersionAvailability(packageName, version, {
+          fetchImpl,
+        }),
+      ).resolves.toEqual({
         kind: "published",
-        version: VERSION,
-      });
-      expectNpmVersionsQuery(packageName);
-    });
-
-    it("classifies a version absent from structured npm versions output as not found", () => {
-      execFileSyncMock.mockReturnValue('["0.1.0"]\n');
-
-      expect(
-        classifyNpmjsPackageVersionAvailability(packageName, VERSION),
-      ).toEqual({
-        kind: "not_found",
+        version,
       });
     });
 
-    it("classifies an empty structured version list as not found for the requested version", () => {
-      execFileSyncMock.mockReturnValue("[]\n");
+    it("classifies HTTP 404 as not_found", async () => {
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValue(new Response("{}", { status: 404 }));
 
-      expect(
-        classifyNpmjsPackageVersionAvailability(packageName, VERSION),
-      ).toEqual({
-        kind: "not_found",
-      });
-    });
-
-    it("fails closed on registry command failure", () => {
-      execFileSyncMock.mockImplementation(() => {
-        npmError("getaddrinfo ENOTFOUND registry.npmjs.org");
-      });
-
-      expect(
-        classifyNpmjsPackageVersionAvailability(packageName, VERSION),
-      ).toEqual({
-        kind: "unavailable",
-        message: expect.stringContaining("ENOTFOUND"),
-      });
-    });
-
-    it("fails closed on authentication failure", () => {
-      execFileSyncMock.mockImplementation(() => {
-        npmError("npm error code ENEEDAUTH\nnpm error need auth");
-      });
-
-      expect(
-        classifyNpmjsPackageVersionAvailability(packageName, VERSION),
-      ).toEqual({
-        kind: "unavailable",
-        message: expect.stringContaining("ENEEDAUTH"),
-      });
-    });
-
-    it("fails closed on registry HTTP 5xx", () => {
-      execFileSyncMock.mockImplementation(() => {
-        npmError(
-          `npm error code E500\nnpm error 502 Bad Gateway - GET https://registry.npmjs.org/${packageName.replace("/", "%2f")}`,
-        );
-      });
-
-      expect(
-        classifyNpmjsPackageVersionAvailability(packageName, VERSION),
-      ).toEqual({
-        kind: "unavailable",
-        message: expect.stringContaining("E500"),
-      });
-    });
-
-    it("fails closed on malformed JSON stdout", () => {
-      execFileSyncMock.mockReturnValue("not-json");
-
-      expect(
-        classifyNpmjsPackageVersionAvailability(packageName, VERSION),
-      ).toEqual({
-        kind: "unavailable",
-        message: expect.stringContaining("malformed versions JSON"),
-      });
-    });
-
-    it("fails closed on unexpected JSON shape", () => {
-      execFileSyncMock.mockReturnValue('{"latest":"0.1.0"}');
-
-      expect(
-        classifyNpmjsPackageVersionAvailability(packageName, VERSION),
-      ).toEqual({
-        kind: "unavailable",
-        message: expect.stringContaining("malformed versions JSON"),
-      });
-    });
-
-    it("never classifies npm E404 error text as not found without structured proof", () => {
-      execFileSyncMock.mockImplementation(() => {
-        npmError(
-          `npm error code E404\nnpm error 404 No match found for version ${packageName}@${VERSION}`,
-        );
-      });
-
-      expect(
-        classifyNpmjsPackageVersionAvailability(packageName, VERSION),
-      ).toEqual({
-        kind: "unavailable",
-        message: expect.stringContaining("E404"),
-      });
-    });
-
-    it("fails closed on unrelated nonzero npm failures", () => {
-      execFileSyncMock.mockImplementation(() => {
-        npmError("npm error code ERR_INVALID_ARG_TYPE");
-      });
-
-      expect(
-        classifyNpmjsPackageVersionAvailability(packageName, VERSION),
-      ).toEqual({
-        kind: "unavailable",
-        message: expect.stringContaining("ERR_INVALID_ARG_TYPE"),
-      });
+      await expect(
+        classifyNpmjsPackageVersionAvailability(packageName, version, {
+          fetchImpl,
+        }),
+      ).resolves.toEqual({ kind: "not_found" });
     });
   },
 );
+
+describe("readSharedDependencyPinFromNpmjsPackageVersionDocument", () => {
+  it("reads the published Shared dependency pin from exact-version metadata", () => {
+    expect(
+      readSharedDependencyPinFromNpmjsPackageVersionDocument({
+        name: PACKAGE,
+        version: VERSION,
+        dependencies: { "@mergesignal/shared": "0.19.1" },
+      }),
+    ).toBe("0.19.1");
+  });
+
+  it("fails when the Shared dependency pin is missing", () => {
+    expect(() =>
+      readSharedDependencyPinFromNpmjsPackageVersionDocument({
+        name: PACKAGE,
+        version: VERSION,
+      }),
+    ).toThrow(/missing dependencies\.@mergesignal\/shared/);
+  });
+});

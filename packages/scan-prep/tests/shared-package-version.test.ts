@@ -61,14 +61,14 @@ describe("shared package version authority", () => {
 });
 
 describe("scan-prep Shared dependency alignment", () => {
-  it("accepts scan-prep alignment with Shared release authority", () => {
-    expect(() =>
+  it("accepts scan-prep alignment with Shared release authority", async () => {
+    await expect(
       assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(),
-    ).not.toThrow();
+    ).resolves.toBeUndefined();
   });
 
-  it("passes when a published scan-prep pin matches source while workspace Shared advances", () => {
-    expect(() =>
+  it("passes when a published scan-prep pin matches source while workspace Shared advances", async () => {
+    await expect(
       assertScanPrepSharedDependencyAlignment(
         {
           sharedReleaseVersion: "0.20.0",
@@ -83,11 +83,11 @@ describe("scan-prep Shared dependency alignment", () => {
           publishedPin: "0.19.1",
         }),
       ),
-    ).not.toThrow();
+    ).resolves.toBeUndefined();
   });
 
-  it("fails when a published scan-prep source drifts from the npm dependency even if workspace Shared matches", () => {
-    expect(() =>
+  it("fails when a published scan-prep source drifts from the npm dependency even if workspace Shared matches", async () => {
+    await expect(
       assertScanPrepSharedDependencyAlignment(
         {
           sharedReleaseVersion: "0.20.0",
@@ -102,13 +102,13 @@ describe("scan-prep Shared dependency alignment", () => {
           publishedPin: "0.19.1",
         }),
       ),
-    ).toThrow(
+    ).rejects.toThrow(
       /must match the published @mergesignal\/scan-prep@8\.8\.8-published-drift npmjs dependency/,
     );
   });
 
-  it("passes for an unpublished scan-prep version when source matches workspace Shared", () => {
-    expect(() =>
+  it("passes for an unpublished scan-prep version when source matches workspace Shared", async () => {
+    await expect(
       assertScanPrepSharedDependencyAlignment(
         {
           sharedReleaseVersion: "0.20.0",
@@ -119,11 +119,11 @@ describe("scan-prep Shared dependency alignment", () => {
           availability: () => ({ kind: "not_found" }),
         }),
       ),
-    ).not.toThrow();
+    ).resolves.toBeUndefined();
   });
 
-  it("fails for an unpublished scan-prep version when source differs from workspace Shared", () => {
-    expect(() =>
+  it("fails for an unpublished scan-prep version when source differs from workspace Shared", async () => {
+    await expect(
       assertScanPrepSharedDependencyAlignment(
         {
           sharedReleaseVersion: "0.20.0",
@@ -134,13 +134,13 @@ describe("scan-prep Shared dependency alignment", () => {
           availability: () => ({ kind: "not_found" }),
         }),
       ),
-    ).toThrow(
+    ).rejects.toThrow(
       /must match packages\/shared\/package\.json version \(0\.20\.0\) for unpublished/,
     );
   });
 
-  it("fails closed when published scan-prep registry availability cannot be proven", () => {
-    expect(() =>
+  it("fails closed when published scan-prep registry availability cannot be proven", async () => {
+    await expect(
       assertScanPrepSharedDependencyAlignment(
         {
           sharedReleaseVersion: "0.20.0",
@@ -154,11 +154,11 @@ describe("scan-prep Shared dependency alignment", () => {
           }),
         }),
       ),
-    ).toThrow(/registry availability could not be proven/);
+    ).rejects.toThrow(/registry availability could not be proven/);
   });
 
-  it("fails closed when published dependency truth cannot be read from npmjs", () => {
-    expect(() =>
+  it("fails closed when published dependency truth cannot be read from npmjs", async () => {
+    await expect(
       assertScanPrepSharedDependencyAlignment(
         {
           sharedReleaseVersion: "0.20.0",
@@ -173,10 +173,12 @@ describe("scan-prep Shared dependency alignment", () => {
           publishedPinError: "npm view dependencies failed",
         }),
       ),
-    ).toThrow(/could not read published @mergesignal\/shared dependency/);
+    ).rejects.toThrow(
+      /could not read published @mergesignal\/shared dependency/,
+    );
   });
 
-  it("allows scan-prep to remain on published Shared pin while workspace Shared advances (manifest paths)", () => {
+  it("allows scan-prep to remain on published Shared pin while workspace Shared advances (manifest paths)", async () => {
     const fixtureDir = mkdtempSync(
       path.join(tmpdir(), "ms-scan-prep-published-pin-"),
     );
@@ -205,7 +207,7 @@ describe("scan-prep Shared dependency alignment", () => {
       "utf8",
     );
     try {
-      expect(() =>
+      await expect(
         assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority({
           sharedPackageJsonPath: sharedManifestPath,
           scanPrepPackageJsonPath: scanPrepManifestPath,
@@ -217,13 +219,13 @@ describe("scan-prep Shared dependency alignment", () => {
             publishedPin: "0.19.1",
           }),
         }),
-      ).not.toThrow();
+      ).resolves.toBeUndefined();
     } finally {
       rmSync(fixtureDir, { recursive: true, force: true });
     }
   });
 
-  it("rejects scan-prep source drift from published npm dependency via manifest paths", () => {
+  it("rejects scan-prep source drift from published npm dependency via manifest paths", async () => {
     const fixtureDir = mkdtempSync(
       path.join(tmpdir(), "ms-scan-prep-shared-alignment-"),
     );
@@ -252,7 +254,7 @@ describe("scan-prep Shared dependency alignment", () => {
       "utf8",
     );
     try {
-      expect(() =>
+      await expect(
         assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority({
           sharedPackageJsonPath: sharedManifestPath,
           scanPrepPackageJsonPath: scanPrepManifestPath,
@@ -264,7 +266,7 @@ describe("scan-prep Shared dependency alignment", () => {
             publishedPin: "0.19.1",
           }),
         }),
-      ).toThrow(
+      ).rejects.toThrow(
         /must match the published @mergesignal\/scan-prep@8\.8\.8-manifest-drift npmjs dependency/,
       );
     } finally {

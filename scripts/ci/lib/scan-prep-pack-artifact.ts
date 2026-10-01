@@ -21,6 +21,10 @@ import {
   PACKAGE_NAME,
 } from "./scan-prep-npmjs-version-availability.ts";
 import { NPMJS_REGISTRY } from "./npmjs-registry.ts";
+import {
+  queryNpmjsExactPackageVersionPublication,
+  readSharedDependencyPinFromNpmjsPackageVersionDocument,
+} from "./npmjs-package-version-availability.ts";
 
 import {
   APPROVED_LOCKFILE_RUNTIME,
@@ -131,58 +135,49 @@ export type ScanPrepVersionAvailability =
 export type ScanPrepSharedDependencyAlignmentDeps = {
   scanPrepVersionAvailability: (
     scanPrepVersion: string,
-  ) => ScanPrepVersionAvailability;
-  readPublishedSharedDependencyPin: (scanPrepVersion: string) => string;
+  ) => ScanPrepVersionAvailability | Promise<ScanPrepVersionAvailability>;
+  readPublishedSharedDependencyPin: (
+    scanPrepVersion: string,
+  ) => string | Promise<string>;
 };
 
-function readPublishedScanPrepSharedDependencyPinFromRegistry(
+async function readPublishedScanPrepSharedDependencyPinFromRegistry(
   scanPrepVersion: string,
-): string {
-  try {
-    const stdout = execSync(
-      `npm view ${PACKAGE_NAME}@${scanPrepVersion} dependencies.@mergesignal/shared --registry ${NPMJS_REGISTRY}`,
-      {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        env: {
-          ...process.env,
-          NODE_AUTH_TOKEN: undefined,
-          NPM_TOKEN: undefined,
-        },
-      },
-    ).trim();
-    if (!stdout) {
-      throw new Error(
-        `published ${PACKAGE_NAME}@${scanPrepVersion} is missing dependencies.@mergesignal/shared on npmjs`,
-      );
-    }
-    return stdout;
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : String(error ?? "unknown error");
+): Promise<string> {
+  const publication = await queryNpmjsExactPackageVersionPublication(
+    PACKAGE_NAME,
+    scanPrepVersion,
+  );
+  if (publication.kind === "unavailable") {
+    throw new Error(publication.message);
+  }
+  if (publication.kind === "not_found") {
     throw new Error(
-      `could not read published @mergesignal/shared dependency for ${PACKAGE_NAME}@${scanPrepVersion} from npmjs: ${message}`,
+      `published ${PACKAGE_NAME}@${scanPrepVersion} not found on npmjs while resolving @mergesignal/shared dependency pin`,
     );
   }
+  return readSharedDependencyPinFromNpmjsPackageVersionDocument(
+    publication.document,
+  );
 }
 
 function defaultScanPrepVersionAvailability(
   scanPrepVersion: string,
-): ScanPrepVersionAvailability {
+): Promise<ScanPrepVersionAvailability> {
   return classifyNpmjsScanPrepVersionAvailability(scanPrepVersion);
 }
 
-export function assertScanPrepSharedDependencyAlignment(
+export async function assertScanPrepSharedDependencyAlignment(
   input: {
     sharedReleaseVersion: string;
     scanPrepVersion: string;
     scanPrepSharedVersion: string;
   },
   deps: ScanPrepSharedDependencyAlignmentDeps,
-): void {
+): Promise<void> {
   const { sharedReleaseVersion, scanPrepVersion, scanPrepSharedVersion } =
     input;
-  const availability = deps.scanPrepVersionAvailability(scanPrepVersion);
+  const availability = await deps.scanPrepVersionAvailability(scanPrepVersion);
 
   if (availability.kind === "unavailable") {
     throw new Error(
@@ -194,7 +189,7 @@ export function assertScanPrepSharedDependencyAlignment(
     let publishedSharedPin: string;
     try {
       publishedSharedPin =
-        deps.readPublishedSharedDependencyPin(scanPrepVersion);
+        await deps.readPublishedSharedDependencyPin(scanPrepVersion);
     } catch (error) {
       const message =
         error instanceof Error
@@ -220,11 +215,11 @@ export function assertScanPrepSharedDependencyAlignment(
 }
 
 /** scan-prep source manifest vs Shared own-release authority at packages/shared/package.json */
-export function assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(options?: {
+export async function assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(options?: {
   sharedPackageJsonPath?: string;
   scanPrepPackageJsonPath?: string;
   alignmentDeps?: ScanPrepSharedDependencyAlignmentDeps;
-}): void {
+}): Promise<void> {
   const sharedReleaseVersion = readSharedReleaseVersion(
     options?.sharedPackageJsonPath,
   );
@@ -239,7 +234,7 @@ export function assertScanPrepSourceSharedDependencyAlignsWithReleaseAuthority(o
       readPublishedScanPrepSharedDependencyPinFromRegistry,
   };
 
-  assertScanPrepSharedDependencyAlignment(
+  await assertScanPrepSharedDependencyAlignment(
     {
       sharedReleaseVersion,
       scanPrepVersion,
