@@ -2,6 +2,14 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## 0.21.0
+
+### Added
+
+- Governed evidence-completeness vocabulary: `CompletenessState` (`complete`, `incomplete`, `unknown`), `COMPLETENESS_STATES`, and strict runtime validation via `completenessStateSchema` (no default or coercion).
+
+`ASSESSMENT_ABI` remains `4`. Additive root exports; consumers on `@mergesignal/shared@0.20.0` do not receive these symbols until upgraded.
+
 ## 0.20.0
 
 ### Added
