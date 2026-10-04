@@ -16,6 +16,7 @@
     "ci:verify": "rm -rf node_modules .turbo && pnpm install --frozen-lockfile && pnpm precommit",
     "check:pnpm-governance": "pnpm -C packages/shared exec tsx ../../scripts/check-pnpm-version-governance.ts",
     "check:no-private-contracts": "pnpm -C packages/shared exec tsx ../../scripts/check-no-private-contracts-dependency.ts",
+    "check:no-cross-repo-file-links": "pnpm -C packages/shared exec tsx ../../scripts/check-no-cross-repo-file-links.ts",
     "check:scan-prep-authority": "pnpm -C packages/shared exec tsx ../../scripts/check-scan-prep-authority.ts",
     "check:scan-prep-export-surface": "pnpm -C packages/shared exec tsx ../../scripts/check-scan-prep-export-surface.ts",
     "check:scan-prep-pack-artifact": "pnpm -C packages/shared exec tsx ../../scripts/ci/check-scan-prep-pack-artifact.ts",
@@ -37,7 +38,8 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.4.3",
     "turbo": "^2.8.11",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "yaml": "2.7.0"
   },
   "lint-staged": {
     "apps/web/**/*.{ts,tsx}": [

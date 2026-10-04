@@ -73,6 +73,9 @@ jobs:
       - name: Check no private contracts dependency
         run: pnpm check:no-private-contracts
 
+      - name: Check no cross-repo file links
+        run: pnpm check:no-cross-repo-file-links
+
       - name: Check scan preparation authority
         run: pnpm check:scan-prep-authority
 

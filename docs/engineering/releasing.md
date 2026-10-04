@@ -132,6 +132,7 @@ Package-owned validation substitutes for full monorepo CI **only** before the fo
 rm -rf node_modules && pnpm install
 pnpm build && pnpm test
 pnpm run check:no-private-contracts
+pnpm run check:no-cross-repo-file-links
 ```
 
 **mergesignal-engine** (no GH token for install):
@@ -142,10 +143,10 @@ pnpm build && pnpm test
 pnpm run check:assessment-authority
 ```
 
-**Verify no cross-repo links:**
+**Verify package-manager self-containment (no sibling/external filesystem repos):**
 
 ```bash
-rg 'file:.*mergesignal-engine|mergesignal-engine/packages/contracts' pnpm-workspace.yaml package.json packages apps pnpm-lock.yaml
+pnpm run check:no-cross-repo-file-links
 pnpm run check:no-private-contracts
 ```
 
