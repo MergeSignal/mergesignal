@@ -34,11 +34,11 @@ Permanent contract authority: [docs/engineering/scan-prep-api.md](../../docs/eng
 
 Low-level GitHub authentication, corpus cache controls, and raw fetch helpers are internal implementation details.
 
-## Workers must NOT
+## Public apps must NOT
 
-Reimplement lockfile diff or GitHub corpus preparation under `apps/worker`. Import `prepareScanContext` from this package only.
+Reimplement lockfile diff or GitHub corpus preparation under any public app (`apps/*`). Import `prepareScanContext` from this package only.
 
-CI enforces duplication guards via `scripts/ci/forbid-worker-prep-duplication.sh` and export-surface checks.
+CI enforces scan-prep module ownership via `scripts/ci/forbid-scan-prep-module-duplication.sh` (no local reimplementation of canonical prep modules under `apps/*`) and export-surface checks.
 
 `mergesignal-engine` maintains a separate workspace copy for private engine deployment until registry consumption graduates. Port lockfile authority changes here first; see [scan-prep-migration.md](../../docs/engineering/scan-prep-migration.md).
 
