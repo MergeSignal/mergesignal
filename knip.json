@@ -17,6 +17,7 @@
     ".": {
       "entry": [
         "scripts/check-no-private-contracts-dependency.ts",
+        "scripts/check-no-cross-repo-file-links.ts",
         "scripts/check-scan-prep-authority.ts",
         "scripts/check-scan-prep-export-surface.ts",
         "scripts/ci/check-shared-pack-artifact.ts",
