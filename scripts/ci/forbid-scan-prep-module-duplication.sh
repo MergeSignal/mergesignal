@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Fail if worker packages reintroduce scan-prep modules locally.
+# Fail if public apps reintroduce canonical @mergesignal/scan-prep modules locally.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT="${MS_FORBID_SCAN_PREP_GUARD_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}"
 FORBIDDEN=(
   "lockfile-diff.ts"
   "github-files.ts"
@@ -10,10 +10,15 @@ FORBIDDEN=(
   "file-cache.ts"
 )
 
-SEARCH_DIRS=(
-  "$ROOT/apps/worker"
-)
+SEARCH_DIRS=()
+if [[ -d "$ROOT/apps" ]]; then
+  for app_dir in "$ROOT/apps"/*/; do
+    [[ -d "$app_dir" ]] || continue
+    SEARCH_DIRS+=("${app_dir%/}")
+  done
+fi
 
+# Optional sibling clone: same invariant for engine worker when co-located locally.
 if [[ -d "$ROOT/../mergesignal-engine/packages/worker" ]]; then
   SEARCH_DIRS+=("$ROOT/../mergesignal-engine/packages/worker")
 fi

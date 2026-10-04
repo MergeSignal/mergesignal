@@ -30,7 +30,7 @@ Public API freeze: [scan-prep-api.md](./scan-prep-api.md). Registry consumption 
 - Production Fly PR scans: `@mergesignal/engine.orchestrateProductionScanIngress` (private baked runtime) → `analyze(..., { collectionContext, reasoningTier })`. `@mergesignal/scan-prep.prepareScanContext` is not the primary collection path for that worker.
 - The canonical public core (root API minimization, `./lockfile` subpath, lockfile authority reconciliation) is **implemented** in this repository.
 - `@mergesignal/scan-prep` is **not yet published** to npm. The first-publication framework is **implemented and validated** in this repository; registry publication and published parity verification remain pending — see [scan-prep-api.md](./scan-prep-api.md).
-- Run `scripts/ci/forbid-worker-prep-duplication.sh` in CI to block duplicated prep modules under worker apps.
+- Run `scripts/ci/forbid-scan-prep-module-duplication.sh` in CI to block duplicated canonical prep modules under public apps (`apps/*`); consume `@mergesignal/scan-prep` instead.
 - Run `pnpm run check:scan-prep-export-surface` to verify the frozen export surface (also enforced in CI and `pnpm precommit` after build).
 
 ## Temporary engine duplication

@@ -64,8 +64,8 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
-      - name: Forbid duplicated scan-prep modules in workers
-        run: bash scripts/ci/forbid-worker-prep-duplication.sh
+      - name: Forbid duplicated scan-prep modules in public apps
+        run: bash scripts/ci/forbid-scan-prep-module-duplication.sh
 
       - name: Check pnpm version governance
         run: pnpm check:pnpm-governance
