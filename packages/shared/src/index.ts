@@ -1,4 +1,5 @@
 export * from "./types.js";
+export * from "./completenessState.js";
 export * from "./assessment/index.js";
 export * from "./lockfileEvidence.js";
 export * from "./assessmentLabels.js";
