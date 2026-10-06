@@ -70,15 +70,109 @@ Scan Preparation **produces prepared evidence and uncertainties**. It does **not
 
 ## Approved root exports (`@mergesignal/scan-prep`)
 
-| Symbol                     | Role                                 |
-| -------------------------- | ------------------------------------ |
-| `prepareScanContext`       | Production public worker contract    |
-| `PrepareScanContextResult` | Result type                          |
-| `ScanPreparationSummary`   | Preparation metadata / observability |
+| Symbol                     | Role                                                                |
+| -------------------------- | ------------------------------------------------------------------- |
+| `prepareScanContext`       | Production public worker contract                                   |
+| `PrepareScanContextResult` | Result type                                                         |
+| `ScanPreparationSummary`   | Normalized preparation / acquisition observability (multi-producer) |
 
-`ScanPreparationSummary` includes repository-evidence acquisition accounting when source corpus fetch runs: eligible, selected, and cap-truncated candidate counts, plus size- and fetch-failure skips among cap-selected paths. When corpus fetch does not run, these counts are zero. `sourceFilesSkipped` counts only cap-selected paths that failed size policy or content fetch—not cap truncation and not policy-ineligible paths.
+See [ScanPreparationSummary](#scanpreparationsummary-multi-producer-observability) for cross-producer accounting semantics. The public worker’s `prepareScanContext` is one governed producer; other acquisition implementations may populate the same summary shape using their own observation surface without duplicating `prepareScanContext`’s GitHub corpus algorithm.
 
 The workspace root entry (`@mergesignal/scan-prep`) exports **only** the symbols in the table above. Lockfile ingress symbols are available exclusively from `@mergesignal/scan-prep/lockfile`. Authentication, corpus cache controls, and raw GitHub fetch helpers remain internal implementation details.
+
+---
+
+## ScanPreparationSummary (multi-producer observability)
+
+`ScanPreparationSummary` is a **normalized preparation and acquisition observability contract**. More than one governed producer may emit it. The summary reports what a producer measured during preparation; it is **not** a second analysis-corpus authority and does **not** affect Assessment Decision or merge posture by itself.
+
+**Roles:**
+
+- **Repository-evidence policy** (`@mergesignal/scan-prep/repository-evidence`) is provider-neutral: eligibility, ranking, caps, and change-request filtering.
+- **Acquisition / orchestration** supplies the producer’s governed **repository observation path set** (complete tree, bounded subset, dependency-targeted set, or other partial observation under a governed implementation).
+- **Producers** apply policy over that observation set, perform fetch/materialization, and populate `ScanPreparationSummary` honestly.
+
+Do not treat `prepareScanContext`’s GitHub recursive corpus path as the only valid producer. A full recursive tree pass is not required to populate the summary.
+
+### Observation scope
+
+Repository-evidence accounting is evaluated over the producer’s **declared repository observation path set**—the paths that producer actually considered for repository-evidence policy on that pass.
+
+That observation may be:
+
+- complete (for example a full repository tree listing);
+- bounded (for example tiered or budget-limited acquisition);
+- dependency-targeted (for example paths supplied before policy runs);
+- otherwise partial under a governed acquisition implementation.
+
+**Partial observation must not be described as full-repository coverage.** Bounded or partial observation stays visible through eligible / selected / cap-truncated / skip / fetched counts. Producers must not mix counters from unrelated observation sets.
+
+### Repository-evidence counts
+
+Relative to the producer’s observation path set, after applying public repository-evidence policy:
+
+| Field                                          | Meaning                                                                                                     |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `repositoryEvidenceEligibleCandidateCount`     | Unique paths eligible after policy (and dedupe where the producer applies it), **before** the governed cap. |
+| `repositoryEvidenceSelectedCandidateCount`     | Paths selected for content acquisition after the governed cap.                                              |
+| `repositoryEvidenceCapTruncatedCandidateCount` | Eligible paths not selected because of `REPOSITORY_EVIDENCE_MAX_CANDIDATE_FILES`.                           |
+
+**Cross-producer invariants** (within that observation scope):
+
+```text
+eligible >= selected
+capTruncated = eligible - selected
+```
+
+These counts describe policy outcomes on the producer’s observation set—not universal repository totals.
+
+### Skip accounting
+
+| Field                          | Meaning                                                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `sourceFilesSkippedOversized`  | Repository-evidence paths the producer **attempted** for content acquisition but skipped due to `REPOSITORY_EVIDENCE_MAX_FILE_BYTES`. |
+| `sourceFilesSkippedFetchError` | Repository-evidence paths the producer **attempted** but skipped due to fetch/read failure.                                           |
+| `sourceFilesSkipped`           | Aggregate skip count exposed on the summary wire.                                                                                     |
+
+**Cross-producer invariant:**
+
+```text
+sourceFilesSkipped = sourceFilesSkippedOversized + sourceFilesSkippedFetchError
+```
+
+Skip fields are **measured outcomes** for repository-evidence paths the producer actually tried to acquire—not policy-ineligible paths, not cap-truncated paths unless the producer also attempted them, and not fabricated placeholders.
+
+**Evidence honesty:**
+
+- Do not coerce unknown or unmeasured skip categories to zero when the producer lacks evidence for them.
+- Measured zero remains valid when the producer genuinely observed no skips in that category.
+- When corpus fetch or repository-evidence acquisition does not run for a producer pass, related counts may legitimately be zero for that pass.
+
+### `sourceFilesFetched`
+
+`sourceFilesFetched` is the count of paths the producer **successfully materialized** into its analysis / source corpus for that preparation pass.
+
+- For **`prepareScanContext`**, the corpus corresponds to UTF-8 content fetched for cap-selected repository-evidence paths (cache hits included in the fetched set).
+- For **other governed acquisition producers**, the analysis corpus may include paths **outside** the repository-evidence selected subset (for example planner- or tier-assembled sources). In that case `sourceFilesFetched` reflects materialized corpus size, not “selected RE paths only.”
+
+**Not universal contract laws** (they hold only when the producer’s acquisition algorithm uses the **same path set** for RE selection, skip attempts, and corpus materialization—as `prepareScanContext` does):
+
+```text
+selected >= sourceFilesFetched
+sourceFilesFetched + sourceFilesSkipped <= selected
+```
+
+Do not require these inequalities across producers whose materialized corpus is not limited to cap-selected repository-evidence paths.
+
+### `prepareScanContext`-specific behavior
+
+When the public worker runs `prepareScanContext` with GitHub corpus fetch:
+
+- Observation is typically a full tree listing (subject to provider enumeration), then repository-evidence policy.
+- `sourceFilesSkipped` counts cap-selected paths that failed size policy or content fetch—not cap truncation and not policy-ineligible paths.
+- The `prepareScanContext` implementation enforces the tighter coupling between selected, fetched, and skipped counts for that algorithm.
+
+Other producers use the same **field names** and **cross-producer invariants** above; additional coupling is **producer-specific**, not package-wide law.
 
 ---
 

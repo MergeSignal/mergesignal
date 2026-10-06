@@ -25,16 +25,22 @@ export type PrepareScanContextResult = {
   preparationSummary: ScanPreparationSummary;
 };
 
+/**
+ * Normalized preparation / acquisition observability. Semantics are multi-producer;
+ * see docs/engineering/scan-prep-api.md § ScanPreparationSummary.
+ */
 export type ScanPreparationSummary = {
   changedPackageCount: number;
   lockfileDeltaAdded: number;
   lockfileDeltaRemoved: number;
   lockfileDeltaUpdated: number;
   changedFileCount: number;
+  /** Successfully materialized analysis/source corpus size for this producer pass. */
   sourceFilesFetched: number;
   /**
-   * Cap-selected paths not included in the fetched UTF-8 corpus (size or fetch failure).
-   * Does not include cap truncation or policy-ineligible paths.
+   * Measured skips among repository-evidence paths this producer attempted.
+   * Must equal sourceFilesSkippedOversized + sourceFilesSkippedFetchError.
+   * prepareScanContext: cap-selected paths not in the fetched corpus (size or fetch failure).
    */
   sourceFilesSkipped: number;
   repositoryEvidenceEligibleCandidateCount: number;
