@@ -7,12 +7,12 @@
 # Requires GitHub secret NPM_TOKEN: granular Read/Write on @mergesignal with Bypass 2FA
 # when the org enforces 2FA (otherwise publish fails with npm error EOTP).
 #
-# After a successful publish, sends repository_dispatch event `shared-package-released` to
-# mergesignal-engine (see docs/engineering/releasing.md). Requires secret
-# MERGESIGNAL_ENGINE_DISPATCH_TOKEN. The workflow fails if dispatch cannot be sent.
+# After a successful publish, verifies the version on registry.npmjs.org. Engine registry
+# consumption is triggered only by an aligned @mergesignal/scan-prep release (see
+# docs/engineering/releasing.md).
 #
-# Recovery: if publish succeeded but dispatch failed, re-run with notify_only=true
-# (workflow_dispatch) to resend without republishing.
+# Recovery: if publish succeeded but registry verification failed, re-run with
+# notify_only=true (workflow_dispatch) to re-verify without republishing.
 #
 # After the first successful publish, optionally configure npm trusted publishing
 # (publish-shared.yml) and switch to OIDC — see docs/engineering/releasing.md.
@@ -26,7 +26,7 @@ on:
   workflow_dispatch:
     inputs:
       notify_only:
-        description: "Skip build/publish; verify version on npm and send engine dispatch (recovery)"
+        description: "Skip build/publish; verify version from package.json exists on npm (recovery)"
         type: boolean
         default: false
 
@@ -147,7 +147,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           if npm view "@mergesignal/shared@${VERSION}" version \
             --@mergesignal:registry=https://registry.npmjs.org/ 2>/dev/null; then
-            echo "::error::@mergesignal/shared@${VERSION} is already on npm. Published versions are immutable — bump packages/shared/package.json and push a new shared-v* tag, or re-run with notify_only=true if only the engine dispatch is missing (see docs/engineering/releasing.md)." >&2
+            echo "::error::@mergesignal/shared@${VERSION} is already on npm. Published versions are immutable — bump packages/shared/package.json and push a new shared-v* tag, or re-run with notify_only=true to re-verify registry evidence (see docs/engineering/releasing.md)." >&2
             exit 1
           fi
           echo "Version ${VERSION} is not published yet."
@@ -180,7 +180,7 @@ jobs:
           elif grep -q ENEEDAUTH /tmp/npm-publish.log; then
             echo "::error::npm auth failed: check NPM_TOKEN or configure trusted publishing (publish-shared.yml) on the @mergesignal/shared package."
           elif grep -q 'cannot publish over the previously published versions' /tmp/npm-publish.log; then
-            echo "::error::@mergesignal/shared@${{ steps.version.outputs.version }} is already on npm. Re-run this workflow with notify_only=true to verify and send the engine dispatch (see docs/engineering/releasing.md)."
+            echo "::error::@mergesignal/shared@${{ steps.version.outputs.version }} is already on npm. Re-run this workflow with notify_only=true to re-verify registry evidence (see docs/engineering/releasing.md)."
           else
             echo "::error::npm publish failed; see the Publish to npm step log above."
             tail -30 /tmp/npm-publish.log >&2 || true
@@ -193,31 +193,3 @@ jobs:
           NODE_AUTH_TOKEN: ""
           NPM_PUBLISH_TOKEN: ""
         run: bash scripts/ci/verify-shared-on-npmjs.sh "${{ steps.version.outputs.version }}"
-
-      - name: Notify engine repository
-        if: steps.publish.outcome == 'success' || (github.event_name == 'workflow_dispatch' && inputs.notify_only == true)
-        env:
-          GH_TOKEN: ${{ secrets.MERGESIGNAL_ENGINE_DISPATCH_TOKEN }}
-          ENGINE_REPO: ${{ vars.MERGESIGNAL_ENGINE_REPOSITORY }}
-        run: |
-          set -euo pipefail
-          if [ -z "${GH_TOKEN}" ]; then
-            echo "::error::MERGESIGNAL_ENGINE_DISPATCH_TOKEN secret is not set."
-            exit 1
-          fi
-          ENGINE_REPO="${ENGINE_REPO:-MergeSignal/mergesignal-engine}"
-          VERSION="${{ steps.version.outputs.version }}"
-          TAG=""
-          if [ "${{ github.event_name }}" = "push" ]; then
-            TAG="${{ github.ref_name }}"
-          fi
-          echo "Dispatching shared-package-released for ${VERSION} (tag=${TAG:-<none>}, sha=${{ github.sha }}) to ${ENGINE_REPO}"
-          gh api --method POST \
-            -H "Accept: application/vnd.github+json" \
-            "/repos/${ENGINE_REPO}/dispatches" \
-            -f event_type='shared-package-released' \
-            -f "client_payload[package]=@mergesignal/shared" \
-            -f "client_payload[version]=${VERSION}" \
-            -f "client_payload[tag]=${TAG}" \
-            -f "client_payload[commit_sha]=${{ github.sha }}"
-          echo "Engine dispatch sent successfully."
