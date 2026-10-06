@@ -1,6 +1,6 @@
 {
   "name": "@mergesignal/scan-prep",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Scan job preparation: lockfile diff, GitHub source corpus, prepareScanContext",
   "type": "module",
   "main": "./dist/index.js",
@@ -41,7 +41,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@mergesignal/shared": "0.19.1",
+    "@mergesignal/shared": "0.21.0",
     "@octokit/auth-app": "^7.1.4",
     "octokit": "^4.1.2"
   },
