@@ -17,6 +17,10 @@ export const PACKAGE_NAME = "@mergesignal/scan-prep";
 const NPMJS_REGISTRY = "https://registry.npmjs.org/";
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 
+/** Aligns with `scripts/ci/verify-shared-on-npmjs.sh` (24 × 5s) for npmjs propagation. */
+const NPMJS_REGISTRY_VIEW_MAX_ATTEMPTS = 24;
+const NPMJS_REGISTRY_VIEW_RETRY_DELAY_SECONDS = 5;
+
 export type PublishedRegistryConsumerPackageJson = {
   name: string;
   private: boolean;
@@ -82,22 +86,31 @@ function viewOnce(version: string, field: string): string {
   );
 }
 
-function viewWithRetry(
+type ViewWithRetryTestDeps = {
+  viewOnce?: (version: string, field: string) => string;
+  sleep?: (seconds: number) => void;
+};
+
+export function viewWithRetry(
   version: string,
   field: string,
-  maxAttempts = 12,
+  deps: ViewWithRetryTestDeps = {},
 ): string {
+  const readOnce = deps.viewOnce ?? viewOnce;
+  const sleepFn = deps.sleep ?? sleep;
+  const maxAttempts = NPMJS_REGISTRY_VIEW_MAX_ATTEMPTS;
+
   let lastError: Error | undefined;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      return viewOnce(version, field);
+      return readOnce(version, field);
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       if (attempt < maxAttempts) {
         process.stderr.write(
-          `  metadata lookup attempt ${attempt}/${maxAttempts} failed; retrying in 5s...\n`,
+          `  metadata lookup attempt ${attempt}/${maxAttempts} failed; retrying in ${NPMJS_REGISTRY_VIEW_RETRY_DELAY_SECONDS}s...\n`,
         );
-        sleep(5);
+        sleepFn(NPMJS_REGISTRY_VIEW_RETRY_DELAY_SECONDS);
       }
     }
   }
