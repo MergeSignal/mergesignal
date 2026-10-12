@@ -2,6 +2,15 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## 0.22.0
+
+### Added
+
+- Optional `fieldPath` on ABI 4 `UnclearedDimension` wire objects so uncleared dimensions can carry stable identity without fabricating missing historical values.
+- Historical ABI 4 payloads without `fieldPath` remain parseable.
+
+`ASSESSMENT_ABI` remains `4`. Additive optional field; consumers on `@mergesignal/shared@0.21.0` do not require the field until upgraded.
+
 ## 0.21.0
 
 ### Added
