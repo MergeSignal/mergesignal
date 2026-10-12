@@ -49,6 +49,19 @@ describe("parseNpmjsPackageVersionDocument", () => {
     });
   });
 
+  it("parses publishConfig.access when present", () => {
+    const body = JSON.stringify({
+      name: PACKAGE,
+      version: VERSION,
+      publishConfig: { access: "public" },
+    });
+    expect(parseNpmjsPackageVersionDocument(body, PACKAGE, VERSION)).toEqual({
+      name: PACKAGE,
+      version: VERSION,
+      publishConfig: { access: "public" },
+    });
+  });
+
   it("rejects wrong package or version", () => {
     expect(
       parseNpmjsPackageVersionDocument(

@@ -10,6 +10,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertPublishedRegistryConsumerLockfile } from "./lib/scan-prep-published-registry-lockfile.ts";
 import { cleanNpmEnv } from "./lib/npmjs-registry.ts";
+import {
+  type NpmjsPackageVersionDocument,
+  queryNpmjsExactPackageVersionPublication,
+  readSharedDependencyPinFromNpmjsPackageVersionDocument,
+} from "./lib/npmjs-package-version-availability.ts";
 import { readRootPackageManagerAuthority } from "./lib/root-package-manager.ts";
 import { readScanPrepReleaseIdentity } from "./lib/scan-prep-release-identity.ts";
 
@@ -17,9 +22,9 @@ export const PACKAGE_NAME = "@mergesignal/scan-prep";
 const NPMJS_REGISTRY = "https://registry.npmjs.org/";
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 
-/** Aligns with `scripts/ci/verify-shared-on-npmjs.sh` (24 × 5s) for npmjs propagation. */
-const NPMJS_REGISTRY_VIEW_MAX_ATTEMPTS = 24;
-const NPMJS_REGISTRY_VIEW_RETRY_DELAY_SECONDS = 5;
+/** Exact-version HTTP contract; scan-prep publish can lag `npm view` slightly longer than Shared. */
+export const NPMJS_REGISTRY_PUBLICATION_MAX_ATTEMPTS = 36;
+export const NPMJS_REGISTRY_PUBLICATION_RETRY_DELAY_SECONDS = 5;
 
 export type PublishedRegistryConsumerPackageJson = {
   name: string;
@@ -78,60 +83,73 @@ function sleep(seconds: number): void {
   execSync(`sleep ${seconds}`);
 }
 
-function viewOnce(version: string, field: string): string {
-  return run(
-    `npm view ${PACKAGE_NAME}@${version} ${field} --registry=${NPMJS_REGISTRY} --prefer-online`,
-    process.cwd(),
-    cleanNpmEnv(),
-  );
-}
-
-type ViewWithRetryTestDeps = {
-  viewOnce?: (version: string, field: string) => string;
+export type WaitForPublishedScanPrepDocumentDeps = {
+  query?: typeof queryNpmjsExactPackageVersionPublication;
   sleep?: (seconds: number) => void;
+  maxAttempts?: number;
+  retryDelaySeconds?: number;
 };
 
-export function viewWithRetry(
+/**
+ * Waits for the exact-version registry HTTP document (not `npm view`), which
+ * matches `verify-shared-on-npmjs.sh` and post-publish propagation behavior.
+ */
+export async function waitForPublishedScanPrepDocument(
   version: string,
-  field: string,
-  deps: ViewWithRetryTestDeps = {},
-): string {
-  const readOnce = deps.viewOnce ?? viewOnce;
+  deps: WaitForPublishedScanPrepDocumentDeps = {},
+): Promise<NpmjsPackageVersionDocument> {
+  const query = deps.query ?? queryNpmjsExactPackageVersionPublication;
   const sleepFn = deps.sleep ?? sleep;
-  const maxAttempts = NPMJS_REGISTRY_VIEW_MAX_ATTEMPTS;
+  const maxAttempts =
+    deps.maxAttempts ?? NPMJS_REGISTRY_PUBLICATION_MAX_ATTEMPTS;
+  const retryDelaySeconds =
+    deps.retryDelaySeconds ?? NPMJS_REGISTRY_PUBLICATION_RETRY_DELAY_SECONDS;
 
   let lastError: Error | undefined;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return readOnce(version, field);
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      if (attempt < maxAttempts) {
-        process.stderr.write(
-          `  metadata lookup attempt ${attempt}/${maxAttempts} failed; retrying in ${NPMJS_REGISTRY_VIEW_RETRY_DELAY_SECONDS}s...\n`,
-        );
-        sleepFn(NPMJS_REGISTRY_VIEW_RETRY_DELAY_SECONDS);
-      }
+    const result = await query(PACKAGE_NAME, version);
+    if (result.kind === "published") {
+      return result.document;
+    }
+
+    if (result.kind === "unavailable") {
+      lastError = new Error(result.message);
+    } else {
+      lastError = new Error(
+        `${PACKAGE_NAME}@${version} not found on npmjs (exact-version HTTP 404)`,
+      );
+    }
+
+    if (attempt < maxAttempts) {
+      process.stderr.write(
+        `  registry publication attempt ${attempt}/${maxAttempts} not ready; retrying in ${retryDelaySeconds}s...\n`,
+      );
+      sleepFn(retryDelaySeconds);
     }
   }
+
   throw (
-    lastError ?? new Error(`npm view failed for ${PACKAGE_NAME}@${version}`)
+    lastError ??
+    new Error(`registry publication evidence missing for ${PACKAGE_NAME}@${version}`)
   );
 }
 
-function view(version: string, field: string): string {
-  return viewWithRetry(version, field);
-}
-
-function verifyMetadata(version: string, expectedSharedVersion: string): void {
-  if (view(version, "version") !== version) {
+async function verifyMetadata(
+  version: string,
+  expectedSharedVersion: string,
+): Promise<void> {
+  const document = await waitForPublishedScanPrepDocument(version);
+  if (document.version !== version) {
     throw new Error(`${PACKAGE_NAME}@${version} metadata version mismatch`);
   }
-  const access = view(version, "publishConfig.access");
+  const access = document.publishConfig?.access;
   if (access !== "public") {
     throw new Error(`published package access must be public (got: ${access})`);
   }
-  const sharedDep = view(version, "dependencies.@mergesignal/shared");
+  const sharedDep = readSharedDependencyPinFromNpmjsPackageVersionDocument(
+    document,
+    "@mergesignal/shared",
+  );
   if (sharedDep !== expectedSharedVersion) {
     throw new Error(
       `published @mergesignal/shared dependency must be exact ${expectedSharedVersion}`,
@@ -219,7 +237,7 @@ function verifyIsolatedInstall(
   }
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const version = parseVersion(process.argv.slice(2));
   const releaseIdentity = readScanPrepReleaseIdentity(version);
   process.stdout.write("check:scan-prep-published-registry report\n");
@@ -229,7 +247,7 @@ function main(): void {
   process.stdout.write(
     `  expected @mergesignal/shared: ${releaseIdentity.sharedDependencyVersion} (from ${releaseIdentity.tag})\n`,
   );
-  verifyMetadata(version, releaseIdentity.sharedDependencyVersion);
+  await verifyMetadata(version, releaseIdentity.sharedDependencyVersion);
   verifyIsolatedInstall(version, releaseIdentity.sharedDependencyVersion);
   process.stdout.write("check:scan-prep-published-registry OK\n");
 }
@@ -239,5 +257,10 @@ const isDirectRun =
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isDirectRun) {
-  main();
+  main().catch((error: unknown) => {
+    const message =
+      error instanceof Error ? error.message : String(error ?? "unknown error");
+    console.error(message);
+    process.exitCode = 1;
+  });
 }

@@ -14,10 +14,11 @@ type NpmjsVersionAvailabilityResult =
   | { kind: "not_found" }
   | { kind: "unavailable"; message: string };
 
-type NpmjsPackageVersionDocument = {
+export type NpmjsPackageVersionDocument = {
   name: string;
   version: string;
   dependencies?: Record<string, string>;
+  publishConfig?: { access?: string };
 };
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -79,10 +80,24 @@ export function parseNpmjsPackageVersionDocument(
     return null;
   }
 
+  const publishConfig =
+    record.publishConfig === undefined
+      ? undefined
+      : typeof record.publishConfig === "object" &&
+          record.publishConfig !== null &&
+          !Array.isArray(record.publishConfig)
+        ? (record.publishConfig as { access?: string })
+        : undefined;
+
+  if (record.publishConfig !== undefined && publishConfig === undefined) {
+    return null;
+  }
+
   return {
     name: record.name,
     version: record.version,
     dependencies,
+    publishConfig,
   };
 }
 
