@@ -379,8 +379,8 @@ importers:
   packages/scan-prep:
     dependencies:
       '@mergesignal/shared':
-        specifier: 0.21.0
-        version: 0.21.0
+        specifier: 0.22.0
+        version: 0.22.0
       '@octokit/auth-app':
         specifier: ^7.1.4
         version: 7.2.2
@@ -1126,6 +1126,9 @@ packages:
 
   '@mergesignal/shared@0.21.0':
     resolution: {integrity: sha512-SWZy9fL5bK/9GpOFipiLCrdD60y27FDtqdv1RIcA1igQmTd4HR41ZYzqCjlgA6RLJK6HE7aR83EwtkUk4c68oQ==}
+
+  '@mergesignal/shared@0.22.0':
+    resolution: {integrity: sha512-S5GYXhj3/rO7XwBw8uCB9LH4CR/A1Z5oF1Dg3tCemCEQqsZjjvXPZwbzdy4VXjBrs4Ax+b+nTpUj319MaVpSuQ==}
 
   '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4':
     resolution: {integrity: sha512-LCkGo6JDfaBhgST7UpPWgNgLINpcpabaHfyz5OBx75nUYxBsaEPxjnyNjWpeb/xBup/682QnBfRBy2/LvPutZQ==}
@@ -5355,6 +5358,10 @@ snapshots:
       react: 19.2.0
 
   '@mergesignal/shared@0.21.0':
+    dependencies:
+      zod: 4.4.3
+
+  '@mergesignal/shared@0.22.0':
     dependencies:
       zod: 4.4.3
 
