@@ -130,7 +130,9 @@ export async function waitForPublishedScanPrepDocument(
 
   throw (
     lastError ??
-    new Error(`registry publication evidence missing for ${PACKAGE_NAME}@${version}`)
+    new Error(
+      `registry publication evidence missing for ${PACKAGE_NAME}@${version}`,
+    )
   );
 }
 
