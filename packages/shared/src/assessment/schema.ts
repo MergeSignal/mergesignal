@@ -139,6 +139,7 @@ const clearedDimensionSchema = z.object({
 
 const unclearedDimensionSchema = z.object({
   kind: z.enum(DELTA_DIMENSION_KINDS),
+  fieldPath: z.string().min(1).optional(),
   reason: z.enum(UNCLEARED_REASONS),
   boundedVerifyTarget: boundedVerifyTargetSchema.optional(),
 });

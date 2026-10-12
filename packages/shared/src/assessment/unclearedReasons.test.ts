@@ -70,6 +70,7 @@ describe("UNCLEARED_REASONS", () => {
 describe("correlation_abstained Clearance Envelope wire contract", () => {
   const uncleared: UnclearedDimension = {
     kind: "exports",
+    fieldPath: "./server",
     reason: "correlation_abstained",
   };
 
@@ -102,7 +103,13 @@ describe("correlation_abstained Clearance Envelope wire contract", () => {
     const reparsed = parseAssessmentOrThrow(serialized);
 
     expect(reparsed.clearanceEnvelopes?.["pkg-a"]?.unclearedDimensions).toEqual(
-      [{ kind: "exports", reason: "correlation_abstained" }],
+      [
+        {
+          kind: "exports",
+          fieldPath: "./server",
+          reason: "correlation_abstained",
+        },
+      ],
     );
   });
 
@@ -111,6 +118,7 @@ describe("correlation_abstained Clearance Envelope wire contract", () => {
       minimalAssessmentWithClearance([
         {
           kind: "exports",
+          fieldPath: "./server",
           reason: "non_import_consumption_not_joined",
         } as unknown as UnclearedDimension,
       ]),
@@ -118,10 +126,61 @@ describe("correlation_abstained Clearance Envelope wire contract", () => {
     expect(parsed.success).toBe(false);
   });
 
+  it("parses a historical ABI 4 uncleared dimension that omits fieldPath", () => {
+    const parsed = assessmentSchema.safeParse(
+      minimalAssessmentWithClearance([
+        {
+          kind: "exports",
+          reason: "correlation_abstained",
+        },
+      ]),
+    );
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    const dimension =
+      parsed.data.clearanceEnvelopes?.["pkg-a"]?.unclearedDimensions[0];
+    expect(dimension?.kind).toBe("exports");
+    expect(dimension?.reason).toBe("correlation_abstained");
+    expect(dimension?.fieldPath).toBeUndefined();
+  });
+
+  it("preserves distinct field identities that share kind and reason", () => {
+    const parsed = parseAssessmentOrThrow(
+      minimalAssessmentWithClearance([
+        {
+          kind: "artifact_layout",
+          fieldPath: "dist/a.js",
+          reason: "representative_precision_only",
+        },
+        {
+          kind: "artifact_layout",
+          fieldPath: "dist/b.js",
+          reason: "representative_precision_only",
+        },
+      ]),
+    );
+    expect(parsed.clearanceEnvelopes?.["pkg-a"]?.unclearedDimensions).toEqual([
+      {
+        kind: "artifact_layout",
+        fieldPath: "dist/a.js",
+        reason: "representative_precision_only",
+      },
+      {
+        kind: "artifact_layout",
+        fieldPath: "dist/b.js",
+        reason: "representative_precision_only",
+      },
+    ]);
+  });
+
   it("continues to accept existing uncleared reasons", () => {
     const parsed = assessmentSchema.safeParse(
       minimalAssessmentWithClearance([
-        { kind: "peer_dependency", reason: "representative_precision_only" },
+        {
+          kind: "peer_dependency",
+          fieldPath: "react",
+          reason: "representative_precision_only",
+        },
       ]),
     );
     expect(parsed.success).toBe(true);

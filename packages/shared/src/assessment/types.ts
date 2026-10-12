@@ -283,6 +283,12 @@ export type ClearedDimension = {
 
 export type UnclearedDimension = {
   kind: DeltaDimensionKind;
+  /**
+   * Delta-dimension identity. Optional on ABI 4 so historical payloads that
+   * predate this field remain parseable. Current producers always set it.
+   * Absence must stay absent; do not invent a value for older records.
+   */
+  fieldPath?: string;
   reason: UnclearedReason;
   boundedVerifyTarget?: BoundedVerifyTarget;
 };

@@ -185,6 +185,7 @@ describe("assessmentSchema (ABI 4 — backward-compatible)", () => {
           unclearedDimensions: [
             {
               kind: "exports" as const,
+              fieldPath: "./server",
               reason: "representative_precision_only" as const,
             },
           ],
