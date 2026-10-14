@@ -382,7 +382,7 @@ Publication properties:
 - Publication: `npm publish` uses that exact validated candidate tarball with `--access public`.
 - Pre-publication: version availability must be proven absent on npmjs; registry ambiguity fails closed.
 - Pre-publication: candidate integrity is re-checked from the structured report immediately before `npm publish`.
-- Post-publication: `check:scan-prep-published-registry` runs unauthenticated for the released version, with a clean npm environment and bounded retry for npm metadata propagation.
+- Post-publication: `check:scan-prep-published-registry` runs unauthenticated for the released version, with a clean npm environment. Post-publish verification uses bounded retries for exact-version registry visibility and the complete isolated registry verification; a package is accepted only after the full verification succeeds, otherwise the release fails after the retry bound.
 - Post-publication: verified releases emit `scan-prep-package-released` to mergesignal-engine (requires `MERGESIGNAL_ENGINE_DISPATCH_TOKEN` — see [Engine notification after Scan Preparation publish](#engine-notification-after-scan-preparation-publish)).
 - Recovery: if publication succeeds but registry verification fails, rerun [verify-scan-prep-registry.yml](../.github/workflows/verify-scan-prep-registry.yml) — read-only, never republish the same version.
 - Recovery: if publication and registry verification succeed but dispatch fails, rerun [publish-scan-prep.yml](../.github/workflows/publish-scan-prep.yml) with **dispatch_only** and the exact published version — read-only, never republish the same version.

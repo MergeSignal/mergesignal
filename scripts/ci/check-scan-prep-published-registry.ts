@@ -26,6 +26,10 @@ const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 export const NPMJS_REGISTRY_PUBLICATION_MAX_ATTEMPTS = 36;
 export const NPMJS_REGISTRY_PUBLICATION_RETRY_DELAY_SECONDS = 5;
 
+/** Complete isolated verification can still lag after exact-version metadata is visible. */
+const ISOLATED_INSTALL_MAX_ATTEMPTS = 10;
+const ISOLATED_INSTALL_RETRY_DELAY_SECONDS = 10;
+
 export type PublishedRegistryConsumerPackageJson = {
   name: string;
   private: boolean;
@@ -239,6 +243,32 @@ function verifyIsolatedInstall(
   }
 }
 
+export function verifyIsolatedInstallUntilReady(
+  version: string,
+  expectedSharedVersion: string,
+  deps: {
+    sleep?: (seconds: number) => void;
+    verify?: (version: string, expectedSharedVersion: string) => void;
+  } = {},
+): void {
+  const sleepFn = deps.sleep ?? sleep;
+  const verify = deps.verify ?? verifyIsolatedInstall;
+  for (let attempt = 1; attempt <= ISOLATED_INSTALL_MAX_ATTEMPTS; attempt++) {
+    try {
+      verify(version, expectedSharedVersion);
+      return;
+    } catch (error: unknown) {
+      if (attempt === ISOLATED_INSTALL_MAX_ATTEMPTS) {
+        throw error;
+      }
+      process.stderr.write(
+        `  isolated install attempt ${attempt}/${ISOLATED_INSTALL_MAX_ATTEMPTS} not ready; retrying in ${ISOLATED_INSTALL_RETRY_DELAY_SECONDS}s...\n`,
+      );
+      sleepFn(ISOLATED_INSTALL_RETRY_DELAY_SECONDS);
+    }
+  }
+}
+
 async function main(): Promise<void> {
   const version = parseVersion(process.argv.slice(2));
   const releaseIdentity = readScanPrepReleaseIdentity(version);
@@ -250,7 +280,10 @@ async function main(): Promise<void> {
     `  expected @mergesignal/shared: ${releaseIdentity.sharedDependencyVersion} (from ${releaseIdentity.tag})\n`,
   );
   await verifyMetadata(version, releaseIdentity.sharedDependencyVersion);
-  verifyIsolatedInstall(version, releaseIdentity.sharedDependencyVersion);
+  verifyIsolatedInstallUntilReady(
+    version,
+    releaseIdentity.sharedDependencyVersion,
+  );
   process.stdout.write("check:scan-prep-published-registry OK\n");
 }
 
