@@ -66,6 +66,7 @@ describe("prepareScanContext provider boundary", () => {
         sha: "abc123",
         installationId: 1,
       },
+      changeIntent: "change_request",
       github: {
         owner: "acme",
         repo: "app",

@@ -267,6 +267,7 @@ async function handlePullRequest(
         : undefined,
       changedFiles,
       changedPackageJsonFiles,
+      changeIntent: "change_request",
       github: {
         owner,
         repo,

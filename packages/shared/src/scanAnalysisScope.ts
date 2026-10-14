@@ -27,10 +27,13 @@ export function freshOutputExpectationFromScanRequest(
 
 /**
  * Normalizes queue job context into engine ingress scope.
- * GitHub PR jobs are change-request scoped; repository/manual jobs are repository scoped.
+ * Change-request scope follows governed `changeIntent`.
+ * Absent intent and `repository_scope` stay repository-scoped.
  */
 export function scanAnalysisScopeFromQueueJob(
-  job: Pick<ScanQueueJob, "github">,
+  job: Pick<ScanQueueJob, "changeIntent">,
 ): ScanAnalysisScope {
-  return job.github ? "change_request" : "repository";
+  return job.changeIntent === "change_request"
+    ? "change_request"
+    : "repository";
 }

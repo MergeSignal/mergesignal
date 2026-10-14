@@ -62,4 +62,45 @@ describe("createScanAndEnqueue queue options", () => {
     const opts = add.mock.calls[0]![2] as { attempts?: number };
     expect(opts.attempts).toBe(1);
   });
+
+  it("copies changeIntent onto the queue job and does not invent one", async () => {
+    await createScanAndEnqueue({
+      repoId: "acme/app",
+      dependencyGraph: {},
+      changeIntent: "change_request",
+      github: {
+        owner: "acme",
+        repo: "app",
+        prNumber: 4,
+        headSha: "abc",
+        installationId: 9,
+      },
+    });
+    const withIntent = add.mock.calls[0]![1] as {
+      changeIntent?: string;
+      github?: { prNumber: number };
+    };
+    expect(withIntent.changeIntent).toBe("change_request");
+    expect(withIntent.github?.prNumber).toBe(4);
+
+    await createScanAndEnqueue({
+      repoId: "acme/app",
+      dependencyGraph: {},
+      source: "manual",
+    });
+    const manual = add.mock.calls[1]![1] as { changeIntent?: string };
+    expect(manual.changeIntent).toBeUndefined();
+
+    await createScanAndEnqueue({
+      repoId: "acme/app",
+      dependencyGraph: {},
+      source: "github",
+    });
+    const pushLike = add.mock.calls[2]![1] as {
+      changeIntent?: string;
+      github?: unknown;
+    };
+    expect(pushLike.changeIntent).toBeUndefined();
+    expect(pushLike.github).toBeUndefined();
+  });
 });

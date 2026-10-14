@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { db, queries } from "../db.js";
 import { scanQueue } from "../queue.js";
 import type {
+  ScanChangeIntent,
   ScanLockfileInput,
   RepoSource,
   ScanQueueGithubContext,
@@ -18,6 +19,7 @@ export async function createScanAndEnqueue({
   changedFiles,
   changedPackageJsonFiles,
   github,
+  changeIntent,
   source,
 }: {
   scanId?: string;
@@ -28,6 +30,7 @@ export async function createScanAndEnqueue({
   changedFiles?: string[];
   changedPackageJsonFiles?: string[];
   github?: ScanQueueGithubContext;
+  changeIntent?: ScanChangeIntent;
   source?: "manual" | "github";
 }) {
   const id = scanId ?? randomUUID();
@@ -103,6 +106,7 @@ export async function createScanAndEnqueue({
         changedFiles,
         changedPackageJsonFiles,
         github,
+        ...(changeIntent !== undefined ? { changeIntent } : {}),
       },
       {
         jobId: id,
