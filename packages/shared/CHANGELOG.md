@@ -2,6 +2,14 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## 0.22.1
+
+### Fixed
+
+- Change-request analysis scope follows governed `changeIntent`. A queue job is change-request scoped only when `changeIntent` is `change_request`. Absent intent and `repository_scope` stay repository-scoped.
+
+`ASSESSMENT_ABI` remains `4`. No wire or schema change.
+
 ## 0.22.0
 
 ### Added
