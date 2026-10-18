@@ -53,7 +53,7 @@ flyctl deploy . \
   --build-arg MERGESIGNAL_ENGINE_REF="v1.2.3"
 ```
 
-The repository's [`.github/workflows/fly-deploy.yml`](../../.github/workflows/fly-deploy.yml) automates deploys for the **MergeSignal** hosted stack on push to `main`.
+The repository's [`.github/workflows/fly-deploy.yml`](../../.github/workflows/fly-deploy.yml) deploys the **MergeSignal** hosted stack only when **Deploy Fly.io** is run explicitly (`workflow_dispatch`).
 
 ## Engine requirement
 
