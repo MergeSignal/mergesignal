@@ -36,8 +36,36 @@ export type ProductionScanIngressResult = {
   collectionContext?: unknown;
 };
 
+/** Structural match for the private in-process repository reader. */
+export type ProductionRepositoryTreeListing = {
+  entries: Array<{ type?: string; path?: string; sha?: string }>;
+  truncated: boolean;
+};
+
+export type ProductionRepositoryBlob = {
+  size?: number;
+  bytes: Uint8Array;
+};
+
+export type ProductionRepositoryFileAtRevision =
+  | { kind: "file"; sha: string; content: string }
+  | { kind: "absent" }
+  | { kind: "rejected" }
+  | { kind: "oversized" }
+  | { kind: "failed" };
+
+export type ProductionRepositoryReader = {
+  listTree(objectId: string): Promise<ProductionRepositoryTreeListing>;
+  readBlob(blobId: string): Promise<ProductionRepositoryBlob>;
+  readFileAtRevision(
+    revisionRef: string,
+    repoRelativePath: string,
+  ): Promise<ProductionRepositoryFileAtRevision>;
+};
+
 export type OrchestrateProductionScanIngressOptions = {
   reasoningTier?: ProductionAnalyzeOptions["reasoningTier"];
+  repositoryReader?: ProductionRepositoryReader;
 };
 
 export type OrchestrateProductionScanIngressFn = (

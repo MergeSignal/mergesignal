@@ -3,7 +3,31 @@ export type {
   ProductionAnalyzeOptions,
   ProductionScanIngressResult,
   OrchestrateProductionScanIngressOptions,
+  ProductionRepositoryReader,
 } from "./loader.js";
+export { MAX_OBJECT_BYTES } from "./localAcquisition/limits.js";
+export {
+  closeLocalAcquisition,
+  fulfillAcquisition,
+  openLocalAcquisition,
+  readPendingAcquisition,
+  requestRawObject,
+} from "./localAcquisition/session.js";
+export type {
+  AcquisitionRedis,
+  AcquisitionTransaction,
+  LocalAcquisitionSession,
+  PendingAcquisition,
+  RawObjectResult,
+} from "./localAcquisition/session.js";
+export { createLocalRepositoryReader } from "./localAcquisition/reader.js";
+export {
+  hashAlgorithmForObjectId,
+  hashGitObject,
+  parseCommitTreeId,
+  parseGitTree,
+  verifyGitObject,
+} from "./localAcquisition/gitObject.js";
 export {
   analyze,
   simulateUpgrade,

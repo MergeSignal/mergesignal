@@ -15,10 +15,14 @@ import type {
   ProductionAnalyzeOptions,
   ProductionScanIngressResult,
   OrchestrateProductionScanIngressOptions,
+  ProductionRepositoryReader,
 } from "./productionAnalyzeOptions.js";
 
 export type { ProductionAnalyzeOptions, ProductionScanIngressResult };
-export type { OrchestrateProductionScanIngressOptions };
+export type {
+  OrchestrateProductionScanIngressOptions,
+  ProductionRepositoryReader,
+};
 
 export type EngineImpl = {
   analyze: AnalyzeWithProductionOptionsFn;

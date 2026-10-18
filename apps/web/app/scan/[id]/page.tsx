@@ -5,6 +5,8 @@ import { ApiError, serverApiGet } from "../../../lib/api";
 import { fetchPullRequestTitle } from "../../../lib/github-open-pull-requests";
 import { requireRepoAccess } from "../../../lib/repo-guard";
 import { auth } from "../../../auth";
+import { notFound } from "next/navigation";
+import { webScanRepositoryGate } from "../../../lib/localScanPageGate";
 
 type ApiScan = {
   id: string;
@@ -73,7 +75,11 @@ export default async function Page({
     );
   }
 
-  const { owner, repo } = parseRepoId(scan.repoId ?? scan.repo_id ?? "");
+  const repoId = scan.repoId ?? scan.repo_id ?? "";
+  const { owner, repo } = parseRepoId(repoId);
+  if (webScanRepositoryGate({ id: scan.id, repoId }) === "unavailable") {
+    notFound();
+  }
   await requireRepoAccess(owner, repo, {
     redirectTo: "/scan/" + encodeURIComponent(id),
   });
