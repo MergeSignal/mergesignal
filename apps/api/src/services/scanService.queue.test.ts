@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { db } from "../db.js";
 import { createScanAndEnqueue } from "./scanService.js";
+import { getLimitsForOwner } from "./tier.js";
 
 const add = vi.fn().mockResolvedValue(undefined);
 
@@ -35,11 +37,13 @@ vi.mock("../db.js", () => {
 });
 
 vi.mock("./tier.js", () => ({
-  getLimitsForOwner: () => ({
+  getLimitsForOwner: vi.fn(() => ({
     scanMaxLockfileBytes: 1_000_000,
     scansPerOwnerPerDay: -1,
     githubScansPerOwnerPerDay: -1,
-  }),
+    prCommentsEnabled: false,
+    alertsEnabled: false,
+  })),
   getOwnerFromRepoId: (id: string) => id.split("/")[0] ?? id,
 }));
 
@@ -102,5 +106,42 @@ describe("createScanAndEnqueue queue options", () => {
     };
     expect(pushLike.changeIntent).toBeUndefined();
     expect(pushLike.github).toBeUndefined();
+  });
+
+  it("charges manual quota to the repoId owner and copies acquired facts without a GitHub source", async () => {
+    const limited = {
+      scanMaxLockfileBytes: 1_000_000,
+      scansPerOwnerPerDay: 5,
+      githubScansPerOwnerPerDay: -1,
+      prCommentsEnabled: false,
+      alertsEnabled: false,
+    };
+    vi.mocked(getLimitsForOwner)
+      .mockReturnValueOnce(limited)
+      .mockReturnValueOnce(limited);
+    const head = "a".repeat(40);
+    await createScanAndEnqueue({
+      repoId: "acme/scan-local",
+      dependencyGraph: null,
+      source: "manual",
+      changeIntent: "change_request",
+      acquiredFacts: {
+        repoId: "acme/scan-local",
+        changeIntent: "change_request",
+        headRevision: { sha: head },
+      },
+    });
+    expect(db.query).toHaveBeenCalledWith(
+      expect.not.stringContaining("source='github'"),
+      ["acme"],
+    );
+    const job = add.mock.calls[0]![1] as {
+      acquiredFacts?: { headRevision: { sha: string } };
+      repoSource?: unknown;
+      github?: unknown;
+    };
+    expect(job.acquiredFacts?.headRevision.sha).toBe(head);
+    expect(job.repoSource).toBeUndefined();
+    expect(job.github).toBeUndefined();
   });
 });

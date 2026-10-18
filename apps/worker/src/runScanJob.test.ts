@@ -34,7 +34,19 @@ vi.mock("./sentry.js", () => ({
   captureWorkerException: vi.fn(),
 }));
 
+vi.mock("./localScanSession.js", () => ({
+  openWorkerLocalReader: vi.fn(async () => ({
+    reader: {
+      listTree: vi.fn(),
+      readBlob: vi.fn(),
+      readFileAtRevision: vi.fn(),
+    },
+    close: vi.fn(),
+  })),
+}));
+
 import { analyze, orchestrateProductionScanIngress } from "@mergesignal/engine";
+import { openWorkerLocalReader } from "./localScanSession.js";
 
 const layerScores = {
   security: 10,
@@ -102,6 +114,7 @@ describe("executeScanJob", () => {
 
   beforeEach(() => {
     vi.mocked(analyze).mockReset();
+    vi.mocked(openWorkerLocalReader).mockClear();
     vi.mocked(orchestrateProductionScanIngress).mockReset();
     vi.mocked(orchestrateProductionScanIngress).mockResolvedValue({
       scanRequest: {
@@ -218,6 +231,96 @@ describe("executeScanJob", () => {
     expect(doneSql).toBeDefined();
     expect(doneSql).toMatch(/engine_release_version/);
     expect(doneSql).toMatch(/engine_release_git_sha/);
+    expect(openWorkerLocalReader).not.toHaveBeenCalled();
+    expect(
+      vi.mocked(orchestrateProductionScanIngress).mock.calls[0]?.[1]
+        ?.repositoryReader,
+    ).toBeUndefined();
+  });
+
+  it("does not open local acquisition when a GitHub repository source is present", async () => {
+    vi.mocked(analyze).mockResolvedValue(validChangeRequestEngineOutput);
+    let status = "queued";
+    const pool = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.startsWith("SELECT status"))
+          return { rows: [{ status }], rowCount: 1 };
+        if (sql.includes("status IN ('queued', 'running')")) {
+          status = "running";
+          return { rowCount: 1 };
+        }
+        if (sql.includes("heartbeat_at = NOW()")) return { rowCount: 1 };
+        if (sql.includes("status = 'done'")) {
+          status = "done";
+          return { rowCount: 1 };
+        }
+        return { rows: [], rowCount: 0 };
+      }),
+    } as unknown as Pool;
+
+    await executeScanJob(
+      pool,
+      makeJob({
+        repoSource: {
+          provider: "github",
+          owner: "acme",
+          repo: "app",
+          sha: "a".repeat(40),
+          installationId: 3,
+        },
+        acquiredFacts: {
+          repoId: "acme/app",
+          changeIntent: "change_request",
+          headRevision: { sha: "a".repeat(40) },
+        },
+      }),
+      "worker-test",
+    );
+
+    expect(openWorkerLocalReader).not.toHaveBeenCalled();
+    expect(
+      vi.mocked(orchestrateProductionScanIngress).mock.calls[0]?.[1]
+        ?.repositoryReader,
+    ).toBeUndefined();
+  });
+
+  it("passes the local reader into collection when the job has no GitHub source", async () => {
+    vi.mocked(analyze).mockResolvedValue(validChangeRequestEngineOutput);
+    let status = "queued";
+    const pool = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.startsWith("SELECT status"))
+          return { rows: [{ status }], rowCount: 1 };
+        if (sql.includes("status IN ('queued', 'running')")) {
+          status = "running";
+          return { rowCount: 1 };
+        }
+        if (sql.includes("heartbeat_at = NOW()")) return { rowCount: 1 };
+        if (sql.includes("status = 'done'")) {
+          status = "done";
+          return { rowCount: 1 };
+        }
+        return { rows: [], rowCount: 0 };
+      }),
+    } as unknown as Pool;
+
+    await executeScanJob(
+      pool,
+      makeJob({
+        acquiredFacts: {
+          repoId: "acme/scan-1",
+          changeIntent: "change_request",
+          headRevision: { sha: "b".repeat(40) },
+        },
+      }),
+      "worker-test",
+    );
+
+    expect(openWorkerLocalReader).toHaveBeenCalledWith("scan-1");
+    const reader = vi.mocked(orchestrateProductionScanIngress).mock
+      .calls[0]?.[1]?.repositoryReader;
+    expect(reader).toBeDefined();
+    expect(reader).not.toHaveProperty("plan");
   });
 
   it("marks failed on engine error and does not persist done", async () => {

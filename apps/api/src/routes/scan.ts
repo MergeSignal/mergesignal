@@ -5,10 +5,23 @@ import {
   resolvePrRiskScoreFromRow,
   resolveRepositoryHealthScoreFromRow,
 } from "@mergesignal/shared";
+import {
+  fulfillAcquisition,
+  hashAlgorithmForObjectId,
+  readPendingAcquisition,
+} from "@mergesignal/engine";
 import { queries } from "../db.js";
+import { getAcquisitionRedis } from "../acquisition/redis.js";
 import { createScanAndEnqueue } from "../services/scanService.js";
 import { buildScanDetailsForApi } from "../services/scanPresentationService.js";
 import { sendProblem } from "../problem.js";
+import {
+  localScanBodySchema,
+  localScanEnqueueArgs,
+  ownerOfRepoId,
+  registerObjectBodyParser,
+  requireScanOwner,
+} from "./localScanIngress.js";
 
 const LockfileManagerSchema = z.enum(["pnpm", "npm", "yarn"]);
 
@@ -27,7 +40,58 @@ const ScanRequestSchema = z.object({
 type ScanStatus = "queued" | "running" | "done" | "failed";
 
 export async function scanRoutes(app: FastifyInstance) {
+  registerObjectBodyParser(app);
+
   app.post("/scan", async (req, reply) => {
+    if (req.body && typeof req.body === "object" && "local" in req.body) {
+      if (!req.authenticatedOwner) {
+        return sendProblem(reply, req, {
+          status: 401,
+          title: "Unauthorized",
+          detail: "Missing or invalid API key",
+        });
+      }
+      const localParsed = localScanBodySchema.safeParse(req.body);
+      if (!localParsed.success) {
+        return sendProblem(reply, req, {
+          status: 400,
+          title: "Bad Request",
+          detail: localParsed.error.issues
+            .map(
+              (issue) => `${issue.path.join(".") || "body"}: ${issue.message}`,
+            )
+            .join("; "),
+        });
+      }
+      try {
+        const enqueued = localScanEnqueueArgs(
+          req.authenticatedOwner,
+          localParsed.data,
+        );
+        const { scanId } = await createScanAndEnqueue(enqueued);
+        return reply.code(202).send({ scanId, status: "queued" as ScanStatus });
+      } catch (error: unknown) {
+        const code = Number(
+          (error as { statusCode?: number })?.statusCode ?? 500,
+        );
+        if (code === 413) {
+          return sendProblem(reply, req, {
+            status: 413,
+            title: "Payload Too Large",
+            detail: "lockfile too large",
+          });
+        }
+        if (code === 429) {
+          return sendProblem(reply, req, {
+            status: 429,
+            title: "Too Many Requests",
+            detail: "scan quota exceeded",
+          });
+        }
+        throw error;
+      }
+    }
+
     const parsed = ScanRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       return sendProblem(reply, req, {
@@ -99,10 +163,7 @@ export async function scanRoutes(app: FastifyInstance) {
 
     // Authorization check: if using org-scoped API key, ensure scan belongs to owner
     if (req.authenticatedOwner) {
-      const repoOwner = scan.repo_id.includes("/")
-        ? scan.repo_id.split("/")[0]
-        : scan.repo_id;
-      if (repoOwner !== req.authenticatedOwner) {
+      if (ownerOfRepoId(scan.repo_id) !== req.authenticatedOwner) {
         return sendProblem(reply, req, {
           status: 403,
           title: "Forbidden",
@@ -123,6 +184,23 @@ export async function scanRoutes(app: FastifyInstance) {
       scannedAt: scan.result_generated_at?.toISOString() ?? null,
     });
 
+    let acquisition:
+      | { pending: true; objectId: string; generation: string }
+      | undefined;
+    if (scan.status === "running") {
+      try {
+        const redis = getAcquisitionRedis();
+        if (redis) {
+          const pending = await readPendingAcquisition(redis, scan.id);
+          if (pending) {
+            acquisition = { pending: true, ...pending };
+          }
+        }
+      } catch {
+        acquisition = undefined;
+      }
+    }
+
     const response = {
       id: scan.id,
       repoId: scan.repo_id,
@@ -136,10 +214,87 @@ export async function scanRoutes(app: FastifyInstance) {
       finishedAt: scan.finished_at,
       error: scan.error,
       detailPresentation,
+      ...(acquisition ? { acquisition } : {}),
       ...(includeRaw && result ? { result } : {}),
     };
 
     return response;
+  });
+
+  app.post("/scan/:id/object", async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const scan = await queries.scans.findById(id);
+    if (!scan) {
+      return sendProblem(reply, req, {
+        status: 404,
+        title: "Not Found",
+        detail: "scan not found",
+      });
+    }
+    if (
+      !requireScanOwner(
+        req,
+        reply,
+        scan.repo_id,
+        (problemReply, problemReq, problem) =>
+          sendProblem(problemReply, problemReq, problem),
+      )
+    ) {
+      return;
+    }
+    if (scan.status !== "running") {
+      return sendProblem(reply, req, {
+        status: 409,
+        title: "Conflict",
+        detail: "scan is not accepting repository evidence",
+      });
+    }
+    const generation = String(
+      req.headers["x-mergesignal-acquisition-generation"] ?? "",
+    );
+    const objectId = String(req.headers["x-mergesignal-object-id"] ?? "");
+    if (!generation || !hashAlgorithmForObjectId(objectId)) {
+      return sendProblem(reply, req, {
+        status: 400,
+        title: "Bad Request",
+        detail: "generation and object id are required",
+      });
+    }
+    const body = req.body;
+    if (!Buffer.isBuffer(body)) {
+      return sendProblem(reply, req, {
+        status: 400,
+        title: "Bad Request",
+        detail: "raw object bytes are required",
+      });
+    }
+    const redis = getAcquisitionRedis();
+    if (!redis) {
+      return sendProblem(reply, req, {
+        status: 503,
+        title: "Service Unavailable",
+        detail: "acquisition session is unavailable",
+      });
+    }
+    const outcome = await fulfillAcquisition(redis, {
+      scanId: id,
+      generation,
+      objectId,
+      bytes: body,
+    });
+    if (outcome === "accepted") return reply.code(204).send();
+    if (outcome === "oversized") {
+      return sendProblem(reply, req, {
+        status: 413,
+        title: "Payload Too Large",
+        detail: "object too large",
+      });
+    }
+    return sendProblem(reply, req, {
+      status: 409,
+      title: "Conflict",
+      detail: "object request is no longer pending",
+    });
   });
 
   app.get("/scans", async (req, reply) => {

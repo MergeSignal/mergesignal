@@ -21,6 +21,7 @@ import {
 } from "@mergesignal/shared";
 import { resolveReasoningBudgetTierForRepoId } from "@mergesignal/product-tier";
 import { publishGitHubCheckRun } from "./githubSurfaces.js";
+import { openWorkerLocalReader } from "./localScanSession.js";
 import { withPgRetries } from "./pgRetry.js";
 import { captureWorkerException } from "./sentry.js";
 
@@ -230,6 +231,9 @@ export async function executeScanJob(
   });
 
   let hb: ReturnType<typeof setInterval> | undefined;
+  let localReader:
+    | Awaited<ReturnType<typeof openWorkerLocalReader>>
+    | undefined;
   const hbMs = Number(process.env.SCAN_HEARTBEAT_INTERVAL_MS ?? "30000");
   try {
     const marked = await markRunning(pool, scanId, workerId);
@@ -271,8 +275,13 @@ export async function executeScanJob(
     }
 
     const reasoningTier = resolveReasoningBudgetTierForRepoId(job.data.repoId);
+    const headRevision = job.data.acquiredFacts?.headRevision?.sha;
+    if (!job.data.repoSource && headRevision) {
+      localReader = await openWorkerLocalReader(scanId);
+    }
     const prepared = await orchestrateProductionScanIngress(job.data, {
       reasoningTier,
+      ...(localReader ? { repositoryReader: localReader.reader } : {}),
     });
     const engineInfo = getEngineLoadInfo();
 
@@ -481,5 +490,6 @@ export async function executeScanJob(
     }
   } finally {
     if (hb) clearInterval(hb);
+    if (localReader) await localReader.close();
   }
 }

@@ -6,6 +6,7 @@ import type {
   ScanLockfileInput,
   RepoSource,
   ScanQueueGithubContext,
+  SerializableScanAcquiredFacts,
 } from "@mergesignal/shared";
 import { getLimitsForOwner, getOwnerFromRepoId } from "./tier.js";
 import { assertScanQuotaAvailable } from "./scanQuota.js";
@@ -20,6 +21,7 @@ export async function createScanAndEnqueue({
   changedPackageJsonFiles,
   github,
   changeIntent,
+  acquiredFacts,
   source,
 }: {
   scanId?: string;
@@ -31,6 +33,7 @@ export async function createScanAndEnqueue({
   changedPackageJsonFiles?: string[];
   github?: ScanQueueGithubContext;
   changeIntent?: ScanChangeIntent;
+  acquiredFacts?: SerializableScanAcquiredFacts;
   source?: "manual" | "github";
 }) {
   const id = scanId ?? randomUUID();
@@ -107,6 +110,7 @@ export async function createScanAndEnqueue({
         changedPackageJsonFiles,
         github,
         ...(changeIntent !== undefined ? { changeIntent } : {}),
+        ...(acquiredFacts !== undefined ? { acquiredFacts } : {}),
       },
       {
         jobId: id,
