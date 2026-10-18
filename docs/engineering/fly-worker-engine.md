@@ -68,7 +68,7 @@ Engine paths are baked in the image (`MERGESIGNAL_ENGINE_IMPL`, `MERGESIGNAL_ENG
 1. Release and tag `mergesignal-engine` → `vX.Y.Z`
 2. Verify engine CI green on that tag
 3. Set GitHub repo variable `MERGESIGNAL_ENGINE_REF=vX.Y.Z`
-4. Deploy worker (push to `main` or `workflow_dispatch` → **Deploy Fly.io**)
+4. Deploy the worker by running **Deploy Fly.io** explicitly (`workflow_dispatch`)
 5. Confirm deploy output: `mergesignal-engine vX.Y.Z` + Fly image ref
 6. Verify worker logs: `worker_startup_complete` with matching `engineReleaseVersion`
 7. Run smoke scan; confirm `scans.engine_release_version = vX.Y.Z`
