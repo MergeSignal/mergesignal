@@ -364,6 +364,22 @@ importers:
         specifier: ^8.50.0
         version: 8.50.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.2)
 
+  packages/local-git:
+    dependencies:
+      '@mergesignal/scan-prep':
+        specifier: workspace:*
+        version: link:../scan-prep
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.15.3)(happy-dom@20.9.0)(jsdom@29.1.1)(lightningcss@1.32.0)(sugarss@5.0.1(postcss@8.5.14))
+
   packages/product-tier:
     devDependencies:
       '@types/node':
