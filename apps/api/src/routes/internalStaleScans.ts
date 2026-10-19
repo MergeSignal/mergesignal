@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { db } from "../db.js";
 import { sendProblem } from "../problem.js";
+import { LIVE_RESERVATION_STALE_MINUTES } from "../services/scanQuota.js";
 
 function readInternalToken(req: FastifyRequest): string | undefined {
   const auth = req.headers.authorization;
@@ -33,10 +34,10 @@ export async function internalStaleScansRoutes(app: FastifyInstance) {
     }
 
     const raw = (req.query as { staleMinutes?: string }).staleMinutes;
-    const parsed = Math.trunc(Number(raw ?? "30"));
+    const parsed = Math.trunc(Number(raw ?? LIVE_RESERVATION_STALE_MINUTES));
     const staleMinutes = Number.isFinite(parsed)
       ? Math.min(24 * 60, Math.max(5, parsed))
-      : 30;
+      : LIVE_RESERVATION_STALE_MINUTES;
 
     const { rowCount: runningMarkedFailed } = await db.query(
       `UPDATE scans

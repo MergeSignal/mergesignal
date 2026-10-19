@@ -8,10 +8,13 @@ export type Tier = ProductOwnerTier;
 
 export { getOwnerFromRepoId, getProductOwnerTierForOwner as getTierForOwner };
 
+export type EntitlementPeriod = "week" | "month";
+
 export type TierLimits = {
   scanMaxLockfileBytes: number;
-  scansPerOwnerPerDay: number;
-  githubScansPerOwnerPerDay: number;
+  /** Completed analyses allowed in the current period. Negative means unlimited. */
+  scanAllowance: number;
+  entitlementPeriod: EntitlementPeriod;
   prCommentsEnabled: boolean;
   alertsEnabled: boolean;
 };
@@ -24,11 +27,8 @@ export function getLimitsForOwner(owner: string): TierLimits {
       process.env.FREE_SCAN_MAX_LOCKFILE_BYTES,
       1_000_000,
     ),
-    scansPerOwnerPerDay: clampInt(process.env.FREE_SCANS_PER_OWNER_PER_DAY, 25),
-    githubScansPerOwnerPerDay: clampInt(
-      process.env.FREE_GITHUB_SCANS_PER_OWNER_PER_DAY,
-      15,
-    ),
+    scanAllowance: clampAllowance(process.env.FREE_SCAN_ALLOWANCE, 10),
+    entitlementPeriod: "week",
     prCommentsEnabled: (process.env.FREE_PR_COMMENTS_ENABLED ?? "0") === "1",
     alertsEnabled: (process.env.FREE_ALERTS_ENABLED ?? "0") === "1",
   };
@@ -38,14 +38,8 @@ export function getLimitsForOwner(owner: string): TierLimits {
       process.env.PAID_SCAN_MAX_LOCKFILE_BYTES,
       5_000_000,
     ),
-    scansPerOwnerPerDay: clampInt(
-      process.env.PAID_SCANS_PER_OWNER_PER_DAY,
-      2_000,
-    ),
-    githubScansPerOwnerPerDay: clampInt(
-      process.env.PAID_GITHUB_SCANS_PER_OWNER_PER_DAY,
-      2_000,
-    ),
+    scanAllowance: clampAllowance(process.env.PAID_SCAN_ALLOWANCE, 500),
+    entitlementPeriod: "month",
     prCommentsEnabled: true,
     alertsEnabled: true,
   };
@@ -57,4 +51,13 @@ function clampInt(v: string | undefined, fallback: number) {
   if (!v) return fallback;
   const n = Number(v);
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+}
+
+/** A negative configured allowance remains the existing unlimited sentinel. */
+function clampAllowance(v: string | undefined, fallback: number) {
+  if (!v) return fallback;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  if (n < 0) return -1;
+  return Math.floor(n);
 }

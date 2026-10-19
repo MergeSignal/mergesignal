@@ -1,19 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { db } from "../db.js";
 import { createScanAndEnqueue } from "./scanService.js";
 import { getLimitsForOwner } from "./tier.js";
 
 const add = vi.fn().mockResolvedValue(undefined);
+const { transaction } = vi.hoisted(() => {
+  const transaction = {
+    query: vi.fn(),
+    release: vi.fn(),
+  };
+  return { transaction };
+});
 
 vi.mock("../queue.js", () => ({
   scanQueue: { add: (...args: unknown[]) => add(...args) },
 }));
 
 vi.mock("../db.js", () => {
-  const client = {
-    query: vi.fn(),
-    release: vi.fn(),
-  };
+  const client = transaction;
   client.query.mockImplementation(async (sql: string) => {
     if (sql === "BEGIN") return {};
     if (sql === "COMMIT") return {};
@@ -39,8 +42,8 @@ vi.mock("../db.js", () => {
 vi.mock("./tier.js", () => ({
   getLimitsForOwner: vi.fn(() => ({
     scanMaxLockfileBytes: 1_000_000,
-    scansPerOwnerPerDay: -1,
-    githubScansPerOwnerPerDay: -1,
+    scanAllowance: -1,
+    entitlementPeriod: "week" as const,
     prCommentsEnabled: false,
     alertsEnabled: false,
   })),
@@ -111,8 +114,8 @@ describe("createScanAndEnqueue queue options", () => {
   it("charges manual quota to the repoId owner and copies acquired facts without a GitHub source", async () => {
     const limited = {
       scanMaxLockfileBytes: 1_000_000,
-      scansPerOwnerPerDay: 5,
-      githubScansPerOwnerPerDay: -1,
+      scanAllowance: 5,
+      entitlementPeriod: "week" as const,
       prCommentsEnabled: false,
       alertsEnabled: false,
     };
@@ -131,9 +134,9 @@ describe("createScanAndEnqueue queue options", () => {
         headRevision: { sha: head },
       },
     });
-    expect(db.query).toHaveBeenCalledWith(
+    expect(transaction.query).toHaveBeenCalledWith(
       expect.not.stringContaining("source='github'"),
-      ["acme"],
+      expect.arrayContaining(["acme"]),
     );
     const job = add.mock.calls[0]![1] as {
       acquiredFacts?: { headRevision: { sha: string } };
