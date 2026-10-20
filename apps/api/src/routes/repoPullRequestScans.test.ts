@@ -38,7 +38,7 @@ const defaultQuotaOk = {
   state: "ok" as const,
   limit: 15,
   used: 0,
-  windowHours: 24,
+  resetsAt: "2026-10-26T00:00:00.000Z",
 };
 
 function testAssessment(
@@ -188,7 +188,7 @@ describe("repoPullRequestScansRoutes", () => {
       state: "ok",
       limit: 20,
       used: 10,
-      windowHours: 24,
+      resetsAt: "2026-10-26T00:00:00.000Z",
     });
     vi.mocked(db.query).mockResolvedValue({ rows: [], rowCount: 0 } as never);
     const res = await app.inject({
@@ -209,7 +209,7 @@ describe("repoPullRequestScansRoutes", () => {
       state: "exceeded",
       limit: 15,
       used: 15,
-      windowHours: 24,
+      resetsAt: "2026-10-26T00:00:00.000Z",
     });
     vi.mocked(db.query).mockResolvedValue({ rows: [], rowCount: 0 } as never);
     const res = await app.inject({

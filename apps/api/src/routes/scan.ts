@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { ScanResult } from "@mergesignal/shared";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@mergesignal/engine";
 import { queries } from "../db.js";
 import { getAcquisitionRedis } from "../acquisition/redis.js";
+import { EntitlementExhaustedError } from "../services/scanQuota.js";
 import { createScanAndEnqueue } from "../services/scanService.js";
 import { buildScanDetailsForApi } from "../services/scanPresentationService.js";
 import { sendProblem } from "../problem.js";
@@ -38,6 +39,31 @@ const ScanRequestSchema = z.object({
 });
 
 type ScanStatus = "queued" | "running" | "done" | "failed";
+
+function entitlementProblem(
+  reply: FastifyReply,
+  req: FastifyRequest,
+  error: unknown,
+) {
+  if (error instanceof EntitlementExhaustedError) {
+    return sendProblem(reply, req, {
+      status: 429,
+      title: "Too Many Requests",
+      detail: error.message,
+      extra: {
+        code: error.code,
+        limit: error.limit,
+        used: error.used,
+        resetsAt: error.resetsAt,
+      },
+    });
+  }
+  return sendProblem(reply, req, {
+    status: 429,
+    title: "Too Many Requests",
+    detail: "scan quota exceeded",
+  });
+}
 
 export async function scanRoutes(app: FastifyInstance) {
   registerObjectBodyParser(app);
@@ -81,13 +107,7 @@ export async function scanRoutes(app: FastifyInstance) {
             detail: "lockfile too large",
           });
         }
-        if (code === 429) {
-          return sendProblem(reply, req, {
-            status: 429,
-            title: "Too Many Requests",
-            detail: "scan quota exceeded",
-          });
-        }
+        if (code === 429) return entitlementProblem(reply, req, error);
         throw error;
       }
     }
@@ -136,13 +156,7 @@ export async function scanRoutes(app: FastifyInstance) {
           detail: "lockfile too large",
         });
       }
-      if (code === 429) {
-        return sendProblem(reply, req, {
-          status: 429,
-          title: "Too Many Requests",
-          detail: "scan quota exceeded",
-        });
-      }
+      if (code === 429) return entitlementProblem(reply, req, e);
       throw e;
     }
   });
@@ -186,15 +200,20 @@ export async function scanRoutes(app: FastifyInstance) {
 
     let acquisition:
       | { pending: true; objectId: string; generation: string }
+      | { pending: false }
       | undefined;
-    if (scan.status === "running") {
+    if (scan.status === "queued" || scan.status === "running") {
       try {
         const redis = getAcquisitionRedis();
         if (redis) {
           const pending = await readPendingAcquisition(redis, scan.id);
-          if (pending) {
-            acquisition = { pending: true, ...pending };
-          }
+          acquisition = pending
+            ? {
+                pending: true,
+                objectId: pending.objectId,
+                generation: pending.generation,
+              }
+            : { pending: false };
         }
       } catch {
         acquisition = undefined;

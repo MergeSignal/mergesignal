@@ -65,6 +65,7 @@ type Comparison = {
 
 export type LocalGitObservation =
   | { ok: false; outcome: LocalGitFailureOutcome }
+  | ({ ok: true; outcome: "no_supported_dependency_change" } & Comparison)
   | ({ ok: true; outcome: "no_dependency_upgrade_episode" } & Comparison)
   | ({
       ok: true;
@@ -184,7 +185,7 @@ async function finishLockfile(
   if (selected === null) {
     return {
       ok: true,
-      outcome: "no_dependency_upgrade_episode",
+      outcome: "no_supported_dependency_change",
       ...comparison,
     };
   }

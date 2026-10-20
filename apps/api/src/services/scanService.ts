@@ -9,7 +9,7 @@ import type {
   SerializableScanAcquiredFacts,
 } from "@mergesignal/shared";
 import { getLimitsForOwner, getOwnerFromRepoId } from "./tier.js";
-import { assertScanQuotaAvailable } from "./scanQuota.js";
+import { reserveOwnerScan } from "./scanQuota.js";
 
 export async function createScanAndEnqueue({
   scanId,
@@ -48,7 +48,6 @@ export async function createScanAndEnqueue({
   }
 
   const isGithub = Boolean(github) || source === "github";
-  await assertScanQuotaAvailable(owner, isGithub ? "github" : "manual");
 
   const client = await db.connect();
   try {
@@ -66,16 +65,21 @@ export async function createScanAndEnqueue({
       }
     }
 
-    await queries.scans.create({
-      id,
-      repo_id: repoId,
-      status: "queued",
-      source: isGithub ? "github" : "manual",
-      github_pr_number: github?.prNumber ?? null,
-      github_head_sha: github?.headSha ?? null,
-      github_base_ref: github?.baseRef ?? null,
-      github_base_sha: github?.baseSha ?? null,
-    });
+    await reserveOwnerScan(client, owner);
+
+    await queries.scans.create(
+      {
+        id,
+        repo_id: repoId,
+        status: "queued",
+        source: isGithub ? "github" : "manual",
+        github_pr_number: github?.prNumber ?? null,
+        github_head_sha: github?.headSha ?? null,
+        github_base_ref: github?.baseRef ?? null,
+        github_base_sha: github?.baseSha ?? null,
+      },
+      client,
+    );
 
     await client.query("COMMIT");
   } catch (e) {

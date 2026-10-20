@@ -35,7 +35,7 @@ describe("repository and base", () => {
     expect(observed.ok).toBe(true);
     if (!observed.ok) return;
     expect(observed.baseCommit).toBe(main);
-    expect(observed.outcome).toBe("no_dependency_upgrade_episode");
+    expect(observed.outcome).toBe("no_supported_dependency_change");
     expect(observed.changedPaths).toEqual([{ status: "added", path: "b.txt" }]);
   });
 
@@ -163,7 +163,7 @@ describe("comparison and history", () => {
     ]);
   });
 
-  it("returns no dependency episode when base and HEAD are the same commit", async () => {
+  it("returns no supported dependency change when base and HEAD are the same commit", async () => {
     const dir = await createRepo();
     const head = await writeAndCommit(dir, { "a.txt": "a\n" }, "only");
 
@@ -171,7 +171,7 @@ describe("comparison and history", () => {
 
     expect(observed).toMatchObject({
       ok: true,
-      outcome: "no_dependency_upgrade_episode",
+      outcome: "no_supported_dependency_change",
       headCommit: head,
       baseCommit: head,
       mergeBaseCommit: head,
@@ -247,7 +247,7 @@ describe("dirty state", () => {
       observeLocalGit({ cwd: dir, base: "HEAD" }),
     ).resolves.toMatchObject({
       ok: true,
-      outcome: "no_dependency_upgrade_episode",
+      outcome: "no_supported_dependency_change",
     });
   });
 
@@ -270,7 +270,7 @@ describe("dirty state", () => {
       observeLocalGit({ cwd: parent, base: "HEAD" }),
     ).resolves.toMatchObject({
       ok: true,
-      outcome: "no_dependency_upgrade_episode",
+      outcome: "no_supported_dependency_change",
     });
 
     const next = await writeAndCommit(sub, { "s.txt": "next\n" }, "next");
@@ -335,7 +335,7 @@ describe("dependency episode", () => {
     });
   });
 
-  it("returns no episode when no supported lockfile changed", async () => {
+  it("does not claim an empty upgrade episode when no supported lockfile changed", async () => {
     const dir = await createRepo();
     await writeAndCommit(dir, { "README.md": "a\n" }, "base");
     await writeAndCommit(dir, { "README.md": "b\n" }, "head");
@@ -344,7 +344,7 @@ describe("dependency episode", () => {
       observeLocalGit({ cwd: dir, base: "HEAD~1" }),
     ).resolves.toMatchObject({
       ok: true,
-      outcome: "no_dependency_upgrade_episode",
+      outcome: "no_supported_dependency_change",
     });
   });
 

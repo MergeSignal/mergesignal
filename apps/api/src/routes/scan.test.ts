@@ -31,12 +31,18 @@ vi.mock("../problem.js", () => ({
     (
       reply: { code: (s: number) => { send: (b: unknown) => unknown } },
       _req: unknown,
-      problem: { status: number; title: string; detail: string },
+      problem: {
+        status: number;
+        title: string;
+        detail: string;
+        extra?: Record<string, unknown>;
+      },
     ) => {
       return reply.code(problem.status).send({
         status: problem.status,
         title: problem.title,
         detail: problem.detail,
+        ...(problem.extra ?? {}),
       });
     },
   ),
@@ -195,6 +201,33 @@ describe("scan routes", () => {
       expect(body.title).toBe("Payload Too Large");
     });
 
+    it("should return entitlement exhaustion separately from a generic 429", async () => {
+      const { EntitlementExhaustedError } =
+        await import("../services/scanQuota.js");
+      vi.mocked(createScanAndEnqueue).mockRejectedValue(
+        new EntitlementExhaustedError(10, 10, "2026-10-26T00:00:00.000Z"),
+      );
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/scan",
+        payload: { repoId: "owner/repo", dependencyGraph: {} },
+      });
+
+      expect(response.statusCode).toBe(429);
+      const body = JSON.parse(response.body);
+      expect(body).toMatchObject({
+        title: "Too Many Requests",
+        detail: "Scan allowance is exhausted.",
+        code: "entitlement_exhausted",
+        limit: 10,
+        used: 10,
+        resetsAt: "2026-10-26T00:00:00.000Z",
+      });
+      expect(body.price).toBeUndefined();
+      expect(JSON.stringify(body)).not.toContain("http");
+    });
+
     it("should return 429 when scan quota is exceeded", async () => {
       const error = Object.assign(new Error("Rate limit exceeded"), {
         statusCode: 429,
@@ -215,6 +248,8 @@ describe("scan routes", () => {
       expect(response.statusCode).toBe(429);
       const body = JSON.parse(response.body);
       expect(body.title).toBe("Too Many Requests");
+      expect(body.code).toBeUndefined();
+      expect(body.detail).not.toBe("Scan allowance is exhausted.");
     });
 
     it("should return 400 when repoId is null", async () => {

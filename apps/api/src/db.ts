@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import type { ApiKey, Policy, Scan } from "./types/database.js";
 
 export const db = new Pool({
@@ -123,8 +123,9 @@ export const queries = {
         github_base_ref?: string | null;
         github_base_sha?: string | null;
       },
+      client: Pool | PoolClient = db,
     ): Promise<void> {
-      await db.query(
+      await client.query(
         `INSERT INTO scans (id, repo_id, status, source, github_pr_number, github_head_sha, github_base_ref, github_base_sha)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (id) DO NOTHING`,

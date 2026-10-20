@@ -105,6 +105,9 @@ importers:
       '@mergesignal/engine':
         specifier: workspace:^
         version: link:../../packages/engine
+      '@mergesignal/local-git':
+        specifier: workspace:*
+        version: link:../../packages/local-git
       '@mergesignal/shared':
         specifier: workspace:^
         version: link:../../packages/shared

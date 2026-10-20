@@ -518,25 +518,20 @@ function getOpenApiSpec() {
                       quotaStatus: {
                         type: "object",
                         description:
-                          "Owner-level GitHub scan quota (rolling window).",
+                          "Shared owner scan allowance for the current UTC entitlement period.",
                         properties: {
                           source: { type: "string", enum: ["github"] },
                           state: { type: "string", enum: ["ok", "exceeded"] },
                           limit: { type: "integer" },
                           used: { type: "integer" },
-                          windowHours: { type: "integer", example: 24 },
-                          resetsAt: {
-                            type: "string",
-                            format: "date-time",
-                            nullable: true,
-                          },
+                          resetsAt: { type: "string", format: "date-time" },
                         },
                         required: [
                           "source",
                           "state",
                           "limit",
                           "used",
-                          "windowHours",
+                          "resetsAt",
                         ],
                       },
                       byPrNumber: {

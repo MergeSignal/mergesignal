@@ -1,96 +1,153 @@
+import { ASSESSMENT_POSTURES } from "@mergesignal/shared";
 import { db } from "../db.js";
-import { getLimitsForOwner } from "./tier.js";
+import { getLimitsForOwner, type EntitlementPeriod } from "./tier.js";
 
-export const GITHUB_SCAN_QUOTA_WINDOW_HOURS = 24;
-
-const WINDOW_INTERVAL = `INTERVAL '${GITHUB_SCAN_QUOTA_WINDOW_HOURS} hours'`;
+/** Default stale-scan sweep bound. A reservation older than this does not occupy a slot. */
+export const LIVE_RESERVATION_STALE_MINUTES = 30;
 
 export type OwnerGithubQuotaStatus = {
   source: "github";
   state: "ok" | "exceeded";
   limit: number;
   used: number;
-  windowHours: number;
-  resetsAt?: string;
+  resetsAt: string;
 };
 
-export type ScanQuotaScope = "github" | "all";
+export type EntitlementPeriodBounds = {
+  start: Date;
+  resetsAt: Date;
+};
 
-export async function countOwnerScansInWindow(
-  owner: string,
-  scope: ScanQuotaScope,
-): Promise<number> {
-  const sql =
-    scope === "github"
-      ? `SELECT COUNT(*)::int AS c FROM scans WHERE split_part(repo_id,'/',1)=$1 AND source='github' AND created_at > NOW() - ${WINDOW_INTERVAL}`
-      : `SELECT COUNT(*)::int AS c FROM scans WHERE split_part(repo_id,'/',1)=$1 AND created_at > NOW() - ${WINDOW_INTERVAL}`;
-  const { rows } = await db.query<{ c: number }>(sql, [owner]);
-  return Number(rows?.[0]?.c ?? 0);
+type SqlClient = {
+  query: (
+    sql: string,
+    values?: unknown[],
+  ) => Promise<{ rows: Array<{ c?: number }>; rowCount?: number | null }>;
+};
+
+const OCCUPANCY_SQL = `
+  SELECT COUNT(*)::int AS c
+  FROM scans
+  WHERE split_part(repo_id, '/', 1) = $1
+    AND created_at >= $2
+    AND created_at < $3
+    AND (
+      (
+        status = 'done'
+        AND jsonb_typeof(result->'assessment') = 'object'
+        AND result->'assessment'->>'posture' = ANY($4::text[])
+      )
+      OR (
+        status = 'queued'
+        AND created_at >= NOW() - ($5::int * INTERVAL '1 minute')
+      )
+      OR (
+        status = 'running'
+        AND COALESCE(heartbeat_at, created_at) >= NOW() - ($5::int * INTERVAL '1 minute')
+      )
+    )
+`;
+
+export class EntitlementExhaustedError extends Error {
+  readonly statusCode = 429 as const;
+  readonly expose = true as const;
+  readonly code = "entitlement_exhausted" as const;
+
+  constructor(
+    readonly limit: number,
+    readonly used: number,
+    readonly resetsAt: string,
+  ) {
+    super("Scan allowance is exhausted.");
+  }
 }
 
-async function oldestGithubScanCreatedAt(owner: string): Promise<Date | null> {
-  const { rows } = await db.query<{ created_at: Date }>(
-    `SELECT MIN(created_at) AS created_at FROM scans WHERE split_part(repo_id,'/',1)=$1 AND source='github' AND created_at > NOW() - ${WINDOW_INTERVAL}`,
+/** Fixed UTC period. Week starts Monday 00:00. Month starts the 1st at 00:00. */
+export function entitlementPeriodBounds(
+  period: EntitlementPeriod,
+  now: Date,
+): EntitlementPeriodBounds {
+  if (period === "week") {
+    const start = startOfUtcIsoWeek(now);
+    return {
+      start,
+      resetsAt: new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000),
+    };
+  }
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  return {
+    start,
+    resetsAt: new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+    ),
+  };
+}
+
+/**
+ * Serialize admission for this owner, then refuse when completed Assessments
+ * plus live reservations already fill the period allowance.
+ * `used` is that occupied count, not completed usage alone.
+ */
+export async function reserveOwnerScan(
+  client: SqlClient,
+  owner: string,
+  now = new Date(),
+): Promise<void> {
+  await client.query(
+    "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))",
     [owner],
   );
-  const raw = rows?.[0]?.created_at;
-  if (!raw) return null;
-  return raw instanceof Date ? raw : new Date(raw);
-}
+  const limits = getLimitsForOwner(owner);
+  if (limits.scanAllowance < 0) return;
 
-function computeResetsAt(oldest: Date | null): string | undefined {
-  if (!oldest) return undefined;
-  const ms = oldest.getTime() + GITHUB_SCAN_QUOTA_WINDOW_HOURS * 60 * 60 * 1000;
-  return new Date(ms).toISOString();
+  const period = entitlementPeriodBounds(limits.entitlementPeriod, now);
+  const used = await countOccupied(client, owner, period);
+  if (used >= limits.scanAllowance) {
+    throw new EntitlementExhaustedError(
+      limits.scanAllowance,
+      used,
+      period.resetsAt.toISOString(),
+    );
+  }
 }
 
 export async function getOwnerGithubQuotaStatus(
   owner: string,
+  now = new Date(),
 ): Promise<OwnerGithubQuotaStatus> {
-  const limit = getLimitsForOwner(owner).githubScansPerOwnerPerDay;
-  const used = await countOwnerScansInWindow(owner, "github");
-  const windowHours = GITHUB_SCAN_QUOTA_WINDOW_HOURS;
-
-  if (limit < 0) {
-    return { source: "github", state: "ok", limit, used, windowHours };
-  }
-
-  const exceeded = used >= limit;
-  const state = exceeded ? "exceeded" : "ok";
-  const resetsAt = exceeded
-    ? computeResetsAt(await oldestGithubScanCreatedAt(owner))
-    : undefined;
-
+  const limits = getLimitsForOwner(owner);
+  const period = entitlementPeriodBounds(limits.entitlementPeriod, now);
+  const used = await countOccupied(db, owner, period);
+  const exceeded = limits.scanAllowance >= 0 && used >= limits.scanAllowance;
   return {
     source: "github",
-    state,
-    limit,
+    state: exceeded ? "exceeded" : "ok",
+    limit: limits.scanAllowance,
     used,
-    windowHours,
-    ...(resetsAt ? { resetsAt } : {}),
+    resetsAt: period.resetsAt.toISOString(),
   };
 }
 
-export async function assertScanQuotaAvailable(
+async function countOccupied(
+  client: SqlClient,
   owner: string,
-  source: "github" | "manual",
-): Promise<void> {
-  const limits = getLimitsForOwner(owner);
-  const isGithub = source === "github";
-  const limit = isGithub
-    ? limits.githubScansPerOwnerPerDay
-    : limits.scansPerOwnerPerDay;
-
-  if (limit < 0) return;
-
-  const used = await countOwnerScansInWindow(
+  period: EntitlementPeriodBounds,
+): Promise<number> {
+  const { rows } = await client.query(OCCUPANCY_SQL, [
     owner,
-    isGithub ? "github" : "all",
+    period.start.toISOString(),
+    period.resetsAt.toISOString(),
+    [...ASSESSMENT_POSTURES],
+    LIVE_RESERVATION_STALE_MINUTES,
+  ]);
+  return Number(rows?.[0]?.c ?? 0);
+}
+
+function startOfUtcIsoWeek(now: Date): Date {
+  const start = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
   );
-  if (used >= limit) {
-    throw Object.assign(new Error("scan quota exceeded"), {
-      statusCode: 429,
-      expose: true,
-    });
-  }
+  const daysFromMonday = (start.getUTCDay() + 6) % 7;
+  start.setUTCDate(start.getUTCDate() - daysFromMonday);
+  return start;
 }
