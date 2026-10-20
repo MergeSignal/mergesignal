@@ -23,16 +23,15 @@ afterEach(async () => {
 });
 
 describe("hosted local scan pipeline", () => {
-  it("keeps the trusted in-process command path unwired", () => {
+  it("keeps trusted analysis on the in-process engine and normal scans on the hosted pipeline", () => {
     const source = readFileSync(
       fileURLToPath(new URL("../cli.ts", import.meta.url)),
       "utf8",
     );
-    expect(source).toContain(
-      'process.env.MERGESIGNAL_TRUSTED_ANALYSIS === "1"',
-    );
-    expect(source).toContain("analyze(");
-    expect(source).not.toContain("runHostedLocalScan");
+    expect(source).toContain('bound.env.MERGESIGNAL_TRUSTED_ANALYSIS === "1"');
+    expect(source).toContain("analyzeImpl");
+    expect(source).toContain("runHostedLocalScan");
+    expect(source).toContain("if (trusted) return runTrusted");
   });
 
   it("returns local preparation outcomes without calling the API", async () => {

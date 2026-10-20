@@ -1,58 +1,8 @@
 import { describe, it, expect } from "vitest";
 
+import { parseArgs } from "./cli.js";
+
 describe("CLI Argument Parsing", () => {
-  type ParsedArgs = {
-    _: string[];
-    "--help"?: true;
-    "--json"?: true;
-    "--out"?: string;
-    "--repo-id"?: string;
-    "--lockfile"?: string;
-    "--fail-above"?: string;
-    "--trusted"?: true;
-  };
-
-  function parseArgs(argv: string[]): ParsedArgs {
-    const out: ParsedArgs = { _: [] };
-    for (let i = 0; i < argv.length; i++) {
-      const a = argv[i]!;
-      if (a === "--") continue;
-      if (!a.startsWith("--")) {
-        out._.push(a);
-        continue;
-      }
-
-      if (a === "--help") {
-        out["--help"] = true;
-        continue;
-      }
-      if (a === "--json") {
-        out["--json"] = true;
-        continue;
-      }
-      if (a === "--trusted") {
-        out["--trusted"] = true;
-        continue;
-      }
-
-      const takesValue =
-        a === "--out" ||
-        a === "--repo-id" ||
-        a === "--lockfile" ||
-        a === "--fail-above";
-      if (takesValue) {
-        const v = argv[i + 1];
-        if (!v || v.startsWith("--")) throw new Error(`${a} expects a value`);
-        out[a as "--out" | "--repo-id" | "--lockfile" | "--fail-above"] = v;
-        i++;
-        continue;
-      }
-
-      throw new Error(`Unknown flag: ${a}`);
-    }
-    return out;
-  }
-
   it("should parse scan command", () => {
     const result = parseArgs(["scan"]);
     expect(result._).toEqual(["scan"]);
@@ -87,6 +37,12 @@ describe("CLI Argument Parsing", () => {
     expect(result["--lockfile"]).toBe("pnpm-lock.yaml");
   });
 
+  it("should parse --base flag with value", () => {
+    const result = parseArgs(["scan", "--base", "origin/main"]);
+    expect(result._).toEqual(["scan"]);
+    expect(result["--base"]).toBe("origin/main");
+  });
+
   it("should parse --fail-above flag with value", () => {
     const result = parseArgs(["scan", "--fail-above", "50"]);
     expect(result._).toEqual(["scan"]);
@@ -106,12 +62,6 @@ describe("CLI Argument Parsing", () => {
     expect(result["--json"]).toBe(true);
     expect(result["--out"]).toBe("result.json");
     expect(result["--repo-id"]).toBe("test/repo");
-  });
-
-  it("should parse --trusted flag", () => {
-    const result = parseArgs(["scan", "--trusted"]);
-    expect(result._).toEqual(["scan"]);
-    expect(result["--trusted"]).toBe(true);
   });
 
   it("should throw on unknown flag", () => {

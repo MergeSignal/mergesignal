@@ -2,6 +2,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 import { analyze } from "@mergesignal/engine";
 import type {
   ScanLockfileInput,
@@ -18,6 +19,16 @@ import {
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
 
+import { runHostedLocalScan } from "./hosted/hostedScan.js";
+import {
+  errorDocument,
+  hostedError,
+  interruptionCode,
+  interruptionDocument,
+  parseFailAbove,
+  preparationDocument,
+} from "./terminal.js";
+
 type ArgMap = {
   _: string[];
   "--help"?: true;
@@ -25,16 +36,46 @@ type ArgMap = {
   "--out"?: string;
   "--repo-id"?: string;
   "--lockfile"?: string;
+  "--base"?: string;
   "--fail-above"?: string;
-  "--trusted"?: true;
 };
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
-  if (args["--trusted"]) {
-    process.env.MERGESIGNAL_TRUSTED_ANALYSIS = "1";
+type TextWriter = {
+  write(chunk: string): unknown;
+};
+
+type CliIo = {
+  stdout: TextWriter;
+  stderr: TextWriter;
+  env: NodeJS.ProcessEnv;
+  cwd: string;
+  hostedScan: typeof runHostedLocalScan;
+  analyzeImpl: typeof analyze;
+  signal?: AbortSignal;
+};
+
+class UsageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UsageError";
+  }
+}
+
+export async function runCli(
+  argv: string[],
+  io: Partial<CliIo> = {},
+): Promise<number> {
+  const bound = bindIo(io);
+  let args: ArgMap;
+  try {
+    args = parseArgs(argv);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Invalid arguments.";
+    return emitUsage(bound, argv.includes("--json"), message);
   }
 
+  const trusted = bound.env.MERGESIGNAL_TRUSTED_ANALYSIS === "1";
   const [cmd] = args._;
 
   if (
@@ -44,74 +85,317 @@ async function main() {
     cmd === "--help" ||
     cmd === "-h"
   ) {
-    printHelp();
-    process.exit(0);
+    printHelp(bound.stdout);
+    return 0;
   }
 
   if (cmd !== "scan") {
-    console.error(`Unknown command: ${cmd}`);
-    printHelp();
-    process.exit(2);
+    if (args["--json"])
+      return emitUsage(bound, true, `Unknown command: ${cmd}`);
+    bound.stderr.write(`Unknown command: ${cmd}\n`);
+    printHelp(bound.stdout);
+    return 2;
   }
 
-  const cwd = getInvocationCwd();
-  const repoId =
-    String(args["--repo-id"] ?? path.basename(cwd)).trim() || "local";
+  const failAbove = args["--fail-above"];
+  let threshold: number | undefined;
+  if (failAbove !== undefined) {
+    const parsed = parseFailAbove(failAbove);
+    if (parsed === null) {
+      return emitUsage(
+        bound,
+        Boolean(args["--json"]),
+        "--fail-above expects a number.",
+      );
+    }
+    threshold = parsed;
+  }
 
-  const lockfile = await loadLockfile({
-    cwd,
-    explicitPath: args["--lockfile"],
+  const stopped = interrupted(bound.signal);
+  if (stopped !== null) return emitInterruption(bound, args, stopped);
+
+  if (trusted) return runTrusted(args, bound, threshold);
+  return runHosted(args, bound, threshold);
+}
+
+async function runHosted(
+  args: ArgMap,
+  io: CliIo,
+  threshold: number | undefined,
+): Promise<number> {
+  if (args["--lockfile"] !== undefined) {
+    return emitUsage(
+      io,
+      Boolean(args["--json"]),
+      "--lockfile is only available with trusted analysis.",
+    );
+  }
+
+  const pipeline = io.hostedScan({
+    cwd: io.cwd,
+    ...(args["--base"] !== undefined ? { base: args["--base"] } : {}),
+    env: io.env,
   });
+  const outcome = await Promise.race([
+    pipeline.then((value) => ({ kind: "result" as const, value })),
+    abortOutcome(io.signal),
+  ]);
+  if (outcome.kind === "abort") {
+    return emitInterruption(io, args, outcome.code);
+  }
+
+  const result = outcome.value;
+  if (!result.ok && result.kind === "local") {
+    if (result.outcome === "invalid_base") {
+      return emitDocument(
+        io,
+        args,
+        errorDocument(
+          "invalid_base",
+          "The base revision is not a commit in this repository.",
+        ),
+        2,
+        "stderr",
+      );
+    }
+    return emitDocument(
+      io,
+      args,
+      preparationDocument(result.outcome),
+      1,
+      "stderr",
+    );
+  }
+  if (result.ok && result.kind === "local") {
+    return emitDocument(
+      io,
+      args,
+      preparationDocument(result.observation.outcome),
+      0,
+      "stdout",
+    );
+  }
+  if (!result.ok && result.kind === "hosted") {
+    const failure = result.failure;
+    const described = hostedError({
+      code: failure.code,
+      ...("limit" in failure ? { limit: failure.limit } : {}),
+      ...("used" in failure ? { used: failure.used } : {}),
+      ...("resetsAt" in failure ? { resetsAt: failure.resetsAt } : {}),
+    });
+    return emitDocument(io, args, described, 1, "stderr");
+  }
+  return emitCompleted(io, args, result.result, threshold);
+}
+
+async function runTrusted(
+  args: ArgMap,
+  io: CliIo,
+  threshold: number | undefined,
+): Promise<number> {
+  if (args["--base"] !== undefined) {
+    return emitUsage(
+      io,
+      Boolean(args["--json"]),
+      "--base is not used with trusted analysis.",
+    );
+  }
+
+  const repoId =
+    String(args["--repo-id"] ?? path.basename(io.cwd)).trim() || "local";
+  let lockfile: ScanLockfileInput | undefined;
+  try {
+    lockfile = await loadLockfile({
+      cwd: io.cwd,
+      explicitPath: args["--lockfile"],
+    });
+  } catch (error) {
+    if (error instanceof UsageError) {
+      return emitUsage(io, Boolean(args["--json"]), error.message);
+    }
+    return emitDocument(
+      io,
+      args,
+      errorDocument("lockfile_unreadable", "The lockfile could not be read."),
+      1,
+      "stderr",
+    );
+  }
 
   const analyzeRequest: ScanRequest = {
     repoId,
     dependencyGraph: {},
     lockfile,
   };
-
-  let result = (await analyze(analyzeRequest)) as ScanResult;
-
-  if (process.env.MERGESIGNAL_TRUSTED_ANALYSIS === "1") {
-    try {
-      result = validateTrustedEngineScanResult(
-        result,
-        freshOutputExpectationFromScanRequest(analyzeRequest),
-      );
-    } catch (e: unknown) {
-      const debug = process.env.MERGESIGNAL_DEBUG === "1";
-      const ciLike =
-        process.env.GITHUB_ACTIONS === "true" || process.env.CI === "true";
-      const msg = e instanceof Error ? e.message : String(e);
-      process.stderr.write(
-        `${debug || ciLike ? msg : scanSurfaceCopy.cli.stderrOutputNotVerified}\n`,
-      );
-      process.exit(1);
-    }
+  let result: ScanResult;
+  try {
+    result = (await io.analyzeImpl(analyzeRequest)) as ScanResult;
+  } catch {
+    return emitDocument(
+      io,
+      args,
+      errorDocument(
+        "analysis_failed",
+        scanSurfaceCopy.cli.stderrAnalysisIncomplete,
+      ),
+      1,
+      "stderr",
+    );
   }
 
-  const outPath = args["--out"] ? path.resolve(cwd, args["--out"]) : null;
-  if (outPath) {
-    await writeJsonFile(outPath, result);
+  try {
+    result = validateTrustedEngineScanResult(
+      result,
+      freshOutputExpectationFromScanRequest(analyzeRequest),
+    );
+  } catch (error: unknown) {
+    return emitTrustedValidationFailure(io, args, error);
   }
 
+  return emitCompleted(io, args, result, threshold);
+}
+
+async function emitCompleted(
+  io: CliIo,
+  args: ArgMap,
+  result: ScanResult,
+  threshold: number | undefined,
+): Promise<number> {
+  const outPath = args["--out"] ? path.resolve(io.cwd, args["--out"]) : null;
+  if (outPath) await writeJsonFile(outPath, result);
+
+  const exceeded = thresholdExceeded(result, threshold);
   if (args["--json"]) {
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-  } else {
-    printSummary({ repoId, lockfile, result, outPath });
+    io.stdout.write(`${JSON.stringify(result)}\n`);
+    return exceeded ? 3 : 0;
   }
 
-  const failAbove = args["--fail-above"]
-    ? Number(args["--fail-above"])
-    : undefined;
-  if (typeof failAbove === "number" && Number.isFinite(failAbove)) {
-    const score = resolvePrRiskScore(result);
-    if (
-      typeof score === "number" &&
-      Number.isFinite(score) &&
-      score > failAbove
-    )
-      process.exit(3);
+  const rendered = renderCompleted(result, args, io.cwd);
+  if (rendered === null) {
+    io.stderr.write(`${scanSurfaceCopy.cli.stderrAnalysisIncomplete}\n`);
+    return 1;
   }
+  io.stdout.write(`${rendered}\n`);
+  if (outPath) io.stdout.write(`\nWrote JSON to ${outPath}\n`);
+  return exceeded ? 3 : 0;
+}
+
+function renderCompleted(
+  result: ScanResult,
+  args: ArgMap,
+  cwd: string,
+): string | null {
+  const repoId =
+    String(args["--repo-id"] ?? path.basename(cwd)).trim() || "local";
+  const bundle = buildScanPresentationBundle({
+    result,
+    pipelineStatus: "done",
+    decision: result.decision?.recommendation,
+  });
+  if (!bundle) return null;
+  return renderCliScanSummaryText(
+    presentCliScanSummary(bundle, { repoLabel: repoId }),
+  );
+}
+
+function thresholdExceeded(
+  result: ScanResult,
+  threshold: number | undefined,
+): boolean {
+  if (threshold === undefined) return false;
+  const score = resolvePrRiskScore(result);
+  return (
+    typeof score === "number" && Number.isFinite(score) && score > threshold
+  );
+}
+
+function emitTrustedValidationFailure(
+  io: CliIo,
+  args: ArgMap,
+  error: unknown,
+): number {
+  const debug = io.env.MERGESIGNAL_DEBUG === "1";
+  const ciLike = io.env.GITHUB_ACTIONS === "true" || io.env.CI === "true";
+  const safe = scanSurfaceCopy.cli.stderrOutputNotVerified;
+  if (args["--json"]) {
+    return emitDocument(
+      io,
+      args,
+      errorDocument("output_not_verified", safe),
+      1,
+      "stderr",
+    );
+  }
+  const detail = error instanceof Error ? error.message : String(error);
+  io.stderr.write(`${debug || ciLike ? detail : safe}\n`);
+  return 1;
+}
+
+function emitInterruption(io: CliIo, args: ArgMap, code: number): number {
+  return emitDocument(io, args, interruptionDocument(), code, "stderr");
+}
+
+function emitUsage(io: CliIo, json: boolean, message: string): number {
+  if (json) {
+    io.stdout.write(`${JSON.stringify(errorDocument("usage", message))}\n`);
+    return 2;
+  }
+  io.stderr.write(`${message}\n`);
+  return 2;
+}
+
+function emitDocument(
+  io: CliIo,
+  args: ArgMap,
+  document: { message: string },
+  code: number,
+  human: "stdout" | "stderr",
+): number {
+  if (args["--json"]) {
+    io.stdout.write(`${JSON.stringify(document)}\n`);
+    return code;
+  }
+  const stream = human === "stdout" ? io.stdout : io.stderr;
+  stream.write(`${document.message}\n`);
+  return code;
+}
+
+function interrupted(signal: AbortSignal | undefined): number | null {
+  if (!signal?.aborted) return null;
+  return interruptionCode(signal.reason);
+}
+
+function abortOutcome(
+  signal: AbortSignal | undefined,
+): Promise<{ kind: "abort"; code: number }> {
+  if (!signal) return new Promise(() => {});
+  if (signal.aborted) {
+    return Promise.resolve({
+      kind: "abort",
+      code: interruptionCode(signal.reason),
+    });
+  }
+  return new Promise((resolve) => {
+    signal.addEventListener(
+      "abort",
+      () => {
+        resolve({ kind: "abort", code: interruptionCode(signal.reason) });
+      },
+      { once: true },
+    );
+  });
+}
+
+function bindIo(io: Partial<CliIo>): CliIo {
+  return {
+    stdout: io.stdout ?? process.stdout,
+    stderr: io.stderr ?? process.stderr,
+    env: io.env ?? process.env,
+    cwd: io.cwd ?? getInvocationCwd(),
+    hostedScan: io.hostedScan ?? runHostedLocalScan,
+    analyzeImpl: io.analyzeImpl ?? analyze,
+    ...(io.signal ? { signal: io.signal } : {}),
+  };
 }
 
 function getInvocationCwd() {
@@ -120,28 +404,67 @@ function getInvocationCwd() {
   return resolved || process.cwd();
 }
 
-function printHelp() {
-  process.stdout.write(
+function printHelp(stdout: TextWriter) {
+  stdout.write(
     [
       "MergeSignal CLI",
       "",
       "Usage:",
-      "  mergesignal scan [--repo-id <id>] [--lockfile <path>] [--json] [--out <file>] [--fail-above <n>] [--trusted]",
+      "  mergesignal scan [--repo-id <id>] [--base <revision>] [--lockfile <path>] [--json] [--out <file>] [--fail-above <n>]",
       "",
       "Examples:",
       "  mergesignal scan",
       "  mergesignal scan --repo-id acme/web --json",
-      "  mergesignal scan --lockfile pnpm-lock.yaml --out mergesignal-result.json",
+      "  mergesignal scan --base origin/main",
       "  mergesignal scan --fail-above 20",
-      "  mergesignal scan --trusted --out result.json",
       "",
       "Notes:",
-      "  - MERGESIGNAL_TRUSTED_ANALYSIS=1 or --trusted: require MERGESIGNAL_ENGINE_IMPL and validate scan output (CI-style).",
-      "  - Otherwise: set MERGESIGNAL_ENGINE_IMPL for a real engine, or omit for the OSS stub in local development.",
-      "  - Lockfile detection prefers pnpm-lock.yaml, then package-lock.json.",
+      "  - A normal scan reads committed local Git history and uses the hosted service. Set MERGESIGNAL_API_KEY.",
+      "  - No supported lockfile change finishes locally and does not call the hosted service.",
       "",
     ].join("\n"),
   );
+}
+
+export function parseArgs(argv: string[]): ArgMap {
+  const out: ArgMap = { _: [] };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (a === "--") continue;
+    if (!a.startsWith("--")) {
+      out._.push(a);
+      continue;
+    }
+
+    if (a === "--help") {
+      out["--help"] = true;
+      continue;
+    }
+    if (a === "--json") {
+      out["--json"] = true;
+      continue;
+    }
+
+    const takesValue =
+      a === "--out" ||
+      a === "--repo-id" ||
+      a === "--lockfile" ||
+      a === "--base" ||
+      a === "--fail-above";
+    if (takesValue) {
+      const v = argv[i + 1];
+      if (!v || v.startsWith("--"))
+        throw new UsageError(`${a} expects a value`);
+      out[
+        a as "--out" | "--repo-id" | "--lockfile" | "--base" | "--fail-above"
+      ] = v;
+      i++;
+      continue;
+    }
+
+    throw new UsageError(`Unknown flag: ${a}`);
+  }
+  return out;
 }
 
 async function loadLockfile(opts: {
@@ -150,12 +473,17 @@ async function loadLockfile(opts: {
 }): Promise<ScanLockfileInput | undefined> {
   if (opts.explicitPath) {
     const p = path.resolve(opts.cwd, opts.explicitPath);
-    const content = await readFile(p, "utf8");
     const manager = inferManagerFromFilename(p);
     if (!manager) {
-      throw new Error(
+      throw new UsageError(
         `Unsupported lockfile: ${path.basename(p)} (supported: pnpm-lock.yaml, package-lock.json)`,
       );
+    }
+    let content: string;
+    try {
+      content = await readFile(p, "utf8");
+    } catch {
+      throw new Error("lockfile unreadable");
     }
     return { manager, content, path: path.relative(opts.cwd, p) };
   }
@@ -191,91 +519,40 @@ function inferManagerFromFilename(
   return null;
 }
 
-function printSummary(opts: {
-  repoId: string;
-  lockfile?: ScanLockfileInput;
-  result: ScanResult;
-  outPath: string | null;
-}) {
-  const bundle = buildScanPresentationBundle({
-    result: opts.result,
-    pipelineStatus: "done",
-    decision: opts.result.decision?.recommendation,
-  });
-
-  if (bundle) {
-    const text = renderCliScanSummaryText(
-      presentCliScanSummary(bundle, { repoLabel: opts.repoId }),
-    );
-    console.log(text);
-    if (opts.outPath) {
-      console.log(`\nWrote JSON to ${opts.outPath}`);
-    }
-    return;
-  }
-
-  console.error(scanSurfaceCopy.cli.stderrAnalysisIncomplete);
-  process.exitCode = 1;
-}
-
-function parseArgs(argv: string[]): ArgMap {
-  const out: ArgMap = { _: [] };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i]!;
-    if (a === "--") continue;
-    if (!a.startsWith("--")) {
-      out._.push(a);
-      continue;
-    }
-
-    if (a === "--help") {
-      out["--help"] = true;
-      continue;
-    }
-    if (a === "--json") {
-      out["--json"] = true;
-      continue;
-    }
-    if (a === "--trusted") {
-      out["--trusted"] = true;
-      continue;
-    }
-
-    const takesValue =
-      a === "--out" ||
-      a === "--repo-id" ||
-      a === "--lockfile" ||
-      a === "--fail-above";
-    if (takesValue) {
-      const v = argv[i + 1];
-      if (!v || v.startsWith("--")) throw new Error(`${a} expects a value`);
-      out[a as "--out" | "--repo-id" | "--lockfile" | "--fail-above"] = v;
-      i++;
-      continue;
-    }
-
-    throw new Error(`Unknown flag: ${a}`);
-  }
-  return out;
-}
-
 async function writeJsonFile(p: string, value: unknown) {
   const fs = await import("node:fs/promises");
   await fs.writeFile(p, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-main().catch((e: unknown) => {
-  const debug = process.env.MERGESIGNAL_DEBUG === "1";
-  const msg = e instanceof Error ? e.message : String(e);
-  if (
-    process.env.MERGESIGNAL_TRUSTED_ANALYSIS === "1" &&
-    !debug &&
-    typeof msg === "string" &&
-    msg.length > 0
-  ) {
-    process.stderr.write(`${scanSurfaceCopy.cli.stderrAnalysisIncomplete}\n`);
-  } else {
-    process.stderr.write(`mergesignal: ${msg}\n`);
-  }
-  process.exit(1);
-});
+function isDirectRun(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  return import.meta.url === pathToFileURL(entry).href;
+}
+
+async function main(): Promise<number> {
+  const controller = new AbortController();
+  const onSignal = (signal: NodeJS.Signals) => {
+    controller.abort(signal);
+  };
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
+  return runCli(process.argv.slice(2), {
+    stdout: process.stdout,
+    stderr: process.stderr,
+    env: process.env,
+    cwd: getInvocationCwd(),
+    signal: controller.signal,
+  });
+}
+
+if (isDirectRun()) {
+  main()
+    .then((code) => {
+      process.exit(code);
+    })
+    .catch(() => {
+      process.stderr.write("The scan could not be completed.\n");
+      process.exit(1);
+    });
+}
