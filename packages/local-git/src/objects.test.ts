@@ -387,7 +387,7 @@ describe("exact raw object read", () => {
   it("bounds an unresponsive Git command", async () => {
     const dir = await createRepo();
     const slow = path.join(dir, "slow-git");
-    writeFileSync(slow, "#!/bin/sh\nsleep 30\n");
+    writeFileSync(slow, "#!/bin/sh\nexec sleep 30\n");
     chmodSync(slow, 0o755);
     const started = Date.now();
     await expect(
@@ -398,7 +398,9 @@ describe("exact raw object read", () => {
         timeoutMs: 200,
       }),
     ).resolves.toEqual({ kind: "failed" });
-    expect(Date.now() - started).toBeLessThan(2_000);
+    const elapsed = Date.now() - started;
+    expect(elapsed).toBeGreaterThanOrEqual(100);
+    expect(elapsed).toBeLessThan(2_000);
   });
 });
 
