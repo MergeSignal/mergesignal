@@ -32,6 +32,20 @@ export type LocalBlobRead =
   | { kind: "oversized"; size: number }
   | { kind: LocalGitObjectFailure };
 
+export type LocalRawObjectType = "commit" | "tree" | "blob";
+
+/** One committed object payload. The caller supplies an object id, not a type. */
+export type LocalRawObjectRead =
+  | {
+      kind: "bytes";
+      type: LocalRawObjectType;
+      size: number;
+      bytes: Uint8Array;
+    }
+  | { kind: "oversized"; size: number }
+  | { kind: "unsupported_type" }
+  | { kind: LocalGitObjectFailure };
+
 export type LocalPathRead =
   | {
       kind: "blob";
@@ -79,6 +93,89 @@ export async function listLocalTree(
     return { kind: "truncated", entries: parsed };
   }
   return { kind: "complete", entries: parsed };
+}
+
+const RAW_OBJECT_READ_BUDGET_MS = 15_000;
+
+/**
+ * Read one committed object by id. Type, size, and payload share one command budget.
+ * Tree bytes are the canonical binary object, not a pretty listing.
+ */
+export async function readLocalObject(
+  input: GitOptions & {
+    objectId: string;
+    maxBytes?: number;
+    timeoutMs?: number;
+  },
+): Promise<LocalRawObjectRead> {
+  if (!OBJECT_ID.test(input.objectId)) return { kind: "failed" };
+  const objectId = input.objectId.toLowerCase();
+  const started = Date.now();
+  const budget = input.timeoutMs ?? RAW_OBJECT_READ_BUDGET_MS;
+  const timeout = (): number | null => {
+    const remaining = budget - (Date.now() - started);
+    return remaining > 0 ? remaining : null;
+  };
+
+  const typeTimeout = timeout();
+  if (typeTimeout === null) return { kind: "failed" };
+  const typed = await runGit({
+    cwd: input.cwd,
+    gitBinary: input.gitBinary,
+    timeoutMs: typeTimeout,
+    args: ["cat-file", "-t", "--end-of-options", objectId],
+  });
+  if (!typed.ok) return commandFailure(typed.reason);
+  if (
+    typed.timedOut ||
+    typed.stdoutTruncated ||
+    typed.stderrTruncated ||
+    typed.exitCode !== 0
+  ) {
+    return { kind: "failed" };
+  }
+  const typeName = decodeUtf8(typed.stdout)?.trim().toLowerCase() ?? "";
+  if (typeName !== "commit" && typeName !== "tree" && typeName !== "blob") {
+    return typeName.length > 0
+      ? { kind: "unsupported_type" }
+      : { kind: "failed" };
+  }
+
+  const sizeTimeout = timeout();
+  if (sizeTimeout === null) return { kind: "failed" };
+  const sized = await objectSize(
+    { cwd: input.cwd, gitBinary: input.gitBinary, timeoutMs: sizeTimeout },
+    objectId,
+  );
+  if (typeof sized !== "number") return sized;
+  const limit = input.maxBytes ?? LOCAL_BLOB_BYTE_LIMIT;
+  if (sized > limit) return { kind: "oversized", size: sized };
+
+  const bodyTimeout = timeout();
+  if (bodyTimeout === null) return { kind: "failed" };
+  const body = await runGit({
+    cwd: input.cwd,
+    gitBinary: input.gitBinary,
+    timeoutMs: bodyTimeout,
+    maxStdoutBytes: sized,
+    args: ["cat-file", typeName, "--end-of-options", objectId],
+  });
+  if (!body.ok) return commandFailure(body.reason);
+  if (
+    body.timedOut ||
+    body.stdoutTruncated ||
+    body.stderrTruncated ||
+    body.exitCode !== 0 ||
+    body.stdout.length !== sized
+  ) {
+    return { kind: "failed" };
+  }
+  return {
+    kind: "bytes",
+    type: typeName,
+    size: sized,
+    bytes: new Uint8Array(body.stdout),
+  };
 }
 
 export async function readLocalBlob(
@@ -200,12 +297,13 @@ function commandFailure(reason: "git_unavailable" | "git_failed"): {
 }
 
 async function objectSize(
-  input: GitOptions,
+  input: GitOptions & { timeoutMs?: number },
   objectId: string,
 ): Promise<number | { kind: LocalGitObjectFailure }> {
   const sized = await runGit({
     cwd: input.cwd,
     gitBinary: input.gitBinary,
+    timeoutMs: input.timeoutMs,
     args: ["cat-file", "-s", "--end-of-options", objectId],
   });
   if (!sized.ok) return commandFailure(sized.reason);

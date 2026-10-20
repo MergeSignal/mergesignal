@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { chmodSync, writeFileSync } from "node:fs";
 import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
@@ -9,6 +10,7 @@ import {
   LOCAL_BLOB_BYTE_LIMIT,
   listLocalTree,
   readLocalBlob,
+  readLocalObject,
   readLocalPathAtRevision,
 } from "./objects.js";
 import {
@@ -288,6 +290,121 @@ describe("raw object acquisition", () => {
     ).resolves.toEqual({ kind: "failed" });
   });
 });
+
+describe("exact raw object read", () => {
+  it("rehashes a committed blob, commit, and multi-entry tree", async () => {
+    const dir = await createRepo();
+    await writeAndCommit(
+      dir,
+      { "a.txt": "alpha\n", "b.txt": "beta\n" },
+      "two files",
+    );
+    const commit = (await runGit(dir, ["rev-parse", "HEAD"])).trim();
+    const tree = (await runGit(dir, ["rev-parse", "HEAD^{tree}"])).trim();
+    const blob = (await runGit(dir, ["rev-parse", "HEAD:a.txt"])).trim();
+    const pretty = await runGit(dir, ["ls-tree", tree]);
+
+    const commitRead = await readLocalObject({ cwd: dir, objectId: commit });
+    const treeRead = await readLocalObject({ cwd: dir, objectId: tree });
+    const blobRead = await readLocalObject({ cwd: dir, objectId: blob });
+
+    expect(commitRead.kind).toBe("bytes");
+    expect(treeRead.kind).toBe("bytes");
+    expect(blobRead.kind).toBe("bytes");
+    if (
+      commitRead.kind !== "bytes" ||
+      treeRead.kind !== "bytes" ||
+      blobRead.kind !== "bytes"
+    ) {
+      return;
+    }
+    expect(commitRead.type).toBe("commit");
+    expect(treeRead.type).toBe("tree");
+    expect(blobRead.type).toBe("blob");
+    expect(gitObjectHash("commit", commitRead.bytes)).toBe(commit);
+    expect(gitObjectHash("tree", treeRead.bytes)).toBe(tree);
+    expect(gitObjectHash("blob", blobRead.bytes)).toBe(blob);
+    expect(treeRead.bytes.includes(0)).toBe(true);
+    expect(Buffer.from(treeRead.bytes).toString("utf8")).not.toBe(pretty);
+    expect(Buffer.from(blobRead.bytes).toString("utf8")).toBe("alpha\n");
+
+    await writeFile(path.join(dir, "a.txt"), "worktree-only\n");
+    const reread = await readLocalObject({ cwd: dir, objectId: blob });
+    expect(reread).toMatchObject({ kind: "bytes", type: "blob" });
+    if (reread.kind !== "bytes") return;
+    expect(Buffer.from(reread.bytes).toString("utf8")).toBe("alpha\n");
+  });
+
+  it("uses cat-file type and raw type, not pretty output", async () => {
+    const dir = await createRepo();
+    await writeAndCommit(dir, { "a.txt": "alpha\n" }, "one");
+    const blob = (await runGit(dir, ["rev-parse", "HEAD:a.txt"])).trim();
+    const log = path.join(dir, "git-args");
+    const wrapper = await gitWrapper(dir, log);
+
+    const read = await readLocalObject({
+      cwd: dir,
+      gitBinary: wrapper,
+      objectId: blob,
+    });
+
+    expect(read.kind).toBe("bytes");
+    const commands = (await readFile(log, "utf8")).trim().split("\n");
+    expect(commands.some((line) => line.includes("cat-file -t "))).toBe(true);
+    expect(commands.some((line) => line.includes("cat-file blob "))).toBe(true);
+    expect(commands.some((line) => line.includes(" -p"))).toBe(false);
+  });
+
+  it("rejects malformed ids, missing objects, tags, oversized objects, and timeouts", async () => {
+    const dir = await createRepo();
+    await writeAndCommit(dir, { "a.txt": "alpha\n" }, "one");
+    await runGit(dir, ["tag", "-a", "v1", "-m", "annotated", "HEAD"]);
+    const tag = (await runGit(dir, ["rev-parse", "v1"])).trim();
+
+    await expect(
+      readLocalObject({ cwd: dir, objectId: "HEAD" }),
+    ).resolves.toEqual({ kind: "failed" });
+    await expect(
+      readLocalObject({ cwd: dir, objectId: "a".repeat(40) }),
+    ).resolves.toEqual({ kind: "failed" });
+    await expect(readLocalObject({ cwd: dir, objectId: tag })).resolves.toEqual(
+      { kind: "unsupported_type" },
+    );
+
+    const big = Buffer.alloc(LOCAL_BLOB_BYTE_LIMIT + 1, 1);
+    await writeFile(path.join(dir, "big.bin"), big);
+    await runGit(dir, ["add", "--", "big.bin"]);
+    await runGit(dir, ["commit", "-q", "-m", "big"]);
+    const oversized = (await runGit(dir, ["rev-parse", "HEAD:big.bin"])).trim();
+    await expect(
+      readLocalObject({ cwd: dir, objectId: oversized }),
+    ).resolves.toEqual({
+      kind: "oversized",
+      size: LOCAL_BLOB_BYTE_LIMIT + 1,
+    });
+
+    const slow = path.join(dir, "slow-git");
+    writeFileSync(slow, "#!/bin/sh\nsleep 30\n");
+    chmodSync(slow, 0o755);
+    const started = Date.now();
+    await expect(
+      readLocalObject({
+        cwd: dir,
+        gitBinary: slow,
+        objectId: oversized,
+        timeoutMs: 200,
+      }),
+    ).resolves.toEqual({ kind: "failed" });
+    expect(Date.now() - started).toBeLessThan(2_000);
+  });
+});
+
+function gitObjectHash(type: string, bytes: Uint8Array): string {
+  return createHash("sha1")
+    .update(`${type} ${bytes.byteLength}\0`)
+    .update(bytes)
+    .digest("hex");
+}
 
 async function gitWrapper(dir: string, log: string): Promise<string> {
   const { stdout } = await exec("which", ["git"]);

@@ -121,6 +121,7 @@ describe("local scan ingress", () => {
       scanId: "server-scan",
     });
     vi.mocked(queries.scans.findById).mockReset();
+    redis.values.clear();
   });
 
   afterEach(async () => {
@@ -278,5 +279,63 @@ describe("local scan ingress", () => {
       payload: Buffer.from("bytes"),
     });
     expect(finished.statusCode).toBe(409);
+  });
+
+  it("returns an authoritative negative acquisition read and omits a failed read", async () => {
+    vi.mocked(queries.scans.findById).mockResolvedValue({
+      id: "scan-9",
+      repo_id: "acme/scan-9",
+      status: "running",
+      github_pr_number: null,
+      github_head_sha: null,
+    } as never);
+
+    const empty = await app.inject({ method: "GET", url: "/scan/scan-9" });
+    expect(empty.statusCode).toBe(200);
+    expect(empty.json().acquisition).toEqual({ pending: false });
+
+    vi.mocked(queries.scans.findById).mockResolvedValue({
+      id: "scan-9",
+      repo_id: "acme/scan-9",
+      status: "queued",
+      github_pr_number: null,
+      github_head_sha: null,
+    } as never);
+    const queued = await app.inject({ method: "GET", url: "/scan/scan-9" });
+    expect(queued.json().acquisition).toEqual({ pending: false });
+
+    redis.values.set(
+      "ms:local-acq:scan-9",
+      JSON.stringify({
+        generation: "4",
+        deadlineAt: Date.now() + 60_000,
+        phase: "pending",
+        objectId: "ab".repeat(20),
+      }),
+    );
+    const pending = await app.inject({ method: "GET", url: "/scan/scan-9" });
+    expect(pending.json().acquisition).toEqual({
+      pending: true,
+      objectId: "ab".repeat(20),
+      generation: "4",
+    });
+
+    __setAcquisitionRedisForTests({
+      get: async () => {
+        throw new Error("redis-backend-down");
+      },
+    } as unknown as AcquisitionRedis);
+    const failed = await app.inject({ method: "GET", url: "/scan/scan-9" });
+    expect(failed.statusCode).toBe(200);
+    expect(failed.json()).not.toHaveProperty("acquisition");
+    expect(failed.body).not.toContain("redis-backend-down");
+
+    __setAcquisitionRedisForTests(null);
+    const unavailable = await app.inject({
+      method: "GET",
+      url: "/scan/scan-9",
+    });
+    expect(unavailable.statusCode).toBe(200);
+    expect(unavailable.json()).not.toHaveProperty("acquisition");
   });
 });

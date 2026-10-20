@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@mergesignal/engine": "workspace:^",
+    "@mergesignal/local-git": "workspace:*",
     "@mergesignal/shared": "workspace:^"
   },
   "devDependencies": {

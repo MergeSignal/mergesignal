@@ -200,15 +200,20 @@ export async function scanRoutes(app: FastifyInstance) {
 
     let acquisition:
       | { pending: true; objectId: string; generation: string }
+      | { pending: false }
       | undefined;
-    if (scan.status === "running") {
+    if (scan.status === "queued" || scan.status === "running") {
       try {
         const redis = getAcquisitionRedis();
         if (redis) {
           const pending = await readPendingAcquisition(redis, scan.id);
-          if (pending) {
-            acquisition = { pending: true, ...pending };
-          }
+          acquisition = pending
+            ? {
+                pending: true,
+                objectId: pending.objectId,
+                generation: pending.generation,
+              }
+            : { pending: false };
         }
       } catch {
         acquisition = undefined;
