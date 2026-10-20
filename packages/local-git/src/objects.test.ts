@@ -355,7 +355,7 @@ describe("exact raw object read", () => {
     expect(commands.some((line) => line.includes(" -p"))).toBe(false);
   });
 
-  it("rejects malformed ids, missing objects, tags, oversized objects, and timeouts", async () => {
+  it("rejects malformed ids, missing objects, tags, and oversized objects", async () => {
     const dir = await createRepo();
     await writeAndCommit(dir, { "a.txt": "alpha\n" }, "one");
     await runGit(dir, ["tag", "-a", "v1", "-m", "annotated", "HEAD"]);
@@ -382,7 +382,10 @@ describe("exact raw object read", () => {
       kind: "oversized",
       size: LOCAL_BLOB_BYTE_LIMIT + 1,
     });
+  });
 
+  it("bounds an unresponsive Git command", async () => {
+    const dir = await createRepo();
     const slow = path.join(dir, "slow-git");
     writeFileSync(slow, "#!/bin/sh\nsleep 30\n");
     chmodSync(slow, 0o755);
@@ -391,7 +394,7 @@ describe("exact raw object read", () => {
       readLocalObject({
         cwd: dir,
         gitBinary: slow,
-        objectId: oversized,
+        objectId: "a".repeat(40),
         timeoutMs: 200,
       }),
     ).resolves.toEqual({ kind: "failed" });
