@@ -1,47 +1,29 @@
-import { scanSurfaceCopy } from "../../scanSurfaceCopy.js";
 import type { CliScanPresentation } from "../dto/githubAndCliPresentation.js";
 
 export function renderCliScanSummaryText(p: CliScanPresentation): string {
-  const lines: string[] = [
-    `MergeSignal - ${p.header.repoLabel}`,
-    "",
-    p.headline,
-  ];
-  if (p.subheadline) lines.push(p.subheadline);
-  lines.push(
-    "",
-    `Status: ${p.status} | Density: ${p.density} | Confidence: ${p.confidence}`,
-  );
-  if (p.metrics) {
-    const bandSuffix = p.metrics.prRiskBandLabel
-      ? ` (${p.metrics.prRiskBandLabel})`
-      : "";
-    if (
-      p.metrics.prRiskScore != null &&
-      Number.isFinite(p.metrics.prRiskScore)
-    ) {
-      lines.push(
-        `${scanSurfaceCopy.actions.prRiskScoreLabel}: ${p.metrics.prRiskScore}${bandSuffix}`,
-      );
-    }
-    if (p.metrics.layerLine) {
-      lines.push(p.metrics.layerLine);
-    }
-    lines.push(
-      `Findings: ${p.metrics.findingCount} | Recommendations: ${p.metrics.recommendationCount}`,
-    );
+  const lines: string[] = [];
+  if (p.header.repoLabel && p.header.repoLabel !== "scan") {
+    lines.push(p.header.repoLabel, "");
   }
-  if (p.keyPoints.length > 0) {
-    lines.push("", "Key points:");
-    for (const point of p.keyPoints) lines.push(`  - ${point}`);
+  if (p.report.dependency) {
+    lines.push(p.report.dependency, "");
   }
-  if (p.verificationActions.length > 0) {
-    lines.push("", "Verify:");
-    for (const action of p.verificationActions) lines.push(`  - ${action}`);
+  lines.push(`Assessment: ${p.report.assessmentLabel}`);
+  appendSection(lines, "Why this assessment", p.report.why);
+  appendSection(lines, "Verify", p.report.verify);
+  if (p.report.notAffected) {
+    lines.push("", "Not affected", p.report.notAffected);
   }
-  if (p.supportingContext?.length) {
-    lines.push("", "Supporting context:");
-    for (const line of p.supportingContext) lines.push(`  - ${line}`);
+  if (p.report.resolution) {
+    lines.push("", "Resolution", p.report.resolution);
   }
+  appendSection(lines, "Limitations", p.report.limitations);
+  appendSection(lines, "Findings", p.report.findings);
   return lines.join("\n");
+}
+
+function appendSection(lines: string[], title: string, items: string[]): void {
+  if (items.length === 0) return;
+  lines.push("", title);
+  for (const item of items) lines.push(item);
 }

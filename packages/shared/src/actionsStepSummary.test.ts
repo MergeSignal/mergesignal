@@ -45,7 +45,10 @@ describe("buildActionsStepSummaryMarkdown", () => {
       copy,
     });
     expect(md).not.toContain(copy["actions.demoSummaryBanner"] ?? "");
-    expect(md).toContain("MergeSignal");
+    expect(md).toContain("Assessment: Needs review");
+    expect(md).toContain(
+      "Changed package upgrade leaves unresolved runtime exposure that warrants review before merge.",
+    );
   });
 
   it("returns failure message when assessment is missing", () => {

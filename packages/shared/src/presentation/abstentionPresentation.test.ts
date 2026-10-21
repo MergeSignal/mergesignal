@@ -114,11 +114,11 @@ describe("abstention presentation semantics", () => {
 
     expect(cli.metrics?.prRiskScore).toBeUndefined();
     expect(cli.metrics?.riskIndex).toBeUndefined();
-    expect(text).not.toMatch(/PR Risk score:\s*0\b/);
-    expect(text).not.toMatch(/PR Risk score:/);
+    expect(text).not.toMatch(/PR Risk/);
+    expect(text).not.toContain("Confidence:");
   });
 
-  it("CLI summary renders authoritative PR Risk score when wire is scored", () => {
+  it("keeps an authoritative PR Risk score off the human CLI report", () => {
     const bundle = buildScanPresentationBundle({
       result: scanResultFastifyRuntime,
       pipelineStatus: "done",
@@ -128,10 +128,11 @@ describe("abstention presentation semantics", () => {
 
     expect(cli.metrics?.prRiskScore).toBe(55);
     expect(cli.metrics?.riskIndex).toBeUndefined();
-    expect(text).toContain("PR Risk score: 55");
+    expect(text).not.toMatch(/PR Risk/);
+    expect(text).not.toContain("Confidence:");
   });
 
-  it("CLI summary renders authoritative PR Risk score zero when wire is scored at 0", () => {
+  it("keeps a zero PR Risk score off the human CLI report", () => {
     const result = {
       ...scanResultTypescriptPatch,
       prRisk: { score: 0 },
@@ -145,7 +146,8 @@ describe("abstention presentation semantics", () => {
 
     expect(cli.metrics?.prRiskScore).toBe(0);
     expect(cli.metrics?.riskIndex).toBeUndefined();
-    expect(text).toContain("PR Risk score: 0");
+    expect(text).not.toMatch(/PR Risk/);
+    expect(text).not.toContain("Confidence:");
   });
 
   it("maps abstain to neutral GitHub check conclusion", () => {

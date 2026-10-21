@@ -57,4 +57,17 @@ export type CliScanPresentation = AssessmentPresentationFields & {
     recommendationCount: number;
   };
   supportingContext?: string[];
+  /** Completed human report. Formatting only; Assessment remains the authority. */
+  report: CliHumanReport;
+};
+
+type CliHumanReport = {
+  dependency?: string;
+  assessmentLabel: string;
+  why: string[];
+  verify: string[];
+  notAffected?: string;
+  resolution?: string;
+  limitations: string[];
+  findings: string[];
 };

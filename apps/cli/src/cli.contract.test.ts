@@ -470,6 +470,9 @@ describe("normal CLI contract", () => {
     );
     expect(human.code).toBe(3);
     expect(human.stdout).toBe(`${text}\n`);
+    expect(human.stdout).toContain("Assessment: Safe");
+    expect(human.stdout).not.toMatch(/PR Risk/);
+    expect(human.stdout).not.toContain("Confidence:");
     expect(human.stderr).toBe("");
     expect(result.assessment?.posture).toBe("safe");
   });
@@ -556,5 +559,21 @@ describe("normal CLI contract", () => {
     expect(ran.code).toBe(143);
     expect(ran.stdout).toBe("");
     expect(ran.stderr).toBe("The scan was interrupted.\n");
+  });
+
+  it("shows public scan options and does not advertise internal analysis", async () => {
+    const ran = await execute(["--help"]);
+    expect(ran.code).toBe(0);
+    expect(ran.stdout).toContain("mergesignal scan");
+    expect(ran.stdout).toContain("--base");
+    expect(ran.stdout).toContain("--json");
+    expect(ran.stdout).toContain("--out");
+    expect(ran.stdout).toContain("--fail-above");
+    expect(ran.stdout).toContain("--repo-id");
+    expect(ran.stdout).not.toContain("--trusted");
+    expect(ran.stdout).not.toContain("--lockfile");
+    expect(ran.stdout).not.toContain("MERGESIGNAL_TRUSTED_ANALYSIS");
+    expect(ran.stdout).not.toContain("fly.dev");
+    expect(ran.stdout.toLowerCase()).not.toContain("guarantee");
   });
 });

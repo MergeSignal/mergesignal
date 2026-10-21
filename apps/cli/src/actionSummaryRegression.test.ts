@@ -112,10 +112,13 @@ describe("GitHub Actions step summary scripts", () => {
     writeFileSync(jsonFile, JSON.stringify(trustedLikeResult));
     const { status, summary } = runRender("trusted", jsonFile);
     expect(status).toBe(0);
-    expect(summary).toContain("MergeSignal -");
-    expect(summary).toContain("Status: safe");
-    expect(summary).toContain("PR Risk score: 10 (Very Low)");
-    expect(summary.length).toBeLessThan(1600);
+    expect(summary).toContain("Assessment: Safe");
+    expect(summary).toContain("typescript");
+    expect(summary).toContain(
+      "No dedicated dependency review required beyond normal engineering process.",
+    );
+    expect(summary).not.toMatch(/PR Risk/);
+    expect(summary).not.toContain("Confidence:");
   });
 
   it("failure summary never mimics success scorecard", () => {
