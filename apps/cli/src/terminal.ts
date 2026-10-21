@@ -30,9 +30,21 @@ const HOSTED_MESSAGES: Record<string, string> = {
   object_oversized: "A required Git object is too large.",
   object_unsupported: "A required Git object type is not supported.",
   git_unavailable: "Git is not available.",
+  git_read_failed: "The repository could not be read.",
+  not_a_git_repository: "This directory is not a Git repository.",
   fulfillment_expired:
     "The Git object request expired before it could be fulfilled.",
+  scan_queued: "The scan is still queued.",
+  scan_running: "The scan is still running.",
+  no_remembered_scan: "No completed scan is remembered for this worktree.",
+  malformed_scan_reference: "The remembered scan reference is not usable.",
 };
+
+export const POINTER_NOT_SAVED =
+  "The completed scan could not be remembered for later report.";
+
+export const REPORT_API_KEY_REQUIRED =
+  "MERGESIGNAL_API_KEY is required to retrieve a hosted scan.";
 
 type PreparationOutcome = keyof typeof PREPARATION_MESSAGES;
 

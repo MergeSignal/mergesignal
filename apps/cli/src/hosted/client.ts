@@ -72,6 +72,17 @@ export type FulfillObjectResult =
   | { ok: false; settled: true }
   | { ok: false; settled: false; failure: HostedRequestFailure };
 
+export type RetrieveScanResult =
+  | { ok: true; result: ScanResult }
+  | {
+      ok: false;
+      failure:
+        | HostedRequestFailure
+        | { code: "scan_failed"; detail: string | null }
+        | { code: "scan_queued" }
+        | { code: "scan_running" };
+    };
+
 export type HostedScanClient = {
   submit(body: LocalScanSubmission): Promise<SubmitScanResult>;
   poll(scanId: string): Promise<PollScanResult>;
@@ -82,6 +93,7 @@ export type HostedScanClient = {
     bytes: Uint8Array;
     timeoutMs: number;
   }): Promise<FulfillObjectResult>;
+  retrieve(scanId: string): Promise<RetrieveScanResult>;
 };
 
 const SCAN_ID = /^[A-Za-z0-9_-]{1,128}$/;
@@ -242,6 +254,47 @@ export function createHostedScanClient(input: {
         settled: false,
         failure: classifyFailure(response.status, response.bytes),
       };
+    },
+
+    async retrieve(scanId) {
+      if (!SCAN_ID.test(scanId)) {
+        return { ok: false, failure: { code: "invalid_response" } };
+      }
+      const response = await request(
+        `/v1/scan/${scanId}?include=rawResult`,
+        { method: "GET" },
+        HTTP_REQUEST_TIMEOUT_MS,
+      );
+      if (!response.ok) return { ok: false, failure: response.failure };
+      if (response.status !== 200) {
+        return {
+          ok: false,
+          failure: classifyFailure(response.status, response.bytes),
+        };
+      }
+      const parsed = parseJson(response.bytes);
+      if (!isRecord(parsed) || typeof parsed.status !== "string") {
+        return { ok: false, failure: { code: "invalid_response" } };
+      }
+      if (parsed.status === "failed") {
+        return {
+          ok: false,
+          failure: {
+            code: "scan_failed",
+            detail: typeof parsed.error === "string" ? parsed.error : null,
+          },
+        };
+      }
+      if (parsed.status === "queued") {
+        return { ok: false, failure: { code: "scan_queued" } };
+      }
+      if (parsed.status === "running") {
+        return { ok: false, failure: { code: "scan_running" } };
+      }
+      if (parsed.status !== "done" || !isScanResult(parsed.result)) {
+        return { ok: false, failure: { code: "invalid_response" } };
+      }
+      return { ok: true, result: parsed.result };
     },
   };
 }

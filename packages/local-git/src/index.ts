@@ -14,6 +14,12 @@ export {
   type LocalTreeListing,
 } from "./objects.js";
 export {
+  readWorktreeCheckout,
+  resolveWorktreeGitDir,
+  type WorktreeCheckout,
+  type WorktreeCheckoutFailure,
+} from "./worktree.js";
+export {
   observeLocalGit,
   type LocalChangedPath,
   type LocalGitFailureOutcome,

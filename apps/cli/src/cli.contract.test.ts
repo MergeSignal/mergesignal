@@ -1,7 +1,8 @@
-import { mkdtempSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import type { ScanResult } from "@mergesignal/shared";
 import {
   assessmentTypescriptPatch,
@@ -14,6 +15,11 @@ import type { runHostedLocalScan } from "./hosted/hostedScan.js";
 import { runCli } from "./cli.js";
 
 const SECRET = "ms-test-api-key-value";
+const contractRepo = mkdtempSync(path.join(tmpdir(), "ms-cli-contract-"));
+execFileSync("git", ["init", "-q", "-b", "main"], { cwd: contractRepo });
+afterAll(() => {
+  rmSync(contractRepo, { recursive: true, force: true });
+});
 
 type Hosted = typeof runHostedLocalScan;
 type Pipeline = Awaited<ReturnType<Hosted>>;
@@ -47,7 +53,7 @@ async function execute(
     stdout,
     stderr,
     env: options.env ?? {},
-    cwd: options.cwd ?? "/tmp/cli-contract",
+    cwd: options.cwd ?? contractRepo,
     ...(options.hostedScan ? { hostedScan: options.hostedScan } : {}),
     analyzeImpl:
       options.analyzeImpl ??
@@ -118,6 +124,7 @@ describe("normal CLI contract", () => {
       ok: true,
       kind: "scan",
       scanId: "scan-1",
+      headCommit: "a".repeat(40),
       result,
     }));
 
@@ -192,6 +199,7 @@ describe("normal CLI contract", () => {
           ok: true,
           kind: "scan",
           scanId: "scan-1",
+          headCommit: "a".repeat(40),
           result,
         }),
       });
@@ -430,6 +438,7 @@ describe("normal CLI contract", () => {
         ok: true,
         kind: "scan",
         scanId: "scan-1",
+        headCommit: "a".repeat(40),
         result,
       }),
     });
@@ -442,6 +451,7 @@ describe("normal CLI contract", () => {
         ok: true,
         kind: "scan",
         scanId: "scan-1",
+        headCommit: "a".repeat(40),
         result,
       }),
     });
@@ -454,6 +464,7 @@ describe("normal CLI contract", () => {
           ok: true,
           kind: "scan",
           scanId: "scan-1",
+          headCommit: "a".repeat(40),
           result,
         }),
       },
@@ -492,6 +503,7 @@ describe("normal CLI contract", () => {
         ok: true,
         kind: "scan",
         scanId: "scan-1",
+        headCommit: "a".repeat(40),
         result,
       }),
     });
@@ -530,7 +542,13 @@ describe("normal CLI contract", () => {
     });
     controller.abort("SIGINT");
     const ran = await pending;
-    finish({ ok: true, kind: "scan", scanId: "scan-1", result });
+    finish({
+      ok: true,
+      kind: "scan",
+      scanId: "scan-1",
+      headCommit: "a".repeat(40),
+      result,
+    });
 
     expect(calls).toBe(1);
     expect(ran.code).toBe(130);
@@ -565,6 +583,8 @@ describe("normal CLI contract", () => {
     const ran = await execute(["--help"]);
     expect(ran.code).toBe(0);
     expect(ran.stdout).toContain("mergesignal scan");
+    expect(ran.stdout).toContain("mergesignal report");
+    expect(ran.stdout).toContain("does not run another analysis");
     expect(ran.stdout).toContain("--base");
     expect(ran.stdout).toContain("--json");
     expect(ran.stdout).toContain("--out");
@@ -574,6 +594,9 @@ describe("normal CLI contract", () => {
     expect(ran.stdout).not.toContain("--lockfile");
     expect(ran.stdout).not.toContain("MERGESIGNAL_TRUSTED_ANALYSIS");
     expect(ran.stdout).not.toContain("fly.dev");
+    expect(ran.stdout.toLowerCase()).not.toContain("redis");
+    expect(ran.stdout.toLowerCase()).not.toContain("database");
+    expect(ran.stdout.toLowerCase()).not.toContain("worker");
     expect(ran.stdout.toLowerCase()).not.toContain("guarantee");
   });
 });

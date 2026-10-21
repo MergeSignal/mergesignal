@@ -4,6 +4,10 @@ import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { analyze } from "@mergesignal/engine";
+import {
+  readWorktreeCheckout,
+  resolveWorktreeGitDir,
+} from "@mergesignal/local-git";
 import type {
   ScanLockfileInput,
   ScanRequest,
@@ -19,8 +23,16 @@ import {
   validateTrustedEngineScanResult,
 } from "@mergesignal/shared";
 
+import { resolveApiOrigin } from "./hosted/apiOrigin.js";
+import { createHostedScanClient } from "./hosted/client.js";
 import { runHostedLocalScan } from "./hosted/hostedScan.js";
 import {
+  readLastScanPointer,
+  writeLastScanPointer,
+} from "./lastScanPointer.js";
+import {
+  POINTER_NOT_SAVED,
+  REPORT_API_KEY_REQUIRED,
   errorDocument,
   hostedError,
   interruptionCode,
@@ -51,6 +63,7 @@ type CliIo = {
   cwd: string;
   hostedScan: typeof runHostedLocalScan;
   analyzeImpl: typeof analyze;
+  fetchImpl?: typeof fetch;
   signal?: AbortSignal;
 };
 
@@ -88,6 +101,8 @@ export async function runCli(
     printHelp(bound.stdout);
     return 0;
   }
+
+  if (cmd === "report") return runReport(args, bound);
 
   if (cmd !== "scan") {
     if (args["--json"])
@@ -185,6 +200,7 @@ async function runHosted(
     });
     return emitDocument(io, args, described, 1, "stderr");
   }
+  await rememberCompletedScan(io, result);
   return emitCompleted(io, args, result.result, threshold);
 }
 
@@ -394,6 +410,7 @@ function bindIo(io: Partial<CliIo>): CliIo {
     cwd: io.cwd ?? getInvocationCwd(),
     hostedScan: io.hostedScan ?? runHostedLocalScan,
     analyzeImpl: io.analyzeImpl ?? analyze,
+    ...(io.fetchImpl ? { fetchImpl: io.fetchImpl } : {}),
     ...(io.signal ? { signal: io.signal } : {}),
   };
 }
@@ -404,6 +421,132 @@ function getInvocationCwd() {
   return resolved || process.cwd();
 }
 
+async function rememberCompletedScan(
+  io: CliIo,
+  scan: { scanId: string; headCommit: string },
+): Promise<void> {
+  const gitDir = await resolveWorktreeGitDir({ cwd: io.cwd });
+  if (!gitDir.ok) {
+    io.stderr.write(`${POINTER_NOT_SAVED}\n`);
+    return;
+  }
+  try {
+    await writeLastScanPointer(gitDir.gitDir, {
+      scanId: scan.scanId,
+      head: scan.headCommit,
+    });
+  } catch {
+    io.stderr.write(`${POINTER_NOT_SAVED}\n`);
+  }
+}
+
+async function runReport(args: ArgMap, io: CliIo): Promise<number> {
+  if (
+    args._.length > 1 ||
+    args["--fail-above"] !== undefined ||
+    args["--base"] !== undefined ||
+    args["--lockfile"] !== undefined ||
+    args["--out"] !== undefined ||
+    args["--repo-id"] !== undefined
+  ) {
+    return emitUsage(
+      io,
+      Boolean(args["--json"]),
+      "report accepts only --json.",
+    );
+  }
+
+  const gitDir = await resolveWorktreeGitDir({ cwd: io.cwd });
+  if (!gitDir.ok) {
+    return emitDocument(
+      io,
+      args,
+      hostedError({ code: gitDir.outcome }),
+      1,
+      "stderr",
+    );
+  }
+
+  const pointer = await readLastScanPointer(gitDir.gitDir);
+  if (pointer === "missing" || pointer === "malformed") {
+    return emitDocument(
+      io,
+      args,
+      hostedError({
+        code:
+          pointer === "missing"
+            ? "no_remembered_scan"
+            : "malformed_scan_reference",
+      }),
+      1,
+      "stderr",
+    );
+  }
+
+  const apiKey = io.env.MERGESIGNAL_API_KEY;
+  if (typeof apiKey !== "string" || apiKey.length === 0) {
+    return emitDocument(
+      io,
+      args,
+      errorDocument("missing_api_key", REPORT_API_KEY_REQUIRED),
+      1,
+      "stderr",
+    );
+  }
+  const origin = resolveApiOrigin(io.env.MERGESIGNAL_API_ORIGIN);
+  if (!origin.ok) {
+    return emitDocument(
+      io,
+      args,
+      hostedError({ code: "invalid_origin" }),
+      1,
+      "stderr",
+    );
+  }
+
+  const retrieved = await createHostedScanClient({
+    origin: origin.origin,
+    apiKey,
+    ...(io.fetchImpl ? { fetchImpl: io.fetchImpl } : {}),
+  }).retrieve(pointer.scanId);
+  if (!retrieved.ok) {
+    const failure = retrieved.failure;
+    return emitDocument(
+      io,
+      args,
+      hostedError({
+        code: failure.code,
+        ...("limit" in failure ? { limit: failure.limit } : {}),
+        ...("used" in failure ? { used: failure.used } : {}),
+        ...("resetsAt" in failure ? { resetsAt: failure.resetsAt } : {}),
+      }),
+      1,
+      "stderr",
+    );
+  }
+
+  if (args["--json"]) {
+    io.stdout.write(`${JSON.stringify(retrieved.result)}\n`);
+    return 0;
+  }
+
+  const rendered = renderCompleted(retrieved.result, args, io.cwd);
+  if (rendered === null) {
+    io.stderr.write(`${scanSurfaceCopy.cli.stderrAnalysisIncomplete}\n`);
+    return 1;
+  }
+  const lines = ["Completed scan"];
+  const current = await readWorktreeCheckout({ cwd: io.cwd });
+  if (current.ok && current.headCommit !== pointer.head) {
+    lines.push(
+      `Scanned HEAD ${pointer.head}`,
+      `Current HEAD ${current.headCommit}`,
+    );
+  }
+  io.stdout.write(`${lines.join("\n")}\n\n${rendered}\n`);
+  return 0;
+}
+
 function printHelp(stdout: TextWriter) {
   stdout.write(
     [
@@ -411,12 +554,15 @@ function printHelp(stdout: TextWriter) {
       "",
       "Usage:",
       "  mergesignal scan [--repo-id <id>] [--base <revision>] [--json] [--out <file>] [--fail-above <n>]",
+      "  mergesignal report [--json]",
       "",
       "Examples:",
       "  mergesignal scan",
       "  mergesignal scan --base origin/main",
       "  mergesignal scan --json --out result.json",
       "  mergesignal scan --fail-above 20",
+      "  mergesignal report",
+      "  mergesignal report --json",
       "",
       "Notes:",
       "  - Assesses a dependency upgrade from committed Git history.",
@@ -425,6 +571,7 @@ function printHelp(stdout: TextWriter) {
       "  - --json prints the authoritative scan result.",
       "  - --fail-above <n> fails the command when PR Risk is greater than n.",
       "  - No supported lockfile change finishes without a scan.",
+      "  - report shows the last completed scan for this worktree and does not run another analysis.",
       "",
     ].join("\n"),
   );

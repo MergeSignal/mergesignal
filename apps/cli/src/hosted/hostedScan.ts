@@ -63,7 +63,13 @@ type HostedScanPipelineResult =
       >;
     }
   | { ok: false; kind: "local"; outcome: LocalGitFailureOutcome }
-  | { ok: true; kind: "scan"; scanId: string; result: ScanResult }
+  | {
+      ok: true;
+      kind: "scan";
+      scanId: string;
+      result: ScanResult;
+      headCommit: string;
+    }
   | { ok: false; kind: "hosted"; failure: HostedScanFailure };
 
 type RunHostedLocalScanInput = {
@@ -116,7 +122,7 @@ export async function runHostedLocalScan(
   if (!submitted.ok)
     return { ok: false, kind: "hosted", failure: submitted.failure };
 
-  return pollUntilDone({
+  const finished = await pollUntilDone({
     client,
     scanId: submitted.scanId,
     cwd: input.cwd,
@@ -125,7 +131,18 @@ export async function runHostedLocalScan(
     readObject: input.readObject ?? readLocalObject,
     pendingCouldOpenAt,
   });
+  if (finished.ok && finished.kind === "scan") {
+    return {
+      ...finished,
+      headCommit: observed.headCommit,
+    };
+  }
+  return finished;
 }
+
+type PolledScan =
+  | Exclude<HostedScanPipelineResult, { kind: "scan" }>
+  | { ok: true; kind: "scan"; scanId: string; result: ScanResult };
 
 async function pollUntilDone(input: {
   client: HostedScanClient;
@@ -135,7 +152,7 @@ async function pollUntilDone(input: {
   clock: Clock;
   readObject: typeof readLocalObject;
   pendingCouldOpenAt: number;
-}): Promise<HostedScanPipelineResult> {
+}): Promise<PolledScan> {
   const deadline = input.clock.now() + SCAN_WAIT_MS;
   let pendingCouldOpenAt = input.pendingCouldOpenAt;
   let transientPolls = 0;
