@@ -2,6 +2,14 @@
 
 All notable changes to `@mergesignal/shared` are documented in this file.
 
+## 0.22.2
+
+### Added
+
+- Canonical CLI scan presentation: `presentCliScanSummary`, `CliScanPresentation`, and aligned human report rendering via `renderCliScanSummaryText` (presentation projection of authoritative Assessment and engine evidence; no alternate decision authority).
+
+`ASSESSMENT_ABI` remains `4`. Presentation-only additions; wire and trusted validation unchanged.
+
 ## 0.22.1
 
 ### Fixed
